@@ -1,0 +1,4 @@
+CMakeLists.txt.user*
+*.pyc
+__init__.py
+*.swp
