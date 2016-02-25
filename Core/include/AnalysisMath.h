@@ -9,6 +9,8 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <TLorentzVector.h>
 #include <TH1.h>
 
+#include "PhysicalValue.h"
+
 namespace analysis {
 
 //see AN-13-178
