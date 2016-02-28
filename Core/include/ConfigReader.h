@@ -31,11 +31,11 @@ public:
     void AddEntryReader(const std::string& name, ConfigEntryReader& entryReader, bool isDefault = true)
     {
         if(entryReaderMap.count(name))
-            throw exception("Entry reader with name '") << name << "' is already defined.";
+            throw analysis::exception("Entry reader with name '%1%' is already defined.") % name;
         entryReaderMap[name] = &entryReader;
         if(isDefault) {
             if(defaultEntryReader != entryReaderMap.end())
-                throw exception("Default entry reader is already set.");
+                throw analysis::exception("Default entry reader is already set.");
             defaultEntryReader = entryReaderMap.find(name);
         }
     }
@@ -43,10 +43,10 @@ public:
     void ReadConfig() const
     {
         if(defaultEntryReader == entryReaderMap.end())
-            throw exception("Default entry reader is not set.");
+            throw analysis::exception("Default entry reader is not set.");
         std::ifstream cfg(configName);
         if(cfg.fail())
-            throw exception("Failed to open config file '") << configName << "'.";
+            throw analysis::exception("Failed to open config file '%1%.") % configName;
         size_t line_number = 0;
         EntryReaderMap::const_iterator entryReader = entryReaderMap.end();
         while(ReadNextEntry(cfg, line_number, entryReader))
@@ -64,8 +64,8 @@ public:
             next = pos != std::string::npos;
             const std::string param_name = param_list.substr(prev_pos, pos - prev_pos);
             if(set_result.count(param_name) && !allow_duplicates)
-                throw exception("Parameter '") << param_name << "' listed more than once in the following parameter"
-                                                  " list '" << param_list << "'.";
+                throw analysis::exception("Parameter '%1%' listed more than once in the following parameter list "
+                                          "'%2%'.") % param_name % param_list;
             result.push_back(param_name);
             prev_pos = pos + 1;
         }
@@ -137,7 +137,7 @@ private:
 
     void BadSyntax(size_t line_number, const std::string& message = "") const
     {
-        throw exception("Bad config syntax: file '") << configName << "' line " << line_number << ".\n" << message;
+        throw analysis::exception("Bad config syntax: file '%1%' line %2%.\n%3%") % configName % line_number % message;
     }
 
 private:

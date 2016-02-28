@@ -251,7 +251,7 @@ private:
 
         SmartHistogram<ValueType>* result = dynamic_cast< SmartHistogram<ValueType>* >(iter->second);
         if(!result)
-            throw analysis::exception("Wrong type for histogram '") << iter->first << "'.";
+            throw analysis::exception("Wrong type for histogram '%1%'.") % iter-first;
         return *result;
     }
 

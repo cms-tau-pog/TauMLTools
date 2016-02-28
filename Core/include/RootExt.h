@@ -18,7 +18,7 @@ std::shared_ptr<TFile> CreateRootFile(const std::string& file_name)
 {
     std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "RECREATE", "", ROOT::kZLIB * 100 + 9));
     if(file->IsZombie())
-        throw analysis::exception("File '") << file_name << "' not created.";
+        throw analysis::exception("File '%1%' not created.") % file_name;
     return file;
 }
 
@@ -26,7 +26,7 @@ std::shared_ptr<TFile> OpenRootFile(const std::string& file_name)
 {
     std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "READ"));
     if(file->IsZombie())
-        throw analysis::exception("File '") << file_name << "' not opened.";
+        throw analysis::exception("File '%1%' not opened.") % file_name;
     return file;
 }
 
@@ -55,11 +55,11 @@ Object* ReadObject(TFile& file, const std::string& name)
         throw analysis::exception("Can't read nameless object.");
     TObject* root_object = file.Get(name.c_str());
     if(!root_object)
-        throw analysis::exception("Object '") << name << "' not found in '" << file.GetName() << "'.";
+        throw analysis::exception("Object '%1%' not found in '%2%'.") % name % file.GetName();
     Object* object = dynamic_cast<Object*>(root_object);
     if(!object)
-        throw analysis::exception("Wrong object type '") << typeid(Object).name() << "' for object '" << name
-                                                         << "' in '" << file.GetName() << "'.";
+        throw analysis::exception("Wrong object type '%1%' for object '%2%' in '%3%'.") % typeid(Object).name()
+            % name % file.GetName();
     return object;
 }
 
@@ -78,7 +78,7 @@ Object* CloneObject(const Object& original_object, const std::string& new_name =
     const std::string new_object_name = new_name.size() ? new_name : original_object.GetName();
     Object* new_object = dynamic_cast<Object*>(original_object.Clone(new_object_name.c_str()));
     if(!new_object)
-        throw analysis::exception("Type error while cloning object '") << original_object.GetName() << "'.";
+        throw analysis::exception("Type error while cloning object '%1%'.") % original_object.GetName();
     return new_object;
 }
 
