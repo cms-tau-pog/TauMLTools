@@ -36,7 +36,7 @@ void WriteObject(const Object& object)
     TDirectory* dir = object.GetDirectory();
     if(!dir)
         throw analysis::exception("Can't write object to nullptr.");
-    dir->WriteTObject(&object, object.GetName(), "WriteDelete");
+    dir->WriteTObject(&object, object.GetName(), "Overwrite");
 }
 
 template<typename Object>
@@ -45,7 +45,7 @@ void WriteObject(const Object& object, TDirectory* dir, const std::string& name 
     if(!dir)
         throw analysis::exception("Can't write object to nullptr.");
     const std::string name_to_write = name.size() ? name : object.GetName();
-    dir->WriteTObject(&object, name_to_write.c_str(), "WriteDelete");
+    dir->WriteTObject(&object, name_to_write.c_str(), "Overwrite");
 }
 
 template<typename Object>
