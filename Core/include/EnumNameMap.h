@@ -18,7 +18,7 @@ namespace analysis {
 template<typename Enum>
 class EnumNameMap {
 public:
-    typedef std::pair<Enum, std::string> EnumStringPair;
+    using EnumStringPair = std::pair<Enum, std::string>;
     struct EnumHash {
         size_t operator()(const Enum& e) const { std::hash<size_t> h; return h(static_cast<size_t>(e)); }
     };

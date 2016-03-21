@@ -57,7 +57,7 @@ struct ConfigValue<bool> {
 
 class BaseConfig {
 private:
-    typedef std::map<std::string, std::string> Map;
+    using Map = std::map<std::string, std::string>;
 public:
     virtual ~BaseConfig() {}
     virtual void Read(const std::string& fileName)

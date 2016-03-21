@@ -49,7 +49,7 @@ inline TLorentzVector MakeLorentzVectorPtEtaPhiE(Double_t pt, Double_t eta, Doub
 
 inline PhysicalValue Integral(const TH1D& histogram, bool include_overflows = true)
 {
-    typedef std::pair<Int_t, Int_t> limit_pair;
+    using limit_pair = std::pair<Int_t, Int_t>;
     const limit_pair limits = include_overflows ? limit_pair(0, histogram.GetNbinsX() + 1)
                                                 : limit_pair(1, histogram.GetNbinsX());
 

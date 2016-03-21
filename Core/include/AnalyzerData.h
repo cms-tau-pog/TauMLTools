@@ -57,8 +57,8 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 namespace root_ext {
 class AnalyzerData {
 private:
-    typedef std::vector<AbstractHistogram*> DataVector;
-    typedef std::map<std::string, AbstractHistogram*> DataMap;
+    using DataVector = std::vector<AbstractHistogram*>;
+    using DataMap = std::map<std::string, AbstractHistogram*>;
 
     template<typename ValueType>
     static std::set<std::string>& HistogramNames()
@@ -156,7 +156,7 @@ public:
     {
         const auto iter = data.find(name);
         if(iter == data.end())
-            analysis::exception("Histogram '") << name << "' not found.";
+            analysis::exception("Histogram '%1%' not found.") % name;
         SmartHistogram<ValueType>* result = dynamic_cast< SmartHistogram<ValueType>* >(iter->second);
         return result;
     }
@@ -251,7 +251,7 @@ private:
 
         SmartHistogram<ValueType>* result = dynamic_cast< SmartHistogram<ValueType>* >(iter->second);
         if(!result)
-            throw analysis::exception("Wrong type for histogram '%1%'.") % iter-first;
+            throw analysis::exception("Wrong type for histogram '%1%'.") % iter->first;
         return *result;
     }
 

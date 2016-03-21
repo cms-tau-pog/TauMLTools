@@ -21,19 +21,19 @@ namespace detail {
 
 template<typename T>
 struct ConfigParameterParser {
-    typedef T Value;
+    using Value = T;
     static Value Parse(T& t, const std::string& value, std::istream& s) { s >> t; return t; }
 };
 
 template<>
 struct ConfigParameterParser<std::string> {
-    typedef std::string Value;
+    using Value = std::string;
     static Value Parse(std::string& t, const std::string& value, std::istream& s) { t = value; return t; }
 };
 
 template<typename T>
 struct ConfigParameterParser<std::vector<T>> {
-    typedef T Value;
+    using Value = T;
     static Value Parse(std::vector<T>& param_vec, const std::string& value, std::istream& s)
     {
         T t;
@@ -45,7 +45,7 @@ struct ConfigParameterParser<std::vector<T>> {
 
 template<typename T>
 struct ConfigParameterParser<std::set<T>> {
-    typedef T Value;
+    using Value = T;
     static Value Parse(std::set<T>& param_set, const std::string& value, std::istream& s)
     {
         T t;
@@ -59,7 +59,7 @@ struct ConfigParameterParser<std::set<T>> {
 
 template<typename Key, typename _Value>
 struct ConfigParameterParser<std::map<Key, _Value>> {
-    typedef _Value Value;
+    using Value = _Value;
     static Value Parse(std::map<Key, Value>& param_map, const std::string& value, std::istream& s)
     {
         const size_t pos = value.find_first_of(' ');
@@ -78,7 +78,7 @@ struct ConfigParameterParser<std::map<Key, _Value>> {
 
 template<typename T, typename Wrapper, bool same = std::is_same<T, Wrapper>::value>
 struct ConfigParameterParserEx {
-    typedef T Value;
+    using Value = T;
     static Value Parse(T& t, const std::string& value, std::istream& s)
     {
         Wrapper w;
@@ -90,7 +90,7 @@ struct ConfigParameterParserEx {
 
 template<typename T, typename Wrapper>
 struct ConfigParameterParserEx<std::vector<T>, Wrapper, false> {
-    typedef T Value;
+    using Value = T;
     static Value Parse(std::vector<T>& param_vec, const std::string& value, std::istream& s)
     {
         Wrapper w;
@@ -103,7 +103,7 @@ struct ConfigParameterParserEx<std::vector<T>, Wrapper, false> {
 
 template<typename T>
 struct ConfigParameterParserEx<T, T, true> {
-    typedef typename ConfigParameterParser<T>::Value Value;
+    using Value = typename ConfigParameterParser<T>::Value;
     static Value Parse(T& t, const std::string& value, std::istream& s)
     {
         return ConfigParameterParser<T>::Parse(t, value, s);
@@ -114,7 +114,7 @@ struct ConfigParameterParserEx<T, T, true> {
 
 class ConfigEntryReader {
 protected:
-    typedef std::unordered_map<std::string, size_t> ReadCountMap;
+    using ReadCountMap = std::unordered_map<std::string, size_t>;
     enum class Condition { equal_to, greater_equal, greater, less_equal, less };
 
     class param_parsed_exception {};
@@ -179,7 +179,7 @@ protected:
              typename ValidityCheck = std::function<bool(const typename detail::ConfigParameterParser<T>::Value&)>>
     void ParseEntry(const std::string& name, T& result, const ValidityCheck& validity_check)
     {
-        typedef detail::ConfigParameterParserEx<T, Wrapper> Parser;
+        using Parser = detail::ConfigParameterParserEx<T, Wrapper>;
         if(name != current_param_name) return;
         const auto& v = Parser::Parse(result, current_param_value, current_stream);
         if(!validity_check(v))
@@ -251,8 +251,8 @@ private:
 
 class ConfigReader {
 private:
-    typedef std::unordered_map<std::string, ConfigEntryReader*> EntryReaderMap;
-    typedef std::unordered_map<std::string, std::unordered_set<std::string>> EntryNameMap;
+    using EntryReaderMap = std::unordered_map<std::string, ConfigEntryReader*>;
+    using EntryNameMap = std::unordered_map<std::string, std::unordered_set<std::string>>;
 
 public:
     ConfigReader() : defaultEntryReader(entryReaderMap.end()) {}

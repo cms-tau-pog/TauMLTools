@@ -11,7 +11,7 @@ namespace analysis {
 namespace tools {
 class ProgressReporter {
 private:
-    typedef std::chrono::system_clock clock;
+    using clock = std::chrono::system_clock;
 
 public:
     static std::string TimeStamp(const clock::time_point& time_point)

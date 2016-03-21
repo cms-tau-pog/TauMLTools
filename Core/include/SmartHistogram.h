@@ -42,7 +42,7 @@ namespace detail {
 template<typename ValueType>
 class Base1DHistogram : public AbstractHistogram {
 public:
-    typedef typename std::deque<ValueType>::const_iterator const_iterator;
+    using const_iterator = typename std::deque<ValueType>::const_iterator;
 
     Base1DHistogram(const std::string& name) : AbstractHistogram(name) {}
 
@@ -83,7 +83,7 @@ public:
         Value(NumberType _x, NumberType _y) : x(_x), y(_y) {}
     };
 
-    typedef typename std::deque<Value>::const_iterator const_iterator;
+    using const_iterator = typename std::deque<Value>::const_iterator;
 
     Base2DHistogram(const std::string& name) : AbstractHistogram(name) {}
 
@@ -235,12 +235,12 @@ public:
     void CopyContent(const TH1D& other)
     {
         if(other.GetNbinsX() != GetNbinsX())
-            throw analysis::exception("Unable to copy histogram content: source and destination")
-                << " have different number of bins.";
+            throw analysis::exception("Unable to copy histogram content: source and destination"
+                                      " have different number of bins.");
         for(Int_t n = 0; n <= other.GetNbinsX() + 1; ++n) {
             if(GetBinLowEdge(n) != other.GetBinLowEdge(n) || GetBinWidth(n) != other.GetBinWidth(n))
-                throw analysis::exception("Unable to copy histogram content: bin ")
-                    << n << " is not compatible between the source and destination.";
+                throw analysis::exception("Unable to copy histogram content: bin %1% is not compatible between the"
+                                          " source and destination.") % n ;
             SetBinContent(n, other.GetBinContent(n));
             SetBinError(n, other.GetBinError(n));
         }
@@ -315,7 +315,7 @@ private:
         double high;
     };
 
-    typedef std::map<std::string, HistogramParameters> HistogramParametersMap;
+    using HistogramParametersMap = std::map<std::string, HistogramParameters>;
 
     static const HistogramParameters& GetParameters(const std::string& name)
     {

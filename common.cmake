@@ -1,5 +1,4 @@
-execute_process(COMMAND "$ENV{ROOTSYS}/bin/root-config" --incdir OUTPUT_VARIABLE ROOT_INCLUDE_PATH
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND root-config --incdir OUTPUT_VARIABLE ROOT_INCLUDE_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 unset(scram_path CACHE)
 find_file(scram_path "scram")
@@ -10,7 +9,7 @@ if(${scram_path} STREQUAL "scram_path-NOTFOUND")
     endif(NOT ${Boost_FOUND})
     set(BOOST_INCLUDE_PATH ${Boost_INCLUDE_DIRS})
     set(BOOST_LIB_PATH ${Boost_LIBRARY_DIRS})
-    set(CMSSW_RELEASE_BASE_SRC "$ENV{CMSSW_RELEASE_BASE}/src")
+    set(CMSSW_RELEASE_BASE_SRC "$ENV{CMSSW_RELEASE_BASE_SRC}")
 else(${scram_path} STREQUAL "scram_path-NOTFOUND")
     execute_process(COMMAND scram tool info boost
                     COMMAND grep -e "^INCLUDE"
@@ -22,24 +21,16 @@ else(${scram_path} STREQUAL "scram_path-NOTFOUND")
                     COMMAND sed "s/^LIBDIR=//"
                     OUTPUT_VARIABLE BOOST_LIB_PATH
                     OUTPUT_STRIP_TRAILING_WHITESPACE)
-    set(CMSSW_RELEASE_BASE_SRC "$ENV{CMSSW_RELEASE_BASE_SRC}")
+    set(CMSSW_RELEASE_BASE_SRC "$ENV{CMSSW_RELEASE_BASE}/src")
 endif(${scram_path} STREQUAL "scram_path-NOTFOUND")
 
-include_directories(SYSTEM "${ROOT_INCLUDE_PATH}" "${BOOST_INCLUDE_PATH}")
-include_directories(SYSTEM "${CMSSW_RELEASE_BASE_SRC}")
+include_directories(SYSTEM "${ROOT_INCLUDE_PATH}" "${BOOST_INCLUDE_PATH}" "${CMSSW_RELEASE_BASE_SRC}")
 
 execute_process(COMMAND sh -c "cd ${CMAKE_CURRENT_SOURCE_DIR}/.. ; pwd" OUTPUT_VARIABLE CMSSW_BASE_SRC
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 include_directories("${CMSSW_BASE_SRC}")
 
-execute_process(COMMAND "$ENV{ROOTSYS}/bin/root-config" "--libs" OUTPUT_VARIABLE root_base_libs
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-#set(root_all_libs "${root_base_libs} -lMathMore -lGenVector -lTMVA -lASImage")
-#set(all_libs "${root_all_libs}")
-
-execute_process(COMMAND "$ENV{ROOTSYS}/bin/root-config" --libdir OUTPUT_VARIABLE ROOT_LIB_PATH
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND root-config --libdir OUTPUT_VARIABLE ROOT_LIB_PATH OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 find_library(lib_root_core Core PATHS ${ROOT_LIB_PATH})
 find_library(lib_root_hist Hist PATHS ${ROOT_LIB_PATH})

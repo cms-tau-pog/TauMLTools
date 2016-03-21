@@ -29,9 +29,9 @@ struct PhysicalValueErrorSeparator<wchar_t> {
 template<typename _ValueType>
 class PhysicalValue {
 public:
-    typedef _ValueType ValueType;
-    typedef std::set<std::string> SystematicNameSet;
-    typedef std::map<std::string, ValueType> SystematicMap;
+    using ValueType = _ValueType;
+    using SystematicNameSet = std::set<std::string>;
+    using SystematicMap = std::map<std::string, ValueType>;
 
     static const PhysicalValue<ValueType> Zero;
     static const PhysicalValue<ValueType> One;
@@ -63,21 +63,21 @@ public:
         : value(_value), stat_error(_stat_error)
     {
         if(stat_error < 0)
-            throw exception("Negative statistical error = ") << stat_error << ".";
+            throw exception("Negative statistical error = %1%.") % stat_error;
     }
 
     PhysicalValue(const ValueType& _value, const ValueType& _stat_error, const SystematicMap& _systematic_uncertainties)
         : value(_value), stat_error(_stat_error), systematic_uncertainties(_systematic_uncertainties)
     {
         if(stat_error < 0)
-            throw exception("Negative statistical error = ") << stat_error << ".";
+            throw exception("Negative statistical error = %1%.") % stat_error;
         systematic_names = tools::collect_map_keys(systematic_uncertainties);
     }
 
     void AddSystematicUncertainty(const std::string& unc_name, const ValueType& unc_value, bool is_relative = true)
     {
         if(systematic_uncertainties.count(unc_name))
-            throw exception("Uncertainty '") << unc_name << "' is already defined for the current physical value.";
+            throw exception("Uncertainty '%1%' is already defined for the current physical value.") % unc_name;
         systematic_names.insert(unc_name);
         const ValueType final_unc_value = is_relative ? value * unc_value : unc_value;
         systematic_uncertainties[unc_name] = final_unc_value;
@@ -352,6 +352,6 @@ std::wostream& operator<<(std::wostream& s, const PhysicalValue<ValueType>& v)
 }
 } // namespace detail
 
-typedef detail::PhysicalValue<double> PhysicalValue;
+using PhysicalValue = detail::PhysicalValue<double>;
 
 } // namespace analysis

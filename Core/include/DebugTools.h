@@ -25,7 +25,7 @@ inline void PrintCommonTypeSizes()
     PRINT_SIZEOF(bool);
     PRINT_SIZEOF(size_t);
 
-    typedef std::vector<double>::size_type std_collection_size_type;
+    using std_collection_size_type = std::vector<double>::size_type;
     PRINT_SIZEOF(std_collection_size_type);
 }
 #undef PRINT_SIZEOF

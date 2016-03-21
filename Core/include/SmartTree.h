@@ -37,7 +37,7 @@ public:  std::vector< type >& name() { return _##name; }
 #define DATA_CLASS(namespace_name, class_name, data_macro) \
     namespace namespace_name { \
         struct class_name : public root_ext::detail::BaseDataClass { data_macro() }; \
-        typedef std::vector< class_name > class_name##Vector; \
+        using class_name##Vector = std::vector< class_name >; \
     } \
     /**/
 
@@ -199,7 +199,7 @@ protected:
     template<typename DataType>
     void AddVectorBranch(const std::string& branch_name, std::vector<DataType>& value)
     {
-        typedef detail::SmartTreeVectorPtrEntry<DataType> PtrEntry;
+        using PtrEntry = detail::SmartTreeVectorPtrEntry<DataType>;
         auto entry = std::shared_ptr<PtrEntry>( new PtrEntry(value) );
         if(entries.count(branch_name))
             throw std::runtime_error("Entry is already defined.");
