@@ -12,89 +12,29 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <TTree.h>
 #include <Rtypes.h>
 
-#define SIMPLE_TREE_BRANCH(type, name) \
-private: type _##name; \
-public:  type& name() { return _##name; }
+#define DECLARE_BRANCH_VARIABLE(type, name) type name;
+#define ADD_DATA_TREE_BRANCH(name) AddBranch(#name, data.name);
 
-#define VECTOR_TREE_BRANCH(type, name) \
-private: std::vector< type > _##name; \
-public:  std::vector< type >& name() { return _##name; }
-
-#define SIMPLE_DATA_TREE_BRANCH(type, name) \
-    type& name() { return data.name; }
-
-#define VECTOR_DATA_TREE_BRANCH(type, name) \
-    std::vector< type >& name() { return data.name; }
-
-#define DECLARE_SIMPLE_BRANCH_VARIABLE(type, name) type name;
-#define DECLARE_VECTOR_BRANCH_VARIABLE(type, name) std::vector< type > name;
-
-#define ADD_SIMPLE_TREE_BRANCH(name) AddSimpleBranch(#name, _##name);
-#define ADD_SIMPLE_DATA_TREE_BRANCH(name) AddSimpleBranch(#name, data.name);
-#define ADD_VECTOR_TREE_BRANCH(name) AddVectorBranch(#name, _##name);
-#define ADD_VECTOR_DATA_TREE_BRANCH(name) AddVectorBranch(#name, data.name);
-
-#define DATA_CLASS(namespace_name, class_name, data_macro) \
+#define DECLARE_TREE(namespace_name, data_class_name, tree_class_name, data_macro, tree_name) \
     namespace namespace_name { \
-        struct class_name : public root_ext::detail::BaseDataClass { data_macro() }; \
-        using class_name##Vector = std::vector< class_name >; \
-    } \
-    /**/
-
-#define TREE_CLASS(namespace_name, tree_class_name, data_macro, data_class_name, tree_name, is_mc_truth) \
-    namespace namespace_name { \
-    class tree_class_name : public root_ext::SmartTree { \
+    struct data_class_name : public root_ext::detail::BaseDataClass { data_macro() }; \
+    using data_class_name##Vector = std::vector< data_class_name >; \
+    class tree_class_name : public root_ext::detail::BaseSmartTree<data_class_name> { \
     public: \
-        static bool IsMCtruth() { return is_mc_truth; } \
         static const std::string& Name() { static const std::string name = tree_name; return name; } \
         tree_class_name(TDirectory* directory, bool readMode) \
-            : SmartTree(Name(), directory, readMode) { Initialize(); } \
+            : BaseSmartTree(Name(), directory, readMode) { Initialize(); } \
         tree_class_name(const std::string& name, TDirectory* directory, bool readMode) \
-            : SmartTree(name, directory, readMode) { Initialize(); } \
-        data_class_name data; \
-        data_macro() \
+            : BaseSmartTree(name, directory, readMode) { Initialize(); } \
     private: \
         inline void Initialize(); \
     }; \
     } \
     /**/
 
-#define TREE_CLASS_WITH_EVENT_ID(namespace_name, tree_class_name, data_macro, data_class_name, tree_name, is_mc_truth) \
-    namespace namespace_name { \
-    class tree_class_name : public root_ext::SmartTree { \
-    public: \
-        static bool IsMCtruth() { return is_mc_truth; } \
-        static const std::string& Name() { static const std::string name = tree_name; return name; } \
-        tree_class_name(TDirectory* directory, bool readMode) \
-            : SmartTree(Name(), directory, readMode) { Initialize(); } \
-        tree_class_name(const std::string& name, TDirectory* directory, bool readMode) \
-            : SmartTree(name, directory, readMode) { Initialize(); } \
-        data_class_name data; \
-        SIMPLE_TREE_BRANCH(UInt_t, RunId) \
-        SIMPLE_TREE_BRANCH(UInt_t, LumiBlock) \
-        SIMPLE_TREE_BRANCH(UInt_t, EventId) \
-        data_macro() \
-    private: \
-        inline void Initialize(); \
-    }; \
-    } \
-    /**/
-
-#define TREE_CLASS_INITIALIZE(namespace_name, tree_class_name, data_macro) \
+#define INITIALIZE_TREE(namespace_name, tree_class_name, data_macro) \
     namespace namespace_name { \
         inline void tree_class_name::Initialize() { \
-            data_macro() \
-            if (GetEntries() > 0) GetEntry(0); \
-        } \
-    } \
-    /**/
-
-#define TREE_CLASS_WITH_EVENT_ID_INITIALIZE(namespace_name, tree_class_name, data_macro) \
-    namespace namespace_name { \
-        inline void tree_class_name::Initialize() { \
-            ADD_SIMPLE_TREE_BRANCH(RunId) \
-            ADD_SIMPLE_TREE_BRANCH(LumiBlock) \
-            ADD_SIMPLE_TREE_BRANCH(EventId) \
             data_macro() \
             if (GetEntries() > 0) GetEntry(0); \
         } \
@@ -119,6 +59,71 @@ namespace detail {
     struct BaseDataClass {
         virtual ~BaseDataClass() {}
     };
+
+    using SmartTreeEntryMap = std::map<std::string, std::shared_ptr<detail::BaseSmartTreeEntry>>;
+
+    inline void EnableBranch(TTree *tree, const std::string& branch_name)
+    {
+        UInt_t n_found = 0;
+        tree->SetBranchStatus(branch_name.c_str(), 1, &n_found);
+        if(n_found != 1) {
+            std::ostringstream ss;
+            ss << "Branch '" << branch_name << "' not found.";
+            throw std::runtime_error(ss.str());
+        }
+    }
+
+    template<typename DataType>
+    struct BranchCreator {
+        static void Create(TTree *tree, const std::string& branch_name, DataType& value, bool readMode,
+                           SmartTreeEntryMap& entries)
+        {
+            if(readMode) {
+                try {
+                    EnableBranch(tree, branch_name);
+                    tree->SetBranchAddress(branch_name.c_str(), &value);
+                    if(tree->GetReadEntry() >= 0)
+                        tree->GetBranch(branch_name.c_str())->GetEntry(tree->GetReadEntry());
+                } catch(std::runtime_error& error) {
+                    std::cerr << "ERROR: " << error.what() << std::endl;
+                }
+            } else {
+                TBranch* branch = tree->Branch(branch_name.c_str(), &value);
+                const Long64_t n_entries = tree->GetEntries();
+                for(Long64_t n = 0; n < n_entries; ++n)
+                    branch->Fill();
+            }
+        }
+    };
+
+    template<typename DataType>
+    struct BranchCreator<std::vector<DataType>> {
+        static void Create(TTree *tree, const std::string& branch_name, std::vector<DataType>& value, bool readMode,
+                           SmartTreeEntryMap& entries)
+        {
+            using PtrEntry = detail::SmartTreeVectorPtrEntry<DataType>;
+            std::shared_ptr<PtrEntry> entry(new PtrEntry(value));
+            if(entries.count(branch_name))
+                throw std::runtime_error("Entry is already defined.");
+            entries[branch_name] = entry;
+            if(readMode) {
+                try {
+                    EnableBranch(tree, branch_name);
+                    tree->SetBranchAddress(branch_name.c_str(), &entry->value);
+                    if(tree->GetReadEntry() >= 0)
+                        tree->GetBranch(branch_name.c_str())->GetEntry(tree->GetReadEntry());
+                } catch(std::runtime_error& error) {
+                    std::cerr << "ERROR: " << error.what() << std::endl;
+                }
+            } else {
+                TBranch* branch = tree->Branch(branch_name.c_str(), entry->value);
+                const Long64_t n_entries = tree->GetEntries();
+                for(Long64_t n = 0; n < n_entries; ++n)
+                    branch->Fill();
+            }
+        }
+    };
+
 } // detail
 
 class SmartTree {
@@ -172,64 +177,14 @@ public:
     void Write()
     {
         if(directory)
-            directory->WriteTObject(tree, tree->GetName(), "WriteDelete");
+            directory->WriteTObject(tree, tree->GetName(), "Overwrite");
     }
 
 protected:
     template<typename DataType>
-    void AddSimpleBranch(const std::string& branch_name, DataType& value)
+    void AddBranch(const std::string& branch_name, DataType& value)
     {
-        if(readMode) {
-            try {
-                EnableBranch(branch_name);
-                tree->SetBranchAddress(branch_name.c_str(), &value);
-                if(tree->GetReadEntry() >= 0)
-                    tree->GetBranch(branch_name.c_str())->GetEntry(tree->GetReadEntry());
-            } catch(std::runtime_error& error) {
-                std::cerr << "ERROR: " << error.what() << std::endl;
-            }
-        } else {
-            TBranch* branch = tree->Branch(branch_name.c_str(), &value);
-            const Long64_t n_entries = tree->GetEntries();
-            for(Long64_t n = 0; n < n_entries; ++n)
-                branch->Fill();
-        }
-    }
-
-    template<typename DataType>
-    void AddVectorBranch(const std::string& branch_name, std::vector<DataType>& value)
-    {
-        using PtrEntry = detail::SmartTreeVectorPtrEntry<DataType>;
-        auto entry = std::shared_ptr<PtrEntry>( new PtrEntry(value) );
-        if(entries.count(branch_name))
-            throw std::runtime_error("Entry is already defined.");
-        entries[branch_name] = entry;
-        if(readMode) {
-            try {
-                EnableBranch(branch_name);
-                tree->SetBranchAddress(branch_name.c_str(), &entry->value);
-                if(tree->GetReadEntry() >= 0)
-                    tree->GetBranch(branch_name.c_str())->GetEntry(tree->GetReadEntry());
-            } catch(std::runtime_error& error) {
-                std::cerr << "ERROR: " << error.what() << std::endl;
-            }
-        } else {
-            TBranch* branch = tree->Branch(branch_name.c_str(), entry->value);
-            const Long64_t n_entries = tree->GetEntries();
-            for(Long64_t n = 0; n < n_entries; ++n)
-                branch->Fill();
-        }
-    }
-
-    void EnableBranch(const std::string& branch_name)
-    {
-        UInt_t n_found = 0;
-        tree->SetBranchStatus(branch_name.c_str(), 1, &n_found);
-        if(n_found != 1) {
-            std::ostringstream ss;
-            ss << "Branch '" << branch_name << "' is not found.";
-            throw std::runtime_error(ss.str());
-        }
+        detail::BranchCreator<DataType>::Create(tree, branch_name, value, readMode, entries);
     }
 
 private:
@@ -242,5 +197,17 @@ private:
     bool readMode;
     TTree* tree;
 };
+
+namespace detail {
+template<typename Data>
+class BaseSmartTree : public SmartTree {
+public:
+    using SmartTree::SmartTree;
+    Data& operator()() { return data; }
+    const Data& operator()() const { return data; }
+protected:
+    Data data;
+};
+} // detail
 
 } // root_ext

@@ -14,6 +14,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <TH1.h>
 #include <TH2.h>
 #include <TTree.h>
+#include <TGraph.h>
 
 #include "RootExt.h"
 
@@ -235,12 +236,12 @@ public:
     void CopyContent(const TH1D& other)
     {
         if(other.GetNbinsX() != GetNbinsX())
-            throw analysis::exception("Unable to copy histogram content: source and destination"
-                                      " have different number of bins.");
+            throw analysis::exception("Unable to copy histogram content: source and destination have different number"
+                                      " of bins.");
         for(Int_t n = 0; n <= other.GetNbinsX() + 1; ++n) {
             if(GetBinLowEdge(n) != other.GetBinLowEdge(n) || GetBinWidth(n) != other.GetBinWidth(n))
                 throw analysis::exception("Unable to copy histogram content: bin %1% is not compatible between the"
-                                          " source and destination.") % n ;
+                                          " source and destination.") % n;
             SetBinContent(n, other.GetBinContent(n));
             SetBinError(n, other.GetBinError(n));
         }
@@ -296,6 +297,33 @@ private:
     bool use_log_y;
     double max_y_sf;
 };
+
+template<>
+class SmartHistogram<TGraph> : public AbstractHistogram {
+public:
+    using DataVector = std::vector<double>;
+    using AbstractHistogram::AbstractHistogram;
+
+    void AddPoint(double x, double y)
+    {
+        x_vector.push_back(x);
+        y_vector.push_back(y);
+    }
+
+    const DataVector& GetXvalues() const { return x_vector; }
+    const DataVector& GetYvalues() const { return y_vector; }
+
+    virtual void WriteRootObject() override
+    {
+        std::unique_ptr<TGraph> graph(new TGraph(x_vector.size(), x_vector.data(), y_vector.data()));
+        if(GetOutputDirectory())
+            root_ext::WriteObject(*graph, GetOutputDirectory(), Name());
+    }
+
+private:
+    DataVector x_vector, y_vector;
+};
+
 
 template<typename ValueType>
 struct HistogramFactory {

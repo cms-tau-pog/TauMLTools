@@ -14,6 +14,11 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #define ENUM_NAMES(enum_type) \
     const analysis::EnumNameMap<enum_type> __##enum_type##_names
 
+#define ENUM_OSTREAM_OPERATOR() \
+    template<typename Enum, typename = typename std::enable_if<std::is_enum<Enum>::value>::type> \
+    inline std::ostream& operator<<(std::ostream& os, Enum e) { return ::analysis::operator <<(os, e); } \
+    /**/
+
 namespace analysis {
 template<typename Enum>
 class EnumNameMap {
@@ -92,9 +97,7 @@ private:
     std::unordered_map<std::string, Enum> string_to_enum_map;
 };
 
-} // namespace analysis
-
-template<typename Enum, typename>
+template<typename Enum, typename = typename std::enable_if<std::is_enum<Enum>::value>::type>
 std::ostream& operator<<(std::ostream& os, Enum e)
 {
     os << analysis::EnumNameMap<Enum>::GetDefault().EnumToString(e);
@@ -109,3 +112,6 @@ std::istream& operator>>(std::istream& is, Enum& e)
     e = analysis::EnumNameMap<Enum>::GetDefault().Parse(str);
     return is;
 }
+
+} // namespace analysis
+

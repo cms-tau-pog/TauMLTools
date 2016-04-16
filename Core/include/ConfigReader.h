@@ -146,11 +146,12 @@ public:
         }
     }
 
-    static std::vector<std::string> ParseOrderedParameterList(const std::string& param_list,
+    static std::vector<std::string> ParseOrderedParameterList(std::string param_list,
                                                               bool allow_duplicates = false,
                                                               const std::string& separators = " \t")
     {
         std::vector<std::string> result;
+        boost::trim_if(param_list, boost::is_any_of(separators));
         boost::split(result, param_list, boost::is_any_of(separators), boost::token_compress_on);
         if(!allow_duplicates) {
             std::unordered_set<std::string> set_result;
