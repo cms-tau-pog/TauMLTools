@@ -13,7 +13,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <Rtypes.h>
 
 #define DECLARE_BRANCH_VARIABLE(type, name) type name;
-#define ADD_DATA_TREE_BRANCH(name) AddBranch(#name, data.name);
+#define ADD_DATA_TREE_BRANCH(name) AddBranch(#name, _data.name);
 
 #define DECLARE_TREE(namespace_name, data_class_name, tree_class_name, data_macro, tree_name) \
     namespace namespace_name { \
@@ -203,10 +203,11 @@ template<typename Data>
 class BaseSmartTree : public SmartTree {
 public:
     using SmartTree::SmartTree;
-    Data& operator()() { return data; }
-    const Data& operator()() const { return data; }
+    Data& operator()() { return _data; }
+    const Data& operator()() const { return _data; }
+    const Data& data() const { return _data; }
 protected:
-    Data data;
+    Data _data;
 };
 } // detail
 
