@@ -14,7 +14,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 namespace root_ext {
 
-std::shared_ptr<TFile> CreateRootFile(const std::string& file_name)
+inline std::shared_ptr<TFile> CreateRootFile(const std::string& file_name)
 {
     std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "RECREATE", "", ROOT::kZLIB * 100 + 9));
     if(file->IsZombie())
@@ -22,7 +22,7 @@ std::shared_ptr<TFile> CreateRootFile(const std::string& file_name)
     return file;
 }
 
-std::shared_ptr<TFile> OpenRootFile(const std::string& file_name)
+inline std::shared_ptr<TFile> OpenRootFile(const std::string& file_name)
 {
     std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "READ"));
     if(file->IsZombie())
@@ -102,18 +102,18 @@ Object* ReadCloneObject(TFile& file, const std::string& original_name, const std
 } // namespace root_ext
 
 
-std::ostream& operator<<(std::ostream& s, const TVector3& v) {
+inline std::ostream& operator<<(std::ostream& s, const TVector3& v) {
     s << "(" << v.x() << ", " << v.y() << ", " << v.z() << ")";
     return s;
 }
 
-std::ostream& operator<<(std::ostream& s, const TLorentzVector& v) {
+inline std::ostream& operator<<(std::ostream& s, const TLorentzVector& v) {
     s << "(pt=" << v.Pt() << ", eta=" << v.Eta() << ", phi=" << v.Phi() << ", E=" << v.E() << ", m=" << v.M() << ")";
     return s;
 }
 
 // Based on TMatrixD::Print code.
-std::ostream& operator<<(std::ostream& s, const TMatrixD& matrix)
+inline std::ostream& operator<<(std::ostream& s, const TMatrixD& matrix)
 {
     if (!matrix.IsValid()) {
         s << "Matrix is invalid";
