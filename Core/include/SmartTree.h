@@ -22,10 +22,11 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
     class tree_class_name : public root_ext::detail::BaseSmartTree<data_class_name> { \
     public: \
         static const std::string& Name() { static const std::string name = tree_name; return name; } \
-        tree_class_name(TDirectory* directory, bool readMode) \
-            : BaseSmartTree(Name(), directory, readMode) { Initialize(); } \
-        tree_class_name(const std::string& name, TDirectory* directory, bool readMode) \
-            : BaseSmartTree(name, directory, readMode) { Initialize(); } \
+        tree_class_name(TDirectory* directory, bool readMode, const std::set<std::string>& disabled_branches = {}) \
+            : BaseSmartTree(Name(), directory, readMode, disabled_branches) { Initialize(); } \
+        tree_class_name(const std::string& name, TDirectory* directory, bool readMode, \
+                        const std::set<std::string>& disabled_branches = {}) \
+            : BaseSmartTree(name, directory, readMode, disabled_branches) { Initialize(); } \
     private: \
         inline void Initialize(); \
     }; \
@@ -107,14 +108,10 @@ namespace detail {
                 throw std::runtime_error("Entry is already defined.");
             entries[branch_name] = entry;
             if(readMode) {
-                try {
-                    EnableBranch(tree, branch_name);
-                    tree->SetBranchAddress(branch_name.c_str(), &entry->value);
-                    if(tree->GetReadEntry() >= 0)
-                        tree->GetBranch(branch_name.c_str())->GetEntry(tree->GetReadEntry());
-                } catch(std::runtime_error& error) {
-                    std::cerr << "ERROR: " << error.what() << std::endl;
-                }
+                EnableBranch(tree, branch_name);
+                tree->SetBranchAddress(branch_name.c_str(), &entry->value);
+                if(tree->GetReadEntry() >= 0)
+                    tree->GetBranch(branch_name.c_str())->GetEntry(tree->GetReadEntry());
             } else {
                 TBranch* branch = tree->Branch(branch_name.c_str(), entry->value);
                 const Long64_t n_entries = tree->GetEntries();
@@ -128,8 +125,9 @@ namespace detail {
 
 class SmartTree {
 public:
-    SmartTree(const std::string& _name, TDirectory* _directory, bool _readMode)
-        : name(_name), directory(_directory), readMode(_readMode)
+    SmartTree(const std::string& _name, TDirectory* _directory, bool _readMode,
+              const std::set<std::string>& _disabled_branches = {})
+        : name(_name), directory(_directory), readMode(_readMode), disabled_branches(_disabled_branches)
     {
         static const Long64_t maxVirtualSize = 10000000;
 
@@ -184,7 +182,8 @@ protected:
     template<typename DataType>
     void AddBranch(const std::string& branch_name, DataType& value)
     {
-        detail::BranchCreator<DataType>::Create(tree, branch_name, value, readMode, entries);
+        if(!disabled_branches.count(branch_name))
+            detail::BranchCreator<DataType>::Create(tree, branch_name, value, readMode, entries);
     }
 
 private:
@@ -196,6 +195,7 @@ private:
     std::map< std::string, std::shared_ptr<detail::BaseSmartTreeEntry> > entries;
     bool readMode;
     TTree* tree;
+    std::set<std::string> disabled_branches;
 };
 
 namespace detail {

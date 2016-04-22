@@ -2,8 +2,6 @@
 Some parts of the code are taken from copyFile.C written by Rene Brun.
 This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
-#pragma once
-
 #include <iostream>
 
 #include <TROOT.h>
@@ -12,14 +10,20 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <TTree.h>
 #include <memory>
 #include "RootExt.h"
+#include "AnalysisTools/Run/include/program_main.h"
+
+struct Arguments {
+    REQ_ARG(std::string, originalFileName);
+    REQ_ARG(std::string, referenceFileName);
+    REQ_ARG(std::string, outputFileName);
+};
 
 class MergeRootFiles {
 public:
-    MergeRootFiles(const std::string& originalFileName , const std::string& referenceFileName,
-                  const std::string& outputFileName)
-        : originalFile(root_ext::OpenRootFile(originalFileName)),
-          referenceFile(root_ext::OpenRootFile(referenceFileName)),
-          outputFile(root_ext::CreateRootFile(outputFileName)) {}
+    MergeRootFiles(const Arguments& args)
+        : originalFile(root_ext::OpenRootFile(args.originalFileName())),
+          referenceFile(root_ext::OpenRootFile(args.referenceFileName())),
+          outputFile(root_ext::CreateRootFile(args.outputFileName())) {}
 
     void Run()
     {
@@ -82,3 +86,5 @@ private:
 private:
     std::shared_ptr<TFile> originalFile, referenceFile, outputFile;
 };
+
+PROGRAM_MAIN(MergeRootFiles, Arguments)
