@@ -25,7 +25,7 @@ inline std::shared_ptr<TFile> CreateRootFile(const std::string& file_name)
 inline std::shared_ptr<TFile> OpenRootFile(const std::string& file_name)
 {
     std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "READ"));
-    if(file->IsZombie())
+    if(!file || file->IsZombie())
         throw analysis::exception("File '%1%' not opened.") % file_name;
     return file;
 }
