@@ -345,33 +345,27 @@ private:
 
     using HistogramParametersMap = std::map<std::string, HistogramParameters>;
 
+    static HistogramParametersMap& ParametersMap_RW()
+    {
+        static HistogramParametersMap parameters;
+        return parameters;
+    }
+
+    static const HistogramParametersMap& ParametersMap()
+    {
+        return ParametersMap_RW();
+    }
+
+    static std::string& ConfigName()
+    {
+        static std::string configName = "histograms.cfg";
+        return configName;
+    }
+
     static const HistogramParameters& GetParameters(const std::string& name)
     {
-        static const std::string configName = "Analysis/config/histograms.cfg";
-        static bool parametersLoaded = false;
-        static HistogramParametersMap parameters;
-        if(!parametersLoaded) {
-            std::ifstream cfg(configName);
-            while (cfg.good()) {
-                std::string cfgLine;
-                std::getline(cfg,cfgLine);
-                if (!cfgLine.size() || cfgLine.at(0) == '#') continue;
-                std::istringstream ss(cfgLine);
-                std::string param_name;
-                HistogramParameters param;
-                ss >> param_name;
-                ss >> param.nbins;
-                ss >> param.low;
-                ss >> param.high;
-                if(parameters.count(param_name)) {
-                    std::ostringstream ss_error;
-                    ss_error << "Redefinition of default parameters for histogram '" << param_name << "'.";
-                    throw std::runtime_error(ss_error.str());
-                }
-                parameters[param_name] = param;
-              }
-            parametersLoaded = true;
-        }
+        const HistogramParametersMap& parameters = ParametersMap();
+
         std::string best_name = name;
         for(size_t pos = name.find_last_of('_'); !parameters.count(best_name) && pos != 0 && pos != std::string::npos;
             pos = name.find_last_of('_', pos - 1))
@@ -382,13 +376,39 @@ private:
             ss_error << "Not found default parameters for histogram '" << name;
             if(best_name != name)
                 ss_error << "' or '" << best_name;
-            ss_error << "'. Please, define it in '" << configName << "'.";
+            ss_error << "'. Please, define it in '" << ConfigName() << "'.";
             throw std::runtime_error(ss_error.str());
         }
         return parameters.at(best_name);
     }
 
 public:
+    static void LoadConfig(const std::string& config_path)
+    {
+        static std::mutex m;
+        std::lock_guard<std::mutex> lock(m);
+        ConfigName() = config_path;
+        HistogramParametersMap& parameters = ParametersMap_RW();
+        parameters.clear();
+        std::ifstream cfg(config_path);
+        while (cfg.good()) {
+            std::string cfgLine;
+            std::getline(cfg,cfgLine);
+            if (!cfgLine.size() || cfgLine.at(0) == '#') continue;
+            std::istringstream ss(cfgLine);
+            std::string param_name;
+            HistogramParameters param;
+            ss >> param_name >> param.nbins >> param.low >> param.high;
+            if(parameters.count(param_name)) {
+                std::ostringstream ss_error;
+                ss_error << "Redefinition of default parameters for histogram '" << param_name << "'.";
+                throw std::runtime_error(ss_error.str());
+            }
+            parameters[param_name] = param;
+        }
+    }
+
+
     template<typename ...Args>
     static SmartHistogram<TH1D>* Make(const std::string& name, Args... args)
     {

@@ -113,17 +113,38 @@ protected:
     std::set<std::string> label_set;
 };
 
+namespace detail {
+struct DefaultSelectionManager{
+    template<typename ValueType>
+    void FillHistogram(ValueType value, const std::string& histogram_name) {}
+};
+} // namespace detail
+
+template<typename SelectionManager = detail::DefaultSelectionManager>
 class Cutter {
 public:
-    explicit Cutter(ObjectSelector* _objectSelector)
-        : objectSelector(_objectSelector), param_id(0) {}
+    explicit Cutter(ObjectSelector* _objectSelector, SelectionManager* _selectionManager = nullptr)
+        : objectSelector(_objectSelector), selectionManager(_selectionManager), param_id(0) {}
 
     bool Enabled() const { return objectSelector != nullptr; }
     int CurrentParamId() const { return param_id; }
 
     void operator()(bool expected, const std::string& label)
     {
-        if(Enabled()){
+        (*this)(expected, label, expected);
+    }
+
+    template<typename ValueType>
+    void operator()(bool expected, const std::string& label, const ValueType& value)
+    {
+        if(selectionManager) {
+            try {
+                selectionManager->FillHistogram(value, label);
+            }catch(std::exception& e) {
+                std::cout << "ERROR: " << e.what() << std::endl;
+            }
+        }
+        if(Enabled()) {
             ++param_id;
             if(!expected)
                 throw cut_failed(param_id -1);
@@ -142,6 +163,7 @@ public:
 
 private:
     ObjectSelector* objectSelector;
+    SelectionManager* selectionManager;
     size_t param_id;
 };
 

@@ -129,6 +129,21 @@ public:
             directory = outputFile.get();
     }
 
+    explicit AnalyzerData(TDirectory* _directory, const std::string& subDirectoryName = "")
+    {
+        if(!_directory)
+            throw analysis::exception("Output directory is nullptr.");
+        data_vector.assign(MaxIndex, nullptr);
+        if (subDirectoryName.size()){
+            _directory->mkdir(subDirectoryName.c_str());
+            directory = _directory->GetDirectory(subDirectoryName.c_str());
+            if(!directory)
+                throw analysis::exception("Unable to create analyzer data directory.");
+        } else
+            directory = _directory;
+    }
+
+
     virtual ~AnalyzerData()
     {
         for(const auto& iter : data) {

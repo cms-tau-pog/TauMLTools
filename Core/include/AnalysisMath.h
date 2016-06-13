@@ -5,23 +5,57 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 #include <iostream>
 #include <cmath>
-
-#include <TLorentzVector.h>
+#include <Math/PtEtaPhiE4D.h>
+#include <Math/PtEtaPhiM4D.h>
+#include <Math/PxPyPzE4D.h>
+#include <Math/LorentzVector.h>
+#include <Math/SMatrix.h>
+#include <Math/VectorUtil.h>
+#include <TVector3.h>
 #include <TH1.h>
+#include <TMatrixD.h>
+#include <TLorentzVector.h>
+
 
 #include "PhysicalValue.h"
 
 namespace analysis {
 
+using LorentzVector = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<double>>;
+using LorentzVectorXYZ = ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double>>;
+using LorentzVectorM = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>;
+
+template<unsigned n>
+using SquareMatrix = ROOT::Math::SMatrix<double, n, n, ROOT::Math::MatRepSym<double, n>>;
+
+
+template<unsigned n>
+TMatrixD ConvertMatrix(const SquareMatrix<n>& m)
+{
+    TMatrixD result(n, n);
+    for(unsigned k = 0; k < n; ++k) {
+        for(unsigned l = 0; l < n; ++l)
+            result[k][l] = m[k][l];
+    }
+    return result;
+}
+
+template<typename LVector>
+TLorentzVector ConvertVector(const LVector& v)
+{
+    return TLorentzVector(v.Px(), v.Py(), v.Pz(), v.E());
+}
+
 //see AN-13-178
-inline double Calculate_MT(const TLorentzVector& lepton_momentum, double met_pt, double met_phi)
+inline double Calculate_MT(const LorentzVector& lepton_momentum, double met_pt, double met_phi)
 {
     const double delta_phi = TVector2::Phi_mpi_pi(lepton_momentum.Phi() - met_phi);
     return std::sqrt( 2.0 * lepton_momentum.Pt() * met_pt * ( 1.0 - std::cos(delta_phi) ) );
 }
 
 // from DataFormats/TrackReco/interface/TrackBase.h
-inline double Calculate_dxy(const TVector3& legV, const TVector3& PV, const TLorentzVector& leg)
+template<typename Point>
+double Calculate_dxy(const Point& legV, const Point& PV, const LorentzVector& leg)
 {
     return ( - (legV.x()-PV.x()) * leg.Py() + (legV.y()-PV.y()) * leg.Px() ) / leg.Pt();
 }
@@ -33,19 +67,6 @@ inline double Calculate_dz(const TVector3& trkV, const TVector3& PV, const TVect
                                * trkP.z() / trkP.Pt();
 }
 
-inline TLorentzVector MakeLorentzVectorPtEtaPhiM(Double_t pt, Double_t eta, Double_t phi, Double_t m)
-{
-    TLorentzVector v;
-    v.SetPtEtaPhiM(pt, eta, phi, m);
-    return v;
-}
-
-inline TLorentzVector MakeLorentzVectorPtEtaPhiE(Double_t pt, Double_t eta, Double_t phi, Double_t e)
-{
-    TLorentzVector v;
-    v.SetPtEtaPhiE(pt, eta, phi, e);
-    return v;
-}
 
 inline PhysicalValue Integral(const TH1D& histogram, bool include_overflows = true)
 {
