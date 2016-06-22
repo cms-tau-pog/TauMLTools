@@ -21,9 +21,10 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 namespace analysis {
 
-using LorentzVector = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<double>>;
 using LorentzVectorXYZ = ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double>>;
 using LorentzVectorM = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>;
+using LorentzVectorE = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<double>>;
+using LorentzVector = LorentzVectorE;
 
 template<unsigned n>
 using SquareMatrix = ROOT::Math::SMatrix<double, n, n, ROOT::Math::MatRepSym<double, n>>;

@@ -5,6 +5,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 #include<istream>
 #include<ostream>
+#include<unordered_set>
 #include<unordered_map>
 #include<initializer_list>
 #include<typeinfo>
@@ -12,11 +13,13 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include "exception.h"
 
 #define ENUM_NAMES(enum_type) \
-    const analysis::EnumNameMap<enum_type> __##enum_type##_names
+    static const analysis::EnumNameMap<enum_type> __##enum_type##_names
 
 #define ENUM_OSTREAM_OPERATOR() \
     template<typename Enum, typename = typename std::enable_if<std::is_enum<Enum>::value>::type> \
     inline std::ostream& operator<<(std::ostream& os, Enum e) { return ::analysis::operator <<(os, e); } \
+    template<typename Enum, typename = typename std::enable_if<std::is_enum<Enum>::value>::type> \
+    inline std::wostream& operator<<(std::wostream& os, Enum e) { return ::analysis::operator <<(os, e); } \
     /**/
 
 namespace analysis {
@@ -27,6 +30,8 @@ public:
     struct EnumHash {
         size_t operator()(const Enum& e) const { std::hash<size_t> h; return h(static_cast<size_t>(e)); }
     };
+    using EnumEntrySet = std::unordered_set<Enum, EnumHash>;
+    using StringEntrySet = std::unordered_set<std::string>;
 
     EnumNameMap(const std::string& _enum_name, const std::initializer_list<EnumStringPair>& pairs)
         : enum_name(_enum_name)
@@ -70,6 +75,9 @@ public:
         return e;
     }
 
+    const EnumEntrySet& GetEnumEntries() const { return enum_entries; }
+    const StringEntrySet& GetStringEntries() const { return string_entries; }
+
     static const EnumNameMap<Enum>& GetDefault() { return *GetDefault(true); }
 
 private:
@@ -80,6 +88,8 @@ private:
                 throw exception("Duplicated enum entry for the enum '%1%'.") % enum_name;
             enum_to_string_map[entry.first] = entry.second;
             string_to_enum_map[entry.second] = entry.first;
+            enum_entries.insert(entry.first);
+            string_entries.insert(entry.second);
         }
     }
 
@@ -95,12 +105,22 @@ private:
     std::string enum_name;
     std::unordered_map<Enum, std::string, EnumHash> enum_to_string_map;
     std::unordered_map<std::string, Enum> string_to_enum_map;
+    EnumEntrySet enum_entries;
+    StringEntrySet string_entries;
 };
 
 template<typename Enum, typename = typename std::enable_if<std::is_enum<Enum>::value>::type>
 std::ostream& operator<<(std::ostream& os, Enum e)
 {
     os << analysis::EnumNameMap<Enum>::GetDefault().EnumToString(e);
+    return os;
+}
+
+template<typename Enum, typename = typename std::enable_if<std::is_enum<Enum>::value>::type>
+std::wostream& operator<<(std::wostream& os, Enum e)
+{
+    const std::string str = analysis::EnumNameMap<Enum>::GetDefault().EnumToString(e);
+    os << std::wstring(str.begin(), str.end());
     return os;
 }
 
@@ -114,4 +134,3 @@ std::istream& operator>>(std::istream& is, Enum& e)
 }
 
 } // namespace analysis
-

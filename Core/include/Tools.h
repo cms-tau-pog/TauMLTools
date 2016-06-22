@@ -39,10 +39,10 @@ size_t find_index(const Container& container, const T& value)
     return std::distance(container.begin(), iter);
 }
 
-template<typename Map>
-std::set< typename Map::key_type > collect_map_keys(const Map& map)
+template<typename Map, typename Set = std::set<typename Map::key_type>>
+Set collect_map_keys(const Map& map)
 {
-    std::set< typename Map::key_type > result;
+    Set result;
     std::transform(map.begin(), map.end(), std::inserter(result, result.end()),
                    [](const typename Map::value_type& pair) { return pair.first; } );
     return result;
