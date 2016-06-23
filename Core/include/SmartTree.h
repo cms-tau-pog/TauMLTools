@@ -43,6 +43,9 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
     /**/
 
 namespace root_ext {
+template<typename type>
+using strmap = std::map<std::string, type>;
+
 namespace detail {
     struct BaseSmartTreeEntry {
         virtual ~BaseSmartTreeEntry() {}
@@ -53,6 +56,14 @@ namespace detail {
     struct SmartTreeVectorPtrEntry : public BaseSmartTreeEntry {
         std::vector<DataType>* value;
         SmartTreeVectorPtrEntry(std::vector<DataType>& origin)
+            : value(&origin) {}
+        virtual void clear() { value->clear(); }
+    };
+
+    template<typename DataType>
+    struct SmartTreeMapPtrEntry : public BaseSmartTreeEntry {
+        strmap<DataType>* value;
+        SmartTreeMapPtrEntry(strmap<DataType>& origin)
             : value(&origin) {}
         virtual void clear() { value->clear(); }
     };
@@ -103,6 +114,30 @@ namespace detail {
                            SmartTreeEntryMap& entries)
         {
             using PtrEntry = detail::SmartTreeVectorPtrEntry<DataType>;
+            std::shared_ptr<PtrEntry> entry(new PtrEntry(value));
+            if(entries.count(branch_name))
+                throw std::runtime_error("Entry is already defined.");
+            entries[branch_name] = entry;
+            if(readMode) {
+                EnableBranch(tree, branch_name);
+                tree->SetBranchAddress(branch_name.c_str(), &entry->value);
+                if(tree->GetReadEntry() >= 0)
+                    tree->GetBranch(branch_name.c_str())->GetEntry(tree->GetReadEntry());
+            } else {
+                TBranch* branch = tree->Branch(branch_name.c_str(), entry->value);
+                const Long64_t n_entries = tree->GetEntries();
+                for(Long64_t n = 0; n < n_entries; ++n)
+                    branch->Fill();
+            }
+        }
+    };
+
+    template<typename DataType>
+    struct BranchCreator<strmap<DataType>> {
+        static void Create(TTree *tree, const std::string& branch_name, strmap<DataType>& value, bool readMode,
+                           SmartTreeEntryMap& entries)
+        {
+            using PtrEntry = detail::SmartTreeMapPtrEntry<DataType>;
             std::shared_ptr<PtrEntry> entry(new PtrEntry(value));
             if(entries.count(branch_name))
                 throw std::runtime_error("Entry is already defined.");
