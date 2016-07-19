@@ -9,6 +9,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <stdexcept>
 #include <memory>
 #include <fstream>
+#include <mutex>
 
 #include <TObject.h>
 #include <TH1.h>
