@@ -25,11 +25,14 @@ public:
         return ss.str();
     }
 
-    ProgressReporter(unsigned _report_interval, std::ostream& _output)
-        : start(clock::now()), block_start(start), report_interval(_report_interval), output(&_output)
+    ProgressReporter(unsigned _report_interval, std::ostream& _output,
+                     const std::string& init_message = "Starting analyzer...") :
+        start(clock::now()), block_start(start), report_interval(_report_interval), output(&_output), total_n_events(0)
     {
-        *output << TimeStamp(start) << "Starting analyzer..." << std::endl;
+        *output << TimeStamp(start) << init_message << std::endl;
     }
+
+    void SetTotalNumberOfEvents(size_t _total_n_events) { total_n_events = _total_n_events; }
 
     void Report(size_t event_id, bool final_report = false)
     {
@@ -44,8 +47,15 @@ public:
         *output << TimeStamp(now);
         if(final_report)
             *output << "Total: ";
-        *output << "time = " << since_start << " seconds, events processed = " << event_id
-                  << ", average speed = " << std::setprecision(1) << std::fixed << speed << " events/s" << std::endl;
+        if(total_n_events) {
+            *output << event_id << " out of " << total_n_events << " events ("
+                    << std::setprecision(1) << std::fixed << double(event_id)/total_n_events * 100.0
+                    << "%)";
+        } else {
+            *output << event_id << " events";
+        }
+        *output << " are processed in " << since_start << " seconds, average speed is "
+                << std::setprecision(1) << std::fixed << speed << " events/s." << std::endl;
         const unsigned since_start_residual = since_start % report_interval;
         block_start = now - seconds(since_start_residual);
     }
@@ -54,6 +64,7 @@ private:
     clock::time_point start, block_start;
     unsigned report_interval;
     std::ostream* output;
+    size_t total_n_events;
 };
 } // namespace tools
 } // namespace analysis

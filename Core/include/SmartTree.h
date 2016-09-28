@@ -107,8 +107,8 @@ namespace detail {
                            SmartTreeEntryMap& entries)
         {
             static const std::map<std::string, std::string> class_fixes = {
-                { "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> >",
-                  "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<Double32_t> >" }
+//                { "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> >",
+//                  "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<Double32_t> >" }
             };
 
             using PtrEntry = typename EntryTypeSelector<DataType>::PtrEntry;
