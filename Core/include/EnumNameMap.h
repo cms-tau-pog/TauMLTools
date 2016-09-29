@@ -13,7 +13,10 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include "exception.h"
 
 #define ENUM_NAMES(enum_type) \
-    static const analysis::EnumNameMap<enum_type> __##enum_type##_names
+    template<typename T=void> \
+    struct __##enum_type##_names { static const ::analysis::EnumNameMap<enum_type> names; }; \
+    template<typename T> \
+    const ::analysis::EnumNameMap<enum_type> __##enum_type##_names<T>::names
 
 #define ENUM_OSTREAM_OPERATOR() \
     template<typename Enum, typename = typename std::enable_if<std::is_enum<Enum>::value>::type> \
