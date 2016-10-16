@@ -48,10 +48,20 @@ TLorentzVector ConvertVector(const LVector& v)
 }
 
 //see AN-13-178
-inline double Calculate_MT(const LorentzVector& lepton_momentum, double met_pt, double met_phi)
+template<typename LVector1, typename LVector2>
+double Calculate_MT(const LVector1& lepton_p4, const LVector2& met_p4)
 {
-    const double delta_phi = TVector2::Phi_mpi_pi(lepton_momentum.Phi() - met_phi);
-    return std::sqrt( 2.0 * lepton_momentum.Pt() * met_pt * ( 1.0 - std::cos(delta_phi) ) );
+    const double delta_phi = TVector2::Phi_mpi_pi(lepton_p4.Phi() - met_p4.Phi());
+    return std::sqrt( 2.0 * lepton_p4.Pt() * met_p4.Pt() * ( 1.0 - std::cos(delta_phi) ) );
+}
+
+template<typename LVector1, typename LVector2, typename LVector3>
+double Calculate_TotalMT(const LVector1& lepton1_p4, const LVector2& lepton2_p4, const LVector3& met_p4)
+{
+    const double mt_1 = Calculate_MT(lepton1_p4, met_p4);
+    const double mt_2 = Calculate_MT(lepton2_p4, met_p4);
+    const double mt_ll = Calculate_MT(lepton1_p4, lepton2_p4);
+    return std::sqrt(std::pow(mt_1, 2) + std::pow(mt_2, 2) + std::pow(mt_ll, 2));
 }
 
 // from DataFormats/TrackReco/interface/TrackBase.h
@@ -66,6 +76,31 @@ inline double Calculate_dz(const TVector3& trkV, const TVector3& PV, const TVect
 {
   return (trkV.z() - PV.z()) - ( (trkV.x() - PV.x()) * trkP.x() + (trkV.y() - PV.y()) * trkP.y() ) / trkP.Pt()
                                * trkP.z() / trkP.Pt();
+}
+
+template<typename LVector1, typename LVector2, typename LVector3>
+double Calculate_Pzeta(const LVector1& l1_p4, const LVector2& l2_p4, const LVector3& met_p4)
+{
+    const TVector2 met_p2(met_p4.Px(), met_p4.Py());
+    const TVector2 l1_u(std::cos(l1_p4.Phi()), std::sin(l1_p4.Phi()));
+    const TVector2 l2_u(std::cos(l2_p4.Phi()), std::sin(l2_p4.Phi()));
+    const TVector2 ll_u = l1_u + l2_u;
+    const double ll_u_met = met_p2 * ll_u;
+    const double ll_mod = ll_u.Mod();
+    return ll_u_met / ll_mod;
+}
+
+template<typename LVector1, typename LVector2>
+double Calculate_visiblePzeta(const LVector1& l1_p4, const LVector2& l2_p4)
+{
+    const auto ll_p4 = l1_p4 + l2_p4;
+    const TVector2 ll_p2(ll_p4.Px(), ll_p4.Py());
+    const TVector2 l1_u(std::cos(l1_p4.Phi()), std::sin(l1_p4.Phi()));
+    const TVector2 l2_u(std::cos(l2_p4.Phi()), std::sin(l2_p4.Phi()));
+    const TVector2 ll_u = l1_u + l2_u;
+    const double ll_p2u = ll_p2 * ll_u;
+    const double ll_mod = ll_u.Mod();
+    return ll_p2u / ll_mod;
 }
 
 
