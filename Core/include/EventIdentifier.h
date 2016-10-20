@@ -26,11 +26,7 @@ struct EventIdentifier {
 
     explicit EventIdentifier(const std::string& id_str)
     {
-        static const std::string separators = ":";
-        std::vector<std::string> id_strings;
-        boost::split(id_strings, id_str, boost::is_any_of(separators), boost::token_compress_on);
-        if(id_strings.size() != 3)
-            throw exception("Invalid event identifier '%1%'") % id_str;
+        const std::vector<std::string> id_strings = Split(id_str);
         runId = Parse(id_strings.at(0), "runId");
         lumiBlock = Parse(id_strings.at(1), "lumiBlock");
         eventId = Parse(id_strings.at(2), "eventId");
@@ -53,6 +49,16 @@ struct EventIdentifier {
     std::string ToString() const
     {
         return boost::str(boost::format("%1%:%2%:%3%") % runId % lumiBlock % eventId);
+    }
+
+    static std::vector<std::string> Split(const std::string& id_str)
+    {
+        static const std::string separators = ":";
+        std::vector<std::string> id_strings;
+        boost::split(id_strings, id_str, boost::is_any_of(separators), boost::token_compress_on);
+        if(id_strings.size() != 3)
+            throw exception("Invalid event identifier '%1%'") % id_str;
+        return id_strings;
     }
 
 private:
