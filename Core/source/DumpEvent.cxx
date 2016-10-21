@@ -38,10 +38,10 @@ public:
     void Run()
     {
         const Long64_t entry = FindEntry();
-        const auto& branches = tree->GetListOfBranches();
-        for(Int_t n = 0; n < branches->GetEntries(); ++n) {
+        const auto branch_names = SmartBranch::CollectBranchNames(*tree);
+        for(const std::string& name : branch_names) {
             try {
-                SmartBranch branch(*dynamic_cast<TBranch*>(branches->At(n)));
+                SmartBranch branch(*tree, name);
                 branch.Enable();
                 branch->GetEntry(entry);
                 branch.PrintValue(std::cout);
@@ -52,7 +52,7 @@ public:
     }
 
 private:
-    Long64_t FindEntry()
+    Long64_t FindEntry() const
     {
         for(Long64_t n = 0; n < tree->GetEntries(); ++n) {
             tree->GetEntry(n);

@@ -159,6 +159,15 @@ struct BranchValueGetter;
 
 class SmartBranch {
 public:
+    static std::set<std::string> CollectBranchNames(TTree& tree)
+    {
+        std::set<std::string> names;
+        const auto& branches = tree.GetListOfBranches();
+        for(Int_t n = 0; n < branches->GetEntries(); ++n)
+            names.insert(branches->At(n)->GetName());
+        return names;
+    }
+
     explicit SmartBranch(TBranch& _branch) :
         branch(&_branch), entry(detail::BranchEntryFactory::Make(_branch))
     {
@@ -171,6 +180,8 @@ public:
             throw analysis::exception("Branch '%1%' not found.") % name;
         entry = std::shared_ptr<detail::BaseSmartBranchEntry>(detail::BranchEntryFactory::Make(*branch));
     }
+
+    std::string Name() const { return branch->GetName(); }
 
     void Enable()
     {
@@ -203,7 +214,44 @@ public:
             s << std::endl;
     }
 
+    static void PrintStatsHeader(std::ostream& s)
+    {
+        const auto& widths = StatColumnWidths();
+        s << std::left
+          << std::setw(widths.at(0)) << "Name"
+          << std::setw(widths.at(1)) << "Zip size"
+          << std::setw(widths.at(2)) << "% Total"
+          << std::setw(widths.at(3)) << "Raw size"
+          << std::setw(widths.at(4)) << "Comp. factor"
+          << std::endl;
+
+    }
+
+    Long64_t RawSize() const { return branch->GetTotalSize("*"); }
+    Long64_t ZipSize() const { return branch->GetZipBytes("*"); }
+    double PercentsOfTotalTreeSize() const { return double(ZipSize()) / branch->GetTree()->GetZipBytes() * 100.0; }
+    double CompressionFactor() const { return double(RawSize()) / ZipSize(); }
+
+    void PrintStats(std::ostream& s) const
+    {
+        const auto& widths = StatColumnWidths();
+
+        s << std::left << std::fixed << std::setprecision(2)
+          << std::setw(widths.at(0)) << Name()
+          << std::setw(widths.at(1)) << ZipSize()
+          << std::setw(widths.at(2)) << PercentsOfTotalTreeSize()
+          << std::setw(widths.at(3)) << RawSize()
+          << std::setw(widths.at(4)) << double(RawSize()) / ZipSize()
+          << std::endl;
+    }
+
 private:
+    static const std::vector<int>& StatColumnWidths()
+    {
+        static const std::vector<int> column_widths = { 30, 14, 14, 14, 14 };
+        return column_widths;
+    }
+
     static void EnableBranch(TBranch& branch)
     {
         branch.SetStatus(1);
