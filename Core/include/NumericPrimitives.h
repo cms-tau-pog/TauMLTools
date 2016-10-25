@@ -5,39 +5,9 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 #include <boost/math/constants/constants.hpp>
 #include <TF1.h>
-#include "exception.h"
+#include "TextIO.h"
 
 namespace analysis {
-
-template<typename T>
-std::string ToString(const T& t)
-{
-    std::ostringstream ss;
-    ss << t;
-    return ss.str();
-}
-
-template<typename T>
-bool TryParse(const std::string& str, T& t)
-{
-    try {
-        std::stringstream ss(str);
-        ss >> t;
-        return !ss.fail();
-    } catch(exception&) {}
-    return false;
-}
-
-template<typename T>
-T Parse(const std::string& str)
-{
-    T t;
-    std::istringstream ss(str);
-    ss >> t;
-    if(ss.fail())
-        throw exception("Parse of string '%1%' to %2% is failed.") % str % typeid(T).name();
-    return t;
-}
 
 template<typename T>
 struct Range {
