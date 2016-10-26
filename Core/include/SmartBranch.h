@@ -119,6 +119,8 @@ struct BranchEntryFactory {
         };
 
         static const CompositeTypeMakeMethodMap compositeTypeMakeMethods = {
+            { "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> >",
+              &SmartBranchEntry<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> >>::Make },
             { "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<Double32_t> >",
               &SmartBranchEntry<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<Double32_t> >>::Make },
             { "map<string,float>", &SmartBranchEntry<std::map<std::string,float>>::Make },
@@ -223,6 +225,7 @@ public:
           << std::setw(widths.at(2)) << "% Total"
           << std::setw(widths.at(3)) << "Raw size"
           << std::setw(widths.at(4)) << "Comp. factor"
+          << std::setw(widths.at(5)) << "Class"
           << std::endl;
 
     }
@@ -242,13 +245,14 @@ public:
           << std::setw(widths.at(2)) << PercentsOfTotalTreeSize()
           << std::setw(widths.at(3)) << RawSize()
           << std::setw(widths.at(4)) << double(RawSize()) / ZipSize()
+          << std::setw(widths.at(5)) << branch->GetClassName()
           << std::endl;
     }
 
 private:
     static const std::vector<int>& StatColumnWidths()
     {
-        static const std::vector<int> column_widths = { 30, 14, 14, 14, 14 };
+        static const std::vector<int> column_widths = { 30, 14, 14, 14, 14, 30 };
         return column_widths;
     }
 

@@ -7,6 +7,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <sstream>
 #include <memory>
 #include <iostream>
+#include <unordered_map>
 
 #include <TFile.h>
 #include <TTree.h>
@@ -80,7 +81,7 @@ namespace detail {
         virtual ~BaseDataClass() {}
     };
 
-    using SmartTreeEntryMap = std::map<std::string, std::shared_ptr<BaseSmartTreeEntry>>;
+    using SmartTreeEntryMap = std::unordered_map<std::string, std::shared_ptr<BaseSmartTreeEntry>>;
 
     inline void EnableBranch(TBranch& branch)
     {
@@ -106,9 +107,23 @@ namespace detail {
         static void Create(TTree& tree, const std::string& branch_name, DataType& value, bool readMode,
                            SmartTreeEntryMap& entries)
         {
-            static const std::map<std::string, std::string> class_fixes = {
-                { "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> >",
-                  "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<Double32_t> >" }
+            using FixesMap = std::unordered_map<std::string, std::string>;
+
+            static const FixesMap class_fixes = {
+                { "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<Double32_t> >",
+                  "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> >" }
+            };
+
+            auto get_fixed_name = [&](const std::string& cl_name, const std::string& branch_cl_name) -> std::string {
+                if(cl_name == branch_cl_name) return branch_cl_name;
+                if(class_fixes.count(cl_name) && class_fixes.at(cl_name) == branch_cl_name) return branch_cl_name;
+                auto iter = std::find_if(class_fixes.begin(), class_fixes.end(),
+                    [&](const FixesMap::value_type& pair) -> bool { return pair.second == cl_name; });
+                if(iter != class_fixes.end() && iter->first == branch_cl_name) return branch_cl_name;
+                std::ostringstream ss;
+                ss << "The pointer type given (" << cl_name << ") does not correspond to the class needed ("
+                   << branch_cl_name << ") by the branch: " << branch_name << ".";
+                throw std::runtime_error(ss.str());
             };
 
             using PtrEntry = typename EntryTypeSelector<DataType>::PtrEntry;
@@ -118,15 +133,17 @@ namespace detail {
             entries[branch_name] = entry;
 
             TClass *cl = TClass::GetClass(typeid(DataType));
-            if(cl && class_fixes.count(cl->GetName()))
-                cl = TClass::GetClass(class_fixes.at(cl->GetName()).c_str());
 
             if(readMode) {
                 try {
                     EnableBranch(tree, branch_name);
-                    if(cl)
+
+                    if(cl) {
+                        TBranch* branch = tree.GetBranch(branch_name.c_str());
+                        const std::string fixed_name = get_fixed_name(cl->GetName(), branch->GetClassName());
+                        cl = TClass::GetClass(fixed_name.c_str());
                         tree.SetBranchAddress(branch_name.c_str(), &entry->value, nullptr, cl, kOther_t, true);
-                    else
+                    } else
                         tree.SetBranchAddress(branch_name.c_str(), entry->value);
                     if(tree.GetReadEntry() >= 0)
                         tree.GetBranch(branch_name.c_str())->GetEntry(tree.GetReadEntry());
@@ -134,7 +151,16 @@ namespace detail {
                     std::cerr << "ERROR: " << error.what() << std::endl;
                 }
             } else {
-                TBranch* branch = tree.Branch(branch_name.c_str(), entry->value);
+
+                TBranch* branch;
+                if(cl) {
+                    std::string cl_name = cl->GetName();
+                    if(class_fixes.count(cl_name))
+                        cl_name = class_fixes.at(cl_name);
+                    branch = tree.Branch(branch_name.c_str(), cl_name.c_str(), entry->value);
+                } else
+                    branch = tree.Branch(branch_name.c_str(), entry->value);
+
                 const Long64_t n_entries = tree.GetEntries();
                 for(Long64_t n = 0; n < n_entries; ++n)
                     branch->Fill();

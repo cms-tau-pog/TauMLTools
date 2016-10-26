@@ -32,7 +32,13 @@ public:
         *output << TimeStamp(start) << init_message << std::endl;
     }
 
-    void SetTotalNumberOfEvents(size_t _total_n_events) { total_n_events = _total_n_events; }
+    void SetTotalNumberOfEvents(size_t _total_n_events)
+    {
+        total_n_events = _total_n_events;
+        std::ostringstream ss;
+        ss << total_n_events;
+        total_n_events_str = ss.str();
+    }
 
     void Report(size_t event_id, bool final_report = false)
     {
@@ -43,18 +49,23 @@ public:
         if(!final_report && since_last_report < report_interval) return;
 
         const unsigned since_start = duration_cast<seconds>(now - start).count();
+        const unsigned h_since_start = since_start / 3600;
+        const unsigned m_since_start = (since_start % 3600) / 60;
+        const unsigned s_since_start = since_start % 60;
         const double speed = double(event_id) / since_start;
         *output << TimeStamp(now);
-        if(final_report)
+        if(final_report && !total_n_events)
             *output << "Total: ";
-        if(total_n_events) {
-            *output << event_id << " out of " << total_n_events << " events ("
-                    << std::setprecision(1) << std::fixed << double(event_id)/total_n_events * 100.0
-                    << "%)";
-        } else {
-            *output << event_id << " events";
-        }
-        *output << " are processed in " << since_start << " seconds, average speed is "
+        if(total_n_events)
+            *output << std::setprecision(1) << std::fixed << std::setw(5) << double(event_id)/total_n_events * 100.0
+                    << "%: " << std::setw(total_n_events_str.size()) << event_id << " out of " << total_n_events_str;
+        else
+            *output << event_id;
+        *output << " events are processed in " << std::setfill('0')
+                << std::setw(2) << h_since_start << ":"
+                << std::setw(2) << m_since_start << ":"
+                << std::setw(2) << s_since_start << std::setfill(' ')
+                << ", average speed is "
                 << std::setprecision(1) << std::fixed << speed << " events/s." << std::endl;
         const unsigned since_start_residual = since_start % report_interval;
         block_start = now - seconds(since_start_residual);
@@ -65,6 +76,7 @@ private:
     unsigned report_interval;
     std::ostream* output;
     size_t total_n_events;
+    std::string total_n_events_str;
 };
 } // namespace tools
 } // namespace analysis
