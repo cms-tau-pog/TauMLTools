@@ -63,6 +63,9 @@ public:
         SmartBranch::PrintStatsHeader(std::cout);
         for(const auto& branch : branches)
             branch.PrintStats(std::cout);
+        const double bytes_per_entry = double(tree->GetZipBytes()) / tree->GetEntries();
+        std::cout << "\nTotal: n_entries = " << tree->GetEntries() << ", zip_size = " << tree->GetZipBytes()
+                  << ", bytes_per_entry = " << bytes_per_entry << "." << std::endl;
     }
 
 private:

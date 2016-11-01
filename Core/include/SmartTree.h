@@ -8,6 +8,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <memory>
 #include <iostream>
 #include <unordered_map>
+#include <memory>
 
 #include <TFile.h>
 #include <TTree.h>
@@ -46,6 +47,8 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 namespace root_ext {
 template<typename type>
 using strmap = std::map<std::string, type>;
+template<typename type>
+using intmap = std::map<uint32_t, type>;
 
 namespace detail {
     struct BaseSmartTreeEntry {
@@ -72,9 +75,9 @@ namespace detail {
     struct EntryTypeSelector<std::vector<DataType>> {
         using PtrEntry = SmartTreeCollectionEntry<std::vector<DataType>>;
     };
-    template<typename DataType>
-    struct EntryTypeSelector<strmap<DataType>> {
-        using PtrEntry = SmartTreeCollectionEntry<strmap<DataType>>;
+    template<typename KeyType, typename DataType>
+    struct EntryTypeSelector<std::map<KeyType, DataType>> {
+        using PtrEntry = SmartTreeCollectionEntry<std::map<KeyType, DataType>>;
     };
 
     struct BaseDataClass {
@@ -206,6 +209,7 @@ public:
 
     void Fill()
     {
+        std::lock_guard<std::mutex> lock(mutex);
         tree->Fill();
         for(auto& entry : entries)
             entry.second->clear();
@@ -213,17 +217,27 @@ public:
 
     Long64_t GetEntries() const { return tree->GetEntries(); }
     Long64_t GetReadEntry() const { return tree->GetReadEntry(); }
-    Int_t GetEntry(Long64_t entry) { return tree->GetEntry(entry); }
+
+    Int_t GetEntry(Long64_t entry)
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        return tree->GetEntry(entry);
+    }
+
     void Write()
     {
+        std::lock_guard<std::mutex> lock(mutex);
         if(directory)
             directory->WriteTObject(tree, tree->GetName(), "Overwrite");
     }
+
+    std::mutex& GetMutex() { return mutex; }
 
 protected:
     template<typename DataType>
     void AddBranch(const std::string& branch_name, DataType& value)
     {
+        std::lock_guard<std::mutex> lock(mutex);
         if(!disabled_branches.count(branch_name))
             detail::BranchCreator<DataType>::Create(*tree, branch_name, value, readMode, entries);
     }
@@ -238,6 +252,7 @@ private:
     bool readMode;
     TTree* tree;
     std::set<std::string> disabled_branches;
+    std::mutex mutex;
 };
 
 namespace detail {

@@ -101,7 +101,15 @@ struct SmartBranchEntry<std::vector<ValueType>, false> : BaseSmartBranchEntry {
     static BaseSmartBranchEntry* Make() { return new SmartBranchEntry(); }
 };
 
+#define BRANCH_ENTRY(type) { #type, &SmartBranchEntry<type>::Make }
+
 struct BranchEntryFactory {
+    using string = std::string;
+    template<typename T>
+    using vector = std::vector<T>;
+    template<typename Key, typename Value>
+    using map = std::map<Key, Value>;
+
     static BaseSmartBranchEntry* Make(TBranch& branch)
     {
         using MakeMethodPtr = BaseSmartBranchEntry* (*)();
@@ -119,22 +127,21 @@ struct BranchEntryFactory {
         };
 
         static const CompositeTypeMakeMethodMap compositeTypeMakeMethods = {
-            { "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> >",
-              &SmartBranchEntry<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> >>::Make },
-            { "ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<Double32_t> >",
-              &SmartBranchEntry<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<Double32_t> >>::Make },
-            { "map<string,float>", &SmartBranchEntry<std::map<std::string,float>>::Make },
+            BRANCH_ENTRY(ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> >),
+            BRANCH_ENTRY(ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<Double32_t> >),
+            BRANCH_ENTRY(vector<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<double> > >),
+            BRANCH_ENTRY(vector<float>),
+            BRANCH_ENTRY(vector<double>),
+            BRANCH_ENTRY(vector<int>),
+            BRANCH_ENTRY(vector<unsigned int>),
+            BRANCH_ENTRY(vector<unsigned long>),
+            BRANCH_ENTRY(vector<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > >),
+            BRANCH_ENTRY(ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<float> >),
+            BRANCH_ENTRY(vector<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<float> > >),
+            BRANCH_ENTRY(vector<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<float> > >),
+            { "map<string,float>",  &SmartBranchEntry<map<string,float>>::Make },
             { "ROOT::Math::SMatrix<double,2,2,ROOT::Math::MatRepSym<double,2> >",
-              &SmartBranchEntry<ROOT::Math::SMatrix<double,2,2,ROOT::Math::MatRepSym<double,2> >, true>::Make },
-            { "vector<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<double> > >",
-              &SmartBranchEntry<std::vector<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<double> > >>::Make },
-            { "vector<float>", &SmartBranchEntry<std::vector<float>>::Make },
-            { "vector<double>", &SmartBranchEntry<std::vector<double>>::Make },
-            { "vector<int>", &SmartBranchEntry<std::vector<int>>::Make },
-            { "vector<unsigned long>", &SmartBranchEntry<std::vector<unsigned long>>::Make },
-            { "vector<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > >",
-              &SmartBranchEntry<std::vector<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > >>::Make }
-
+              &SmartBranchEntry<ROOT::Math::SMatrix<double,2,2,ROOT::Math::MatRepSym<double,2> >>::Make },
         };
 
         TClass *branch_class;
@@ -230,7 +237,7 @@ public:
 
     }
 
-    Long64_t RawSize() const { return branch->GetTotalSize("*"); }
+    Long64_t RawSize() const { return std::max(branch->GetTotalSize(), branch->GetTotBytes("*")); }
     Long64_t ZipSize() const { return branch->GetZipBytes("*"); }
     double PercentsOfTotalTreeSize() const { return double(ZipSize()) / branch->GetTree()->GetZipBytes() * 100.0; }
     double CompressionFactor() const { return double(RawSize()) / ZipSize(); }
