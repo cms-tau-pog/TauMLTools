@@ -9,6 +9,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <iostream>
 #include <unordered_map>
 #include <memory>
+#include <mutex>
 
 #include <TFile.h>
 #include <TTree.h>
