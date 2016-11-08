@@ -31,7 +31,7 @@ using LorentzVectorM_Float = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<f
 using LorentzVectorE_Float = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<float>>;
 
 template<unsigned n>
-using SquareMatrix = ROOT::Math::SMatrix<double, n, n, ROOT::Math::MatRepSym<double, n>>;
+using SquareMatrix = ROOT::Math::SMatrix<double, n, n, ROOT::Math::MatRepStd<double, n>>;
 
 
 template<unsigned n>

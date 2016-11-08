@@ -108,8 +108,8 @@ namespace detail {
 
     template<typename DataType>
     struct BranchCreator {
-        static void Create(TTree& tree, const std::string& branch_name, DataType& value, bool readMode,
-                           SmartTreeEntryMap& entries)
+        void Create(TTree& tree, const std::string& branch_name, DataType& value, bool readMode,
+                    SmartTreeEntryMap& entries)
         {
             using FixesMap = std::unordered_map<std::string, std::string>;
 
@@ -239,8 +239,10 @@ protected:
     void AddBranch(const std::string& branch_name, DataType& value)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        if(!disabled_branches.count(branch_name))
-            detail::BranchCreator<DataType>::Create(*tree, branch_name, value, readMode, entries);
+        if(!disabled_branches.count(branch_name)) {
+            detail::BranchCreator<DataType> creator;
+            creator.Create(*tree, branch_name, value, readMode, entries);
+        }
     }
 
 private:
