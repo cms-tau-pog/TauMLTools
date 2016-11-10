@@ -33,7 +33,6 @@ using LorentzVectorE_Float = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<f
 template<unsigned n>
 using SquareMatrix = ROOT::Math::SMatrix<double, n, n, ROOT::Math::MatRepStd<double, n>>;
 
-
 template<unsigned n>
 TMatrixD ConvertMatrix(const SquareMatrix<n>& m)
 {
