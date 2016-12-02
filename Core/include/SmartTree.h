@@ -180,7 +180,7 @@ public:
               const std::set<std::string>& _disabled_branches = {})
         : name(_name), directory(_directory), readMode(_readMode), disabled_branches(_disabled_branches)
     {
-        static constexpr Long64_t maxVirtualSize = 10000000;
+        static constexpr Long64_t maxVirtualSize = 100000000;
 
         if(readMode) {
             if(!directory)
