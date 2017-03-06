@@ -25,11 +25,13 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
     class tree_class_name : public root_ext::detail::BaseSmartTree<data_class_name> { \
     public: \
         static const std::string& Name() { static const std::string name = tree_name; return name; } \
-        tree_class_name(TDirectory* directory, bool readMode, const std::set<std::string>& disabled_branches = {}) \
-            : BaseSmartTree(Name(), directory, readMode, disabled_branches) { Initialize(); } \
+        tree_class_name(TDirectory* directory, bool readMode, const std::set<std::string>& disabled_branches = {}, \
+                        const std::set<std::string>& enabled_branches = {}) \
+            : BaseSmartTree(Name(), directory, readMode, disabled_branches,enabled_branches) { Initialize(); } \
         tree_class_name(const std::string& name, TDirectory* directory, bool readMode, \
-                        const std::set<std::string>& disabled_branches = {}) \
-            : BaseSmartTree(name, directory, readMode, disabled_branches) { Initialize(); } \
+                        const std::set<std::string>& disabled_branches = {}, \
+                        const std::set<std::string>& enabled_branches = {}) \
+            : BaseSmartTree(name, directory, readMode, disabled_branches,enabled_branches) { Initialize(); } \
     private: \
         inline void Initialize(); \
     }; \
@@ -177,8 +179,9 @@ namespace detail {
 class SmartTree {
 public:
     SmartTree(const std::string& _name, TDirectory* _directory, bool _readMode,
-              const std::set<std::string>& _disabled_branches = {})
-        : name(_name), directory(_directory), readMode(_readMode), disabled_branches(_disabled_branches)
+              const std::set<std::string>& _disabled_branches = {}, const std::set<std::string>& _enabled_branches ={})
+        : name(_name), directory(_directory), readMode(_readMode), disabled_branches(_disabled_branches),
+          enabled_branches(_enabled_branches)
     {
         static constexpr Long64_t maxVirtualSize = 100000000;
 
@@ -200,7 +203,7 @@ public:
 
     SmartTree(const SmartTree&& other)
         : name(other.name), directory(other.directory), entries(other.entries), tree(other.tree),
-          disabled_branches(other.disabled_branches) {}
+          disabled_branches(other.disabled_branches), enabled_branches(other.enabled_branches) {}
 
     virtual ~SmartTree()
     {
@@ -239,11 +242,17 @@ protected:
     void AddBranch(const std::string& branch_name, DataType& value)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        if(!disabled_branches.count(branch_name)) {
+        if (!disabled_branches.count(branch_name) && (!enabled_branches.size() || enabled_branches.count(branch_name))){
             detail::BranchCreator<DataType> creator;
             creator.Create(*tree, branch_name, value, readMode, entries);
         }
     }
+
+    bool HasBranch(const std::string& branch_name) const
+    {
+        return entries.count(branch_name) != 0;
+    }
+
 
 private:
     SmartTree(const SmartTree& other) { throw std::runtime_error("Can't copy a smart tree"); }
@@ -255,6 +264,7 @@ private:
     bool readMode;
     TTree* tree;
     std::set<std::string> disabled_branches;
+    std::set<std::string> enabled_branches;
     std::mutex mutex;
 };
 
@@ -275,3 +285,4 @@ protected:
 };
 } // detail
 } // root_ext
+
