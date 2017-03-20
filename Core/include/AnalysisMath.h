@@ -84,11 +84,14 @@ inline double Calculate_dz(const TVector3& trkV, const TVector3& PV, const TVect
 template<typename LVector1, typename LVector2, typename LVector3>
 double Calculate_Pzeta(const LVector1& l1_p4, const LVector2& l2_p4, const LVector3& met_p4)
 {
+    const auto ll_p4 = l1_p4 + l2_p4;
+    const TVector2 ll_p2(ll_p4.Px(), ll_p4.Py());
     const TVector2 met_p2(met_p4.Px(), met_p4.Py());
+    const TVector2 ll_s = ll_p2 + met_p2;
     const TVector2 l1_u(std::cos(l1_p4.Phi()), std::sin(l1_p4.Phi()));
     const TVector2 l2_u(std::cos(l2_p4.Phi()), std::sin(l2_p4.Phi()));
     const TVector2 ll_u = l1_u + l2_u;
-    const double ll_u_met = met_p2 * ll_u;
+    const double ll_u_met = ll_s * ll_u;
     const double ll_mod = ll_u.Mod();
     return ll_u_met / ll_mod;
 }
