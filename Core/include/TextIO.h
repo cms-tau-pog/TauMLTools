@@ -37,4 +37,13 @@ T Parse(const std::basic_string<CharT>& str)
     return t;
 }
 
+template<typename T>
+std::vector<std::string> ToStringVector(const std::vector<T>& v)
+{
+    std::vector<std::string> result;
+    std::transform(v.begin(), v.end(), std::back_inserter(result),
+                   [](const T& x) { std::ostringstream ss; ss << x; return ss.str(); });
+    return result;
+}
+
 } // namespace analysis

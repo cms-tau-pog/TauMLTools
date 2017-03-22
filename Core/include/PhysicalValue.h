@@ -350,6 +350,18 @@ std::wostream& operator<<(std::wostream& s, const PhysicalValue<ValueType>& v)
     s << v.template ToString<wchar_t>(true, true);
     return s;
 }
+
+template<typename T>
+std::istream& operator>>(std::istream& s, PhysicalValue<T>& r)
+{
+    T value, error;
+    s >> value >> error;
+    if(s.fail())
+        throw exception("Invalid Physical Value.");
+    r = PhysicalValue<T>(value, error);
+    return s;
+}
+
 } // namespace detail
 
 using PhysicalValue = detail::PhysicalValue<double>;

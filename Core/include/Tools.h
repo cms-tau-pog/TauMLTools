@@ -75,5 +75,18 @@ inline uint32_t hash(const std::string& str)
     return crc.checksum();
 }
 
+inline std::string FullPath(std::initializer_list<std::string> paths)
+{
+    if(!paths.size())
+        return "";
+
+    std::ostringstream full_path;
+    auto iter = paths.begin();
+    full_path << *iter++;
+    for(; iter != paths.end(); ++iter)
+        full_path << "/" << *iter;
+    return full_path.str();
+}
+
 } // namespace tools
 } // namespace analysis

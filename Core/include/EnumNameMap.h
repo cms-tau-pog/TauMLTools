@@ -26,6 +26,13 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
     inline std::wostream& operator<<(std::wostream& os, Enum e) { return ::analysis::operator <<(os, e); } \
     /**/
 
+#define ENUM_ISTREAM_OPERATORS() \
+    template<typename Enum, typename = typename std::enable_if<std::is_enum<Enum>::value>::type> \
+    inline std::istream& operator>>(std::istream& is, Enum& e) { return ::analysis::operator >>(is, e); } \
+    template<typename Enum, typename = typename std::enable_if<std::is_enum<Enum>::value>::type> \
+    inline std::wistream& operator>>(std::wistream& is, Enum& e) { return ::analysis::operator >>(is, e); } \
+    /**/
+
 namespace analysis {
 template<typename Enum>
 class EnumNameMap {
