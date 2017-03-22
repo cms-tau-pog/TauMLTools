@@ -289,23 +289,58 @@ double pdf_kde_2d(const std::pair<const std::vector<Value>*, const std::vector<V
 // Using estimator defined in doi:10.3390/e13071229.
 // KDE is used for the PDF estimation.
 template<typename Value>
-double KullbackLeiblerDivergence(const std::vector<Value>& x, const std::vector<Value>& y, double window_bandwidth)
+double KullbackLeiblerDivergence(const std::vector<Value>& x, const std::vector<Value>& y,
+                                 double window_bandwidth_x, double window_bandwidth_y)
 {
     if(!x.size() || !y.size())
         throw std::runtime_error("Can't compute Kullback–Leibler divergence for empty samples.");
 
-    const auto log_pdf = [&](const std::vector<Value>& sample, const Value& point) {
-        return std::log2(pdf_kde(sample, point, window_bandwidth));
-    };
-
     double div = 0;
     for(const auto& x_i : x)
-        div += log_pdf(x, x_i) - log_pdf(y, x_i);
+        div += std::log2(pdf_kde(x, x_i, window_bandwidth_x)) - std::log2(pdf_kde(y, x_i, window_bandwidth_y));
     div /= x.size();
     return div;
 }
 
-// Estimate Shannon entropy.
+// Estimate Jeffrey’s divergence for two samples of independent observations.
+// Using estimator defined in doi:10.3390/e13071229.
+// KDE is used for the PDF estimation.
+template<typename Value>
+double JeffreyDivergence(const std::vector<Value>& x, const std::vector<Value>& y,
+                         double window_bandwidth_x, double window_bandwidth_y)
+{
+    return KullbackLeiblerDivergence(x, y, window_bandwidth_x, window_bandwidth_y)
+            + KullbackLeiblerDivergence(y, x, window_bandwidth_y, window_bandwidth_x);
+}
+
+// Estimate Jensen-Shannon divergence for two samples of independent observations.
+// Using estimator defined in doi:10.3390/e13071229.
+// KDE is used for the PDF estimation.
+template<typename Value>
+double JensenShannonDivergence(const std::vector<Value>& x, const std::vector<Value>& y,
+                               double window_bandwidth_x, double window_bandwidth_y)
+{
+    if(!x.size() || !y.size())
+        throw std::runtime_error("Can't compute Jensen-Shannon divergence for empty samples.");
+
+    const auto kl_mod = [&](const std::vector<Value>& a, const std::vector<Value>& b, double w_a, double w_b) {
+        double div = 0;
+        for(const auto& a_i : a) {
+            const double p_i = pdf_kde(a, a_i, w_a);
+            const double q_i = pdf_kde(b, a_i, w_b);
+            const double m_i = (p_i + q_i) / 2.;
+            div += std::log2(p_i) - std::log2(m_i);
+        }
+        div /= a.size();
+        return div;
+    };
+
+    const double div_xm = kl_mod(x, y, window_bandwidth_x, window_bandwidth_y);
+    const double div_ym = kl_mod(y, x, window_bandwidth_y, window_bandwidth_x);
+    return (div_xm + div_ym) / 2.;
+}
+
+// Estimate the differential entropy (extention of Shannon entropy for continuous random variables).
 // KDE is used for the PDF estimation.
 template<typename Container, typename Value = typename Container::value_type>
 double Entropy(const Container& x, double window_bandwidth)
