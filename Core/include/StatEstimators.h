@@ -408,6 +408,31 @@ double JensenShannonDivergence_2D(const std::pair<const std::vector<Value>*, con
     return (div_xm + div_ym) / 2.;
 }
 
+// Estimate Jensen-Shannon divergence for N-dimension case.
+// KDE is used for the PDF estimation.
+template<typename Value>
+double JensenShannonDivergence_ND(const std::vector<const std::vector<Value>*>& x,
+                                  const std::vector<const std::vector<Value>*>& y,
+                                  const std::vector<double>& window_bandwidth_x,
+                                  const std::vector<double>& window_bandwidth_y)
+{
+    const size_t dim = x.size();
+    if(dim < 1 || dim > 2)
+        throw std::runtime_error("Supported number of dimensions is 1 or 2.");
+
+    if(y.size() != dim || window_bandwidth_x.size() != dim || window_bandwidth_y.size() != dim)
+        throw std::runtime_error("Inconsistent number of dimensions.");
+    for(size_t d = 0; d < dim; ++d) {
+        if(!x.at(d) || !y.at(d))
+            throw std::runtime_error("Can't compute Jensen-Shannon divergence for empty samples.");
+    }
+
+    if(dim == 1)
+        return JensenShannonDivergence(*x.front(), *y.front(), window_bandwidth_x.front(), window_bandwidth_y.front());
+    return JensenShannonDivergence_2D(std::make_pair(x.at(0), x.at(1)), std::make_pair(y.at(0), y.at(1)),
+                                      std::make_pair(window_bandwidth_x.at(0), window_bandwidth_x.at(1)),
+                                      std::make_pair(window_bandwidth_y.at(0), window_bandwidth_y.at(1)));
+}
 
 // Estimate the differential entropy (extention of Shannon entropy for continuous random variables).
 // KDE is used for the PDF estimation.
