@@ -437,7 +437,7 @@ double MutualInformation(const std::vector<Value>& x, const std::vector<Value>& 
         throw std::runtime_error("Inconsistent number of observations in x and y samples.");
 
     const double corr_xy = Correlation(x, y);
-    if(corr_xy <= 1 || corr_xy >= -1) return -std::numeric_limits<Value>::infinity();
+    if(corr_xy <= -1 || corr_xy >= 1) return std::numeric_limits<Value>::infinity();
 
     const auto xy = std::make_pair(&x, &y);
     const auto w = std::make_pair(window_bandwidth_x, window_bandwidth_y);
