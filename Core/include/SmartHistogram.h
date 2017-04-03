@@ -293,6 +293,25 @@ public:
     std::string GetXTitle() const { return GetXaxis()->GetTitle(); }
     std::string GetYTitle() const { return GetYaxis()->GetTitle(); }
 
+    void CopyContent(const TH2D& other)
+    {
+        if(other.GetNbinsX() != GetNbinsX() || other.GetNbinsY() != GetNbinsY())
+            throw analysis::exception("Unable to copy histogram content: source and destination have different number"
+                                      " of bins.");
+        for(Int_t n = 0; n <= GetNbinsX() + 1; ++n) {
+            for(Int_t k = 0; k <= GetNbinsY() + 1; ++k) {
+            if(GetXaxis()->GetBinLowEdge(n) != other.GetXaxis()->GetBinLowEdge(n)
+                    || GetXaxis()->GetBinWidth(n) != other.GetXaxis()->GetBinWidth(n)
+                    || GetYaxis()->GetBinLowEdge(k) != other.GetYaxis()->GetBinLowEdge(k)
+                    || GetYaxis()->GetBinWidth(k) != other.GetYaxis()->GetBinWidth(k))
+                throw analysis::exception("Unable to copy histogram content: bin (%1%, %2% is not compatible between"
+                                          " the source and destination.") % n % k;
+            SetBinContent(n, k, other.GetBinContent(n, k));
+            SetBinError(n, k, other.GetBinError(n, k));
+            }
+        }
+    }
+
 private:
     bool store;
     bool use_log_y;
