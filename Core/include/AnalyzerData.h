@@ -53,6 +53,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
                           use_log_y, max_y_sf, store) \
     TH2D_ENTRY_EX(name, nbinsx, xlow, (xlow+binsizex*nbinsx), nbinsy, ylow, (ylow+binsizey*nbinsy), x_axis_title, \
                   y_axis_title, use_log_y, max_y_sf, store)
+#define TH2D_ENTRY_CUSTOM(name, binsx, binsy) ANA_DATA_ENTRY(TH2D, name, binsx, binsy)
 
 #define GRAPH_ENTRY(name) ANA_DATA_ENTRY(TGraph, name)
 

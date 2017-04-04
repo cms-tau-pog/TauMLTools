@@ -275,6 +275,11 @@ public:
         SetYTitle(y_axis_title.c_str());
     }
 
+    SmartHistogram(const std::string& name, const std::vector<double>& binsx, const std::vector<double>& binsy)
+        : TH2D(name.c_str(), name.c_str(), static_cast<int>(binsx.size()) - 1, binsx.data(),
+               static_cast<int>(binsy.size()) - 1, binsy.data()), AbstractHistogram(name),
+          store(true), use_log_y(false), max_y_sf(1) {}
+
     virtual void WriteRootObject() override
     {
         if(store && GetOutputDirectory())
