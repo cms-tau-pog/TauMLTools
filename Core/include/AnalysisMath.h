@@ -13,6 +13,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <Math/VectorUtil.h>
 #include <TVector3.h>
 #include <TH1.h>
+#include <TH2.h>
 #include <TMatrixD.h>
 #include <TLorentzVector.h>
 
@@ -121,9 +122,27 @@ inline PhysicalValue Integral(const TH1D& histogram, bool include_overflows = tr
     return PhysicalValue(integral, error);
 }
 
-inline void RenormalizeHistogram(TH1D& histogram, const PhysicalValue& norm, bool include_overflows = true)
+inline PhysicalValue Integral(const TH2D& histogram, bool include_overflows = true)
 {
-    histogram.Scale(norm.GetValue() / Integral(histogram,include_overflows).GetValue());
+    using limit_pair = std::pair<Int_t, Int_t>;
+    const limit_pair limits_x = include_overflows ? limit_pair(0, histogram.GetNbinsX() + 1)
+                                                : limit_pair(1, histogram.GetNbinsX());
+    const limit_pair limits_y = include_overflows ? limit_pair(0, histogram.GetNbinsY() + 1)
+                                                : limit_pair(1, histogram.GetNbinsY());
+
+    double error = 0;
+    const double integral = histogram.IntegralAndError(limits_x.first, limits_x.second, limits_y.first, limits_y.second,
+                                                       error);
+    return PhysicalValue(integral, error);
+}
+
+template<typename Histogram>
+inline void RenormalizeHistogram(Histogram& histogram, double norm, bool include_overflows = true)
+{
+    const double integral = Integral(histogram,include_overflows).GetValue();
+    if (integral == 0)
+        throw analysis::exception("Integral is zero.");
+    histogram.Scale(norm / integral);
 }
 
 } // namespace analysis
