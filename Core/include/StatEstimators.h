@@ -411,10 +411,10 @@ double JensenShannonDivergence_2D(const std::pair<const std::vector<Value>*, con
 // Estimate Jensen-Shannon divergence for N-dimension case.
 // KDE is used for the PDF estimation.
 template<typename Value>
-double JensenShannonDivergence_ND(const std::vector<const std::vector<Value>*>& x,
-                                  const std::vector<const std::vector<Value>*>& y,
-                                  const std::vector<double>& window_bandwidth_x,
-                                  const std::vector<double>& window_bandwidth_y)
+double JensenShannonDivergence_ND(std::vector<const std::vector<Value>*> x,
+                                  std::vector<const std::vector<Value>*> y,
+                                  std::vector<double> window_bandwidth_x,
+                                  std::vector<double> window_bandwidth_y)
 {
     const size_t dim = x.size();
     if(dim < 1 || dim > 2)
