@@ -200,18 +200,29 @@ double Correlation(const std::vector<Value>& x, const std::vector<Value>& y, dou
 
 // Get interquartile range of the sample.
 template<typename Container, typename Value = typename Container::value_type>
-double InterquartileRange(const Container& sample)
+double InterquartileRange(const Container& sample, Value* min = nullptr, Value* max = nullptr)
 {
     if(sample.size() <= 1)
         throw std::runtime_error("Can't compute interquartile range for a sample with less than 2 observations.");
     std::vector<Value> x(sample.begin(), sample.end());
     std::sort(x.begin(), x.end());
+    if(min) *min = x.front();
+    if(max) *max = x.back();
     const size_t n = x.size();
     const size_t r = n % 2, n2 = (n - r) / 2;
     const size_t r2 = n2 % 2, n4 = (n2 - r2) / 2;
     const double q1 = r2 ? x.at(n4) : (x.at(n4 - 1) + x.at(n4)) / 2.;
     const double q3 = r2 ? x.at(n2 + n4 + r) : (x.at(n2 + n4 - 1 + r) + x.at(n2 + n4 + r)) / 2.;
     return q3 - q1;
+}
+
+// Get optimal histogram bin size using Freedman-Diaconis rule (doi:10.1007/BF01025868).
+template<typename Container, typename Value = typename Container::value_type>
+double FreedmanDiaconisBinSize(const Container& sample, Value* min = nullptr, Value* max = nullptr)
+{
+    static constexpr double one_third = 1./3.;
+    const double iqr = InterquartileRange(sample, min, max);
+    return 2. * iqr / std::pow(sample.size(), one_third);
 }
 
 // Compute the probabilists' Hermite polynomials.
