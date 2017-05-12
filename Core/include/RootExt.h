@@ -99,6 +99,27 @@ Object* ReadCloneObject(TFile& file, const std::string& original_name, const std
     return CloneObject(*original_object, new_name, detach_from_file);
 }
 
+inline TDirectory* GetDirectory(TDirectory& root_dir, const std::string& name, bool create_if_needed = true)
+{
+    TDirectory* dir = root_dir.GetDirectory(name.c_str());
+    if(!dir && create_if_needed) {
+        const size_t pos = name.find("/");
+        if(pos == std::string::npos || pos == name.size() - 1) {
+            root_dir.mkdir(name.c_str());
+            dir = root_dir.GetDirectory(name.c_str());
+        } else {
+            const std::string first_dir_name = name.substr(0, pos), sub_dirs_path = name.substr(pos + 1);
+            TDirectory* first_dir = GetDirectory(root_dir, first_dir_name, true);
+            dir = GetDirectory(*first_dir, sub_dirs_path, true);
+        }
+    }
+
+    if(!dir)
+        throw analysis::exception("Unable to get directory '%1%' from the root directory '%2%'.")
+            % name % root_dir.GetName();
+    return dir;
+}
+
 } // namespace root_ext
 
 
