@@ -19,7 +19,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
     template<typename T> \
     const ::analysis::EnumNameMap<enum_type> __##enum_type##_names<T>::names
 
-#define ENUM_OSTREAM_OPERATOR() \
+#define ENUM_OSTREAM_OPERATORS() \
     template<typename Enum, typename = typename std::enable_if<std::is_enum<Enum>::value>::type> \
     inline std::ostream& operator<<(std::ostream& os, Enum e) { return ::analysis::operator <<(os, e); } \
     template<typename Enum, typename = typename std::enable_if<std::is_enum<Enum>::value>::type> \
@@ -140,6 +140,16 @@ std::istream& operator>>(std::istream& is, Enum& e)
 {
     std::string str;
     is >> str;
+    e = analysis::EnumNameMap<Enum>::GetDefault().Parse(str);
+    return is;
+}
+
+template<typename Enum, typename = typename std::enable_if<std::is_enum<Enum>::value>::type>
+std::wistream& operator>>(std::wistream& is, Enum& e)
+{
+    std::wstring wstr;
+    is >> wstr;
+    const std::string str(wstr.begin(), wstr.end());
     e = analysis::EnumNameMap<Enum>::GetDefault().Parse(str);
     return is;
 }

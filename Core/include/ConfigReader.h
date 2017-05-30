@@ -14,6 +14,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 #include "exception.h"
 #include "EnumNameMap.h"
+#include "TextIO.h"
 
 namespace analysis {
 
@@ -150,19 +151,7 @@ public:
                                                               bool allow_duplicates = false,
                                                               const std::string& separators = " \t")
     {
-        std::vector<std::string> result;
-        boost::trim_if(param_list, boost::is_any_of(separators));
-        boost::split(result, param_list, boost::is_any_of(separators), boost::token_compress_on);
-        if(!allow_duplicates) {
-            std::unordered_set<std::string> set_result;
-            for(const std::string& param_name : result) {
-                if(set_result.count(param_name))
-                    throw analysis::exception("Parameter '%1%' listed more than once in the parameter list "
-                                              "'%2%'.") % param_name % param_list;
-                set_result.insert(param_name);
-            }
-        }
-        return result;
+        return SplitValueList(param_list, allow_duplicates, separators, true);
     }
 
     static std::unordered_set<std::string> ParseParameterList(const std::string& param_list,

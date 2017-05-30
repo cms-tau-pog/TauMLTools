@@ -35,6 +35,42 @@ std::vector<Type> join_vectors(const std::vector< const std::vector<Type>* >& in
 }
 
 template<typename Type>
+void put_back(std::vector<Type>& v) { }
+
+template<typename Type, typename T2, typename ...Args>
+void put_back(std::vector<Type>& v, const T2& t, const Args&... args);
+
+template<typename Type, typename T2, typename ...Args>
+void put_back(std::vector<Type>& v, const std::vector<T2>& v2, const Args&... args)
+{
+    v.insert(v.end(), v2.begin(), v2.end());
+    put_back(v, args...);
+}
+
+template<typename Type, typename T2, typename ...Args>
+void put_back(std::vector<Type>& v, const T2& t, const Args&... args)
+{
+    v.push_back(t);
+    put_back(v, args...);
+}
+
+template<typename Type, typename ...Args>
+std::vector<Type> join(const Type& t, const Args&... args)
+{
+    std::vector<Type> result;
+    put_back(result, t, args...);
+    return result;
+}
+
+template<typename Type, typename ...Args>
+std::vector<Type> join(const std::vector<Type>& v, const Args&... args)
+{
+    std::vector<Type> result;
+    put_back(result, v, args...);
+    return result;
+}
+
+template<typename Type>
 std::set<Type> union_sets(std::initializer_list<std::set<Type>> sets)
 {
     std::set<Type> result;
