@@ -62,7 +62,7 @@ struct Range {
         return ss.str();
     }
 
-    static Range<T> Parse(const std::string& str, const std::string& separators=": \n")
+    static Range<T> Parse(const std::string& str, const std::string& separators=": \t")
     {
         const auto values = SplitValueList(str, true, separators, true);
         if(values.size() != 2)
@@ -70,7 +70,7 @@ struct Range {
         return Make(values);
     }
 
-    static Range<T> Read(std::istream& stream, const std::string& separators=": \n")
+    static Range<T> Read(std::istream& stream, const std::string& separators=": \t")
     {
         const auto values = ReadValueList(stream, 2, true, separators, true);
         return Make(values);
@@ -125,7 +125,7 @@ struct RelativeRange {
         return ss.str();
     }
 
-    static RelativeRange<T> Parse(const std::string& str, const std::string& separators=": \n")
+    static RelativeRange<T> Parse(const std::string& str, const std::string& separators=": \t")
     {
         const auto values = SplitValueList(str, true, separators, true);
         if(values.size() != 2)
@@ -133,7 +133,7 @@ struct RelativeRange {
         return Make(values);
     }
 
-    static RelativeRange<T> Read(std::istream& stream, const std::string& separators=": \n")
+    static RelativeRange<T> Read(std::istream& stream, const std::string& separators=": \t")
     {
         const auto values = ReadValueList(stream, 2, true, separators, true);
         return Make(values);
@@ -205,7 +205,7 @@ struct RangeWithStep : public Range<T> {
         return ss.str();
     }
 
-    static RangeWithStep<T> Parse(const std::string& str, const std::string& separators=": \n")
+    static RangeWithStep<T> Parse(const std::string& str, const std::string& separators=": \t")
     {
         const auto values = SplitValueList(str, true, separators, true);
         if(values.size() != 3)
@@ -213,7 +213,7 @@ struct RangeWithStep : public Range<T> {
         return Make(values);
     }
 
-    static RangeWithStep<T> Read(std::istream& stream, const std::string& separators=": \n")
+    static RangeWithStep<T> Read(std::istream& stream, const std::string& separators=": \t")
     {
         const auto values = ReadValueList(stream, 3, true, separators, true);
         return Make(values);
@@ -370,7 +370,7 @@ struct Range<Angle<n_pi_per_period_num, n_pi_per_period_denom>> {
         return ss.str();
     }
 
-    static Range<A> Parse(const std::string& str, const std::string& separators=": \n")
+    static Range<A> Parse(const std::string& str, const std::string& separators=": \t")
     {
         const auto values = SplitValueList(str, true, separators, true);
         if(values.size() != 2)
@@ -378,7 +378,7 @@ struct Range<Angle<n_pi_per_period_num, n_pi_per_period_denom>> {
         return Make(values);
     }
 
-    static Range<A> Read(std::istream& stream, const std::string& separators=": \n")
+    static Range<A> Read(std::istream& stream, const std::string& separators=": \t")
     {
         const auto values = ReadValueList(stream, 2, true, separators, true);
         return Make(values);
