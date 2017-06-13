@@ -43,8 +43,10 @@ struct EstimatedQuantity {
 inline std::ostream& operator<<(std::ostream& s, const EstimatedQuantity& q)
 {
     static const int n_digits_in_unc = 2;
-    const int precision_up = q.unc_up ? std::floor(std::log10(q.unc_up)) - n_digits_in_unc + 1 : -15;
-    const int precision_down = q.unc_down ? std::floor(std::log10(q.unc_down)) - n_digits_in_unc + 1 : -15;
+    const int precision_up = q.unc_up != 0
+                           ? static_cast<int>(std::floor(std::log10(q.unc_up)) - n_digits_in_unc + 1) : -15;
+    const int precision_down = q.unc_down != 0
+                             ? static_cast<int>(std::floor(std::log10(q.unc_down)) - n_digits_in_unc + 1) : -15;
     const int precision = std::min(precision_up, precision_down);
     const double ten_pow_p = std::pow(10.0, precision);
     const double unc_up_rounded = std::ceil(q.unc_up / ten_pow_p) * ten_pow_p;
@@ -127,7 +129,7 @@ std::vector<std::vector<Value>> Resample(RandomSource& gen, const std::vector<co
 template<typename Value, typename Estimator = Value(const std::vector<Value>&, const std::vector<Value>&)>
 EstimatedQuantity EstimateWithErrorsByResampling(Estimator estimator,
         const std::vector<Value>& x, const std::vector<Value>& y, bool simultaneous_resample, bool allow_duplicates,
-        size_t n_trials = 1000, double quantile = 0.31731, int seed = 123456)
+        size_t n_trials = 1000, double quantile = 0.31731, unsigned seed = 123456)
 {
     const Value central = estimator(x, y);
     std::vector<Value> trials;

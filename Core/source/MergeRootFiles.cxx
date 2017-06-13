@@ -41,7 +41,7 @@ private:
         std::cout<< "CopyDir. Current direcotry: " << destination->GetName() << std::endl;
 
         TIter nextkey(source->GetListOfKeys());
-        for(TKey* key; (key = (TKey*)nextkey());) {
+        for(TKey* key; (key = dynamic_cast<TKey*>(nextkey()));) {
             //std::cout << "Processing key: " << key->GetName() << std::endl;
             const char *classname = key->GetClassName();
             TClass *cl = gROOT->GetClass(classname);
@@ -65,7 +65,7 @@ private:
             } else if(destination->Get(key->GetName())) {
 
             } else if (cl->InheritsFrom("TTree")) {
-                TTree *T = (TTree*)source->Get(key->GetName());
+                TTree *T = root_ext::ReadObject<TTree>(*source, key->GetName());
                 TTree *newT = T->CloneTree();
                 destination->WriteTObject(newT, key->GetName(), "WriteDelete");
                 objectWritten = true;

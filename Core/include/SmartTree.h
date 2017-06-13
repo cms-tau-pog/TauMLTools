@@ -84,6 +84,9 @@ namespace detail {
     };
 
     struct BaseDataClass {
+        BaseDataClass() {}
+        BaseDataClass(const BaseDataClass&) {}
+        BaseDataClass& operator=(const BaseDataClass&) { return *this; }
         virtual ~BaseDataClass() {}
     };
 
@@ -200,7 +203,7 @@ public:
                 tree->SetMaxVirtualSize(maxVirtualSize);
         }
     }
-
+    SmartTree(const SmartTree& other) = delete;
     SmartTree(const SmartTree&& other)
         : name(other.name), directory(other.directory), entries(other.entries), tree(other.tree),
           disabled_branches(other.disabled_branches), enabled_branches(other.enabled_branches) {}
@@ -252,10 +255,6 @@ protected:
     {
         return entries.count(branch_name) != 0;
     }
-
-
-private:
-    SmartTree(const SmartTree& other) { throw std::runtime_error("Can't copy a smart tree"); }
 
 private:
     std::string name;

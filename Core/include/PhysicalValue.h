@@ -137,7 +137,7 @@ public:
         static const auto operation = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
             return my_value + other_value;
         };
-        static const auto derivator = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
+        static const auto derivator = [](const ValueType& /*my_value*/, const ValueType& /*other_value*/) -> ValueType {
             return 1;
         };
         return ApplyBinaryOperation(other, operation, derivator, derivator);
@@ -154,12 +154,10 @@ public:
         static const auto operation = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
             return my_value - other_value;
         };
-        static const auto first_derivator = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
-            return 1;
-        };
-        static const auto second_derivator = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
-            return -1;
-        };
+        static const auto first_derivator = [](const ValueType& /*my_value*/, const ValueType& /*other_value*/)
+                -> ValueType { return 1; };
+        static const auto second_derivator = [](const ValueType& /*my_value*/, const ValueType& /*other_value*/)
+                -> ValueType { return -1; };
         return ApplyBinaryOperation(other, operation, first_derivator, second_derivator);
     }
 
@@ -174,12 +172,10 @@ public:
         static const auto operation = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
             return my_value * other_value;
         };
-        static const auto first_derivator = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
-            return other_value;
-        };
-        static const auto second_derivator = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
-            return my_value;
-        };
+        static const auto first_derivator = [](const ValueType& /*my_value*/, const ValueType& other_value)
+                -> ValueType { return other_value; };
+        static const auto second_derivator = [](const ValueType& my_value, const ValueType& /*other_value*/)
+                -> ValueType { return my_value; };
         return ApplyBinaryOperation(other, operation, first_derivator, second_derivator);
     }
 
@@ -194,12 +190,10 @@ public:
         static const auto operation = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
             return my_value / other_value;
         };
-        static const auto first_derivator = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
-            return 1 / other_value;
-        };
-        static const auto second_derivator = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
-            return - my_value / sqr(other_value);
-        };
+        static const auto first_derivator = [](const ValueType& /*my_value*/, const ValueType& other_value)
+                -> ValueType { return 1 / other_value; };
+        static const auto second_derivator = [](const ValueType& my_value, const ValueType& other_value)
+                -> ValueType { return - my_value / sqr(other_value); };
         return ApplyBinaryOperation(other, operation, first_derivator, second_derivator);
     }
 

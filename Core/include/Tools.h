@@ -35,7 +35,7 @@ std::vector<Type> join_vectors(const std::vector< const std::vector<Type>* >& in
 }
 
 template<typename Type>
-void put_back(std::vector<Type>& v) { }
+void put_back(std::vector<Type>& /*v*/) { }
 
 template<typename Type, typename T2, typename ...Args>
 void put_back(std::vector<Type>& v, const T2& t, const Args&... args);

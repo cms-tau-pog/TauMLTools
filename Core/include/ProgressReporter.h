@@ -45,10 +45,10 @@ public:
         using namespace std::chrono;
 
         const auto now = clock::now();
-        const unsigned since_last_report = duration_cast<seconds>(now - block_start).count();
+        const unsigned since_last_report = static_cast<unsigned>(duration_cast<seconds>(now - block_start).count());
         if(!final_report && since_last_report < report_interval) return;
 
-        const unsigned since_start = duration_cast<seconds>(now - start).count();
+        const unsigned since_start = static_cast<unsigned>(duration_cast<seconds>(now - start).count());
         const unsigned h_since_start = since_start / 3600;
         const unsigned m_since_start = (since_start % 3600) / 60;
         const unsigned s_since_start = since_start % 60;
@@ -58,7 +58,8 @@ public:
             *output << "Total: ";
         if(total_n_events)
             *output << std::setprecision(1) << std::fixed << std::setw(5) << double(event_id)/total_n_events * 100.0
-                    << "%: " << std::setw(total_n_events_str.size()) << event_id << " out of " << total_n_events_str;
+                    << "%: " << std::setw(static_cast<int>(total_n_events_str.size())) << event_id
+                    << " out of " << total_n_events_str;
         else
             *output << event_id;
         *output << " events are processed in " << std::setfill('0')

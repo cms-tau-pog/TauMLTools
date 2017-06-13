@@ -104,7 +104,7 @@ inline std::vector<std::string> ReadValueList(std::istream& stream, size_t numbe
                     if(!value.size() && enable_token_compress) continue;
                     break;
                 }
-                value.push_back(c);
+                value.push_back(static_cast<char>(c));
             }
             if(!allow_duplicates && set_result.count(value))
                 throw exception("Value '%1%' listed more than once in the input stream.") % value;

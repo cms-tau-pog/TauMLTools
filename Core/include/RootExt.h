@@ -49,7 +49,7 @@ void WriteObject(const Object& object, TDirectory* dir, const std::string& name 
 }
 
 template<typename Object>
-Object* ReadObject(TFile& file, const std::string& name)
+Object* ReadObject(TDirectory& file, const std::string& name)
 {
     if(!name.size())
         throw analysis::exception("Can't read nameless object.");
@@ -64,7 +64,7 @@ Object* ReadObject(TFile& file, const std::string& name)
 }
 
 template<typename Object>
-Object* TryReadObject(TFile& file, const std::string& name)
+Object* TryReadObject(TDirectory& file, const std::string& name)
 {
     try {
         return ReadObject<Object>(file, name);
@@ -92,7 +92,7 @@ Object* CloneObject(const Object& original_object, const std::string& new_name, 
 }
 
 template<typename Object>
-Object* ReadCloneObject(TFile& file, const std::string& original_name, const std::string& new_name = "",
+Object* ReadCloneObject(TDirectory& file, const std::string& original_name, const std::string& new_name = "",
                         bool detach_from_file = false)
 {
     Object* original_object = ReadObject<Object>(file, original_name);
@@ -142,47 +142,48 @@ inline std::ostream& operator<<(std::ostream& s, const TMatrixD& matrix)
     }
 
     //build format
-    const char *format = "%11.4g ";
+    static const char *format = "%11.4g ";
     char topbar[100];
-    snprintf(topbar,100,format,123.456789);
-    Int_t nch = strlen(topbar)+1;
+    snprintf(topbar,100, format, 123.456789);
+    size_t nch = strlen(topbar) + 1;
     if (nch > 18) nch = 18;
     char ftopbar[20];
-    for (Int_t i = 0; i < nch; i++) ftopbar[i] = ' ';
-    Int_t nk = 1 + Int_t(std::log10(matrix.GetNcols()));
-    snprintf(ftopbar+nch/2,20-nch/2,"%s%dd","%",nk);
-    Int_t nch2 = strlen(ftopbar);
-    for (Int_t i = nch2; i < nch; i++) ftopbar[i] = ' ';
+    for(size_t i = 0; i < nch; i++) ftopbar[i] = ' ';
+    size_t nk = 1 + size_t(std::log10(matrix.GetNcols()));
+    snprintf(ftopbar+nch/2,20-nch/2,"%s%zud","%",nk);
+    size_t nch2 = strlen(ftopbar);
+    for (size_t i = nch2; i < nch; i++) ftopbar[i] = ' ';
     ftopbar[nch] = '|';
     ftopbar[nch+1] = 0;
 
     s << matrix.GetNrows() << "x" << matrix.GetNcols() << " matrix";
 
-    Int_t cols_per_sheet = 5;
+    size_t cols_per_sheet = 5;
     if (nch <= 8) cols_per_sheet =10;
-    const Int_t ncols  = matrix.GetNcols();
-    const Int_t nrows  = matrix.GetNrows();
-    const Int_t collwb = matrix.GetColLwb();
-    const Int_t rowlwb = matrix.GetRowLwb();
-    nk = 5+nch*std::min(cols_per_sheet, matrix.GetNcols());
-    for (Int_t i = 0; i < nk; i++)
+    const size_t ncols  = static_cast<size_t>(matrix.GetNcols());
+    const size_t nrows  = static_cast<size_t>(matrix.GetNrows());
+    const size_t collwb = static_cast<size_t>(matrix.GetColLwb());
+    const size_t rowlwb = static_cast<size_t>(matrix.GetRowLwb());
+    nk = 5+nch*std::min<size_t>(cols_per_sheet, static_cast<size_t>(matrix.GetNcols()));
+    for (size_t i = 0; i < nk; i++)
         topbar[i] = '-';
     topbar[nk] = 0;
-    for (Int_t sheet_counter = 1; sheet_counter <= ncols; sheet_counter += cols_per_sheet) {
+    for (size_t sheet_counter = 1; sheet_counter <= ncols; sheet_counter += cols_per_sheet) {
         s << "\n     |";
-        for (Int_t j = sheet_counter; j < sheet_counter+cols_per_sheet && j <= ncols; j++) {
+        for (size_t j = sheet_counter; j < sheet_counter+cols_per_sheet && j <= ncols; j++) {
             char ftopbar_out[100];
             snprintf(ftopbar_out, 100, ftopbar, j+collwb-1);
             s << ftopbar_out;
         }
         s << "\n" << topbar << "\n";
         if (matrix.GetNoElements() <= 0) continue;
-        for (Int_t i = 1; i <= nrows; i++) {
+        for (size_t i = 1; i <= nrows; i++) {
             char row_out[100];
-            snprintf(row_out, 100, "%4d |",i+rowlwb-1);
+            snprintf(row_out, 100, "%4zu |",i+rowlwb-1);
             s << row_out;
-            for (Int_t j = sheet_counter; j < sheet_counter+cols_per_sheet && j <= ncols; j++) {
-                snprintf(row_out, 100, format, matrix(i+rowlwb-1,j+collwb-1));
+            for (size_t j = sheet_counter; j < sheet_counter+cols_per_sheet && j <= ncols; j++) {
+                snprintf(row_out, 100, format, matrix(static_cast<Int_t>(i+rowlwb-1),
+                                                      static_cast<Int_t>(j+collwb-1)));
                 s << row_out;
             }
             s << "\n";

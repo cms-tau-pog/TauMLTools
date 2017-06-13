@@ -11,6 +11,7 @@ namespace analysis {
 class exception : public std::exception {
 public:
     explicit exception(const std::string& message) noexcept : f_msg(message), f_str(message) {}
+    exception(const exception& other) noexcept : msg(other.msg), f_msg(other.f_msg), f_str(other.f_str) {}
     virtual ~exception() noexcept {}
     virtual const char* what() const noexcept override { return message().c_str(); }
 

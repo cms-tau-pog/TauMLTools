@@ -19,11 +19,11 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #define ANA_DATA_ENTRY(type, name, ...) \
     template<typename Key> \
     root_ext::SmartHistogram< type >& name(const Key& key) { \
-        return Get((type*)nullptr, #name, key, ##__VA_ARGS__); \
+        return Get<type>(nullptr, #name, key, ##__VA_ARGS__); \
     } \
     root_ext::SmartHistogram< type >& name() { \
         static const size_t index = GetUniqueIndex(#name); \
-        return GetFast((type*)nullptr, #name, index, ##__VA_ARGS__); \
+        return GetFast<type>(nullptr, #name, index, ##__VA_ARGS__); \
     } \
     static std::string name##_Name() { return #name; } \
     static std::type_index name##_TypeIndex() { return std::type_index(typeid(type)); } \
@@ -207,7 +207,7 @@ public:
     template<typename ValueType>
     SmartHistogram<ValueType>& Get(const std::string& name)
     {
-        return Get((ValueType*)nullptr, name, "");
+        return Get<ValueType>(nullptr, name, "");
     }
 
     template<typename ValueType>

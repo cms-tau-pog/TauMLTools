@@ -31,7 +31,9 @@ struct Range {
         if(!IsValid(min, max))
             throw exception("Invalid range [%1%, %2%].") % min % max;
     }
+    Range(const Range<T>& other) : _min(other._min), _max(other._max) {}
     virtual ~Range() {}
+    Range<T>& operator=(const Range<T>& other) { _min = other._min; _max = other._max; return *this; }
 
     ConstRefType min() const { return _min; }
     ConstRefType max() const { return _max; }
@@ -330,7 +332,7 @@ struct Range<Angle<n_pi_per_period_num, n_pi_per_period_denom>> {
         return ToValueRange().Contains(min_a_value_range.max());
     }
 
-    static bool IsValid(const A& min, const A& max) { return true; }
+    static bool IsValid(const A& /*min*/, const A& /*max*/) { return true; }
 
     Range<A> Extend(const A& a) const
     {

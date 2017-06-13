@@ -25,7 +25,7 @@ class AbstractHistogram {
 public:
     AbstractHistogram(const std::string& _name)
         : name(_name), outputDirectory(nullptr) {}
-
+    AbstractHistogram(const AbstractHistogram& other) : name(other.name), outputDirectory(other.outputDirectory) {}
     virtual ~AbstractHistogram() {}
 
     virtual void WriteRootObject() = 0;
@@ -49,7 +49,7 @@ public:
     Base1DHistogram(const std::string& name) : AbstractHistogram(name) {}
 
     const std::deque<ValueType>& Data() const { return data; }
-    const size_t size() const { return data.size(); }
+    size_t size() const { return data.size(); }
     const_iterator begin() const { return data.begin(); }
     const_iterator end() const { return data.end(); }
 
@@ -90,7 +90,7 @@ public:
     Base2DHistogram(const std::string& name) : AbstractHistogram(name) {}
 
     const std::deque<Value>& Data() const { return data; }
-    const size_t size() const { return data.size(); }
+    size_t size() const { return data.size(); }
     const_iterator begin() const { return data.begin(); }
     const_iterator end() const { return data.end(); }
 
@@ -181,15 +181,15 @@ public:
 template<>
 class SmartHistogram<TH1D> : public TH1D, public AbstractHistogram {
 public:
-    SmartHistogram(const std::string& name, size_t nbins, double low, double high)
-        : TH1D(name.c_str(), name.c_str(), nbins, low, high), AbstractHistogram(name), store(true), use_log_y(false),
-          max_y_sf(1), divide_by_bin_width(false) {}
+    SmartHistogram(const std::string& name, int nbins, double low, double high)
+        : TH1D(name.c_str(), name.c_str(), nbins, low, high), AbstractHistogram(name), store(true),
+          use_log_y(false), max_y_sf(1), divide_by_bin_width(false) {}
 
     SmartHistogram(const std::string& name, const std::vector<double>& bins)
         : TH1D(name.c_str(), name.c_str(), static_cast<int>(bins.size()) - 1, bins.data()), AbstractHistogram(name),
           store(true), use_log_y(false), max_y_sf(1), divide_by_bin_width(false) {}
 
-    SmartHistogram(const std::string& name, size_t nbins, double low, double high, const std::string& x_axis_title,
+    SmartHistogram(const std::string& name, int nbins, double low, double high, const std::string& x_axis_title,
                    const std::string& y_axis_title, bool _use_log_y, double _max_y_sf, bool _divide_by_bin_width,
                    bool _store)
         : TH1D(name.c_str(), name.c_str(), nbins, low, high), AbstractHistogram(name), store(_store),
@@ -260,16 +260,16 @@ template<>
 class SmartHistogram<TH2D> : public TH2D, public AbstractHistogram {
 public:
     SmartHistogram(const std::string& name,
-                   size_t nbinsx, double xlow, double xup,
-                   size_t nbinsy, double ylow, double yup)
-        : TH2D(name.c_str(), name.c_str(), nbinsx, xlow, xup, nbinsy, ylow, yup), AbstractHistogram(name), store(true),
-          use_log_y(false), max_y_sf(1) {}
+                   int nbinsx, double xlow, double xup,
+                   int nbinsy, double ylow, double yup)
+        : TH2D(name.c_str(), name.c_str(), nbinsx, xlow, xup, nbinsy, ylow, yup),
+          AbstractHistogram(name), store(true), use_log_y(false), max_y_sf(1) {}
 
-    SmartHistogram(const std::string& name, size_t nbinsx, double xlow, double xup, size_t nbinsy, double ylow,
+    SmartHistogram(const std::string& name, int nbinsx, double xlow, double xup, int nbinsy, double ylow,
                    double yup, const std::string& x_axis_title, const std::string& y_axis_title, bool _use_log_y,
                    double _max_y_sf, bool _store)
-        : TH2D(name.c_str(), name.c_str(), nbinsx, xlow, xup, nbinsy, ylow, yup), AbstractHistogram(name),
-          store(_store), use_log_y(_use_log_y), max_y_sf(_max_y_sf)
+        : TH2D(name.c_str(), name.c_str(), nbinsx, xlow, xup, nbinsy, ylow, yup),
+          AbstractHistogram(name), store(_store), use_log_y(_use_log_y), max_y_sf(_max_y_sf)
     {
         SetXTitle(x_axis_title.c_str());
         SetYTitle(y_axis_title.c_str());
@@ -340,7 +340,7 @@ public:
 
     virtual void WriteRootObject() override
     {
-        std::unique_ptr<TGraph> graph(new TGraph(x_vector.size(), x_vector.data(), y_vector.data()));
+        std::unique_ptr<TGraph> graph(new TGraph(static_cast<int>(x_vector.size()), x_vector.data(), y_vector.data()));
         if(GetOutputDirectory())
             root_ext::WriteObject(*graph, GetOutputDirectory(), Name());
     }
@@ -363,7 +363,7 @@ template<>
 struct HistogramFactory<TH1D> {
 private:
     struct HistogramParameters {
-        size_t nbins;
+        int nbins;
         double low;
         double high;
     };

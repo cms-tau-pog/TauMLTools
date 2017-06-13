@@ -23,13 +23,13 @@ namespace detail {
 template<typename T>
 struct ConfigParameterParser {
     using Value = T;
-    static Value Parse(T& t, const std::string& value, std::istream& s) { s >> t; return t; }
+    static Value Parse(T& t, const std::string& /*value*/, std::istream& s) { s >> t; return t; }
 };
 
 template<>
 struct ConfigParameterParser<std::string> {
     using Value = std::string;
-    static Value Parse(std::string& t, const std::string& value, std::istream& s) { t = value; return t; }
+    static Value Parse(std::string& t, const std::string& value, std::istream& /*s*/) { t = value; return t; }
 };
 
 template<typename T>
@@ -128,7 +128,7 @@ public:
     }
 
     virtual ~ConfigEntryReader() {}
-    virtual void StartEntry(const std::string& name, const std::string& reference_name)
+    virtual void StartEntry(const std::string& /*name*/, const std::string& /*reference_name*/)
     {
         read_params_counts.clear();
     }
@@ -345,7 +345,7 @@ private:
             BadSyntax(line_number, message);
     }
 
-    void BadSyntax(size_t line_number, const std::string& message = "") const
+    [[noreturn]] void BadSyntax(size_t line_number, const std::string& message = "") const
     {
         throw analysis::exception("Bad config syntax: file '%1%' line %2%.\n%3%") % configName % line_number % message;
     }
