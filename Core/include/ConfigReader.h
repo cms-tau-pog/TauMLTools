@@ -185,13 +185,14 @@ protected:
         ParseEntry<T, Wrapper>(name, result, validity_check);
     }
 
-    template<typename T>
-    void ParseEntryList(const std::string& name, std::vector<T>& result, bool allow_duplicates,
+    template<typename Container, typename T = typename Container::value_type>
+    void ParseEntryList(const std::string& name, Container& result, bool allow_duplicates,
                         const std::string& separators,
                         std::function<bool(const typename detail::ConfigParameterParser<T>::Value&)> validity_check)
     {
         if(name != current_param_name) return;
         const auto param_list = ParseOrderedParameterList(current_param_value, allow_duplicates, separators);
+        auto inserter = std::inserter(result, result.end());
         for(const std::string& param_value : param_list) {
             std::istringstream ss(param_value);
             ss.exceptions(std::istringstream::failbit);
@@ -201,18 +202,41 @@ protected:
             if(!validity_check(v))
                 throw exception("One of parameters in '%1%' equals '%2%', which is outside of its validity range.")
                     % current_param_name % param_value;
-            result.push_back(value);
+            inserter = value;
         }
 
         throw param_parsed_exception();
     }
 
-    template<typename T>
-    void ParseEntryList(const std::string& name, std::vector<T>& result, bool allow_duplicates = false,
+    template<typename Container, typename T = typename Container::value_type>
+    void ParseEntryList(const std::string& name, Container& result, bool allow_duplicates = false,
                         const std::string& separators = " \t")
     {
         const auto validity_check = [](const typename detail::ConfigParameterParser<T>::Value&) { return true; };
-        ParseEntryList<T>(name, result, allow_duplicates, separators, validity_check);
+        ParseEntryList<Container, T>(name, result, allow_duplicates, separators, validity_check);
+    }
+
+    template<typename Container, typename T = typename Container::value_type>
+    void ParseEnumList(const std::string& name, Container& result)
+    {
+        if(name != current_param_name) return;
+        auto inserter = std::inserter(result, result.end());
+        const auto param_list = ParseOrderedParameterList(current_param_value, false, " \t");
+        if(param_list.size() == 1 && param_list.front() == "all") {
+            for(const auto& entry : EnumNameMap<T>::GetDefault().GetEnumEntries())
+                inserter = entry;
+        } else {
+            for(const auto& param_value : param_list) {
+                std::istringstream ss(param_value);
+                ss.exceptions(std::istringstream::failbit);
+                ss >> std::boolalpha;
+                T value;
+                detail::ConfigParameterParser<T>::Parse(value, param_value, ss);
+                inserter = value;
+            }
+        }
+
+        throw param_parsed_exception();
     }
 
     void CheckReadParamCounts(const std::string& param_name, size_t expected, Condition condition) const
@@ -225,7 +249,7 @@ protected:
             { Condition::less, { "no more than", std::less<size_t>() } }
         };
 
-        const size_t count = read_params_counts.count(param_name) ? read_params_counts.at(param_name) : 0;
+        const size_t count = GetReadParamCounts(param_name);
         const std::string cmp_string = conditions.at(condition).first;
         const auto& cond_operator = conditions.at(condition).second;
         if(!cond_operator(count, expected))
@@ -233,10 +257,37 @@ protected:
                                       " while expected %3% %4%.") % param_name % count % cmp_string % expected;
     }
 
+    size_t GetReadParamCounts(const std::string& param_name) const
+    {
+        return read_params_counts.count(param_name) ? read_params_counts.at(param_name) : 0;
+    }
+
 private:
     ReadCountMap read_params_counts;
     std::string current_param_name, current_param_value;
     std::istringstream current_stream;
+};
+
+template<typename T, typename Collection = std::unordered_map<std::string, T>>
+class ConfigEntryReaderT : public ConfigEntryReader {
+public:
+    ConfigEntryReaderT(Collection& _items) : items(&_items) {}
+
+    virtual void StartEntry(const std::string& name, const std::string& reference_name) override
+    {
+        ConfigEntryReader::StartEntry(name, reference_name);
+        current = reference_name.size() ? items->at(reference_name) : T();
+        current.name = name;
+    }
+
+    virtual void EndEntry() override
+    {
+        (*items)[current.name] = current;
+    }
+
+protected:
+    T current;
+    Collection* items;
 };
 
 class ConfigReader {

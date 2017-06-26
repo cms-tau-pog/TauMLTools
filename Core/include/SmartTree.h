@@ -181,6 +181,8 @@ namespace detail {
 
 class SmartTree {
 public:
+    using Mutex = std::recursive_mutex;
+
     SmartTree(const std::string& _name, TDirectory* _directory, bool _readMode,
               const std::set<std::string>& _disabled_branches = {}, const std::set<std::string>& _enabled_branches ={})
         : name(_name), directory(_directory), readMode(_readMode), disabled_branches(_disabled_branches),
@@ -216,7 +218,7 @@ public:
 
     void Fill()
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<Mutex> lock(mutex);
         tree->Fill();
         for(auto& entry : entries)
             entry.second->clear();
@@ -224,27 +226,28 @@ public:
 
     Long64_t GetEntries() const { return tree->GetEntries(); }
     Long64_t GetReadEntry() const { return tree->GetReadEntry(); }
+    size_t size() const { return static_cast<size_t>(GetEntries()); }
 
     Int_t GetEntry(Long64_t entry)
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<Mutex> lock(mutex);
         return tree->GetEntry(entry);
     }
 
     void Write()
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<Mutex> lock(mutex);
         if(directory)
             directory->WriteTObject(tree, tree->GetName(), "Overwrite");
     }
 
-    std::mutex& GetMutex() { return mutex; }
+    Mutex& GetMutex() { return mutex; }
 
 protected:
     template<typename DataType>
     void AddBranch(const std::string& branch_name, DataType& value)
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        std::lock_guard<Mutex> lock(mutex);
         if (!disabled_branches.count(branch_name) && (!enabled_branches.size() || enabled_branches.count(branch_name))){
             detail::BranchCreator<DataType> creator;
             creator.Create(*tree, branch_name, value, readMode, entries);
@@ -264,13 +267,49 @@ private:
     TTree* tree;
     std::set<std::string> disabled_branches;
     std::set<std::string> enabled_branches;
-    std::mutex mutex;
+    Mutex mutex;
 };
 
 namespace detail {
 template<typename Data>
 class BaseSmartTree : public SmartTree {
 public:
+    struct iterator {
+    public:
+        iterator(BaseSmartTree<Data>& _tree, Long64_t _pos) : tree(&_tree), data_read(false), pos(_pos) {}
+
+        iterator& operator++() { data_read = false; ++pos; return *this; }
+        iterator operator++(int) const { return ++iterator(*this); }
+        iterator& operator--() { data_read = false; --pos; return *this; }
+        iterator operator--(int) const { return --iterator(*this); }
+
+        const Data& operator*() { return GetData(); }
+        const Data* operator->() { return GetData(); }
+
+        bool operator==(const iterator& other) const { return pos == other.pos && tree == other.tree; }
+        bool operator!=(const iterator& other) const { return pos != other.pos || tree != other.tree; }
+
+    private:
+        const Data& GetData()
+        {
+            if(!data_read) {
+                std::lock_guard<Mutex> lock(tree->GetMutex());
+                if(pos < 0 || pos >= tree->GetEntries())
+                    throw std::runtime_error("Tree entry index is out of range.");
+                tree->GetEntry(pos);
+                data = tree->data();
+                data_read = true;
+            }
+            return data;
+        }
+
+    private:
+        BaseSmartTree<Data>* tree;
+        bool data_read;
+        Data data;
+        Long64_t pos;
+    };
+
     using SmartTree::SmartTree;
     BaseSmartTree(const BaseSmartTree&& other)
         : SmartTree(other), _data(other._data) {}
@@ -278,6 +317,9 @@ public:
     Data& operator()() { return *_data; }
     const Data& operator()() const { return *_data; }
     const Data& data() const { return *_data; }
+
+    iterator begin() { return iterator(*this, 0); }
+    iterator end() { return iterator(*this, GetEntries()); }
 
 protected:
     std::shared_ptr<Data> _data{new Data()};

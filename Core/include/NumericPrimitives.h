@@ -188,10 +188,10 @@ struct RangeWithStep : public Range<T> {
     RangeWithStep(ConstRefType min, ConstRefType max, ConstRefType step) : Range<T>(min, max), _step(step) {}
 
     ConstRefType step() const { return _step; }
-    T grid_point_value(size_t index) const { return this->min() + index * step(); }
+    T grid_point_value(size_t index) const { return this->min() + T(index) * step(); }
     size_t n_grid_points() const
     {
-        size_t n_points = (this->max() - this->min()) / step();
+        size_t n_points = static_cast<size_t>((this->max() - this->min()) / step());
         if(this->Contains(grid_point_value(n_points)))
             ++n_points;
         return n_points;
