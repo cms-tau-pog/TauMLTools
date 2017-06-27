@@ -61,15 +61,16 @@ struct ConfigParameterParser<std::set<T>> {
 template<typename Key, typename _Value>
 struct ConfigParameterParser<std::map<Key, _Value>> {
     using Value = _Value;
-    static Value Parse(std::map<Key, Value>& param_map, const std::string& value, std::istream& s)
+    static Value Parse(std::map<Key, Value>& param_map, const std::string& value, std::istream&)
     {
         const size_t pos = value.find_first_of(' ');
         const std::string k_str = value.substr(0, pos);
         const std::string v_str = value.substr(pos + 1);
+        std::istringstream k_is(k_str), v_is(v_str);
         Key k;
         Value v;
-        ConfigParameterParser<Key>::Parse(k, k_str, s);
-        ConfigParameterParser<Value>::Parse(v, v_str, s);
+        ConfigParameterParser<Key>::Parse(k, k_str, k_is);
+        ConfigParameterParser<Value>::Parse(v, v_str, v_is);
         if(param_map.count(k))
             throw exception("Duplicated parameter value.");
         param_map[k] = v;
@@ -269,7 +270,7 @@ private:
 };
 
 template<typename T, typename Collection = std::unordered_map<std::string, T>>
-class ConfigEntryReaderT : public ConfigEntryReader {
+class ConfigEntryReaderT : public virtual ConfigEntryReader {
 public:
     ConfigEntryReaderT(Collection& _items) : items(&_items) {}
 
