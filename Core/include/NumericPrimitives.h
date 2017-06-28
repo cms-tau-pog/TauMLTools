@@ -464,4 +464,74 @@ inline std::istream& operator>>(std::istream& s, NumericalExpression& e)
     return s;
 }
 
+struct Grid_ND {
+    using Position = std::vector<size_t>;
+
+    struct iterator {
+        iterator(const Position& _pos, const Position& _limits) : pos(_pos), limits(&_limits) {}
+
+        bool operator==(const iterator& other) const {
+            if(pos.size() != other.pos.size()) return false;
+            for(size_t n = 0; n < pos.size(); ++n) {
+                if(pos.at(n) != other.pos.at(n)) return false;
+            }
+            return true;
+        }
+
+        bool operator!=(const iterator& other) { return !(*this == other); }
+
+        iterator& operator++()
+        {
+            ++pos.at(0);
+            for(size_t n = 0; n < pos.size() - 1 && pos.at(n) >= limits->at(n); ++n) {
+                ++pos.at(n+1);
+                pos.at(n) = 0;
+            }
+            return *this;
+        }
+
+        iterator operator++(int)
+        {
+            iterator cp(*this);
+            ++(*this);
+            return cp;
+        }
+
+        const Position& operator*() const { return pos; }
+        const Position* operator->() const { return &pos; }
+
+    private:
+        Position pos;
+        const Position* limits;
+    };
+
+    explicit Grid_ND(const Position& _limits) : limits(_limits)
+    {
+        if(!limits.size())
+            throw exception("Grid dimensions should be > 0");
+        for(size_t limit : limits) {
+            if(!limit)
+                throw exception("Grid range limit should be > 0.");
+        }
+    }
+
+    iterator begin() const
+    {
+        Position pos;
+        pos.assign(limits.size(), 0);
+        return iterator(pos, limits);
+    }
+
+    iterator end() const
+    {
+        Position pos;
+        pos.assign(limits.size(), 0);
+        pos.back() = limits.back();
+        return iterator(pos, limits);
+    }
+
+private:
+    Position limits;
+};
+
 } // namespace analysis

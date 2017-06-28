@@ -193,13 +193,6 @@ double Calculate_cosTheta_2bodies(const LVector1& object1, const LVector2&  hh){
     return  ROOT::Math::VectorUtil::CosTheta(boosted_object1, hh);
 }
 
-//Cosin of theta angle between the h and the direction of flight of hh in the hh rest frame
-template<typename LVector1, typename LVector2>
-double Calculate_cosTheta_h_hh(const LVector1& h, const LVector2&  hh){
-    const auto boosted_h = ROOT::Math::VectorUtil::boost(h, hh.BoostToCM());
-    return  ROOT::Math::VectorUtil::CosTheta(boosted_h, hh);
-}
-
 template<typename LVector1, typename LVector2, typename LVector3, typename LVector4, typename LVector5>
 double Calculate_MX(const LVector1& lepton1, const LVector2& lepton2, const LVector3& bjet1, const LVector4& bjet2, const LVector5& met){
 
@@ -211,8 +204,6 @@ double Calculate_MX(const LVector1& lepton1, const LVector2& lepton2, const LVec
 }
 
 }
-
-
 
 
 inline PhysicalValue Integral(const TH1D& histogram, bool include_overflows = true)
