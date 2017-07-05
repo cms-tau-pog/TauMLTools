@@ -10,21 +10,11 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 namespace analysis {
 
-namespace detail {
-    template<typename T, bool fundamental = std::is_fundamental<T>::value>
-    struct ConstRefType;
-
-    template<typename T>
-    struct ConstRefType<T, true> { using Type = T; };
-
-    template<typename T>
-    struct ConstRefType<T, false> { using Type = const T&; };
-}
-
 template<typename T>
 struct Range {
     using ValueType = T;
-    using ConstRefType = typename detail::ConstRefType<T>::Type;
+    using ConstRefType =
+        typename std::conditional<std::is_fundamental<ValueType>::value, ValueType, const ValueType&>::type;
     Range() : _min(0), _max(0) {}
     Range(ConstRefType min, ConstRefType max) : _min(min), _max(max)
     {
@@ -107,7 +97,7 @@ std::istream& operator>>(std::istream& s, Range<T>& r)
 template<typename T>
 struct RelativeRange {
     using ValueType = T;
-    using ConstRefType = typename detail::ConstRefType<T>::Type;
+    using ConstRefType = typename Range<T>::ConstRefType;
     RelativeRange() : _down(0), _up(0) {}
     RelativeRange(ConstRefType down, ConstRefType up) : _down(down), _up(up)
     {

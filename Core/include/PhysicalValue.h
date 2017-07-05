@@ -3,33 +3,22 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 #pragma once
 
+#include <set>
 #include <map>
 #include <cmath>
 #include <iomanip>
 
 #include "exception.h"
-#include "Tools.h"
 
 namespace analysis {
 namespace detail {
-
-template<typename char_type>
-struct PhysicalValueErrorSeparator;
-
-template<>
-struct PhysicalValueErrorSeparator<char> {
-    static const std::string& Get() { static const std::string sep = " +/- "; return sep; }
-};
-
-template<>
-struct PhysicalValueErrorSeparator<wchar_t> {
-    static const std::wstring& Get() { static const std::wstring sep = L" \u00B1 "; return sep; }
-};
 
 template<typename _ValueType>
 class PhysicalValue {
 public:
     using ValueType = _ValueType;
+    using ValueTypeCR =
+        typename std::conditional<std::is_fundamental<ValueType>::value, ValueType, const ValueType&>::type;
     using SystematicNameSet = std::set<std::string>;
     using SystematicMap = std::map<std::string, ValueType>;
 
@@ -50,7 +39,7 @@ public:
             const ValueType full_error = value.GetFullError();
             if(!full_error)
                 throw exception("Can't calculate weighted average. One of the errors equals zero.");
-            const double weight =  1. / sqr(full_error);
+            const double weight =  1. / std::pow(full_error, 2);
             total_weight += weight;
             weighted_sum += value * PhysicalValue<ValueType>(weight);
         }
@@ -58,23 +47,24 @@ public:
     }
 
     PhysicalValue() : value(0), stat_error(0) {}
-
-    explicit PhysicalValue(const ValueType& _value, const ValueType& _stat_error = 0)
+    PhysicalValue(ValueTypeCR _value, ValueTypeCR _stat_error = 0)
         : value(_value), stat_error(_stat_error)
     {
         if(stat_error < 0)
             throw exception("Negative statistical error = %1%.") % stat_error;
     }
 
-    PhysicalValue(const ValueType& _value, const ValueType& _stat_error, const SystematicMap& _systematic_uncertainties)
+    PhysicalValue(ValueTypeCR _value, ValueTypeCR _stat_error, const SystematicMap& _systematic_uncertainties)
         : value(_value), stat_error(_stat_error), systematic_uncertainties(_systematic_uncertainties)
     {
         if(stat_error < 0)
             throw exception("Negative statistical error = %1%.") % stat_error;
-        systematic_names = tools::collect_map_keys(systematic_uncertainties);
+
+        for(const auto& syst : systematic_uncertainties)
+            systematic_names.insert(syst.first);
     }
 
-    void AddSystematicUncertainty(const std::string& unc_name, const ValueType& unc_value, bool is_relative = true)
+    void AddSystematicUncertainty(const std::string& unc_name, ValueTypeCR unc_value, bool is_relative = true)
     {
         if(systematic_uncertainties.count(unc_name))
             throw exception("Uncertainty '%1%' is already defined for the current physical value.") % unc_name;
@@ -83,8 +73,8 @@ public:
         systematic_uncertainties[unc_name] = final_unc_value;
     }
 
-    const ValueType& GetValue() const { return value; }
-    const ValueType& GetStatisticalError() const { return stat_error; }
+    ValueTypeCR GetValue() const { return value; }
+    ValueTypeCR GetStatisticalError() const { return stat_error; }
 
     ValueType GetSystematicUncertainty(const std::string& unc_name) const
     {
@@ -93,18 +83,18 @@ public:
             return 0;
         return iter->second;
     }
-
+    const SystematicMap& GetSystematicUncertainties() const { return systematic_uncertainties; }
     ValueType GetFullSystematicUncertainty() const
     {
         ValueType unc = 0;
         for(const auto& unc_iter : systematic_uncertainties)
-            unc += sqr(unc_iter.second);
+            unc += std::pow(unc_iter.second, 2);
         return std::sqrt(unc);
     }
 
     ValueType GetFullError() const
     {
-        return std::sqrt( sqr(stat_error) + sqr(GetFullSystematicUncertainty()) );
+        return std::hypot(stat_error, GetFullSystematicUncertainty());
     }
 
     ValueType GetRelativeStatisticalError() const { return stat_error / value; }
@@ -134,13 +124,7 @@ public:
 
     PhysicalValue<ValueType> operator+(const PhysicalValue<ValueType>& other) const
     {
-        static const auto operation = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
-            return my_value + other_value;
-        };
-        static const auto derivator = [](const ValueType& /*my_value*/, const ValueType& /*other_value*/) -> ValueType {
-            return 1;
-        };
-        return ApplyBinaryOperation(other, operation, derivator, derivator);
+        return ApplyBinaryOperation(other, value + other.value, 1, 1);
     }
 
     PhysicalValue<ValueType>& operator+=(const PhysicalValue<ValueType>& other)
@@ -151,14 +135,7 @@ public:
 
     PhysicalValue<ValueType> operator-(const PhysicalValue<ValueType>& other) const
     {
-        static const auto operation = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
-            return my_value - other_value;
-        };
-        static const auto first_derivator = [](const ValueType& /*my_value*/, const ValueType& /*other_value*/)
-                -> ValueType { return 1; };
-        static const auto second_derivator = [](const ValueType& /*my_value*/, const ValueType& /*other_value*/)
-                -> ValueType { return -1; };
-        return ApplyBinaryOperation(other, operation, first_derivator, second_derivator);
+        return ApplyBinaryOperation(other, value - other.value, 1, -1);
     }
 
     PhysicalValue<ValueType>& operator-=(const PhysicalValue<ValueType>& other)
@@ -169,14 +146,7 @@ public:
 
     PhysicalValue<ValueType> operator*(const PhysicalValue<ValueType>& other) const
     {
-        static const auto operation = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
-            return my_value * other_value;
-        };
-        static const auto first_derivator = [](const ValueType& /*my_value*/, const ValueType& other_value)
-                -> ValueType { return other_value; };
-        static const auto second_derivator = [](const ValueType& my_value, const ValueType& /*other_value*/)
-                -> ValueType { return my_value; };
-        return ApplyBinaryOperation(other, operation, first_derivator, second_derivator);
+        return ApplyBinaryOperation(other, value * other.value, other.value, value);
     }
 
     PhysicalValue<ValueType>& operator*=(const PhysicalValue<ValueType>& other)
@@ -187,14 +157,7 @@ public:
 
     PhysicalValue<ValueType> operator/(const PhysicalValue<ValueType>& other) const
     {
-        static const auto operation = [](const ValueType& my_value, const ValueType& other_value) -> ValueType {
-            return my_value / other_value;
-        };
-        static const auto first_derivator = [](const ValueType& /*my_value*/, const ValueType& other_value)
-                -> ValueType { return 1 / other_value; };
-        static const auto second_derivator = [](const ValueType& my_value, const ValueType& other_value)
-                -> ValueType { return - my_value / sqr(other_value); };
-        return ApplyBinaryOperation(other, operation, first_derivator, second_derivator);
+        return ApplyBinaryOperation(other, value / other.value, 1 / other.value, - value / std::pow(other.value, 2));
     }
 
     PhysicalValue<ValueType>& operator/=(const PhysicalValue<ValueType>& other)
@@ -228,8 +191,11 @@ public:
             return std::basic_string<char_type>(str.begin(), str.end());
         };
 
-        const int precision = stat_error
-                ? std::floor(std::log10(stat_error)) - number_of_significant_digits_in_error + 1 : -15;
+        static const auto errorSeparators = std::make_tuple(std::string(" +/- "),  std::wstring(L" \u00B1 "));
+
+        const int precision = stat_error != 0.
+                ? static_cast<int>(std::floor(std::log10(stat_error)) - number_of_significant_digits_in_error + 1)
+                : -15;
         const ValueType ten_pow_p = std::pow(10.0, precision);
         const ValueType stat_error_rounded = std::ceil(stat_error / ten_pow_p) * ten_pow_p;
         const ValueType value_rounded = std::round(value / ten_pow_p) * ten_pow_p;
@@ -237,10 +203,10 @@ public:
         std::basic_ostringstream<char_type> ss;
         ss << std::setprecision(decimals_to_print) << std::fixed << value_rounded;
         if(print_stat_error)
-            ss << detail::PhysicalValueErrorSeparator<char_type>::Get() << stat_error_rounded;
+            ss << std::get<std::basic_string<char_type>>(errorSeparators) << stat_error_rounded;
         if(print_syst_uncs && systematic_uncertainties.size()) {
             const ValueType full_syst_rounded = std::round(GetFullSystematicUncertainty() / ten_pow_p) * ten_pow_p;
-            ss << transform(stat_suffix_str) << detail::PhysicalValueErrorSeparator<char_type>::Get()
+            ss << transform(stat_suffix_str) << std::get<std::basic_string<char_type>>(errorSeparators)
                << full_syst_rounded << transform(syst_prefix_str);
             bool is_first = true;
             for(const auto& unc_iter : systematic_uncertainties) {
@@ -255,64 +221,46 @@ public:
         return ss.str();
     }
 
-    template<typename Operation, typename Derivator>
-    PhysicalValue ApplyUnaryOperation(const Operation& operation, const Derivator& derivator) const
+    PhysicalValue ApplyUnaryOperation(ValueTypeCR op_result, ValueTypeCR derivate) const
     {
-        PhysicalValue new_value;
-        new_value.value = operation(value);
-        new_value.stat_error = Propagate(value, stat_error, false, derivator);
+        PhysicalValue new_value(op_result);
+        new_value.stat_error = Propagate(derivate, stat_error, false);
         new_value.systematic_names = systematic_names;
-        for(const auto& unc_iter : systematic_uncertainties) {
-            const ValueType new_unc = Propagate(value, unc_iter->second, true, derivator);
-            new_value.systematic_uncertainties[unc_iter->first] = new_unc;
+        for(const std::string& unc_name : new_value.systematic_names) {
+            const ValueType new_unc = Propagate(derivate, GetSystematicUncertainty(unc_name), true);
+            new_value.systematic_uncertainties[unc_name] = new_unc;
         }
         return new_value;
     }
 
-    template<typename Operation, typename FirstDerivator, typename SecondDerivator>
-    PhysicalValue ApplyBinaryOperation(const PhysicalValue<ValueType>& other, const Operation& operation,
-                                       const FirstDerivator& first_derivator,
-                                       const SecondDerivator& second_derivator) const
+    PhysicalValue ApplyBinaryOperation(const PhysicalValue<ValueType>& other, ValueTypeCR op_result,
+                                       ValueTypeCR first_derivate, ValueTypeCR second_derivate) const
     {
-        PhysicalValue new_value;
-        new_value.value = operation(value, other.value);
-        new_value.stat_error = Propagate(value, stat_error, other.value, other.stat_error, false,
-                                         first_derivator, second_derivator);
+        PhysicalValue new_value(op_result);
+        new_value.stat_error = Propagate(first_derivate, stat_error, second_derivate, other.stat_error, false);
         new_value.systematic_names = systematic_names;
         new_value.systematic_names.insert(other.systematic_names.begin(), other.systematic_names.end());
         for(const std::string& unc_name : new_value.systematic_names) {
-            const ValueType new_unc = Propagate(value, GetSystematicUncertainty(unc_name), other.value,
-                                                other.GetSystematicUncertainty(unc_name), true, first_derivator,
-                                                second_derivator);
+            const ValueType new_unc = Propagate(first_derivate, GetSystematicUncertainty(unc_name),
+                                                second_derivate, other.GetSystematicUncertainty(unc_name), true);
             new_value.systematic_uncertainties[unc_name] = new_unc;
         }
         return new_value;
     }
 
 private:
-    template<typename Derivator>
-    static ValueType Propagate(const ValueType& value, const ValueType& error, bool correlated,
-                               const Derivator& derivator)
+    static ValueType Propagate(ValueTypeCR derivate, ValueTypeCR error, bool correlated)
     {
-        const ValueType derivate = derivator(value);
-        if(correlated)
-            return derivate * error;
-        return std::abs(derivate) * error;
+        return correlated ? derivate * error : std::abs(derivate) * error;
     }
 
-    template<typename FirstDerivator, typename SecondDerivator>
-    static ValueType Propagate(const ValueType& first_value, const ValueType& first_error,
-                               const ValueType& second_value, const ValueType& second_error,
-                               bool correlated,
-                               const FirstDerivator& first_derivator, const SecondDerivator& second_derivator)
+    static ValueType Propagate(ValueTypeCR first_derivate, ValueTypeCR first_error,
+                               ValueTypeCR second_derivate, ValueTypeCR second_error, bool correlated)
     {
-        const ValueType first_derivate = first_derivator(first_value, second_value);
-        const ValueType second_derivate = second_derivator(first_value, second_value);
         const ValueType first_contribution = first_derivate * first_error;
         const ValueType second_contribution = second_derivate * second_error;
-        if(correlated)
-            return first_contribution + second_contribution;
-        return std::sqrt(sqr(first_contribution) + sqr(second_contribution));
+        return correlated ? first_contribution + second_contribution
+                          : std::hypot(first_contribution, second_contribution);
     }
 
 private:
@@ -361,3 +309,41 @@ std::istream& operator>>(std::istream& s, PhysicalValue<T>& r)
 using PhysicalValue = detail::PhysicalValue<double>;
 
 } // namespace analysis
+
+namespace std {
+
+template<typename ValueType>
+::analysis::detail::PhysicalValue<ValueType> abs(const ::analysis::detail::PhysicalValue<ValueType>& v)
+{
+    return analysis::detail::PhysicalValue<ValueType>(
+                std::abs(v.GetValue()), v.GetStatisticalError(), v.GetSystematicUncertainties());
+}
+
+template<typename ValueType>
+::analysis::detail::PhysicalValue<ValueType> sqrt(const ::analysis::detail::PhysicalValue<ValueType>& v)
+{
+    const auto sqrt = std::sqrt(v.GetValue());
+    return v.ApplyUnaryOperation(sqrt, 0.5 / sqrt);
+}
+
+template<typename ValueType>
+::analysis::detail::PhysicalValue<ValueType> exp(const ::analysis::detail::PhysicalValue<ValueType>& v)
+{
+    const auto exp = std::exp(v.GetValue());
+    return v.ApplyUnaryOperation(exp, exp);
+}
+
+template<typename ValueType>
+::analysis::detail::PhysicalValue<ValueType> log(const ::analysis::detail::PhysicalValue<ValueType>& v)
+{
+    return v.ApplyUnaryOperation(std::log(v.GetValue()), 1. / v.GetValue());
+}
+
+template<typename ValueType, typename ExpType>
+::analysis::detail::PhysicalValue<ValueType> pow(const ::analysis::detail::PhysicalValue<ValueType>& v, ExpType&& exp)
+{
+    const auto derivate = exp != 0 ? exp * std::pow(v.GetValue(), exp - 1) : ValueType(0);
+    return v.ApplyUnaryOperation(std::pow(v.GetValue(), exp), derivate);
+}
+
+}

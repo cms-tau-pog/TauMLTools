@@ -11,9 +11,6 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 namespace analysis {
 
-template<typename T>
-constexpr T sqr(const T& x) { return x * x; }
-
 namespace tools {
 
 template<typename Type>
