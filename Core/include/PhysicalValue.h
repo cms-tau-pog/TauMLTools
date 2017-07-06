@@ -47,7 +47,7 @@ public:
     }
 
     PhysicalValue() : value(0), stat_error(0) {}
-    PhysicalValue(ValueTypeCR _value, ValueTypeCR _stat_error = 0)
+    explicit PhysicalValue(ValueTypeCR _value, ValueTypeCR _stat_error = 0)
         : value(_value), stat_error(_stat_error)
     {
         if(stat_error < 0)

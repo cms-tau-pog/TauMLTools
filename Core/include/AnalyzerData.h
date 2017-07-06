@@ -4,29 +4,14 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #pragma once
 
 #include <vector>
-#include <map>
-#include <set>
-#include <stdexcept>
-#include <sstream>
-#include <typeindex>
-
-#include <TH1D.h>
-#include <TH2D.h>
+#include <unordered_map>
+#include <utility>
 
 #include "RootExt.h"
 #include "SmartHistogram.h"
 
 #define ANA_DATA_ENTRY(type, name, ...) \
-    template<typename Key> \
-    root_ext::SmartHistogram< type >& name(const Key& key) { \
-        return Get<type>(nullptr, #name, key, ##__VA_ARGS__); \
-    } \
-    root_ext::SmartHistogram< type >& name() { \
-        static const size_t index = GetUniqueIndex(#name); \
-        return GetFast<type>(nullptr, #name, index, ##__VA_ARGS__); \
-    } \
-    static std::string name##_Name() { return #name; } \
-    static std::type_index name##_TypeIndex() { return std::type_index(typeid(type)); } \
+    root_ext::AnalyzerDataEntry<type> name{#name, this, ##__VA_ARGS__};
     /**/
 
 #define TH1D_ENTRY(name, nbinsx, xlow, xup) ANA_DATA_ENTRY(TH1D, name, nbinsx, xlow, xup)
@@ -58,226 +43,177 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #define GRAPH_ENTRY(name) ANA_DATA_ENTRY(TGraph, name)
 
 namespace root_ext {
-class AnalyzerData {
+
+class AnalyzerData;
+
+struct AnalyzerDataEntryBase {
+    inline AnalyzerDataEntryBase(const std::string& _name, AnalyzerData* _data);
+    virtual ~AnalyzerDataEntryBase() {}
+    const std::string& Name() const { return name; }
 private:
-    using DataVector = std::vector<AbstractHistogram*>;
-    using DataMap = std::map<std::string, AbstractHistogram*>;
+    std::string name;
+protected:
+    AnalyzerData* data;
+};
 
-    template<typename ValueType>
-    static std::set<std::string>& HistogramNames()
-    {
-        static std::set<std::string> names;
-        return names;
-    }
-
-    template<typename ValueType>
-    static std::set<std::string>& OriginalHistogramNames()
-    {
-        static std::set<std::string> names;
-        return names;
-    }
-
-    static std::map<std::string, size_t>& IndexMap()
-    {
-        static std::map<std::string, size_t> index_map;
-        return index_map;
-    }
-
-    static constexpr size_t MaxIndex = 1000;
-
+class AnalyzerData {
 public:
-    template<typename ValueType>
-    static const std::set<std::string>& GetAllHistogramNames() { return HistogramNames<ValueType>(); }
+    using Hist = AbstractHistogram;
+    using HistPtr = std::shared_ptr<Hist>;
+    using HistContainer = std::unordered_map<std::string, HistPtr>;
+    using Entry = AnalyzerDataEntryBase;
+    using EntryContainer = std::unordered_map<std::string, Entry*>;
 
-    template<typename ValueType>
-    static const std::set<std::string>& GetOriginalHistogramNames() { return OriginalHistogramNames<ValueType>(); }
+    AnalyzerData() : directory(nullptr) {}
 
-    static size_t GetUniqueIndex(const std::string& name)
-    {
-        const auto iter = IndexMap().find(name);
-        if(iter != IndexMap().end())
-            return iter->second;
-        const size_t index = IndexMap().size();
-        IndexMap()[name] = index;
-        return index;
-    }
+    explicit AnalyzerData(const std::string& outputFileName) :
+        outputFile(CreateRootFile(outputFileName)), directory(outputFile.get()) {}
 
-public:
-    AnalyzerData() : directory(nullptr)
-    {
-        data_vector.assign(MaxIndex, nullptr);
-    }
-
-    explicit AnalyzerData(const std::string& outputFileName)
-        : outputFile(CreateRootFile(outputFileName))
-    {
-        data_vector.assign(MaxIndex, nullptr);
-        directory = outputFile.get();
-    }
-
-    explicit AnalyzerData(std::shared_ptr<TFile> _outputFile, const std::string& directoryName = "")
-        : outputFile(_outputFile)
+    explicit AnalyzerData(std::shared_ptr<TFile> _outputFile, const std::string& directoryName = "") :
+        outputFile(_outputFile)
     {
         if(!outputFile)
             throw analysis::exception("Output file is nullptr.");
-        data_vector.assign(MaxIndex, nullptr);
-        if (directoryName.size()){
-            outputFile->mkdir(directoryName.c_str());
-            directory = outputFile->GetDirectory(directoryName.c_str());
-            if(!directory)
-                throw analysis::exception("Unable to create analyzer data directory.");
-        } else
-            directory = outputFile.get();
+        directory = directoryName.size() ? GetDirectory(*outputFile, directoryName, true) : outputFile.get();
     }
 
     explicit AnalyzerData(TDirectory* _directory, const std::string& subDirectoryName = "")
     {
         if(!_directory)
             throw analysis::exception("Output directory is nullptr.");
-        data_vector.assign(MaxIndex, nullptr);
-        if (subDirectoryName.size()){
-            _directory->mkdir(subDirectoryName.c_str());
-            directory = _directory->GetDirectory(subDirectoryName.c_str());
-            if(!directory)
-                throw analysis::exception("Unable to create analyzer data directory.");
-        } else
-            directory = _directory;
+        directory = subDirectoryName.size() ? GetDirectory(*_directory, subDirectoryName, true) : _directory;
     }
-
 
     virtual ~AnalyzerData()
     {
-        for(const auto& iter : data) {
-            if(directory)
-                iter.second->WriteRootObject();
-            delete iter.second;
+        if(directory) {
+            for(const auto& hist : histograms)
+                hist.second->WriteRootObject();
         }
     }
 
-    std::shared_ptr<TFile> getOutputFile() { return outputFile; }
-    bool Contains(const std::string& name) const { return data.find(name) != data.end(); }
+    TDirectory* GetOutputDirectory() const { return directory; }
+    std::shared_ptr<TFile> GetOutputFile() const { return outputFile; }
 
-    void Erase(const std::string& name)
+    void AddHistogram(HistPtr hist)
     {
-        auto iter = data.find(name);
-        if(iter != data.end()) {
-            delete iter->second;
-            data.erase(iter);
-            auto index_iter = IndexMap().find(name);
-            if(index_iter != IndexMap().end() && index_iter->second < MaxIndex)
-                data_vector.at(index_iter->second) = nullptr;
-        }
+        if(!hist)
+            throw analysis::exception("Can't add nullptr histogram into AnalyzerData");
+        if(histograms.count(hist->Name()))
+            throw analysis::exception("Histogram '%1%' already exists in this AnalyzerData.") % hist->Name();
+        hist->SetOutputDirectory(directory);
+        histograms[hist->Name()] = hist;
     }
+    const HistContainer& GetHistograms() const { return histograms; }
 
-    template<typename ValueType>
-    bool CheckType(const std::string& name) const
+    void AddEntry(Entry& entry)
     {
-        const auto iter = data.find(name);
-        if(iter == data.end())
-            analysis::exception("Histogram '%1%' not found.") % name;
-        SmartHistogram<ValueType>* result = dynamic_cast< SmartHistogram<ValueType>* >(iter->second);
-        return result;
+        if(entries.count(entry.Name()))
+            throw analysis::exception("Entry '%1%' already exists in this AnalyzerData.") % entry.Name();
+        entries[entry.Name()] = &entry;
     }
-
-    std::vector<std::string> KeysCollection() const
-    {
-        std::vector<std::string> keys;
-        for(const auto& iter : data)
-            keys.push_back(iter.first);
-        return keys;
-    }
-
-    template<typename ValueType, typename KeySuffix, typename ...Args>
-    SmartHistogram<ValueType>& Get(const ValueType* ptr, const std::string& name, const KeySuffix& suffix, Args... args)
-    {
-
-        std::ostringstream ss_suffix;
-        ss_suffix << suffix;
-        const std::string s_suffix = ss_suffix.str();
-        const std::string full_name = s_suffix.size() ? name + "_" + s_suffix : name;
-        return GetByFullName(ptr, name, full_name, args...);
-    }
-
-    template<typename ValueType>
-    SmartHistogram<ValueType>& Get(const ValueType* null_value, const std::string& name)
-    {
-        return Get(null_value, name, "");
-    }
-
-    template<typename ValueType>
-    SmartHistogram<ValueType>& Get(const std::string& name)
-    {
-        return Get<ValueType>(nullptr, name, "");
-    }
-
-    template<typename ValueType>
-    SmartHistogram<ValueType>* GetPtr(const std::string& name) const
-    {
-        if(!Contains(name) || !CheckType<ValueType>(name)) return nullptr;
-        return &GetAt<ValueType>(data.find(name));
-    }
-
-    template<typename ValueType>
-    SmartHistogram<ValueType>& Clone(const SmartHistogram<ValueType>& original)
-    {
-        if(data.count(original.Name()))
-            throw analysis::exception("histogram already exists");
-        SmartHistogram<ValueType>* h = new SmartHistogram<ValueType>(original);
-        data[h->Name()] = h;
-        HistogramNames<ValueType>().insert(h->Name());
-        h->SetOutputDirectory(directory);
-        auto index_iter = IndexMap().find(h->Name());
-        if(index_iter != IndexMap().end() && index_iter->second < MaxIndex)
-            data_vector.at(index_iter->second) = h;
-        return *h;
-    }
-
-protected:
-    template<typename ValueType, typename ...Args>
-    SmartHistogram<ValueType>& GetFast(const ValueType* ptr, const std::string& name, size_t index, Args... args)
-    {
-        if(index < MaxIndex && data_vector[index] != nullptr)
-            return *static_cast< SmartHistogram<ValueType>* >(data_vector[index]);
-        return GetByFullName(ptr, name, name, args...);
-    }
-
-private:
-    template<typename ValueType, typename ...Args>
-    SmartHistogram<ValueType>& GetByFullName(const ValueType*, const std::string& name, const std::string& full_name,
-                                             Args... args)
-    {
-        auto iter = data.find(full_name);
-        if(iter == data.end()) {
-            AbstractHistogram* h = HistogramFactory<ValueType>::Make(full_name, args...);
-            data[full_name] = h;
-            HistogramNames<ValueType>().insert(h->Name());
-            OriginalHistogramNames<ValueType>().insert(name);
-            h->SetOutputDirectory(directory);
-            iter = data.find(full_name);
-            auto index_iter = IndexMap().find(full_name);
-            if(index_iter != IndexMap().end() && index_iter->second < MaxIndex)
-                data_vector.at(index_iter->second) = h;
-        }
-        return GetAt<ValueType>(iter);
-    }
-
-    template<typename ValueType>
-    SmartHistogram<ValueType>& GetAt(const DataMap::const_iterator& iter) const
-    {
-        if(iter == data.end())
-            throw analysis::exception("Invalid iterator to of a histogram collection.");
-
-        SmartHistogram<ValueType>* result = dynamic_cast< SmartHistogram<ValueType>* >(iter->second);
-        if(!result)
-            throw analysis::exception("Wrong type for histogram '%1%'.") % iter->first;
-        return *result;
-    }
+    const EntryContainer& GetEntries() const { return entries; }
 
 private:
     std::shared_ptr<TFile> outputFile;
     TDirectory* directory;
-
-    DataMap data;
-    DataVector data_vector;
+    EntryContainer entries;
+    HistContainer histograms;
 };
+
+AnalyzerDataEntryBase::AnalyzerDataEntryBase(const std::string& _name, AnalyzerData* _data)
+    : name(_name), data(_data)
+{
+    data->AddEntry(*this);
+}
+
+template<typename _ValueType>
+struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
+    using ValueType = _ValueType;
+    using Hist = SmartHistogram<ValueType>;
+    using HistPtr = std::shared_ptr<Hist>;
+    using HistPtrMap = std::unordered_map<std::string, HistPtr>;
+
+    AnalyzerDataEntry(const std::string& _name, AnalyzerData* data) :
+        AnalyzerDataEntryBase(_name, data)
+    {
+    }
+
+    template<typename... Args>
+    AnalyzerDataEntry(const std::string& _name, AnalyzerData* data, Args&&... args) :
+        AnalyzerDataEntryBase(_name, data)
+    {
+        SetMasterHist(std::forward<Args>(args)...);
+    }
+
+    Hist& operator()()
+    {
+        if(!default_hist) {
+            default_hist = std::make_shared<Hist>(GetMasterHist());
+            histograms[""] = default_hist;
+            data->AddHistogram(default_hist);
+        }
+        return *default_hist;
+    }
+
+    template<typename KeySuffix>
+    Hist& operator()(KeySuffix&& suffix)
+    {
+        const auto key = SuffixToKey(std::forward<KeySuffix>(suffix));
+        auto iter = histograms.find(key);
+        if(iter != histograms.end())
+            return *iter->second;
+        auto hist = std::make_shared<Hist>(GetMasterHist());
+        hist->SetName(FullName(key));
+        data->AddHistogram(hist);
+        histograms[key] = hist;
+        return *hist;
+    }
+
+    template<typename KeySuffix, typename... Args>
+    void Emplace(KeySuffix&& suffix, Args&&... args)
+    {
+        const auto key = SuffixToKey(std::forward<KeySuffix>(suffix));
+        auto iter = histograms.find(key);
+        if(iter != histograms.end())
+            throw analysis::exception("Histogram with suffix '%1%' already exists in '%2%'.") % key % Name();
+        auto hist = std::make_shared<Hist>(FullName(key), std::forward<Args>(args)...);
+        data->AddHistogram(hist);
+        histograms[key] = hist;
+    }
+
+
+
+    const HistPtrMap& GetHistograms() const { return histograms; }
+
+    const Hist& GetMasterHist()
+    {
+        if(!master_hist)
+            throw analysis::exception("Master histogram for '%1%' is not initialized.") % Name();
+        return *master_hist;
+    }
+
+    template<typename... Args>
+    void SetMasterHist(Args&&... args)
+    {
+        master_hist = std::make_shared<Hist>(Name(), std::forward<Args>(args)...);
+        master_hist->SetOutputDirectory(nullptr);
+    }
+
+private:
+    template<typename KeySuffix>
+    static std::string SuffixToKey(KeySuffix&& suffix)
+    {
+        std::ostringstream ss_suffix;
+        ss_suffix << suffix;
+        return ss_suffix.str();
+    }
+
+    std::string FullName(const std::string& key) const { return Name() + "_" + key; }
+
+private:
+    HistPtr master_hist, default_hist;
+    HistPtrMap histograms;
+};
+
 } // root_ext

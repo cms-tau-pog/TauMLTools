@@ -33,6 +33,7 @@ public:
 
     TDirectory* GetOutputDirectory() const { return outputDirectory; }
     const std::string& Name() const { return name; }
+    virtual void SetName(const std::string& _name) { name = _name; }
 
 private:
     std::string name;
@@ -213,6 +214,18 @@ public:
         : TH1D(other), AbstractHistogram(other.GetName()), store(false), use_log_y(_use_log_y), max_y_sf(_max_y_sf),
           divide_by_bin_width(_divide_by_bin_width) {}
 
+    virtual void SetName(const char* _name) override
+    {
+        TH1D::SetName(_name);
+        AbstractHistogram::SetName(_name);
+    }
+
+    virtual void SetName(const std::string& _name) override
+    {
+        TH1D::SetName(_name.c_str());
+        AbstractHistogram::SetName(_name);
+    }
+
     virtual void WriteRootObject() override
     {
         if(store && GetOutputDirectory())
@@ -284,6 +297,18 @@ public:
     {
         if(store && GetOutputDirectory())
             root_ext::WriteObject(*this);
+    }
+
+    virtual void SetName(const char* _name) override
+    {
+        TH2D::SetName(_name);
+        AbstractHistogram::SetName(_name);
+    }
+
+    virtual void SetName(const std::string& _name) override
+    {
+        TH2D::SetName(_name.c_str());
+        AbstractHistogram::SetName(_name);
     }
 
     virtual void SetOutputDirectory(TDirectory* directory) override

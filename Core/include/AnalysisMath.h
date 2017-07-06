@@ -206,7 +206,7 @@ double Calculate_MX(const LVector1& lepton1, const LVector2& lepton2, const LVec
 }
 
 
-inline PhysicalValue Integral(const TH1D& histogram, bool include_overflows = true)
+inline PhysicalValue Integral(const TH1& histogram, bool include_overflows = true)
 {
     using limit_pair = std::pair<Int_t, Int_t>;
     const limit_pair limits = include_overflows ? limit_pair(0, histogram.GetNbinsX() + 1)
@@ -217,7 +217,15 @@ inline PhysicalValue Integral(const TH1D& histogram, bool include_overflows = tr
     return PhysicalValue(integral, error);
 }
 
-inline PhysicalValue Integral(const TH2D& histogram, bool include_overflows = true)
+inline PhysicalValue Integral(const TH1& histogram, Int_t first_bin, Int_t last_bin)
+{
+    double error = 0;
+    const double integral = histogram.IntegralAndError(first_bin, last_bin, error);
+    return PhysicalValue(integral, error);
+}
+
+
+inline PhysicalValue Integral(const TH2& histogram, bool include_overflows = true)
 {
     using limit_pair = std::pair<Int_t, Int_t>;
     const limit_pair limits_x = include_overflows ? limit_pair(0, histogram.GetNbinsX() + 1)
@@ -228,6 +236,14 @@ inline PhysicalValue Integral(const TH2D& histogram, bool include_overflows = tr
     double error = 0;
     const double integral = histogram.IntegralAndError(limits_x.first, limits_x.second, limits_y.first, limits_y.second,
                                                        error);
+    return PhysicalValue(integral, error);
+}
+
+inline PhysicalValue Integral(const TH2& histogram, Int_t first_x_bin, Int_t last_x_bin,
+                              Int_t first_y_bin, Int_t last_y_bin)
+{
+    double error = 0;
+    const double integral = histogram.IntegralAndError(first_x_bin, last_x_bin, first_y_bin, last_y_bin, error);
     return PhysicalValue(integral, error);
 }
 

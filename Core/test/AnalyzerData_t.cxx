@@ -1,0 +1,45 @@
+/*! Test AnalyzerData class.
+This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+
+#include "AnalysisTools/Core/include/AnalyzerData.h"
+#include "AnalysisTools/Core/include/RootExt.h"
+#include "AnalysisTools/Run/include/program_main.h"
+
+struct MyAnaData : public root_ext::AnalyzerData {
+//    using AnalyzerData::AnalyzerData;
+
+    explicit MyAnaData(std::shared_ptr<TFile> _outputFile, const std::string& directoryName = "") :
+        AnalyzerData(_outputFile, directoryName)
+    {
+        hist.Emplace("z", 3, 20, 23);
+        other_hist.SetMasterHist(5, 5, 10);
+    }
+
+    TH1D_ENTRY(hist, 10, .5, 10.5)
+    ANA_DATA_ENTRY(TH1D, other_hist)
+};
+
+struct Arguments {
+    REQ_ARG(std::string, output);
+};
+
+class AnalyzerData_t {
+public:
+    AnalyzerData_t(const Arguments& args) : output(root_ext::CreateRootFile(args.output())), anaData(output) {}
+
+    void Run()
+    {
+        anaData.hist().Fill(1);
+        anaData.hist(1).Fill(2);
+        anaData.hist("b").Fill(3);
+        anaData.hist(1).Fill(4);
+        anaData.hist("z").Fill(21.5);
+        anaData.other_hist(0).Fill(6);
+    }
+
+private:
+    std::shared_ptr<TFile> output;
+    MyAnaData anaData;
+};
+
+PROGRAM_MAIN(AnalyzerData_t, Arguments)
