@@ -38,8 +38,14 @@ struct Range {
         return Range<T>(std::min(min(), v), std::max(max(), v));
     }
 
+    bool operator ==(const Range<T>& other) const { return min() == other.min() && max() == other.max(); }
+    bool operator !=(const Range<T>& other) const { return !(*this == other); }
+
     bool Includes(const Range<T>& other) const { return min() <= other.min() && max() >= other.max(); }
-    bool Overlaps(const Range<T>& other) const { return min() <= other.max() && other.min() <= max();  }
+    bool Overlaps(const Range<T>& other, bool include_boundaries = true) const
+    {
+        return include_boundaries ? min() <= other.max() && other.min() <= max() : min() < other.max() && other.min() < max();
+    }
     Range<T> Combine(const Range<T>& other) const
     {
         if(!Overlaps(other))
