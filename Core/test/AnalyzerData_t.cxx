@@ -35,6 +35,7 @@ public:
         anaData.hist(1).Fill(4);
         anaData.hist("z").Fill(21.5);
         anaData.other_hist(0).Fill(6);
+        anaData.hist(1, "b").Fill(1.4);
     }
 
 private:

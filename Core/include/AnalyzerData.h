@@ -156,10 +156,10 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
         return *default_hist;
     }
 
-    template<typename KeySuffix>
-    Hist& operator()(KeySuffix&& suffix)
+    template<typename ...KeySuffix>
+    Hist& operator()(KeySuffix&&... suffix)
     {
-        const auto key = SuffixToKey(std::forward<KeySuffix>(suffix));
+        const auto key = SuffixToKey(std::forward<KeySuffix>(suffix)...);
         auto iter = histograms.find(key);
         if(iter != histograms.end())
             return *iter->second;
@@ -182,8 +182,6 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
         histograms[key] = hist;
     }
 
-
-
     const HistPtrMap& GetHistograms() const { return histograms; }
 
     const Hist& GetMasterHist()
@@ -200,12 +198,16 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
         master_hist->SetOutputDirectory(nullptr);
     }
 
-private:
-    template<typename KeySuffix>
-    static std::string SuffixToKey(KeySuffix&& suffix)
+    static std::string SuffixToKey()
+    {
+        return "";
+    }
+
+    template<typename T, typename ...KeySuffix>
+    static std::string SuffixToKey(T&& first_suffix, KeySuffix&&... suffix)
     {
         std::ostringstream ss_suffix;
-        ss_suffix << suffix;
+        ss_suffix << first_suffix << "_" << SuffixToKey(std::forward<KeySuffix>(suffix)...);
         return ss_suffix.str();
     }
 
