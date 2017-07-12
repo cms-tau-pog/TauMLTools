@@ -207,7 +207,10 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
     static std::string SuffixToKey(T&& first_suffix, KeySuffix&&... suffix)
     {
         std::ostringstream ss_suffix;
-        ss_suffix << first_suffix << "_" << SuffixToKey(std::forward<KeySuffix>(suffix)...);
+        ss_suffix << first_suffix;
+        const auto other_suffix = SuffixToKey(std::forward<KeySuffix>(suffix)...);
+        if(other_suffix.size())
+            ss_suffix << "_" << other_suffix;
         return ss_suffix.str();
     }
 
