@@ -182,6 +182,17 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
         histograms[key] = hist;
     }
 
+    template<typename KeySuffix>
+    void Set(KeySuffix&& suffix, HistPtr hist)
+    {
+        const auto key = SuffixToKey(std::forward<KeySuffix>(suffix));
+        auto iter = histograms.find(key);
+        if(iter != histograms.end())
+            throw analysis::exception("Histogram with suffix '%1%' already exists in '%2%'.") % key % Name();
+        data->AddHistogram(hist);
+        histograms[key] = hist;
+    }
+
     const HistPtrMap& GetHistograms() const { return histograms; }
 
     const Hist& GetMasterHist()
