@@ -1,90 +1,132 @@
-/*! Code to merge two root files taking first file as a reference and adding missing info from the second.
+/*! Merge multiple root files into a single file.
 Some parts of the code are taken from copyFile.C written by Rene Brun.
 This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 #include <iostream>
-
+#include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
 #include <TROOT.h>
 #include <TKey.h>
 #include <TSystem.h>
 #include <TTree.h>
+#include <TChain.h>
 #include <memory>
 #include "RootExt.h"
 #include "AnalysisTools/Run/include/program_main.h"
 
 struct Arguments {
-    REQ_ARG(std::string, originalFileName);
-    REQ_ARG(std::string, referenceFileName);
-    REQ_ARG(std::string, outputFileName);
+    run::Argument<std::string> output{"output", "output root file"};
+    run::Argument<size_t> target_size{"max-size", "max size of the output file in MB", 7500};
+    run::Argument<std::string> priority_trees{"priority-trees", "list of trees that should be saved first", ""};
+    run::Argument<std::vector<std::string>> input_dirs{"input-dir", "input directory"};
+
 };
 
+struct HistDescriptor {
+    using HistPtr = std::shared_ptr<TH1>;
+    HistPtr hist;
+    TDirectory* dir;
+};
+
+struct TreeDescriptor {
+    using ChainPtr = std::shared_ptr<TChain>;
+    ChainPtr chain;
+    TDirectory* dir;
+};
+
+namespace fs = boost::filesystem;
 class MergeRootFiles {
 public:
-    MergeRootFiles(const Arguments& args)
-        : originalFile(root_ext::OpenRootFile(args.originalFileName())),
-          referenceFile(root_ext::OpenRootFile(args.referenceFileName())),
-          outputFile(root_ext::CreateRootFile(args.outputFileName())) {}
+    using HistPtr = HistDescriptor::HistPtr;
+    using ChainPtr = TreeDescriptor::ChainPtr;
+    using HistCollection = std::map<std::string, HistDescriptor>;
+    using TreeCollection = std::map<std::string, TreeDescriptor>;
+
+    MergeRootFiles(const Arguments& _args) :
+        args(_args), input_files(FindInputFiles(args.input_dirs())), output(root_ext::CreateRootFile(args.output()))
+    {}
 
     void Run()
     {
-        std::cout << "Copying original file..." << std::endl;
-        CopyDirectory(originalFile.get(), outputFile.get(), false);
-        std::cout << "Copying reference file..." << std::endl;
-        CopyDirectory(referenceFile.get(), outputFile.get(), true);
-        std::cout << "Original and reference files has been merged." << std::endl;
+        for(const auto& file_name : input_files) {
+            std::cout << "file: " << file_name << std::endl;
+            auto file = root_ext::OpenRootFile(file_name);
+            ProcessDirectory(file_name, "", file.get());
+        }
+        std::cout << "Writing histograms..." << std::endl;
+        for(auto& hist_entry : histograms) {
+            root_ext::WriteObject(*hist_entry.second.hist, hist_entry.second.dir);
+        }
+        for(auto& tree : trees) {
+            std::cout << "tree: " << tree.first << std::endl;
+            tree.second.dir->cd();
+            tree.second.chain->Merge(output.get(), 0, "C keep");
+        }
     }
 
 private:
-    /// Copy all objects and subdirs of the source directory to the destination directory.
-    static void CopyDirectory(TDirectory *source, TDirectory *destination, bool isReference)
+    static std::vector<std::string> FindInputFiles(const std::vector<std::string>& dirs)
     {
-        std::cout<< "CopyDir. Current direcotry: " << destination->GetName() << std::endl;
+        std::vector<std::string> files;
+        for(const auto& dir : dirs) {
+            fs::path path(dir);
+            CollectInputFiles(path, files);
+        }
+        return files;
+    }
 
-        TIter nextkey(source->GetListOfKeys());
+    static void CollectInputFiles(const fs::path& dir, std::vector<std::string>& files)
+    {
+        static const boost::regex root_file_pattern("^.*\\.root$");
+        for(const auto& entry : boost::make_iterator_range(fs::directory_iterator(dir), {})) {
+            if(fs::is_directory(entry))
+                CollectInputFiles(entry.path(), files);
+            else if(boost::regex_match(entry.path().string(), root_file_pattern))
+                files.push_back(entry.path().string());
+        }
+    }
+
+    void ProcessDirectory(const std::string& file_name, const std::string& dir_name, TDirectory* dir)
+    {
+        TIter nextkey(dir->GetListOfKeys());
         for(TKey* key; (key = dynamic_cast<TKey*>(nextkey()));) {
-            //std::cout << "Processing key: " << key->GetName() << std::endl;
             const char *classname = key->GetClassName();
             TClass *cl = gROOT->GetClass(classname);
             if (!cl) continue;
-            bool objectWritten = false;
+            std::string name = key->GetName();
+            std::string full_name = dir_name + name;
             if (cl->InheritsFrom("TDirectory")) {
-                TDirectory *subdir_source = static_cast<TDirectory*>(source->Get(key->GetName()));
-                TDirectory *subdir_destination;
-                if(isReference) {
-                    subdir_destination = static_cast<TDirectory*>(destination->Get(subdir_source->GetName()));
-                    if(!subdir_destination) {
-                        std::cout << "Skipping reference directory '" << subdir_source->GetName()
-                                  << "', which is missing in the origin file.";
-                        continue;
-                    }
+                auto subdir = root_ext::ReadObject<TDirectory>(*dir, name);
+                ProcessDirectory(file_name, dir_name + subdir->GetName() + "/", subdir);
+            } else if(cl->InheritsFrom("TH1")) {
+                auto hist = HistPtr(root_ext::ReadObject<TH1>(*dir, name));
+                if(histograms.count(full_name)) {
+                    TList list;
+                    list.Add(hist.get());
+                    histograms.at(full_name).hist->Merge(&list);
+                } else {
+                    histograms[full_name].hist = HistPtr(root_ext::CloneObject(*hist, "", true));
+                    histograms[full_name].dir = root_ext::GetDirectory(*output, dir_name);
+                }
 
-                } else
-                    subdir_destination = destination->mkdir(subdir_source->GetName());
-
-                CopyDirectory(subdir_source, subdir_destination, isReference);
-            } else if(destination->Get(key->GetName())) {
-
-            } else if (cl->InheritsFrom("TTree")) {
-                TTree *T = root_ext::ReadObject<TTree>(*source, key->GetName());
-                TTree *newT = T->CloneTree();
-                destination->WriteTObject(newT, key->GetName(), "WriteDelete");
-                objectWritten = true;
+            } else if(cl->InheritsFrom("TTree")) {
+                if(!trees.count(full_name)) {
+                    trees[full_name].chain = std::make_shared<TChain>(full_name.c_str());
+                    trees[full_name].dir = root_ext::GetDirectory(*output, dir_name);
+                }
+                trees.at(full_name).chain->AddFile(file_name.c_str());
             } else {
-                std::unique_ptr<TObject> original_obj(key->ReadObj());
-                std::unique_ptr<TObject> obj(original_obj->Clone());
-                destination->WriteTObject(obj.get(), key->GetName(), "WriteDelete");
-                objectWritten = true;
+                throw analysis::exception("Unknown objecttype");
             }
-
-            if(objectWritten && isReference)
-                std::cout << "Object '" << key->GetName() << "' taken from the reference file for '"
-                          << destination->GetName()  << "'" << std::endl;
         }
-        destination->SaveSelf(kTRUE);
     }
 
 private:
-    std::shared_ptr<TFile> originalFile, referenceFile, outputFile;
+    Arguments args;
+    std::vector<std::string> input_files;
+    std::shared_ptr<TFile> output;
+    HistCollection histograms;
+    TreeCollection trees;
 };
 
 PROGRAM_MAIN(MergeRootFiles, Arguments)

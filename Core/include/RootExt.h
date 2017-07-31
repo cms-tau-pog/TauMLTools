@@ -101,6 +101,8 @@ Object* ReadCloneObject(TDirectory& file, const std::string& original_name, cons
 
 inline TDirectory* GetDirectory(TDirectory& root_dir, const std::string& name, bool create_if_needed = true)
 {
+    if(!name.size() || (name.size() == 1 && name.at(0) == '/'))
+        return &root_dir;
     TDirectory* dir = root_dir.GetDirectory(name.c_str());
     if(!dir && create_if_needed) {
         const size_t pos = name.find("/");
