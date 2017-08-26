@@ -21,6 +21,8 @@ struct Arguments {
     run::Argument<std::string> file_name_pattern{"file-name-pattern", "regex expression to match file names",
                                                  "^.*\\.root$"};
     run::Argument<std::string> exclude_list{"exclude-list", "comma separated list of files to exclude", ""};
+    run::Argument<std::string> exclude_dir_list{"exclude-dir-list",
+                                                "comma separated list of directories to exclude", ""};
     run::Argument<size_t> n_threads{"n-threads", "number of threads", 1};
 };
 
@@ -114,7 +116,8 @@ public:
 
 
     MergeRootFiles(const Arguments& _args) :
-        args(_args), input_files(FindInputFiles(args.input_dirs(), args.file_name_pattern(), args.exclude_list())),
+        args(_args), input_files(FindInputFiles(args.input_dirs(), args.file_name_pattern(), args.exclude_list(),
+                                                args.exclude_dir_list())),
         output(root_ext::CreateRootFile(args.output()))
     {
         TreeDescriptor::NumberOfFiles = input_files.size();
@@ -160,26 +163,30 @@ public:
 private:
     static std::vector<std::string> FindInputFiles(const std::vector<std::string>& dirs,
                                                    const std::string& file_name_pattern,
-                                                   const std::string& exclude_list)
+                                                   const std::string& exclude_list, const std::string& exclude_dir_list)
     {
         auto exclude_vector = analysis::SplitValueList(exclude_list, true, ",");
         std::set<std::string> exclude(exclude_vector.begin(), exclude_vector.end());
+
+        auto exclude_dir_vector = analysis::SplitValueList(exclude_dir_list, true, ",");
+        std::set<std::string> exclude_dirs(exclude_dir_vector.begin(), exclude_dir_vector.end());
 
         const boost::regex pattern(file_name_pattern);
         std::vector<std::string> files;
         for(const auto& dir : dirs) {
             fs::path path(dir);
-            CollectInputFiles(path, files, pattern, exclude);
+            CollectInputFiles(path, files, pattern, exclude, exclude_dirs);
         }
         return files;
     }
 
     static void CollectInputFiles(const fs::path& dir, std::vector<std::string>& files, const boost::regex& pattern,
-                                  const std::set<std::string>& exclude)
+                                  const std::set<std::string>& exclude, const std::set<std::string>& exclude_dirs)
     {
         for(const auto& entry : boost::make_iterator_range(fs::directory_iterator(dir), {})) {
-            if(fs::is_directory(entry))
-                CollectInputFiles(entry.path(), files, pattern, exclude);
+            if(fs::is_directory(entry)
+                    && !exclude_dirs.count(entry.path().filename().string()))
+                CollectInputFiles(entry.path(), files, pattern, exclude, exclude_dirs);
             else if(boost::regex_match(entry.path().string(), pattern)
                     && !exclude.count(entry.path().filename().string()))
                 files.push_back(entry.path().string());
