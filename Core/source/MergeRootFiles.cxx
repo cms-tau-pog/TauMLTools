@@ -156,7 +156,9 @@ public:
             auto dir = root_ext::GetDirectory(*output, tree.first.dir_name);
             dir->cd();
             auto chain = tree.second->CreateChain(tree.first.full_name);
-            chain->Merge(output.get(), 0, "C keep");
+            const Long64_t n_files_merged = chain->Merge(output.get(), 0, "C keep");
+            if(n_files_merged < 0 || static_cast<size_t>(n_files_merged) != tree.second->file_names.size())
+                throw analysis::exception("Not all files were merged for '%1%' tree.") % tree.first.full_name;
         }
     }
 
