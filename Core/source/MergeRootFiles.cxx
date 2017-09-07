@@ -154,10 +154,15 @@ public:
         for(auto& tree : ordered_trees) {
             std::cout << "tree: " << tree.first.full_name << std::endl;
             auto dir = root_ext::GetDirectory(*output, tree.first.dir_name);
+            Long64_t n_entries = -1;
             dir->cd();
-            auto chain = tree.second->CreateChain(tree.first.full_name);
-            const Long64_t n_files_merged = chain->Merge(output.get(), 0, "C keep");
-            if(n_files_merged < 0 || static_cast<size_t>(n_files_merged) != tree.second->file_names.size())
+            {
+                auto chain = tree.second->CreateChain(tree.first.full_name);
+                n_entries = chain->GetEntries();
+                chain->Merge(output.get(), 0, "C keep");
+            }
+            std::unique_ptr<TTree> merged_tree(root_ext::ReadObject<TTree>(*output, tree.first.full_name));
+            if(merged_tree->GetEntries() != n_entries)
                 throw analysis::exception("Not all files were merged for '%1%' tree.") % tree.first.full_name;
         }
     }
