@@ -16,6 +16,8 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <TH2.h>
 #include <TMatrixD.h>
 #include <TLorentzVector.h>
+#include <boost/math/constants/constants.hpp>
+#include <boost/math/special_functions/erf.hpp>
 
 
 #include "PhysicalValue.h"
@@ -255,5 +257,39 @@ inline void RenormalizeHistogram(Histogram& histogram, double norm, bool include
         throw analysis::exception("Integral is zero.");
     histogram.Scale(norm / integral);
 }
+
+inline double crystalball(double m, double m0, double sigma, double alpha, double n, double norm)
+{
+    if(m<1. || 1000.<m)
+        throw analysis::exception("The parameter m is out of range");
+
+    static constexpr double sqrtPiOver2 = boost::math::constants::root_half_pi<double>();
+    static constexpr double sqrt2 = boost::math::constants::root_two<double>();
+    double sig = std::abs(sigma);
+    double t = (m - m0)/sig;
+    if(alpha < 0) t = -t;
+    double absAlpha =  std::abs(alpha/sig);
+    double a = std::pow(n/absAlpha,n)*std::exp(-0.5*absAlpha*absAlpha);
+    double b = absAlpha - n/absAlpha;
+    double ApproxErf;
+    double arg = absAlpha / sqrt2;
+    if (arg > 5.) ApproxErf = 1;
+    else if (arg < -5.) ApproxErf = -1;
+    else ApproxErf = boost::math::erf(arg);
+    double leftArea = (1 + ApproxErf) * sqrtPiOver2;
+    double rightArea = ( a * 1/std::pow(absAlpha - b,n-1)) / (n - 1);
+    double area = leftArea + rightArea;
+    if( t <= absAlpha ) {
+        arg = t / sqrt2;
+        if(arg > 5.) ApproxErf = 1;
+        else if (arg < -5.) ApproxErf = -1;
+        else ApproxErf = boost::math::erf(arg);
+        return norm * (1 + ApproxErf) * sqrtPiOver2 / area;
+    }
+    else {
+        return norm * (leftArea + a * (1/std::pow(t-b,n-1) -  1/std::pow(absAlpha - b,n-1)) / (1 - n)) / area;
+    }
+}
+
 
 } // namespace analysis
