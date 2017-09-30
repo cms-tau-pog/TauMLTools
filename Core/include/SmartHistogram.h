@@ -46,6 +46,7 @@ template<typename ValueType>
 class Base1DHistogram : public AbstractHistogram {
 public:
     using const_iterator = typename std::deque<ValueType>::const_iterator;
+    using RootContainer = TTree;
 
     Base1DHistogram(const std::string& name) : AbstractHistogram(name) {}
 
@@ -73,6 +74,20 @@ public:
         root_ext::WriteObject(*rootTree);
     }
 
+    void CopyContent(TTree& rootTree)
+    {
+        data.clear();
+        ValueType branch_value;
+        TBranch* branch;
+        rootTree.SetBranchAddress("values", &branch_value, &branch);
+        Long64_t N = rootTree.GetEntries();
+        for(Long64_t n = 0; n < N; ++n) {
+            rootTree.GetEntry(n);
+            data.push_back(branch_value);
+        }
+        rootTree.ResetBranchAddress(branch);
+    }
+
 private:
     std::deque<ValueType> data;
 };
@@ -87,6 +102,7 @@ public:
     };
 
     using const_iterator = typename std::deque<Value>::const_iterator;
+    using RootContainer = TTree;
 
     Base2DHistogram(const std::string& name) : AbstractHistogram(name) {}
 
@@ -114,6 +130,22 @@ public:
             rootTree->Fill();
         }
         root_ext::WriteObject(*rootTree);
+    }
+
+    void CopyContent(TTree& rootTree)
+    {
+        data.clear();
+        NumberType branch_value_x, branch_value_y;
+        TBranch *branch_x, *branch_y;
+        rootTree.SetBranchAddress("x", &branch_value_x, &branch_x);
+        rootTree.SetBranchAddress("y", &branch_value_y, &branch_y);
+        Long64_t N = rootTree.GetEntries();
+        for(Long64_t n = 0; n < N; ++n) {
+            rootTree.GetEntry(n);
+            data.push_back(Value(branch_value_x, branch_value_y));
+        }
+        rootTree.ResetBranchAddress(branch_x);
+        rootTree.ResetBranchAddress(branch_y);
     }
 
 private:
@@ -182,6 +214,8 @@ public:
 template<>
 class SmartHistogram<TH1D> : public TH1D, public AbstractHistogram {
 public:
+    using RootContainer = TH1D;
+
     SmartHistogram(const std::string& name, int nbins, double low, double high)
         : TH1D(name.c_str(), name.c_str(), nbins, low, high), AbstractHistogram(name), store(true),
           use_log_y(false), max_y_sf(1), divide_by_bin_width(false) {}
@@ -272,6 +306,8 @@ private:
 template<>
 class SmartHistogram<TH2D> : public TH2D, public AbstractHistogram {
 public:
+    using RootContainer = TH2D;
+
     SmartHistogram(const std::string& name,
                    int nbinsx, double xlow, double xup,
                    int nbinsy, double ylow, double yup)
@@ -352,7 +388,9 @@ template<>
 class SmartHistogram<TGraph> : public AbstractHistogram {
 public:
     using DataVector = std::vector<double>;
+    using RootContainer = TGraph;
     using AbstractHistogram::AbstractHistogram;
+
 
     void AddPoint(double x, double y)
     {

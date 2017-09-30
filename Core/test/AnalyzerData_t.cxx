@@ -15,8 +15,11 @@ struct MyAnaData : public root_ext::AnalyzerData {
         other_hist.SetMasterHist(5, 5, 10);
     }
 
+    const std::vector<double> bins{1, 2, 3, 4};
+
     TH1D_ENTRY(hist, 10, .5, 10.5)
     ANA_DATA_ENTRY(TH1D, other_hist)
+    TH1D_ENTRY_CUSTOM(custom_hist, bins)
 };
 
 struct Arguments {
@@ -36,6 +39,10 @@ public:
         anaData.hist("z").Fill(21.5);
         anaData.other_hist(0).Fill(6);
         anaData.hist(1, "b").Fill(1.4);
+        std::string f = "f";
+        anaData.custom_hist().Fill(3.5);
+        anaData.custom_hist(f).Fill(2.4);
+        anaData.custom_hist(std::string("g")).Fill(1.5);
     }
 
 private:

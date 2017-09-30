@@ -161,7 +161,7 @@ double Variance(const std::vector<Value>& x)
     if(x.size() <= 1)
         throw std::runtime_error("Can't estimate variance using a sample with less than 2 observations.");
     const size_t n = x.size();
-    const double x_mean = double(std::accumulate(x.begin(), x.end(), 0)) / n;
+    const double x_mean = double(std::accumulate(x.begin(), x.end(), Value(0))) / n;
     double var = 0;
     for(size_t k = 0; k < n; ++k)
         var += std::pow(x.at(k) - x_mean, 2);

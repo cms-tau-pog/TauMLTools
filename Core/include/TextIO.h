@@ -9,12 +9,33 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 namespace analysis {
 
+namespace detail {
+template<typename T, typename CharT>
+struct ToStringImpl {
+    static std::basic_string<CharT> ToString(const T& t)
+    {
+        std::basic_ostringstream<CharT> ss;
+        ss << t;
+        return ss.str();
+    }
+};
+
+template<typename CharT>
+struct ToStringImpl<std::basic_string<CharT>, CharT> {
+    static std::basic_string<CharT> ToString(const std::basic_string<CharT>& str) { return str; }
+};
+
+template<typename CharT, int N>
+struct ToStringImpl<const CharT[N], CharT> {
+    static std::basic_string<CharT> ToString(const CharT str[N]) { return str; }
+};
+
+} // namespace detail
+
 template<typename T, typename CharT = char>
-std::basic_string<CharT> ToString(const T& t)
+std::basic_string<CharT> ToString(T&& t)
 {
-    std::basic_ostringstream<CharT> ss;
-    ss << t;
-    return ss.str();
+    return detail::ToStringImpl<typename std::remove_reference<T>::type, CharT>::ToString(std::forward<T>(t));
 }
 
 template<typename T, typename CharT>

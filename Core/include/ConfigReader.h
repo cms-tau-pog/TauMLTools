@@ -195,12 +195,8 @@ protected:
         const auto param_list = ParseOrderedParameterList(current_param_value, allow_duplicates, separators);
         auto inserter = std::inserter(result, result.end());
         for(const std::string& param_value : param_list) {
-            std::istringstream ss(param_value);
-            ss.exceptions(std::istringstream::failbit);
-            ss >> std::boolalpha;
-            T value;
-            const auto& v = detail::ConfigParameterParser<T>::Parse(value, param_value, ss);
-            if(!validity_check(v))
+            const T value = Parse<T>(param_value);
+            if(!validity_check(value))
                 throw exception("One of parameters in '%1%' equals '%2%', which is outside of its validity range.")
                     % current_param_name % param_value;
             inserter = value;
@@ -228,16 +224,54 @@ protected:
                 inserter = entry;
         } else {
             for(const auto& param_value : param_list) {
-                std::istringstream ss(param_value);
-                ss.exceptions(std::istringstream::failbit);
-                ss >> std::boolalpha;
-                T value;
-                detail::ConfigParameterParser<T>::Parse(value, param_value, ss);
+                const T value = Parse<T>(param_value);
                 inserter = value;
             }
         }
 
         throw param_parsed_exception();
+    }
+
+    template<typename Container, typename KeyType = typename Container::key_type,
+             typename MappedType = typename Container::mapped_type,
+             typename ItemType = typename MappedType::value_type>
+    void ParseMappedEntryList(const std::string& name, Container& result, bool allow_duplicates,
+            const std::string& separators,
+            std::function<bool(const ItemType&)> validity_check)
+    {
+        if(name != current_param_name) return;
+        const auto param_list = ParseOrderedParameterList(current_param_value, true, separators);
+        if(param_list.size() < 2)
+            throw exception("Invalid mapped entry '%1%'.") % name;
+        auto list_iter = param_list.begin();
+        const auto key = Parse<KeyType>(*list_iter++);
+        if(result.count(key))
+            throw exception("Item with name '%1%' already present in map '%2%'") % key % name;
+        auto inserter = std::inserter(result[key], result[key].end());
+        std::set<std::string> processed_items;
+        for(; list_iter != param_list.end(); ++list_iter) {
+            if(!allow_duplicates && processed_items.count(*list_iter))
+                throw exception("Duplicated list entry = '%1%'.") % *list_iter;
+            processed_items.insert(*list_iter);
+            const ItemType value = Parse<ItemType>(*list_iter);
+            if(!validity_check(value))
+                throw exception("One of parameters in '%1%' equals '%2%', which is outside of its validity range.")
+                    % current_param_name % *list_iter;
+            inserter = value;
+        }
+
+        throw param_parsed_exception();
+    }
+
+    template<typename Container, typename KeyType = typename Container::key_type,
+             typename MappedType = typename Container::mapped_type,
+             typename ItemType = typename MappedType::value_type>
+    void ParseMappedEntryList(const std::string& name, Container& result, bool allow_duplicates,
+            const std::string& separators = " \t")
+    {
+        const auto validity_check = [](const ItemType&) { return true; };
+        ParseMappedEntryList<Container, KeyType, MappedType, ItemType>(
+                    name, result, allow_duplicates, separators, validity_check);
     }
 
     void CheckReadParamCounts(const std::string& param_name, size_t expected, Condition condition) const
