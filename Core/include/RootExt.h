@@ -17,7 +17,7 @@ namespace root_ext {
 inline std::shared_ptr<TFile> CreateRootFile(const std::string& file_name)
 {
     std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "RECREATE", "", ROOT::kZLIB * 100 + 9));
-    if(file->IsZombie())
+    if(!file || file->IsZombie())
         throw analysis::exception("File '%1%' not created.") % file_name;
     return file;
 }
