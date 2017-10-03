@@ -186,6 +186,8 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
     Hist& operator()(KeySuffix&&... suffix)
     {
         const auto key = SuffixToKey(std::forward<KeySuffix>(suffix)...);
+        if(key == "")
+            return (*this)();
         auto iter = histograms.find(key);
         if(iter != histograms.end())
             return *iter->second;
