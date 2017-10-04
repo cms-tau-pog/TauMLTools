@@ -57,6 +57,9 @@ protected:
     AnalyzerData* data;
 };
 
+template<typename _ValueType>
+struct AnalyzerDataEntry;
+
 class AnalyzerData {
 public:
     using Hist = AbstractHistogram;
@@ -137,6 +140,11 @@ public:
         entries[entry.Name()] = &entry;
     }
     const EntryContainer& GetEntries() const { return entries; }
+
+    template<typename Histogram>
+    std::map<std::string, AnalyzerDataEntry<Histogram>*> GetEntriesEx() const;
+    template<typename Histogram>
+    AnalyzerDataEntry<Histogram>& GetEntryEx(const std::string& name) const;
 
 private:
     std::shared_ptr<TFile> outputFile;
@@ -270,5 +278,29 @@ private:
     HistPtr master_hist, default_hist;
     HistPtrMap histograms;
 };
+
+template<typename Histogram>
+std::map<std::string, AnalyzerDataEntry<Histogram>*> AnalyzerData::GetEntriesEx() const
+{
+    std::map<std::string, AnalyzerDataEntry<Histogram>*> result;
+    for(const auto& entry : entries) {
+        auto entry_ptr = dynamic_cast<AnalyzerDataEntry<Histogram>*>(entry.second);
+        if(entry_ptr)
+            result[entry.first] = entry_ptr;
+    }
+    return result;
+}
+
+template<typename Histogram>
+AnalyzerDataEntry<Histogram>& AnalyzerData::GetEntryEx(const std::string& name) const
+{
+    auto iter = entries.find(name);
+    if(iter == entries.end())
+        throw analysis::exception("Entry with name '%1%' not found.") % name;
+    auto entry_ptr = dynamic_cast<AnalyzerDataEntry<Histogram>*>(iter->second);
+    if(!entry_ptr)
+        throw analysis::exception("Unexpected entry type for the entry with name '%1%'.") % name;
+    return *entry_ptr;
+}
 
 } // root_ext
