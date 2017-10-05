@@ -44,20 +44,29 @@ public:
     using EnumEntrySet = std::unordered_set<Enum, EnumHash>;
     using StringEntrySet = std::unordered_set<std::string>;
 
-    EnumNameMap(const std::string& _enum_name, const std::initializer_list<EnumStringPair>& pairs)
-        : enum_name(_enum_name)
+    template<typename Collection>
+    EnumNameMap(const std::string& _enum_name, Collection&& pairs) :
+        enum_name(_enum_name)
     {
-        Initialize(pairs);
+        Initialize(std::forward<Collection>(pairs));
     }
 
-    EnumNameMap(const std::initializer_list<EnumStringPair>& pairs)
-        : enum_name(typeid(Enum).name())
+    EnumNameMap(const std::string& _enum_name, const std::initializer_list<EnumStringPair>& pairs) :
+        EnumNameMap(_enum_name, std::vector<EnumStringPair>(pairs.begin(), pairs.end())) {}
+
+
+    template<typename Collection>
+    EnumNameMap(Collection&& pairs) :
+        enum_name(typeid(Enum).name())
     {
         if(GetDefault(false))
             throw exception("Redefinition of enum names for the enum '%1%'") % enum_name;
         GetDefault(false) = this;
-        Initialize(pairs);
+        Initialize(std::forward<Collection>(pairs));
     }
+
+    EnumNameMap(const std::initializer_list<EnumStringPair>& pairs) :
+        EnumNameMap(std::vector<EnumStringPair>(pairs.begin(), pairs.end())) {}
 
     bool HasEnum(const Enum& e) const { return enum_to_string_map.count(e); }
     bool HasString(const std::string& str) const { return string_to_enum_map.count(str); }
@@ -92,7 +101,8 @@ public:
     static const EnumNameMap<Enum>& GetDefault() { return *GetDefault(true); }
 
 private:
-    void Initialize(const std::initializer_list<EnumStringPair>& pairs)
+    template<typename Collection>
+    void Initialize(Collection&& pairs)
     {
         for(const EnumStringPair& entry : pairs) {
             if(enum_to_string_map.count(entry.first) || string_to_enum_map.count(entry.second))
