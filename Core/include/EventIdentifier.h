@@ -32,6 +32,10 @@ struct EventIdentifier {
         eventId = Parse(id_strings.at(2), "eventId");
     }
 
+    template<typename Event>
+    explicit EventIdentifier(const Event& event) :
+        runId(event.run), lumiBlock(event.lumi), eventId(event.evt) {}
+
     bool operator == (const EventIdentifier& other) const { return !(*this != other); }
 
     bool operator != (const EventIdentifier& other) const
@@ -73,9 +77,17 @@ private:
     }
 };
 
-std::ostream& operator <<(std::ostream& s, const EventIdentifier& event)
+inline std::ostream& operator<<(std::ostream& s, const EventIdentifier& event)
 {
     s << event.ToString();
+    return s;
+}
+
+inline std::istream& operator>>(std::istream& s, EventIdentifier& event)
+{
+    std::string str;
+    s >> str;
+    event = EventIdentifier(str);
     return s;
 }
 
