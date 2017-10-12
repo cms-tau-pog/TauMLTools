@@ -100,6 +100,7 @@ public:
 
     TDirectory* GetOutputDirectory() const { return directory; }
     std::shared_ptr<TFile> GetOutputFile() const { return outputFile; }
+    bool ReadMode() const { return readMode; }
 
     void AddHistogram(HistPtr hist)
     {
@@ -107,7 +108,8 @@ public:
             throw analysis::exception("Can't add nullptr histogram into AnalyzerData");
         if(histograms.count(hist->Name()))
             throw analysis::exception("Histogram '%1%' already exists in this AnalyzerData.") % hist->Name();
-        hist->SetOutputDirectory(directory);
+        TDirectory* hist_dir = readMode ? nullptr : directory;
+        hist->SetOutputDirectory(hist_dir);
         histograms[hist->Name()] = hist;
     }
     const HistContainer& GetHistograms() const { return histograms; }
@@ -267,10 +269,12 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
 private:
     Hist& ReadFromDirectory(Hist& hist)
     {
-        auto dir = hist.GetOutputDirectory();
-        auto original_hist = ReadObject<RootContainer>(dir, hist.Name());
-        hist.CopyContent(original_hist);
-        delete original_hist;
+        auto dir = data->GetOutputDirectory();
+        auto original_hist = TryReadObject<RootContainer>(*dir, hist.Name());
+        if(original_hist) {
+            hist.CopyContent(*original_hist);
+            delete original_hist;
+        }
         return hist;
     }
 
