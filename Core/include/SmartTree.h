@@ -242,6 +242,7 @@ public:
     }
 
     Mutex& GetMutex() { return mutex; }
+    const std::set<std::string>& GetActiveBranches() const { return active_branches; }
 
 protected:
     template<typename DataType>
@@ -251,6 +252,7 @@ protected:
         if (!disabled_branches.count(branch_name) && (!enabled_branches.size() || enabled_branches.count(branch_name))){
             detail::BranchCreator<DataType> creator;
             creator.Create(*tree, branch_name, value, readMode, entries);
+            active_branches.insert(branch_name);
         }
     }
 
@@ -262,12 +264,13 @@ protected:
 private:
     std::string name;
     TDirectory* directory;
-    detail::SmartTreeEntryMap entries;
     bool readMode;
     TTree* tree;
-    std::set<std::string> disabled_branches;
-    std::set<std::string> enabled_branches;
+    std::set<std::string> disabled_branches, enabled_branches, active_branches;
     Mutex mutex;
+
+protected:
+    detail::SmartTreeEntryMap entries;
 };
 
 namespace detail {
@@ -317,6 +320,24 @@ public:
     Data& operator()() { return *_data; }
     const Data& operator()() const { return *_data; }
     const Data& data() const { return *_data; }
+
+    template<typename T>
+    const T& get(const std::string& branch_name) const
+    {
+        auto iter = entries.find(branch_name);
+        if(iter == entries.end()) {
+            std::ostringstream ss;
+            ss << "Branch '" << branch_name << "' not found.";
+            throw std::runtime_error(ss.str());
+        }
+        auto base_entry = dynamic_cast<const detail::SmartTreePtrEntry<T>*>(iter->second.get());
+        if(!base_entry) {
+            std::ostringstream ss;
+            ss << "Invalid type for branch '" << branch_name << "'.";
+            throw std::runtime_error(ss.str());
+        }
+        return *base_entry->value;
+    }
 
     iterator begin() { return iterator(*this, 0); }
     iterator end() { return iterator(*this, GetEntries()); }

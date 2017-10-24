@@ -11,22 +11,33 @@ namespace analysis {
 
 namespace detail {
 template<typename T, typename CharT>
-struct ToStringImpl {
+struct StringIOImpl {
     static std::basic_string<CharT> ToString(const T& t)
     {
         std::basic_ostringstream<CharT> ss;
-        ss << t;
+        ss << std::boolalpha << t;
         return ss.str();
+    }
+
+    static bool TryParse(const std::basic_string<CharT>& str, T& t)
+    {
+        try {
+            std::basic_istringstream<CharT> ss(str);
+            ss >> std::boolalpha >> t;
+            return !ss.fail();
+        } catch(std::exception&) {}
+        return false;
     }
 };
 
 template<typename CharT>
-struct ToStringImpl<std::basic_string<CharT>, CharT> {
+struct StringIOImpl<std::basic_string<CharT>, CharT> {
     static std::basic_string<CharT> ToString(const std::basic_string<CharT>& str) { return str; }
+    static bool TryParse(const std::basic_string<CharT>& str, std::basic_string<CharT>& t) { t = str; return true; }
 };
 
 template<typename CharT, int N>
-struct ToStringImpl<const CharT[N], CharT> {
+struct StringIOImpl<const CharT[N], CharT> {
     static std::basic_string<CharT> ToString(const CharT str[N]) { return str; }
 };
 
@@ -35,27 +46,20 @@ struct ToStringImpl<const CharT[N], CharT> {
 template<typename T, typename CharT = char>
 std::basic_string<CharT> ToString(T&& t)
 {
-    return detail::ToStringImpl<typename std::remove_reference<T>::type, CharT>::ToString(std::forward<T>(t));
+    return detail::StringIOImpl<typename std::remove_reference<T>::type, CharT>::ToString(std::forward<T>(t));
 }
 
 template<typename T, typename CharT>
 bool TryParse(const std::basic_string<CharT>& str, T& t)
 {
-    try {
-        std::basic_istringstream<CharT> ss(str);
-        ss >> t;
-        return !ss.fail();
-    } catch(std::exception&) {}
-    return false;
+    return detail::StringIOImpl<typename std::remove_reference<T>::type, CharT>::TryParse(str, t);
 }
 
 template<typename T, typename CharT>
 T Parse(const std::basic_string<CharT>& str)
 {
     T t;
-    std::basic_istringstream<CharT> ss(str);
-    ss >> t;
-    if(ss.fail())
+    if(!TryParse(str, t))
         throw exception("Parse of string '%1%' to %2% is failed.") % str % typeid(T).name();
     return t;
 }
@@ -87,6 +91,7 @@ inline std::vector<std::string> SplitValueList(std::string values_str, bool allo
     std::vector<std::string> result;
     if(enable_token_compress)
         boost::trim_if(values_str, boost::is_any_of(separators));
+    if(!values_str.size()) return result;
     const auto token_compress = enable_token_compress ? boost::algorithm::token_compress_on
                                                       : boost::algorithm::token_compress_off;
     boost::split(result, values_str, boost::is_any_of(separators), token_compress);

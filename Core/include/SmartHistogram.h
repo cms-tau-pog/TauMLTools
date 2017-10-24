@@ -18,6 +18,9 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <TGraph.h>
 
 #include "RootExt.h"
+#include "TextIO.h"
+#include "NumericPrimitives.h"
+#include "PropertyConfigReader.h"
 
 namespace root_ext {
 
@@ -248,6 +251,42 @@ public:
         : TH1D(other), AbstractHistogram(other.GetName()), store(false), use_log_y(_use_log_y), max_y_sf(_max_y_sf),
           divide_by_bin_width(_divide_by_bin_width) {}
 
+    SmartHistogram(const std::string& name, const analysis::PropertyConfigReader::Item& p_config)
+        : AbstractHistogram(name)
+    {
+        try {
+            TH1D::SetName(name.c_str());
+            TH1D::SetTitle(name.c_str());
+            if(p_config.Has("x_range")) {
+                const auto x_range = p_config.Get<analysis::RangeWithStep<double>>("x_range");
+                TH1D::SetBins(static_cast<int>(x_range.n_bins()), x_range.min(), x_range.max());
+                divide_by_bin_width = false;
+            } else {
+                const std::vector<std::string> bin_values =
+                        analysis::SplitValueList(p_config.Get<std::string>("x_bins"), false, ", \t", true);
+                std::vector<double> bins;
+                for(const auto& bin_str : bin_values)
+                    bins.push_back(analysis::Parse<double>(bin_str));
+                TH1D::SetBins(static_cast<int>(bins.size()) - 1, bins.data());
+                divide_by_bin_width = true;
+            }
+            if(p_config.Has("x_title"))
+                SetXTitle(p_config.Get<std::string>("x_title").c_str());
+            if(p_config.Has("y_title"))
+                SetYTitle(p_config.Get<std::string>("y_title").c_str());
+            if(p_config.Has("log_x"))
+                use_log_x = p_config.Get<bool>("log_x");
+            if(p_config.Has("log_y"))
+                use_log_y = p_config.Get<bool>("log_y");
+            if(p_config.Has("max_y_sf"))
+                max_y_sf = p_config.Get<double>("max_y_sf");
+            if(p_config.Has("div_bw"))
+                divide_by_bin_width = p_config.Get<bool>("div_bw");
+        } catch(analysis::exception& e) {
+            throw analysis::exception("Invalid property set for histogram '%1%'. %2%") % Name() % e.message();
+        }
+    }
+
     virtual void SetName(const char* _name) override
     {
         TH1D::SetName(_name);
@@ -273,6 +312,7 @@ public:
         SetDirectory(dir);
     }
 
+    bool UseLogX() const { return use_log_x; }
     bool UseLogY() const { return use_log_y; }
     double MaxYDrawScaleFactor() const { return max_y_sf; }
     std::string GetXTitle() const { return GetXaxis()->GetTitle(); }
@@ -288,18 +328,21 @@ public:
                                       " of bins.");
         for(Int_t n = 0; n <= other.GetNbinsX() + 1; ++n) {
             if(GetBinLowEdge(n) != other.GetBinLowEdge(n) || GetBinWidth(n) != other.GetBinWidth(n))
-                throw analysis::exception("Unable to copy histogram content: bin %1% is not compatible between the"
-                                          " source and destination.") % n;
+                throw analysis::exception("Unable to copy histogram content from histogram '%1%' into '%2%':"
+                    " bin %3% is not compatible between the source and destination."
+                    " (LowEdge, Width): (%4%, %5%) != (%6%, %7%).")
+                    % other.GetName() % Name() % n % other.GetBinLowEdge(n) % other.GetBinWidth(n) % GetBinLowEdge(n)
+                    % GetBinWidth(n);
             SetBinContent(n, other.GetBinContent(n));
             SetBinError(n, other.GetBinError(n));
         }
     }
 
 private:
-    bool store;
-    bool use_log_y;
-    double max_y_sf;
-    bool divide_by_bin_width;
+    bool store{true};
+    bool use_log_x{false}, use_log_y{false};
+    double max_y_sf{1};
+    bool divide_by_bin_width{false};
     std::string legend_title;
 };
 

@@ -168,6 +168,7 @@ struct RangeWithStep : public Range<T> {
     using ValueType = typename Range<T>::ValueType;
     using ConstRefType = typename Range<T>::ConstRefType;
 
+    enum class PrintMode { Step = 0, NGridPoints = 1, NBins = 2 };
     struct iterator {
         iterator(const RangeWithStep<T>& _range, size_t _pos) : range(&_range), pos(_pos) {}
         iterator& operator++() { ++pos; return *this; }
@@ -187,44 +188,83 @@ struct RangeWithStep : public Range<T> {
     T grid_point_value(size_t index) const { return this->min() + T(index) * step(); }
     size_t n_grid_points() const
     {
+        if(this->max() == this->min()) return 1;
+        if(step() == 0)
+            throw exception("Number of grid points is not defined for a non-point range with the step = 0.");
         size_t n_points = static_cast<size_t>((this->max() - this->min()) / step());
         if(this->Contains(grid_point_value(n_points)))
             ++n_points;
         return n_points;
     }
+    size_t n_bins() const { return n_grid_points() - 1; }
+
 
     iterator begin() const { return iterator(*this, 0); }
     iterator end() const { return iterator(*this, n_grid_points()); }
 
-    std::string ToString(char sep = ' ') const
+    std::string ToString(PrintMode mode = PrintMode::Step) const
     {
         std::ostringstream ss;
-        ss << this->min() << sep << this->max() << sep << step();
+        ss << this->min() << Separators().at(0) << this->max() << Separators().at(static_cast<size_t>(mode));
+        if(mode == PrintMode::Step)
+           ss << step();
+        else if(mode == PrintMode::NGridPoints)
+            ss << n_grid_points();
+        else if(mode == PrintMode::NBins)
+            ss << n_bins();
+        else
+            throw exception("Unsupported RangeWithStep::PrintMode = %1%.") % static_cast<size_t>(mode);
         return ss.str();
     }
 
-    static RangeWithStep<T> Parse(const std::string& str, const std::string& separators=": \t")
+    static RangeWithStep<T> Parse(const std::string& str)
     {
-        const auto values = SplitValueList(str, true, separators, true);
-        if(values.size() != 3)
-            throw exception("Invalid range with step '%1%'.") % str;
-        return Make(values);
-    }
-
-    static RangeWithStep<T> Read(std::istream& stream, const std::string& separators=": \t")
-    {
-        const auto values = ReadValueList(stream, 3, true, separators, true);
-        return Make(values);
+        const size_t first_split_pos = str.find_first_of(Separators());
+        if(first_split_pos != std::string::npos) {
+            const size_t last_split_pos = str.find_first_of(Separators(), first_split_pos + 1);
+            if(last_split_pos != std::string::npos) {
+                const size_t end_split_pos = str.find_last_of(Separators());
+                if(last_split_pos == end_split_pos) {
+                    const size_t sep_pos = Separators().find(str.at(last_split_pos));
+                    const PrintMode mode = static_cast<PrintMode>(sep_pos);
+                    std::vector<std::string> values;
+                    values.push_back(str.substr(0, first_split_pos));
+                    values.push_back(str.substr(first_split_pos + 1, last_split_pos - first_split_pos - 1));
+                    values.push_back(str.substr(last_split_pos + 1));
+                    return Make(values, mode);
+                }
+            }
+        }
+        throw exception("Invalid range with step '%1%'.") % str;
     }
 
 private:
-    static RangeWithStep<T> Make(const std::vector<std::string>& values)
+    static RangeWithStep<T> Make(const std::vector<std::string>& values, PrintMode mode)
     {
         const T min = ::analysis::Parse<T>(values.at(0));
         const T max = ::analysis::Parse<T>(values.at(1));
-        const T step = ::analysis::Parse<T>(values.at(2));
+        T step(0);
+        if(mode == PrintMode::Step) {
+            step = ::analysis::Parse<T>(values.at(2));
+        } else if(mode == PrintMode::NGridPoints) {
+            size_t n = ::analysis::Parse<size_t>(values.at(2));
+            if(n == 0 || (n == 1 && max != min) || (n != 1 && max == min))
+                throw exception("Invalid number of grid points.");
+            if(max != min)
+                step = (max - min) / (n - 1);
+        } else if(mode == PrintMode::NBins) {
+            size_t n = ::analysis::Parse<size_t>(values.at(2));
+            if((n == 0 && max != min) || (n != 0 && max == min))
+                throw exception("Invalid number of bins.");
+            if(max != min)
+                step = (max - min) / n;
+        } else {
+            throw exception("Unsupported RangeWithStep::PrintMode = %1%.") % static_cast<size_t>(mode);
+        }
         return RangeWithStep<T>(min, max, step);
     }
+
+    static const std::string& Separators() { static const std::string sep = ":|/"; return sep; }
 
 private:
     T _step;
@@ -233,14 +273,16 @@ private:
 template<typename T>
 std::ostream& operator<<(std::ostream& s, const RangeWithStep<T>& r)
 {
-    s << r.ToString(':');
+    s << r.ToString();
     return s;
 }
 
 template<typename T>
 std::istream& operator>>(std::istream& s, RangeWithStep<T>& r)
 {
-    r = RangeWithStep<T>::Read(s);
+    std::string str;
+    s >> str;
+    r = RangeWithStep<T>::Parse(str);
     return s;
 }
 
