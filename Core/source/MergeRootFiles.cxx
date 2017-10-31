@@ -78,8 +78,6 @@ struct TreeDescriptor {
 };
 size_t TreeDescriptor::NumberOfFiles = 1;
 
-enum class ClassInheritance { TH1, TTree, TDirectory };
-
 struct Key {
     std::string dir_name, name, full_name;
 
@@ -112,7 +110,6 @@ class MergeRootFiles {
 public:
     using HistPtr = HistDescriptor::HistPtr;
     using ChainPtr = TreeDescriptor::ChainPtr;
-    using ClassCache = std::map<std::string, ClassInheritance>;
 
 
     MergeRootFiles(const Arguments& _args) :
@@ -200,29 +197,6 @@ private:
         }
     }
 
-    static ClassInheritance FindClassInheritance(const std::string& class_name)
-    {
-        static ClassCache classes;
-        auto iter = classes.find(class_name);
-        if(iter != classes.end())
-            return iter->second;
-        TClass *cl = gROOT->GetClass(class_name.c_str());
-        if(!cl)
-            throw analysis::exception("Unable to get TClass for class named '%1%'.") % class_name;
-
-        ClassInheritance inheritance;
-        if(cl->InheritsFrom("TH1"))
-            inheritance = ClassInheritance::TH1;
-        else if(cl->InheritsFrom("TTree"))
-            inheritance = ClassInheritance::TTree;
-        else if(cl->InheritsFrom("TDirectory"))
-            inheritance = ClassInheritance::TDirectory;
-        else
-            throw analysis::exception("Unknown class inheritance for class named '%1%'.") % class_name;
-        classes[class_name] = inheritance;
-        return inheritance;
-    }
-
     static void ProcessFile(const std::string& file_name, ObjectCollection& objects)
     {
         std::cout << "file: " << file_name << std::endl;
@@ -233,9 +207,10 @@ private:
     static void ProcessDirectory(const std::string& file_name, const std::string& dir_name, TDirectory* dir,
                                  ObjectCollection& objects)
     {
+        using ClassInheritance = root_ext::ClassInheritance;
         TIter nextkey(dir->GetListOfKeys());
         for(TKey* t_key; (t_key = dynamic_cast<TKey*>(nextkey()));) {
-            const ClassInheritance inheritance = FindClassInheritance(t_key->GetClassName());
+            const ClassInheritance inheritance = root_ext::FindClassInheritance(t_key->GetClassName());
             const Key key(dir_name, t_key->GetName());
 
             switch (inheritance) {

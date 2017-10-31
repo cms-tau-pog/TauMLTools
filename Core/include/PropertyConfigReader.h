@@ -21,17 +21,25 @@ public:
 
         bool Has(const std::string& p_name) const { return properties.count(p_name); }
 
-        template<typename T>
-        T Get(const std::string& property_name) const
+        template<typename T = std::string>
+        T Get(const std::string& p_name) const
         {
-            if(!properties.count(property_name))
-                throw exception("Property '%1% not found in item '%2'.") % property_name % name;
+            if(!properties.count(p_name))
+                throw exception("Property '%1% not found in item '%2'.") % p_name % name;
             T result;
-            const std::string& property_str = properties.at(property_name);
-            if(!TryParse(property_str, result))
+            const std::string& p_str = properties.at(p_name);
+            if(!TryParse(p_str, result))
                 throw exception("Unable to parse property '%1%' = '%2%' as '%3%' for item '%4%'.")
-                    % property_name % property_str % typeid(T).name() % name;
+                    % p_name % p_str % typeid(T).name() % name;
             return result;
+        }
+
+        template<typename T>
+        bool Read(const std::string& p_name, T& result) const
+        {
+            if(!Has(p_name)) return false;
+            result = Get<T>(p_name);
+            return true;
         }
     };
 

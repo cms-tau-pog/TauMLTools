@@ -7,6 +7,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <set>
 #include <algorithm>
 #include <initializer_list>
+#include <sstream>
 #include <boost/crc.hpp>
 
 namespace analysis {
