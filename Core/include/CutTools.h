@@ -174,6 +174,8 @@ namespace root_ext {
 template<>
 class SmartHistogram<cuts::ObjectSelector> : public cuts::ObjectSelector, public AbstractHistogram {
 public:
+    using RootContainer = TH1D;
+
     SmartHistogram(const std::string& name) : AbstractHistogram(name) {}
 
     virtual void WriteRootObject()
