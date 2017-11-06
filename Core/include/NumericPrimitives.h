@@ -10,6 +10,18 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 namespace analysis {
 
+namespace detail {
+template<typename T, bool is_integral = std::is_integral<T>::value>
+struct RangeSize {
+    static T size(const T& min, const T& max) { return max - min; }
+};
+
+template<typename T>
+struct RangeSize<T, true> {
+    static T size(T min, T max) { return max - min + T(1); }
+};
+} // namespace detail
+
 template<typename T>
 struct Range {
     using ValueType = T;
@@ -27,7 +39,7 @@ struct Range {
 
     ConstRefType min() const { return _min; }
     ConstRefType max() const { return _max; }
-    T size() const { return max() - min(); }
+    T size() const { return detail::RangeSize<T>::size(min(), max()); }
     bool Contains(ConstRefType v) const { return v >= min() && v <= max(); }
     static bool IsValid(ConstRefType min, ConstRefType max) { return min <= max; }
 
@@ -44,7 +56,8 @@ struct Range {
     bool Includes(const Range<T>& other) const { return min() <= other.min() && max() >= other.max(); }
     bool Overlaps(const Range<T>& other, bool include_boundaries = true) const
     {
-        return include_boundaries ? min() <= other.max() && other.min() <= max() : min() < other.max() && other.min() < max();
+        return include_boundaries ? min() <= other.max() && other.min() <= max()
+                                  : min() < other.max() && other.min() < max();
     }
     Range<T> Combine(const Range<T>& other) const
     {
