@@ -23,8 +23,10 @@ namespace detail {
 template<typename T>
 struct ConfigParameterParser {
     using Value = T;
-    static Value Parse(T& t, const std::string& /*value*/, std::istream& s) { s >> t; return t; }
+    static Value Parse(T& t, const std::string& /*value*/, std::istream& s) { s >> t; const T& tt = t; return tt; }
 };
+
+
 
 template<>
 struct ConfigParameterParser<std::string> {
