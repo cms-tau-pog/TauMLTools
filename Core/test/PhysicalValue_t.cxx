@@ -34,8 +34,10 @@ BOOST_AUTO_TEST_CASE(pv_to_string)
     PV x(1.235, 0.12);
     BOOST_TEST(x.ToString<char>(false, false) == std::string("1.24"));
     BOOST_TEST(x.ToString<char>(true, false) == std::string("1.24 +/- 0.12"));
-    BOOST_TEST(x.ToString<wchar_t>(false, false) == std::wstring(L"1.24"));
-    BOOST_TEST(x.ToString<wchar_t>(true, false) == std::wstring(L"1.24 \u00B1 0.12"));
+    const bool wstring_test_1 = x.ToString<wchar_t>(false, false) == std::wstring(L"1.24");
+    BOOST_TEST(wstring_test_1);
+    const bool wstring_test_2 = x.ToString<wchar_t>(true, false) == std::wstring(L"1.24 \u00B1 0.12");
+    BOOST_TEST(wstring_test_2);
 }
 
 BOOST_AUTO_TEST_CASE(std_arithmetics)
