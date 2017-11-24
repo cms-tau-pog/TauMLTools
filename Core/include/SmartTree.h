@@ -207,8 +207,8 @@ public:
     }
     SmartTree(const SmartTree& other) = delete;
     SmartTree(const SmartTree&& other)
-        : name(other.name), directory(other.directory), entries(other.entries), tree(other.tree),
-          disabled_branches(other.disabled_branches), enabled_branches(other.enabled_branches) {}
+        : name(other.name), directory(other.directory), tree(other.tree),
+          disabled_branches(other.disabled_branches), enabled_branches(other.enabled_branches), entries(other.entries) {}
 
     virtual ~SmartTree()
     {
