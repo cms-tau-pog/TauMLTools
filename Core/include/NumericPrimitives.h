@@ -10,15 +10,25 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 namespace analysis {
 
+enum class RangeBoundaries { Open, MinIncluded, MaxIncluded, BothIncluded };
+
 namespace detail {
 template<typename T, bool is_integral = std::is_integral<T>::value>
 struct RangeSize {
-    static T size(const T& min, const T& max) { return max - min; }
+    static T size(const T& min, const T& max, RangeBoundaries) { return max - min; }
 };
 
 template<typename T>
 struct RangeSize<T, true> {
-    static T size(T min, T max) { return max - min + T(1); }
+    static T size(T min, T max, RangeBoundaries boundaries)
+    {
+        T delta = max - min;
+        if(boundaries == RangeBoundaries::BothIncluded)
+            delta += T(1);
+        else if(boundaries == RangeBoundaries::Open && delta != T(0))
+            delta -= T(1);
+        return delta;
+    }
 };
 } // namespace detail
 
@@ -27,49 +37,136 @@ struct Range {
     using ValueType = T;
     using ConstRefType =
         typename std::conditional<std::is_fundamental<ValueType>::value, ValueType, const ValueType&>::type;
+
+    static const std::pair<char, char> GetBoundariesSymbols(RangeBoundaries b)
+    {
+        static const std::map<RangeBoundaries, std::pair<char, char>> symbols = {
+            { RangeBoundaries::Open, { '(', ')' } },
+            { RangeBoundaries::MinIncluded, { '[', ')' } },
+            { RangeBoundaries::MaxIncluded, { '(', ']' } },
+            { RangeBoundaries::BothIncluded, { '[', ']' } },
+        };
+        return symbols.at(b);
+    }
+
+    static RangeBoundaries CreateBoundaries(bool include_min, bool include_max)
+    {
+        if(include_min && !include_max)
+            return RangeBoundaries::MinIncluded;
+        if(!include_min && include_max)
+            return RangeBoundaries::MaxIncluded;
+        if(include_min && include_max)
+            return RangeBoundaries::BothIncluded;
+        return RangeBoundaries::Open;
+    }
+
     Range() : _min(0), _max(0) {}
-    Range(ConstRefType min, ConstRefType max) : _min(min), _max(max)
+    Range(ConstRefType min, ConstRefType max, RangeBoundaries boundaries = RangeBoundaries::BothIncluded) :
+        _min(min), _max(max), _boundaries(boundaries)
     {
         if(!IsValid(min, max))
             throw exception("Invalid range [%1%, %2%].") % min % max;
     }
-    Range(const Range<T>& other) : _min(other._min), _max(other._max) {}
+    Range(const Range<T>& other) : _min(other._min), _max(other._max), _boundaries(other._boundaries) {}
+    Range(const Range<T>& other, RangeBoundaries boundaries) :
+        _min(other._min), _max(other._max), _boundaries(boundaries) {}
     virtual ~Range() {}
-    Range<T>& operator=(const Range<T>& other) { _min = other._min; _max = other._max; return *this; }
+    Range<T>& operator=(const Range<T>& other)
+    {
+        _min = other._min;
+        _max = other._max;
+        _boundaries = other._boundaries;
+        return *this;
+    }
 
     ConstRefType min() const { return _min; }
     ConstRefType max() const { return _max; }
-    T size() const { return detail::RangeSize<T>::size(min(), max()); }
-    bool Contains(ConstRefType v) const { return v >= min() && v <= max(); }
+    T size() const { return detail::RangeSize<T>::size(min(), max(), boundaries()); }
+
+    RangeBoundaries boundaries() const { return _boundaries; }
+    bool min_included() const
+    {
+        return boundaries() == RangeBoundaries::MinIncluded || boundaries() == RangeBoundaries::BothIncluded;
+    }
+    bool max_included() const
+    {
+        return boundaries() == RangeBoundaries::MaxIncluded || boundaries() == RangeBoundaries::BothIncluded;
+    }
+
+    bool Contains(ConstRefType v) const
+    {
+        if(min() == max())
+            return (min_included() || max_included()) && v == min();
+        const bool min_cond = (min_included() && v >= min()) || v > min();
+        const bool max_cond = (max_included() && v <= max()) || v < max();
+        return min_cond && max_cond;
+    }
     static bool IsValid(ConstRefType min, ConstRefType max) { return min <= max; }
 
-    Range<T> Extend(ConstRefType v) const
+    Range<T> Extend(ConstRefType v, bool include = true) const
     {
         if(Contains(v))
             return *this;
-        return Range<T>(std::min(min(), v), std::max(max(), v));
+        const auto new_min = std::min(min(), v);
+        const auto new_max = std::max(max(), v);
+        RangeBoundaries b;
+        if(new_min == v) {
+            if(include)
+                b = max_included() ? RangeBoundaries::BothIncluded : RangeBoundaries::MinIncluded;
+            else
+                b = max_included() ? RangeBoundaries::MaxIncluded : RangeBoundaries::Open;
+        } else {
+            if(include)
+                b = min_included() ? RangeBoundaries::BothIncluded : RangeBoundaries::MaxIncluded;
+            else
+                b = min_included() ? RangeBoundaries::MinIncluded : RangeBoundaries::Open;
+        }
+        return Range<T>(new_min, new_max, b);
     }
 
-    bool operator ==(const Range<T>& other) const { return min() == other.min() && max() == other.max(); }
+    bool operator ==(const Range<T>& other) const
+    {
+        return min() == other.min() && max() == other.max() && boundaries() == other.boundaries();
+    }
     bool operator !=(const Range<T>& other) const { return !(*this == other); }
 
-    bool Includes(const Range<T>& other) const { return min() <= other.min() && max() >= other.max(); }
-    bool Overlaps(const Range<T>& other, bool include_boundaries = true) const
+    bool Includes(const Range<T>& other) const
     {
-        return include_boundaries ? min() <= other.max() && other.min() <= max()
-                                  : min() < other.max() && other.min() < max();
+        const bool min_cond = min() == other.min() ? min_included() || !other.min_included() : min() < other.min();
+        const bool max_cond = max() == other.max() ? max_included() || !other.max_included() : max() > other.max();
+        return min_cond && max_cond;
+    }
+    bool Overlaps(const Range<T>& other) const
+    {
+        if(min() == max())
+            return (min_included() || max_included()) && other.Contains(min());
+        const bool min_cond = min() == other.max() ? min_included() && other.max_included() : min() < other.max();
+        const bool max_cond = max() == other.min() ? max_included() && other.min_included() : max() > other.min();
+        return min_cond && max_cond;
     }
     Range<T> Combine(const Range<T>& other) const
     {
         if(!Overlaps(other))
             throw exception("Unable to combine non overlapping ranges.");
-        return Range<T>(std::min(min(), other.min()), std::max(max(), other.max()));
+        const auto new_min = std::min(min(), other.min());
+        const auto new_max = std::max(max(), other.max());
+        const bool include_min = (new_min == min() && min_included())
+                || (new_min == other.min() && other.min_included());
+        const bool include_max = (new_max == max() && max_included())
+                || (new_max == other.max() && other.max_included());
+        const RangeBoundaries b = CreateBoundaries(include_min, include_max);
+        return Range<T>(new_min, new_max, b);
     }
 
-    std::string ToString(char sep = ' ') const
+    std::string ToString(char sep = ':') const
     {
         std::ostringstream ss;
+        const auto b_sym = GetBoundariesSymbols(boundaries());
+        if(boundaries() != RangeBoundaries::BothIncluded)
+            ss << b_sym.first;
         ss << min() << sep << max();
+        if(boundaries() != RangeBoundaries::BothIncluded)
+            ss << b_sym.second;
         return ss.str();
     }
 
@@ -90,13 +187,27 @@ struct Range {
 private:
     static Range<T> Make(const std::vector<std::string>& values)
     {
-        const T min = ::analysis::Parse<T>(values.at(0));
-        const T max = ::analysis::Parse<T>(values.at(1));
-        return Range<T>(min, max);
+        static const auto opened_b_symbols = GetBoundariesSymbols(RangeBoundaries::Open);
+        static const auto closed_b_symbols = GetBoundariesSymbols(RangeBoundaries::BothIncluded);
+        bool include_min = true, include_max = true;
+        std::string min_str = values.at(0), max_str = values.at(1);
+        if(min_str.size() && (min_str.front() == opened_b_symbols.first || min_str.front() == closed_b_symbols.first)) {
+            include_min = min_str.front() == closed_b_symbols.first;
+            min_str.erase(0, 1);
+        }
+        if(max_str.size() && (max_str.back() == opened_b_symbols.second || max_str.back() == closed_b_symbols.second)) {
+            include_max = max_str.back() == closed_b_symbols.second;
+            max_str.erase(max_str.size() - 1, 1);
+        }
+        const T min = ::analysis::Parse<T>(min_str);
+        const T max = ::analysis::Parse<T>(max_str);
+        const RangeBoundaries b = CreateBoundaries(include_min, include_max);
+        return Range<T>(min, max, b);
     }
 
 private:
     T _min, _max;
+    RangeBoundaries _boundaries;
 };
 
 template<typename T>
@@ -264,13 +375,13 @@ private:
             if(n == 0 || (n == 1 && max != min) || (n != 1 && max == min))
                 throw exception("Invalid number of grid points.");
             if(max != min)
-                step = (max - min) / (n - 1);
+                step = (max - min) / T(n - 1);
         } else if(mode == PrintMode::NBins) {
             size_t n = ::analysis::Parse<size_t>(values.at(2));
             if((n == 0 && max != min) || (n != 0 && max == min))
                 throw exception("Invalid number of bins.");
             if(max != min)
-                step = (max - min) / n;
+                step = (max - min) / T(n);
         } else {
             throw exception("Unsupported RangeWithStep::PrintMode = %1%.") % static_cast<size_t>(mode);
         }
@@ -306,12 +417,14 @@ struct Angle {
     static constexpr double NumberOfPiPerPeriod() { return double(n_pi_per_period_num) / n_pi_per_period_denom; }
     static constexpr double FullPeriod() { return n_pi_per_period_num * Pi() / n_pi_per_period_denom; }
     static constexpr double HalfPeriod() { return FullPeriod() / 2; }
+    static constexpr double RadiansToDegreesFactor() { return 180. / Pi(); }
 
     Angle() : _value(0), _interval(Interval::Symmetric) {}
     Angle(double value, Interval interval = Interval::Symmetric)
         : _value(AdjustValue(value, interval)), _interval(interval) {}
 
     double value() const { return _value; }
+    double value_degrees() const { return value() * RadiansToDegreesFactor(); }
     Interval interval() const { return _interval; }
 
     Angle operator+(const Angle& other) const { return Angle(value() + other.value(), interval()); }
@@ -348,7 +461,7 @@ std::ostream& operator<<(std::ostream& s, const Angle<n_pi_per_period_num, n_pi_
 }
 
 template<unsigned n_pi_per_period_num, unsigned n_pi_per_period_denom>
-std::istream& operator>>(std::istream& s, const Angle<n_pi_per_period_num, n_pi_per_period_denom>& a)
+std::istream& operator>>(std::istream& s, Angle<n_pi_per_period_num, n_pi_per_period_denom>& a)
 {
     double value;
     s >> value;
@@ -479,6 +592,76 @@ private:
 private:
     std::vector<Range> ranges;
 };
+
+template<typename Range>
+struct MultiRange {
+    using ValueType = typename Range::ValueType;
+    using ConstRefType = typename Range::ConstRefType;
+    using RangeVec = std::vector<Range>;
+
+    static const std::string& Separator() { static const std::string sep = ", "; return sep; }
+
+    MultiRange() {}
+    explicit MultiRange(const RangeVec& _ranges) : ranges(_ranges) {}
+
+    bool Contains(const ValueType& point) const
+    {
+        for(const auto& range : ranges) {
+            if(range.Contains(point))
+                return true;
+        }
+        return false;
+    }
+
+    bool Overlaps(const Range& other) const
+    {
+        for(const auto& range : ranges) {
+            if(range.Overlaps(other))
+                return true;
+        }
+        return false;
+    }
+
+    std::string ToString() const
+    {
+        std::ostringstream ss;
+        for(const auto& range : ranges)
+            ss << range << Separator();
+        std::string str = ss.str();
+        if(str.size())
+            str.erase(str.size() - Separator().size());
+        return str;
+    }
+
+    static MultiRange<Range> Parse(const std::string& str)
+    {
+        const auto range_strs = SplitValueList(str, true, Separator(), true);
+        RangeVec ranges;
+        for(const auto& range_str : range_strs)
+            ranges.push_back(::analysis::Parse<Range>(range_str));
+        return MultiRange<Range>(ranges);
+    }
+
+private:
+    RangeVec ranges;
+};
+
+template<typename Range>
+std::ostream& operator<<(std::ostream& s, const MultiRange<Range>& r)
+{
+    s << r.ToString();
+    return s;
+}
+
+template<typename Range>
+std::istream& operator>>(std::istream& s, MultiRange<Range>& r)
+{
+    std::string str;
+    std::getline(s, str);
+    r = MultiRange<Range>::Parse(str);
+    return s;
+}
+
 
 struct NumericalExpression {
     NumericalExpression() : _value(0) {}

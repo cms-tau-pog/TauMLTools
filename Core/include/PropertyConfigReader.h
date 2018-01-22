@@ -41,6 +41,8 @@ public:
             result = Get<T>(p_name);
             return true;
         }
+
+        std::string& operator[](const std::string& p_name) { return properties[p_name]; }
     };
 
     using ItemCollection = std::map<std::string, Item>;

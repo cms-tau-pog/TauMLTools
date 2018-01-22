@@ -218,6 +218,8 @@ template<>
 class SmartHistogram<TH1D> : public TH1D, public AbstractHistogram {
 public:
     using RootContainer = TH1D;
+    using Range = ::analysis::Range<double>;
+    using MultiRange = ::analysis::MultiRange<Range>;
 
     SmartHistogram(const std::string& name, int nbins, double low, double high)
         : TH1D(name.c_str(), name.c_str(), nbins, low, high), AbstractHistogram(name), store(true),
@@ -270,18 +272,19 @@ public:
                 TH1D::SetBins(static_cast<int>(bins.size()) - 1, bins.data());
                 divide_by_bin_width = true;
             }
-            if(p_config.Has("x_title"))
-                SetXTitle(p_config.Get<std::string>("x_title").c_str());
-            if(p_config.Has("y_title"))
-                SetYTitle(p_config.Get<std::string>("y_title").c_str());
-            if(p_config.Has("log_x"))
-                use_log_x = p_config.Get<bool>("log_x");
-            if(p_config.Has("log_y"))
-                use_log_y = p_config.Get<bool>("log_y");
-            if(p_config.Has("max_y_sf"))
-                max_y_sf = p_config.Get<double>("max_y_sf");
-            if(p_config.Has("div_bw"))
-                divide_by_bin_width = p_config.Get<bool>("div_bw");
+            std::string x_title, y_title;
+            if(p_config.Read("x_title", x_title))
+                SetXTitle(x_title.c_str());
+            if(p_config.Read("y_title", y_title))
+                SetYTitle(y_title.c_str());
+            p_config.Read("log_x", use_log_x);
+            p_config.Read("log_y", use_log_y);
+            p_config.Read("max_y_sf", max_y_sf);
+            p_config.Read("min_y_sf", min_y_sf);
+            p_config.Read("div_bw", divide_by_bin_width);
+            p_config.Read("blind_ranges", blind_ranges);
+            if(p_config.Has("y_min"))
+                y_min = p_config.Get<double>("y_min");
         } catch(analysis::exception& e) {
             throw analysis::exception("Invalid property set for histogram '%1%'. %2%") % Name() % e.message();
         }
@@ -315,11 +318,20 @@ public:
     bool UseLogX() const { return use_log_x; }
     bool UseLogY() const { return use_log_y; }
     double MaxYDrawScaleFactor() const { return max_y_sf; }
+    double MinYDrawScaleFactor() const { return min_y_sf; }
     std::string GetXTitle() const { return GetXaxis()->GetTitle(); }
     std::string GetYTitle() const { return GetYaxis()->GetTitle(); }
     bool NeedToDivideByBinWidth() const { return divide_by_bin_width; }
     void SetLegendTitle(const std::string _legend_title) { legend_title = _legend_title; }
     const std::string& GetLegendTitle() const { return legend_title; }
+    const MultiRange GetBlindRanges() const { return blind_ranges; }
+
+    bool TryGetMinY(double& _y_min) const
+    {
+        if(!y_min) return false;
+        _y_min = *y_min;
+        return true;
+    }
 
     void CopyContent(const TH1D& other)
     {
@@ -341,9 +353,11 @@ public:
 private:
     bool store{true};
     bool use_log_x{false}, use_log_y{false};
-    double max_y_sf{1};
+    double max_y_sf{1}, min_y_sf{1};
+    boost::optional<double> y_min;
     bool divide_by_bin_width{false};
     std::string legend_title;
+    MultiRange blind_ranges;
 };
 
 template<>
