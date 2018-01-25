@@ -208,6 +208,34 @@ double Calculate_MX(const LVector1& lepton1, const LVector2& lepton2, const LVec
 }
 
 
+struct EllipseParameters {
+
+    double x0{0.0};
+    double r_x{0.0};
+    double y0{0.0};
+    double r_y{0.0};
+
+    bool IsInside(double x, double y) const
+    {
+        const double ellipse_cut = std::pow(x-x0, 2)/std::pow(r_x, 2)
+                                 + std::pow(y-y0, 2)/std::pow(r_y, 2);
+        return ellipse_cut<1;
+    }
+};
+
+
+inline std::ostream& operator<<(std::ostream& os, const EllipseParameters& ellipseParams)
+{
+    os << ellipseParams.x0 << ellipseParams.r_x << ellipseParams.y0 << ellipseParams.r_y;
+    return os;
+}
+
+inline std::istream& operator>>(std::istream& is, EllipseParameters& ellipseParams)
+{
+    is >> ellipseParams.x0 >> ellipseParams.r_x >> ellipseParams.y0 >> ellipseParams.r_y;
+    return is;
+}
+
 inline PhysicalValue Integral(const TH1& histogram, bool include_overflows = true)
 {
     using limit_pair = std::pair<Int_t, Int_t>;
