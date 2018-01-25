@@ -333,6 +333,11 @@ public:
         return true;
     }
 
+    double GetSystematicUncertainty() const { return syst_unc; }
+    void SetSystematicUncertainty(double _syst_unc) { syst_unc = _syst_unc; }
+    double GetPostfitScaleFactor() const { return postfit_sf; }
+    void SetPostfitScaleFactor(double _postfit_sf) { postfit_sf = _postfit_sf; }
+
     void CopyContent(const TH1D& other)
     {
         if(other.GetNbinsX() != GetNbinsX())
@@ -350,6 +355,18 @@ public:
         }
     }
 
+    void AddHistogram(const SmartHistogram<TH1D>& other)
+    {
+        const double integral = Integral(), other_integral = other.Integral(), tot_integral = integral + other_integral;
+        const double post_integral = postfit_sf * integral, other_post_integral = other.postfit_sf * other_integral,
+                     tot_post_integral = post_integral + other_post_integral;
+        if(tot_integral != 0) {
+            postfit_sf = tot_post_integral / tot_integral;
+            syst_unc = std::hypot(syst_unc * post_integral, other.syst_unc * other_post_integral) / tot_post_integral;
+        }
+        Add(&other, 1);
+    }
+
 private:
     bool store{true};
     bool use_log_x{false}, use_log_y{false};
@@ -358,6 +375,7 @@ private:
     bool divide_by_bin_width{false};
     std::string legend_title;
     MultiRange blind_ranges;
+    double syst_unc{0}, postfit_sf{1};
 };
 
 template<>
