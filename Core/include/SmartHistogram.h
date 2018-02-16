@@ -338,7 +338,7 @@ public:
     double GetPostfitScaleFactor() const { return postfit_sf; }
     void SetPostfitScaleFactor(double _postfit_sf) { postfit_sf = _postfit_sf; }
 
-    void CopyContent(const TH1D& other)
+    void CopyContent(const TH1& other)
     {
         if(other.GetNbinsX() != GetNbinsX())
             throw analysis::exception("Unable to copy histogram content: source and destination have different number"
