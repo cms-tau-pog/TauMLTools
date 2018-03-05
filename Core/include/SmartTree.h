@@ -161,14 +161,15 @@ namespace detail {
                 }
             } else {
 
+                static constexpr Int_t bufferSize = 1024 * 1024;
                 TBranch* branch;
                 if(cl) {
                     std::string cl_name = cl->GetName();
                     if(class_fixes.count(cl_name))
                         cl_name = class_fixes.at(cl_name);
-                    branch = tree.Branch(branch_name.c_str(), cl_name.c_str(), entry->value);
+                    branch = tree.Branch(branch_name.c_str(), cl_name.c_str(), entry->value, bufferSize);
                 } else
-                    branch = tree.Branch(branch_name.c_str(), entry->value);
+                    branch = tree.Branch(branch_name.c_str(), entry->value, bufferSize);
 
                 const Long64_t n_entries = tree.GetEntries();
                 for(Long64_t n = 0; n < n_entries; ++n)
@@ -188,7 +189,8 @@ public:
         : name(_name), directory(_directory), readMode(_readMode), disabled_branches(_disabled_branches),
           enabled_branches(_enabled_branches)
     {
-        static constexpr Long64_t maxVirtualSize = 100000000;
+        static constexpr Long64_t maxVirtualSize = 1024 * 1024 * 1024;
+        static constexpr Long64_t autoFlush = 1024 * 1024 * 100;
 
         if(readMode) {
             if(!directory)
@@ -201,8 +203,10 @@ public:
         } else {
             tree = new TTree(name.c_str(), name.c_str());
             tree->SetDirectory(directory);
-            if(directory)
+            if(directory) {
                 tree->SetMaxVirtualSize(maxVirtualSize);
+                tree->SetAutoFlush(autoFlush);
+            }
         }
     }
     SmartTree(const SmartTree& other) = delete;
