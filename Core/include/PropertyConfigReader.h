@@ -149,6 +149,19 @@ public:
         return p_list;
     }
 
+    template<typename T = std::string>
+    std::vector<T> GetList(const std::string& name, bool allow_duplicates,
+                           const std::string& separators = " \t") const
+    {
+        std::vector<T> list;
+        auto split_list = SplitValueList(Get<std::string>(name), allow_duplicates, separators);
+        for (const auto& split_element : split_list){
+            const T element = analysis::Parse<T>(split_element);
+            list.push_back(element);
+        }
+        return list;
+    }
+
 private:
     std::map<std::string, std::string> properties;
 };
