@@ -21,6 +21,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include "TextIO.h"
 #include "NumericPrimitives.h"
 #include "PropertyConfigReader.h"
+#include "AnalyzerData.h"
 
 namespace root_ext {
 
@@ -256,6 +257,8 @@ public:
     SmartHistogram(const std::string& name, const analysis::PropertyConfigReader::Item& p_config)
         : AbstractHistogram(name)
     {
+        static constexpr int DefaultNumberOfBins = 100;
+        static constexpr int DefaultBufferSize = 1000;
         try {
             TH1D::SetName(name.c_str());
             TH1D::SetTitle(name.c_str());
@@ -263,7 +266,7 @@ public:
                 const auto x_range = p_config.Get<analysis::RangeWithStep<double>>("x_range");
                 TH1D::SetBins(static_cast<int>(x_range.n_bins()), x_range.min(), x_range.max());
                 divide_by_bin_width = false;
-            } else {
+            } else if(p_config.Has("x_bins")){
                 const std::vector<std::string> bin_values =
                         analysis::SplitValueList(p_config.Get<std::string>("x_bins"), false, ", \t", true);
                 std::vector<double> bins;
@@ -271,7 +274,12 @@ public:
                     bins.push_back(analysis::Parse<double>(bin_str));
                 TH1D::SetBins(static_cast<int>(bins.size()) - 1, bins.data());
                 divide_by_bin_width = true;
+            } else{
+                SetBins(DefaultNumberOfBins, 0, 0);
+                GetXaxis()->SetCanExtend(TH1::kAllAxes);
+                SetBuffer(DefaultBufferSize);
             }
+
             std::string x_title, y_title;
             if(p_config.Read("x_title", x_title))
                 SetXTitle(x_title.c_str());
@@ -500,13 +508,8 @@ struct HistogramFactory {
 template<>
 struct HistogramFactory<TH1D> {
 private:
-    struct HistogramParameters {
-        int nbins;
-        double low;
-        double high;
-    };
-
-    using HistogramParametersMap = std::map<std::string, HistogramParameters>;
+    using HistogramParameters = analysis::PropertyConfigReader::Item;
+    using HistogramParametersMap = analysis::PropertyConfigReader::ItemCollection;
 
     static HistogramParametersMap& ParametersMap_RW()
     {
@@ -525,22 +528,22 @@ private:
         return configName;
     }
 
-    static const HistogramParameters& GetParameters(const std::string& name)
+    static const HistogramParameters& GetParameters(const std::string& name, const std::string& selection_label = "")
     {
+        static const HistogramParameters default_params;
         const HistogramParametersMap& parameters = ParametersMap();
-
         std::string best_name = name;
-        for(size_t pos = name.find_last_of('_'); !parameters.count(best_name) && pos != 0 && pos != std::string::npos;
-            pos = name.find_last_of('_', pos - 1))
-            best_name = name.substr(0, pos);
+        if(!selection_label.empty())
+        {
+            const std::string sl_plus_name = selection_label + "/" + name;
+            if(parameters.count(sl_plus_name))
+                best_name = sl_plus_name;
+        }
 
         if(!parameters.count(best_name)) {
-            std::ostringstream ss_error;
-            ss_error << "Not found default parameters for histogram '" << name;
-            if(best_name != name)
-                ss_error << "' or '" << best_name;
-            ss_error << "'. Please, define it in '" << ConfigName() << "'.";
-            throw std::runtime_error(ss_error.str());
+            std::cerr << "Not found default parameters for histogram '" << name
+                      << "'. Please, define it in '" << ConfigName() << "'." << std::endl;
+            return default_params;
         }
         return parameters.at(best_name);
     }
@@ -552,36 +555,16 @@ public:
         std::lock_guard<std::mutex> lock(m);
         ConfigName() = config_path;
         HistogramParametersMap& parameters = ParametersMap_RW();
-        parameters.clear();
-        std::ifstream cfg(config_path);
-        while (cfg.good()) {
-            std::string cfgLine;
-            std::getline(cfg,cfgLine);
-            if (!cfgLine.size() || cfgLine.at(0) == '#') continue;
-            std::istringstream ss(cfgLine);
-            std::string param_name;
-            HistogramParameters param;
-            ss >> param_name >> param.nbins >> param.low >> param.high;
-            if(parameters.count(param_name)) {
-                std::ostringstream ss_error;
-                ss_error << "Redefinition of default parameters for histogram '" << param_name << "'.";
-                throw std::runtime_error(ss_error.str());
-            }
-            parameters[param_name] = param;
-        }
+
+        analysis::PropertyConfigReader reader;
+        reader.Parse(config_path);
+        parameters = reader.GetItems();
     }
 
-
-    template<typename ...Args>
-    static SmartHistogram<TH1D>* Make(const std::string& name, Args... args)
+    static SmartHistogram<TH1D>* Make(const std::string& name, const std::string& selection_label)
     {
-        return new SmartHistogram<TH1D>(name, args...);
-    }
-
-    static SmartHistogram<TH1D>* Make(const std::string& name)
-    {
-        const HistogramParameters& params = GetParameters(name);
-        return new SmartHistogram<TH1D>(name, params.nbins, params.low, params.high);
+        const HistogramParameters& params = GetParameters(name, selection_label);
+        return new SmartHistogram<TH1D>(name, params);
     }
 };
 

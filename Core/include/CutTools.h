@@ -178,9 +178,14 @@ public:
 
     SmartHistogram(const std::string& name) : AbstractHistogram(name) {}
 
+    void SetSave(bool _save)
+    {
+        save = _save;
+    }
+
     virtual void WriteRootObject()
     {
-        if(!selections.size() || !GetOutputDirectory())
+        if(!save || !selections.size() || !GetOutputDirectory() )
             return;
         std::unique_ptr<TH1D> selection_histogram(
                     new TH1D(Name().c_str(), Name().c_str(),selections.size(),-0.5,-0.5+selections.size()));
@@ -191,34 +196,9 @@ public:
             selection_histogram->SetBinError(n+1,std::sqrt(selectionsSquaredErros.at(n)));
         }
         root_ext::WriteObject(*selection_histogram, GetOutputDirectory());
-
-        std::string effAbs_name = Name() + "_effAbs";
-        std::unique_ptr<TH1D> effAbs_histogram(
-                    new TH1D(effAbs_name.c_str(), effAbs_name.c_str(),selections.size(),-0.5,-0.5+selections.size()));
-
-        fill_relative_selection_histogram(*effAbs_histogram,0);
-        root_ext::WriteObject(*effAbs_histogram, GetOutputDirectory());
-
-        std::string effRel_name = Name() + "_effRel";
-        std::unique_ptr<TH1D> effRel_histogram(
-                    new TH1D(effRel_name.c_str(), effRel_name.c_str(),selections.size(),-0.5,-0.5+selections.size()));
-
-        fill_relative_selection_histogram(*effRel_histogram);
-        root_ext::WriteObject(*effRel_histogram, GetOutputDirectory());
-    }
+  }
 
 private:
-    void fill_relative_selection_histogram(TH1D& relative_selection_histogram,
-                                           size_t fixedIndex = std::numeric_limits<size_t>::max())
-    {
-        for(size_t n = 0; n < selections.size(); ++n) {
-            const std::string label = labels.at(n);
-            relative_selection_histogram.GetXaxis()->SetBinLabel(n+1, label.c_str());
-            const size_t refIndex = n == 0 ? 0 : ( n > fixedIndex ? fixedIndex : n-1 );
-            const Double_t ratio = selections.at(n) / selections.at(refIndex);
-            relative_selection_histogram.SetBinContent(n+1, ratio);
-        }
-    }
+    bool save{true};
 };
-
 }
