@@ -186,6 +186,7 @@ public:
         std::string name;
         PropertyList properties;
 
+        Item() {}
         bool Has(const std::string& p_name) const { return properties.Has(p_name); }
         template<typename T = std::string>
         T Get(const std::string& p_name) const { return properties.Get<T>(p_name, name); }
