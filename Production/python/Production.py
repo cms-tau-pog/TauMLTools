@@ -95,6 +95,8 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     puInfo          = cms.InputTag('slimmedAddPileupInfo'),
     vertices        = cms.InputTag('offlineSlimmedPrimaryVertices'),
     rho             = cms.InputTag('fixedGridRhoAll'),
+    electrons       = cms.InputTag('slimmedElectrons'),
+    muons           = cms.InputTag('slimmedMuons'),
     taus            = tauSrc_InputTag
 )
 

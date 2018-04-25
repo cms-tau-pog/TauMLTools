@@ -4,26 +4,27 @@ This file is part of https://github.com/hh-italian-group/h-tautau. */
 #pragma once
 
 #include "AnalysisTypes.h"
+#include "AnalysisTools/Core/include/TextIO.h"
 
 namespace analysis {
 
 #define TAU_IDS() \
-    TAU_ID(againstElectronMVA6) \
-    TAU_ID(againstMuon3) \
-    TAU_ID(byCombinedIsolationDeltaBetaCorr3Hits) \
-    TAU_ID(byPhotonPtSumOutsideSignalCone) \
-    TAU_ID(byIsolationMVArun2v1DBoldDMwLT) \
-    TAU_ID(byIsolationMVArun2v1DBdR03oldDMwLT) \
-    TAU_ID(byIsolationMVArun2v1DBoldDMwLT2016) \
-    TAU_ID(byIsolationMVArun2017v2DBoldDMwLT2017) \
-    TAU_ID(byIsolationMVArun2017v2DBoldDMdR0p3wLT2017) \
+    TAU_ID(againstElectronMVA6, "againstElectron{wp}MVA6", "VLoose Loose Medium Tight VTight") \
+    TAU_ID(againstMuon3, "againstMuon{wp}3", "Loose Tight") \
+    TAU_ID(byCombinedIsolationDeltaBetaCorr3Hits, "", "Loose Medium Tight") \
+    TAU_ID(byPhotonPtSumOutsideSignalCone, "byPhotonPtSumOutsideSignalCone", "Medium") \
+    TAU_ID(byIsolationMVArun2v1DBoldDMwLT, "", "VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2v1DBdR03oldDMwLT, "", "VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2v1DBoldDMwLT2016, "", "VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2017v2DBoldDMwLT2017, "", "VVLoose VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2017v2DBoldDMdR0p3wLT2017, "", "VVLoose VLoose Loose Medium Tight VTight VVTight") \
     /**/
 
-#define TAU_ID(name) name,
+#define TAU_ID(name, pattern, wp_list) name,
 enum class TauIdDiscriminator { TAU_IDS() };
 #undef TAU_ID
 
-#define TAU_ID(name) TauIdDiscriminator::name,
+#define TAU_ID(name, pattern, wp_list) TauIdDiscriminator::name,
 namespace tau_id {
 inline const std::vector<TauIdDiscriminator>& GetOrderedTauIdDiscriminators()
 {
@@ -33,9 +34,46 @@ inline const std::vector<TauIdDiscriminator>& GetOrderedTauIdDiscriminators()
 }
 #undef TAU_ID
 
-#define TAU_ID(name) { TauIdDiscriminator::name, #name },
+#define TAU_ID(name, pattern, wp_list) { TauIdDiscriminator::name, #name },
 ENUM_NAMES(TauIdDiscriminator) = { TAU_IDS() };
 #undef TAU_ID
+
+namespace tau_id {
+struct TauIdDescriptor {
+    TauIdDiscriminator discriminator;
+    std::string name_pattern;
+    std::vector<DiscriminatorWP> working_points;
+
+    TauIdDescriptor(TauIdDiscriminator _discriminator, const std::string& _name_pattern, const std::string& wp_list)
+        : discriminator(_discriminator), name_pattern(_name_pattern)
+    {
+        if(name_pattern.empty())
+            name_pattern = "by{wp}" + analysis::ToString(discriminator).substr(2);
+        auto wp_names = SplitValueList(wp_list, false, ", \t", true);
+        for(const auto& wp_name : wp_names)
+            working_points.push_back(analysis::Parse<DiscriminatorWP>(wp_name));
+    }
+
+    std::string ToString(DiscriminatorWP wp) const
+    {
+        std::string name = name_pattern;
+        boost::algorithm::replace_all(name, "{wp}", analysis::ToString(wp));
+        return name;
+    }
+};
+
+using TauIdDescriptorCollection = std::map<TauIdDiscriminator, TauIdDescriptor>;
+
+#define TAU_ID(name, pattern, wp_list) \
+    { TauIdDiscriminator::name, TauIdDescriptor(TauIdDiscriminator::name, pattern, wp_list) },
+inline const TauIdDescriptorCollection& GetTauIdDescriptors()
+{
+    static const TauIdDescriptorCollection descriptors = { TAU_IDS() };
+    return descriptors;
+}
+#undef TAU_ID
+
+}
 
 #undef TAU_IDS
 
@@ -61,13 +99,7 @@ public:
 
         std::string ToString() const
         {
-            if(discriminator == TauIdDiscriminator::againstMuon3)
-                return "againstMuon" + analysis::ToString(wp) + "3";
-            if(discriminator == TauIdDiscriminator::againstElectronMVA6)
-                return "againstElectron" + analysis::ToString(wp) + "MVA6";
-            if(discriminator == TauIdDiscriminator::byPhotonPtSumOutsideSignalCone)
-                return analysis::ToString(discriminator);
-            return "by" + analysis::ToString(wp) + analysis::ToString(discriminator).substr(2);
+            return tau_id::GetTauIdDescriptors().at(discriminator).ToString(wp);
         }
     };
 
@@ -77,35 +109,14 @@ public:
 
     static const ResultDescriptorCollection& GetResultDescriptors()
     {
-        static const std::vector<TauIdDiscriminator>& discriminators = tau_id::GetOrderedTauIdDiscriminators();
-        static const std::set<TauIdDiscriminator> discriminators_with_VVLoose_wp = {
-            TauIdDiscriminator::byIsolationMVArun2017v2DBoldDMwLT2017,
-            TauIdDiscriminator::byIsolationMVArun2017v2DBoldDMdR0p3wLT2017
-        };
+        static const auto& discriminators = tau_id::GetOrderedTauIdDiscriminators();
+        static const auto& id_descriptors = tau_id::GetTauIdDescriptors();
 
         auto createDescriptors = [&]() {
             ResultDescriptorCollection descs;
             for(const auto& discriminator : discriminators) {
-                if(discriminator == TauIdDiscriminator::againstMuon3) {
-                    descs.emplace_back(discriminator, DiscriminatorWP::Loose);
-                    descs.emplace_back(discriminator, DiscriminatorWP::Tight);
-                } else if(discriminator == TauIdDiscriminator::byCombinedIsolationDeltaBetaCorr3Hits) {
-                    descs.emplace_back(discriminator, DiscriminatorWP::Loose);
-                    descs.emplace_back(discriminator, DiscriminatorWP::Medium);
-                    descs.emplace_back(discriminator, DiscriminatorWP::Tight);
-                } else if(discriminator == TauIdDiscriminator::byPhotonPtSumOutsideSignalCone) {
-                    descs.emplace_back(discriminator, DiscriminatorWP::Medium);
-                } else {
-                    if(discriminators_with_VVLoose_wp.count(discriminator))
-                        descs.emplace_back(discriminator, DiscriminatorWP::VVLoose);
-                    descs.emplace_back(discriminator, DiscriminatorWP::VLoose);
-                    descs.emplace_back(discriminator, DiscriminatorWP::Loose);
-                    descs.emplace_back(discriminator, DiscriminatorWP::Medium);
-                    descs.emplace_back(discriminator, DiscriminatorWP::Tight);
-                    descs.emplace_back(discriminator, DiscriminatorWP::VTight);
-                    if(discriminator != TauIdDiscriminator::againstElectronMVA6)
-                        descs.emplace_back(discriminator, DiscriminatorWP::VVTight);
-                }
+                for(auto wp : id_descriptors.at(discriminator).working_points)
+                    descs.emplace_back(discriminator, wp);
             }
             return descs;
         };
