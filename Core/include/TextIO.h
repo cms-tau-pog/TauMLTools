@@ -4,6 +4,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #pragma once
 
 #include "exception.h"
+#include <iomanip>
 #include <unordered_set>
 #include <boost/algorithm/string.hpp>
 
