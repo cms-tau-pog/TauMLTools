@@ -3,21 +3,28 @@ This file is part of https://github.com/hh-italian-group/h-tautau. */
 
 #pragma once
 
+#include <bitset>
 #include "AnalysisTypes.h"
 #include "AnalysisTools/Core/include/TextIO.h"
 
 namespace analysis {
 
 #define TAU_IDS() \
-    TAU_ID(againstElectronMVA6, "againstElectron{wp}MVA6", "VLoose Loose Medium Tight VTight") \
+    TAU_ID(againstElectronMVA6, "againstElectron{wp}MVA6{Raw}", "VLoose Loose Medium Tight VTight") \
     TAU_ID(againstMuon3, "againstMuon{wp}3", "Loose Tight") \
-    TAU_ID(byCombinedIsolationDeltaBetaCorr3Hits, "", "Loose Medium Tight") \
+    TAU_ID(byCombinedIsolationDeltaBetaCorr3Hits, "by{wp}CombinedIsolationDeltaBetaCorr{Raw}3Hits", \
+           "Loose Medium Tight") \
     TAU_ID(byPhotonPtSumOutsideSignalCone, "byPhotonPtSumOutsideSignalCone", "Medium") \
-    TAU_ID(byIsolationMVArun2v1DBoldDMwLT, "", "VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byIsolationMVArun2v1DBdR03oldDMwLT, "", "VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byIsolationMVArun2v1DBoldDMwLT2016, "", "VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byIsolationMVArun2017v2DBoldDMwLT2017, "", "VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byIsolationMVArun2017v2DBoldDMdR0p3wLT2017, "", "VVLoose VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2v1DBoldDMwLT, "by{wp}IsolationMVArun2v1DBoldDMwLT{raw}", \
+           "VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2v1DBdR03oldDMwLT, "by{wp}IsolationMVArun2v1DBdR03oldDMwLT{raw}", \
+           "VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2v1DBoldDMwLT2016, "by{wp}IsolationMVArun2v1DBoldDMwLT{raw}2016", \
+           "VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2017v2DBoldDMwLT2017, "by{wp}IsolationMVArun2017v2DBoldDMwLT{raw}2017", \
+           "VVLoose VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2017v2DBoldDMdR0p3wLT2017, "by{wp}IsolationMVArun2017v2DBoldDMdR0p3wLT{raw}2017", \
+           "VVLoose VLoose Loose Medium Tight VTight VVTight") \
     /**/
 
 #define TAU_ID(name, pattern, wp_list) name,
@@ -47,8 +54,6 @@ struct TauIdDescriptor {
     TauIdDescriptor(TauIdDiscriminator _discriminator, const std::string& _name_pattern, const std::string& wp_list)
         : discriminator(_discriminator), name_pattern(_name_pattern)
     {
-        if(name_pattern.empty())
-            name_pattern = "by{wp}" + analysis::ToString(discriminator).substr(2);
         auto wp_names = SplitValueList(wp_list, false, ", \t", true);
         for(const auto& wp_name : wp_names)
             working_points.push_back(analysis::Parse<DiscriminatorWP>(wp_name));
@@ -58,6 +63,17 @@ struct TauIdDescriptor {
     {
         std::string name = name_pattern;
         boost::algorithm::replace_all(name, "{wp}", analysis::ToString(wp));
+        boost::algorithm::replace_all(name, "{raw}", "");
+        boost::algorithm::replace_all(name, "{Raw}", "");
+        return name;
+    }
+
+    std::string ToStringRaw() const
+    {
+        std::string name = name_pattern;
+        boost::algorithm::replace_all(name, "{wp}", "");
+        boost::algorithm::replace_all(name, "{raw}", "raw");
+        boost::algorithm::replace_all(name, "{Raw}", "Raw");
         return name;
     }
 };

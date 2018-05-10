@@ -60,6 +60,16 @@
     CSVAR(UInt_t, nTotal, col) /* */ \
     /**/
 
+#define TAU_GEN_MATCH(col) \
+    VAR(Bool_t, has_gen_##col##_match) /* */\
+    VAR(Float_t, gen_##col##_match_dR) /* */\
+    VAR(Float_t, gen_##col##_pdg) /* */\
+    VAR(Float_t, gen_##col##_pt) /* */\
+    VAR(Float_t, gen_##col##_eta) /* */\
+    VAR(Float_t, gen_##col##_phi) /* */\
+    VAR(Float_t, gen_##col##_mass) /* */\
+    /**/
+
 #define TAU_DATA() \
     /* Event Variables */ \
     VAR(UInt_t, run) /* run */ \
@@ -71,6 +81,7 @@
     VAR(Float_t, rho) /* rho */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
     /* Basic tau variables */ \
+    VAR(UInt_t, tau_index) /* index of the tau */ \
     VAR(Float_t, pt) /* tau pt */ \
     VAR(Float_t, eta) /* tau eta */ \
     VAR(Float_t, phi) /* tau phi */ \
@@ -81,6 +92,9 @@
     VAR(Float_t, gen_eta) /* eta of the matched gen particle */ \
     VAR(Float_t, gen_phi) /* phi of the matched gen particle */ \
     VAR(Float_t, gen_mass) /* mass of the matched gen particle */ \
+    TAU_GEN_MATCH(ele) /* */ \
+    TAU_GEN_MATCH(muon) /* */ \
+    TAU_GEN_MATCH(qg) /* */ \
     /* Tau ID variables */ \
     VAR(Int_t, decayMode) /* tau decay mode */ \
     VAR(ULong64_t, id_flags) /* boolean tau id variables */ \
@@ -144,16 +158,34 @@
     VAR(Float_t, leadChargedHadrCand_EoP) /* */ \
     VAR(Float_t, tau_visMass_innerSigCone) /* */ \
     /* Against muon */ \
-    VAR(Bool_t, has_matched_muon) /* */ \
-    VAR(std::vector<Float_t>, muon_pt) /* */ \
-    VAR(std::vector<Float_t>, muon_eta) /* */ \
-    VAR(std::vector<Float_t>, muon_phi) /* */ \
-    VAR(std::vector<UInt_t>, muon_n_matches_DT) /* */ \
-    VAR(std::vector<UInt_t>, muon_n_matches_CSC) /* */ \
-    VAR(std::vector<UInt_t>, muon_n_matches_RPC) /* */ \
-    VAR(std::vector<UInt_t>, muon_n_hits_DT) /* */ \
-    VAR(std::vector<UInt_t>, muon_n_hits_CSC) /* */ \
-    VAR(std::vector<UInt_t>, muon_n_hits_RPC) /* */ \
+    VAR(Bool_t, n_matched_muons) /* */ \
+    VAR(Float_t, muon_pt) /* */ \
+    VAR(Float_t, muon_eta) /* */ \
+    VAR(Float_t, muon_phi) /* */ \
+    VAR(UInt_t, muon_n_matches_DT_1) /* */ \
+    VAR(UInt_t, muon_n_matches_DT_2) /* */ \
+    VAR(UInt_t, muon_n_matches_DT_3) /* */ \
+    VAR(UInt_t, muon_n_matches_DT_4) /* */ \
+    VAR(UInt_t, muon_n_matches_CSC_1) /* */ \
+    VAR(UInt_t, muon_n_matches_CSC_2) /* */ \
+    VAR(UInt_t, muon_n_matches_CSC_3) /* */ \
+    VAR(UInt_t, muon_n_matches_CSC_4) /* */ \
+    VAR(UInt_t, muon_n_matches_RPC_1) /* */ \
+    VAR(UInt_t, muon_n_matches_RPC_2) /* */ \
+    VAR(UInt_t, muon_n_matches_RPC_3) /* */ \
+    VAR(UInt_t, muon_n_matches_RPC_4) /* */ \
+    VAR(UInt_t, muon_n_hits_DT_1) /* */ \
+    VAR(UInt_t, muon_n_hits_DT_2) /* */ \
+    VAR(UInt_t, muon_n_hits_DT_3) /* */ \
+    VAR(UInt_t, muon_n_hits_DT_4) /* */ \
+    VAR(UInt_t, muon_n_hits_CSC_1) /* */ \
+    VAR(UInt_t, muon_n_hits_CSC_2) /* */ \
+    VAR(UInt_t, muon_n_hits_CSC_3) /* */ \
+    VAR(UInt_t, muon_n_hits_CSC_4) /* */ \
+    VAR(UInt_t, muon_n_hits_RPC_1) /* */ \
+    VAR(UInt_t, muon_n_hits_RPC_2) /* */ \
+    VAR(UInt_t, muon_n_hits_RPC_3) /* */ \
+    VAR(UInt_t, muon_n_hits_RPC_4) /* */ \
     VAR(UInt_t, muon_n_stations_with_matches_03) /* */ \
     VAR(UInt_t, muon_n_stations_with_hits_23) /* */ \
     VAR(Float_t, energy_ECAL) /* */ \
@@ -180,10 +212,14 @@ INITIALIZE_TREE(tau_tuple, TauTuple, TAU_DATA)
 #undef CSVAR
 #undef TAU_SIG_COMP
 #undef TAU_ISO_COMP
+#undef TAU_GEN_MATCH
 
 namespace tau_tuple {
+
 template<typename T>
 constexpr T DefaultFillValue() { return std::numeric_limits<T>::lowest(); }
+template<>
+constexpr float DefaultFillValue<float>() { return -999.; }
 
 enum class ComponenetType { Gamma = 0, ChargedHadronCandidate = 1, NeutralHadronCandidate = 2};
 } // namespace tau_tuple
