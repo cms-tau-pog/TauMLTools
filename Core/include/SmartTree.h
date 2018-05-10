@@ -190,7 +190,7 @@ public:
           enabled_branches(_enabled_branches)
     {
         static constexpr Long64_t maxVirtualSize = 1024 * 1024 * 1024;
-        static constexpr Long64_t autoFlush = 1024 * 1024 * 100;
+        static constexpr Long64_t autoFlush = -1024 * 1024 * 100;
 
         if(readMode) {
             if(!directory)
@@ -351,4 +351,3 @@ protected:
 };
 } // detail
 } // root_ext
-
