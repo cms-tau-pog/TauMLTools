@@ -4,6 +4,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #pragma once
 
 #include "exception.h"
+#include <iomanip>
 #include <unordered_set>
 #include <boost/algorithm/string.hpp>
 
@@ -149,5 +150,61 @@ inline std::vector<std::string> ReadValueList(std::istream& stream, size_t numbe
         throw;
     }
 }
+
+struct StVariable {
+    using ValueType = double;
+    static constexpr int max_precision = -std::numeric_limits<ValueType>::digits10;
+    static constexpr int number_of_significant_digits_in_error = 2;
+
+        ValueType value, error_up, error_low;
+
+        StVariable() : value(0), error_up(0), error_low(0) {}
+        StVariable(double _value, double _error_up, double _error_low = std::numeric_limits<double>::quiet_NaN()) :
+            value(_value), error_up(_error_up), error_low(_error_low) {}
+
+    int precision_up() const
+    {
+        return error_up != 0.
+                ? static_cast<int>(std::floor(std::log10(error_up)) - number_of_significant_digits_in_error + 1)
+                : max_precision;
+    }
+
+    int precision_low() const
+    {
+        return error_low != 0.
+                ? static_cast<int>(std::floor(std::log10(error_low)) - number_of_significant_digits_in_error + 1)
+                : max_precision;
+    }
+
+    int precision() const { return std::max(precision_up(), precision_low()); }
+
+    int decimals_to_print_low() const { return std::max(0, -precision_low()); }
+    int decimals_to_print_up() const { return std::max(0, -precision_up()); }
+    int decimals_to_print() const { return std::min(decimals_to_print_low(), decimals_to_print_up()); }
+
+    std::string ToLatexString() const
+    {
+        const ValueType ten_pow_p = std::pow(10.0, precision());
+        const ValueType value_rounded = std::round(value / ten_pow_p) * ten_pow_p;
+        const ValueType error_up_rounded = std::ceil(error_up / ten_pow_p) * ten_pow_p;
+        const ValueType error_low_rounded = std::ceil(error_low / ten_pow_p) * ten_pow_p;
+
+        std::ostringstream ss;
+        ss << std::setprecision(decimals_to_print()) << std::fixed;
+        if(error_up == 0 && error_low == 0)
+            ss << value_rounded<< "^{+0}_{-0}";
+        else if(!std::isnan(error_low))
+            ss << value_rounded<< "^{+" << error_up_rounded << "}_{-" << error_low_rounded << "}";
+        else if(std::isnan(error_low)) {
+            ss << value_rounded << " \\pm ";
+            if(error_up == 0)
+                ss << "0";
+            else
+                ss << error_up_rounded;
+       }
+
+       return ss.str();
+    }
+};
 
 } // namespace analysis

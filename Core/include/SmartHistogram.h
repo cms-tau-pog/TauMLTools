@@ -21,7 +21,6 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include "TextIO.h"
 #include "NumericPrimitives.h"
 #include "PropertyConfigReader.h"
-#include "AnalyzerData.h"
 
 namespace root_ext {
 
