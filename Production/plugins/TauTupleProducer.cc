@@ -27,6 +27,18 @@ namespace MuonSubdetId {
 enum { DT = 1, CSC = 2, RPC = 3, GEM = 4, ME0 = 5 };
 }
 
+template<typename LVector1, typename LVector2>
+float dEta(const LVector1& p4, const LVector2& tau_p4)
+{
+    return static_cast<float>(p4.eta() - tau_p4.eta());
+}
+
+template<typename LVector1, typename LVector2>
+float dPhi(const LVector1& p4, const LVector2& tau_p4)
+{
+    return static_cast<float>(ROOT::Math::VectorUtil::DeltaPhi(p4, tau_p4));
+}
+
 struct MuonHitMatch {
     static constexpr int n_muon_stations = 4;
 
@@ -106,14 +118,14 @@ struct MuonHitMatch {
         return matched_muons;
     }
 
-     void FillTuple(tau_tuple::Tau& tau) const
+     void FillTuple(tau_tuple::Tau& tau, const pat::Tau& reco_tau) const
      {
          static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
 
          tau.n_matched_muons = n_muons;
          tau.muon_pt = best_matched_muon != nullptr ? best_matched_muon->p4().pt() : default_value;
-         tau.muon_eta = best_matched_muon != nullptr ? best_matched_muon->p4().eta() : default_value;
-         tau.muon_phi = best_matched_muon != nullptr ? best_matched_muon->p4().phi() : default_value;
+         tau.muon_dEta = best_matched_muon != nullptr ? dEta(best_matched_muon->p4(), reco_tau.p4()) : default_value;
+         tau.muon_dPhi = best_matched_muon != nullptr ? dPhi(best_matched_muon->p4(), reco_tau.p4()) : default_value;
          tau.muon_n_matches_DT_1 = n_matches.at(MuonSubdetId::DT).at(0);
          tau.muon_n_matches_DT_2 = n_matches.at(MuonSubdetId::DT).at(1);
          tau.muon_n_matches_DT_3 = n_matches.at(MuonSubdetId::DT).at(2);
@@ -367,13 +379,15 @@ private:
         tauTuple().ip3d_sig = tau.ip3d_Sig();
         tauTuple().hasSecondaryVertex = tau.hasSecondaryVertex();
         tauTuple().flightLength_r = tau.flightLength().R();
-        tauTuple().flightLength_eta = tau.flightLength().Eta();
-        tauTuple().flightLength_phi = tau.flightLength().Phi();
+        tauTuple().flightLength_dEta = dEta(tau.flightLength(), tau.p4());
+        tauTuple().flightLength_dPhi = dPhi(tau.flightLength(), tau.p4());
         tauTuple().flightLength_sig = tau.flightLengthSig();
 
         tauTuple().leadChargedHadrCand_pt = leadChargedHadrCand ? leadChargedHadrCand->p4().Pt() : default_value;
-        tauTuple().leadChargedHadrCand_eta = leadChargedHadrCand ? leadChargedHadrCand->p4().Eta() : default_value;
-        tauTuple().leadChargedHadrCand_phi = leadChargedHadrCand ? leadChargedHadrCand->p4().Phi() : default_value;
+        tauTuple().leadChargedHadrCand_dEta = leadChargedHadrCand
+                ? dEta(leadChargedHadrCand->p4(), tau.p4()) : default_value;
+        tauTuple().leadChargedHadrCand_dPhi = leadChargedHadrCand
+                ? dPhi(leadChargedHadrCand->p4(), tau.p4()) : default_value;
         tauTuple().leadChargedHadrCand_mass = leadChargedHadrCand ? leadChargedHadrCand->p4().mass() : default_value;
 
         tauTuple().pt_weighted_deta_strip = clusterVariables.tau_pt_weighted_deta_strip(tau, tau.decayMode());
@@ -395,18 +409,19 @@ private:
         auto gsf_ele = FindMatchedElectron(tau, electrons, 0.3);
         tauTuple().gsf_ele_matched = gsf_ele != nullptr;
         tauTuple().gsf_ele_pt = gsf_ele != nullptr ? gsf_ele->p4().Pt() : default_value;
-        tauTuple().gsf_ele_eta = gsf_ele != nullptr ? gsf_ele->p4().Eta() : default_value;
-        tauTuple().gsf_ele_phi = gsf_ele != nullptr ? gsf_ele->p4().Phi() : default_value;
+        tauTuple().gsf_ele_dEta = gsf_ele != nullptr ? dEta(gsf_ele->p4(), tau.p4()) : default_value;
+        tauTuple().gsf_ele_dPhi = gsf_ele != nullptr ? dPhi(gsf_ele->p4(), tau.p4()) : default_value;
         tauTuple().gsf_ele_mass = gsf_ele != nullptr ? gsf_ele->p4().mass() : default_value;
         CalculateElectronClusterVars(gsf_ele, tauTuple().gsf_ele_Ee, tauTuple().gsf_ele_Egamma);
         tauTuple().gsf_ele_Pin = gsf_ele != nullptr ? gsf_ele->trackMomentumAtVtx().R() : default_value;
         tauTuple().gsf_ele_Pout = gsf_ele != nullptr ? gsf_ele->trackMomentumOut().R() : default_value;
         tauTuple().gsf_ele_EtotOverPin = tauTuple().gsf_ele_Pin > 0
-                ? (tauTuple().gsf_ele_Ee + tauTuple().gsf_ele_Egamma) / tauTuple().gsf_ele_Pin
-                : default_value;
+                ? (tauTuple().gsf_ele_Ee + tauTuple().gsf_ele_Egamma) / tauTuple().gsf_ele_Pin : default_value;
         tauTuple().gsf_ele_Eecal = gsf_ele != nullptr ? gsf_ele->ecalEnergy() : default_value;
-        tauTuple().gsf_ele_deta = gsf_ele != nullptr ? gsf_ele->deltaEtaSeedClusterTrackAtCalo() : default_value;
-        tauTuple().gsf_ele_dphi = gsf_ele != nullptr ? gsf_ele->deltaPhiSeedClusterTrackAtCalo() : default_value;
+        tauTuple().gsf_ele_dEta_SeedClusterTrackAtCalo = gsf_ele != nullptr
+                ? gsf_ele->deltaEtaSeedClusterTrackAtCalo() : default_value;
+        tauTuple().gsf_ele_dPhi_SeedClusterTrackAtCalo = gsf_ele != nullptr
+                ? gsf_ele->deltaPhiSeedClusterTrackAtCalo() : default_value;
         tauTuple().gsf_ele_mvaIn_sigmaEtaEta = gsf_ele != nullptr ? gsf_ele->mvaInput().sigmaEtaEta : default_value;
         tauTuple().gsf_ele_mvaIn_hadEnergy = gsf_ele != nullptr ? gsf_ele->mvaInput().hadEnergy : default_value;
         tauTuple().gsf_ele_mvaIn_deltaEta = gsf_ele != nullptr ? gsf_ele->mvaInput().deltaEta : default_value;
@@ -447,7 +462,7 @@ private:
         auto matched_muons = muon_hit_match.FindMatchedMuons(tau, muons, 0.3, 5);
         for(auto muon : matched_muons)
             muon_hit_match.AddMatchedMuon(*muon, tau);
-        muon_hit_match.FillTuple(tauTuple());
+        muon_hit_match.FillTuple(tauTuple(), tau);
 
         tauTuple().leadTrack_p = default_value;
         if(tau.leadPFChargedHadrCand().isNonnull()) {
@@ -466,17 +481,17 @@ private:
         }
     }
 
-#define SET_P4(branch, p4) \
-    tauTuple().branch##_pt = p4.Pt(); \
-    tauTuple().branch##_eta = p4.Eta(); \
-    tauTuple().branch##_phi = p4.Phi(); \
-    tauTuple().branch##_mass = p4.mass()
+#define SET_P4(branch, cand_p4, n) \
+    tauTuple().branch##_pt = n != 0 ? cand_p4.Pt() : default_value; \
+    tauTuple().branch##_dEta = n != 0 ? dEta(cand_p4, tau.p4()) : default_value; \
+    tauTuple().branch##_dPhi = n != 0 ? dPhi(cand_p4, tau.p4()) : default_value; \
+    tauTuple().branch##_mass = n != 0 ? cand_p4.mass() : default_value
 
-#define ADD_P4(branch, p4) \
-    tauTuple().branch##_pt.push_back(p4.Pt()); \
-    tauTuple().branch##_eta.push_back(p4.Eta()); \
-    tauTuple().branch##_phi.push_back(p4.Phi()); \
-    tauTuple().branch##_mass.push_back(p4.mass())
+#define ADD_P4(branch, cand_p4) \
+    tauTuple().branch##_pt.push_back(cand_p4.Pt()); \
+    tauTuple().branch##_dEta.push_back(dEta(cand_p4, tau.p4())); \
+    tauTuple().branch##_dPhi.push_back(dPhi(cand_p4, tau.p4())); \
+    tauTuple().branch##_mass.push_back(cand_p4.mass())
 
 #define PRE_PROCESS_SIG_CAND(branch) \
     analysis::LorentzVectorXYZ branch##_sumIn(0, 0, 0, 0), branch##_sumOut(0, 0, 0, 0); \
@@ -499,8 +514,8 @@ private:
     /**/
 
 #define POST_PROCESS_SIG_CAND(branch) \
-    SET_P4(branch##_sum_innerSigCone, branch##_sumIn); \
-    SET_P4(branch##_sum_outerSigCone, branch##_sumOut); \
+    SET_P4(branch##_sum_innerSigCone, branch##_sumIn, tauTuple().branch##_nTotal_innerSigCone); \
+    SET_P4(branch##_sum_outerSigCone, branch##_sumOut, tauTuple().branch##_nTotal_outerSigCone); \
     /**/
 
 #define PRE_PROCESS_ISO_CAND(branch) \
@@ -515,11 +530,12 @@ private:
     /**/
 
 #define POST_PROCESS_ISO_CAND(branch) \
-    SET_P4(branch##_sum, branch##_sum); \
+    SET_P4(branch##_sum, branch##_sum, tauTuple().branch##_nTotal); \
     /**/
 
     void FillComponents(const pat::Tau& tau)
     {
+        static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
         const double innerSigCone_radius = GetInnerSignalConeRadius(tau.pt());
 
         PRE_PROCESS_SIG_CAND(signalChargedHadrCands)

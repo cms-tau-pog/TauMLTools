@@ -33,16 +33,16 @@
 #define TAU_SIG_COMP(col) \
     CVAR(Bool_t, isInside_innerSigCone, col) /* */ \
     CVAR(Float_t, pt, col) /* */ \
-    CVAR(Float_t, eta, col) /* */ \
-    CVAR(Float_t, phi, col) /* */ \
+    CVAR(Float_t, dEta, col) /* */ \
+    CVAR(Float_t, dPhi, col) /* */ \
     CVAR(Float_t, mass, col) /* */ \
     CSVAR(Float_t, sum_innerSigCone_pt, col) /* */ \
-    CSVAR(Float_t, sum_innerSigCone_eta, col) /* */ \
-    CSVAR(Float_t, sum_innerSigCone_phi, col) /* */ \
+    CSVAR(Float_t, sum_innerSigCone_dEta, col) /* */ \
+    CSVAR(Float_t, sum_innerSigCone_dPhi, col) /* */ \
     CSVAR(Float_t, sum_innerSigCone_mass, col) /* */ \
     CSVAR(Float_t, sum_outerSigCone_pt, col) /* */ \
-    CSVAR(Float_t, sum_outerSigCone_eta, col) /* */ \
-    CSVAR(Float_t, sum_outerSigCone_phi, col) /* */ \
+    CSVAR(Float_t, sum_outerSigCone_dEta, col) /* */ \
+    CSVAR(Float_t, sum_outerSigCone_dPhi, col) /* */ \
     CSVAR(Float_t, sum_outerSigCone_mass, col) /* */ \
     CSVAR(UInt_t, nTotal_innerSigCone, col) /* */ \
     CSVAR(UInt_t, nTotal_outerSigCone, col) /* */ \
@@ -50,12 +50,12 @@
 
 #define TAU_ISO_COMP(col) \
     CVAR(Float_t, pt, col) /* */ \
-    CVAR(Float_t, eta, col) /* */ \
-    CVAR(Float_t, phi, col) /* */ \
+    CVAR(Float_t, dEta, col) /* */ \
+    CVAR(Float_t, dPhi, col) /* */ \
     CVAR(Float_t, mass, col) /* */ \
     CSVAR(Float_t, sum_pt, col) /* */ \
-    CSVAR(Float_t, sum_eta, col) /* */ \
-    CSVAR(Float_t, sum_phi, col) /* */ \
+    CSVAR(Float_t, sum_dEta, col) /* */ \
+    CSVAR(Float_t, sum_dPhi, col) /* */ \
     CSVAR(Float_t, sum_mass, col) /* */ \
     CSVAR(UInt_t, nTotal, col) /* */ \
     /**/
@@ -107,12 +107,12 @@
     VAR(Float_t, ip3d_sig) /* */ \
     VAR(Bool_t, hasSecondaryVertex) /* */ \
     VAR(Float_t, flightLength_r) /* */ \
-    VAR(Float_t, flightLength_eta) /* */ \
-    VAR(Float_t, flightLength_phi) /* */ \
+    VAR(Float_t, flightLength_dEta) /* */ \
+    VAR(Float_t, flightLength_dPhi) /* */ \
     VAR(Float_t, flightLength_sig) /* */ \
     VAR(Float_t, leadChargedHadrCand_pt) /* pt of the leading charged hadron candidate */ \
-    VAR(Float_t, leadChargedHadrCand_eta) /* eta of the leading charged hadron candidate */ \
-    VAR(Float_t, leadChargedHadrCand_phi) /* phi of the leading charged hadron candidate */ \
+    VAR(Float_t, leadChargedHadrCand_dEta) /* eta of the leading charged hadron candidate */ \
+    VAR(Float_t, leadChargedHadrCand_dPhi) /* phi of the leading charged hadron candidate */ \
     VAR(Float_t, leadChargedHadrCand_mass) /* mass of the leading charged hadron candidate */ \
     VAR(Float_t, pt_weighted_deta_strip) /* */ \
     VAR(Float_t, pt_weighted_dphi_strip) /* */ \
@@ -132,8 +132,8 @@
     VAR(Float_t, ecal_crack_dEta) /* */ \
     VAR(Bool_t, gsf_ele_matched) /* */ \
     VAR(Float_t, gsf_ele_pt) /* */ \
-    VAR(Float_t, gsf_ele_eta) /* */ \
-    VAR(Float_t, gsf_ele_phi) /* */ \
+    VAR(Float_t, gsf_ele_dEta) /* */ \
+    VAR(Float_t, gsf_ele_dPhi) /* */ \
     VAR(Float_t, gsf_ele_mass) /* */ \
     VAR(Float_t, gsf_ele_Ee) /* */ \
     VAR(Float_t, gsf_ele_Egamma) /* */ \
@@ -141,8 +141,8 @@
     VAR(Float_t, gsf_ele_Pout) /* */ \
     VAR(Float_t, gsf_ele_EtotOverPin) /* */ \
     VAR(Float_t, gsf_ele_Eecal) /* */ \
-    VAR(Float_t, gsf_ele_deta) /* */ \
-    VAR(Float_t, gsf_ele_dphi) /* */ \
+    VAR(Float_t, gsf_ele_dEta_SeedClusterTrackAtCalo) /* */ \
+    VAR(Float_t, gsf_ele_dPhi_SeedClusterTrackAtCalo) /* */ \
     VAR(Float_t, gsf_ele_mvaIn_sigmaEtaEta) /* */ \
     VAR(Float_t, gsf_ele_mvaIn_hadEnergy) /* */ \
     VAR(Float_t, gsf_ele_mvaIn_deltaEta) /* */ \
@@ -160,8 +160,8 @@
     /* Against muon */ \
     VAR(Bool_t, n_matched_muons) /* */ \
     VAR(Float_t, muon_pt) /* */ \
-    VAR(Float_t, muon_eta) /* */ \
-    VAR(Float_t, muon_phi) /* */ \
+    VAR(Float_t, muon_dEta) /* */ \
+    VAR(Float_t, muon_dPhi) /* */ \
     VAR(UInt_t, muon_n_matches_DT_1) /* */ \
     VAR(UInt_t, muon_n_matches_DT_2) /* */ \
     VAR(UInt_t, muon_n_matches_DT_3) /* */ \
