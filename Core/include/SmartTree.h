@@ -161,7 +161,7 @@ namespace detail {
                 }
             } else {
 
-                static constexpr Int_t bufferSize = 1024 * 1024;
+                static constexpr Int_t bufferSize = 32 * 1024;
                 TBranch* branch;
                 if(cl) {
                     std::string cl_name = cl->GetName();
@@ -189,8 +189,8 @@ public:
         : name(_name), directory(_directory), readMode(_readMode), disabled_branches(_disabled_branches),
           enabled_branches(_enabled_branches)
     {
-        static constexpr Long64_t maxVirtualSize = 1024 * 1024 * 1024;
-        static constexpr Long64_t autoFlush = -1024 * 1024 * 100;
+        static constexpr Long64_t maxVirtualSize = 200 * 1024 * 1024;
+        static constexpr Long64_t autoFlush = - 50 * 1024 * 1024;
 
         if(readMode) {
             if(!directory)
