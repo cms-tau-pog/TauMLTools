@@ -1,0 +1,6 @@
+Automatic
+globalTag=94X_mc2017_realistic_v14 sampleType=Fall17MC
+
+TTTo2L2Nu_TuneCP5_PSweights	960	/TTTo2L2Nu_TuneCP5_PSweights_13TeV-powheg-pythia8/RunIIFall17MiniAOD-94X_mc2017_realistic_v10-v1/MINIAODSIM
+TTToSemiLeptonic	960	/TTToSemiLeptonic_TuneCP5_13TeV-powheg-pythia8/RunIIFall17MiniAOD-94X_mc2017_realistic_v10-v1/MINIAODSIM
+TTToSemiLeptonic_TuneCP5_PSweights	960	/TTToSemiLeptonic_TuneCP5_PSweights_13TeV-powheg-pythia8/RunIIFall17MiniAOD-94X_mc2017_realistic_v10-v1/MINIAODSIM
