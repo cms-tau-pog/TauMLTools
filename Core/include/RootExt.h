@@ -17,9 +17,11 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 namespace root_ext {
 
-inline std::shared_ptr<TFile> CreateRootFile(const std::string& file_name)
+inline std::shared_ptr<TFile> CreateRootFile(const std::string& file_name,
+                                             ROOT::ECompressionAlgorithm compression = ROOT::kZLIB,
+                                             int compression_level = 9)
 {
-    std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "RECREATE", "", ROOT::kZLIB * 100 + 9));
+    std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "RECREATE", "", compression * 100 + compression_level));
     if(!file || file->IsZombie())
         throw analysis::exception("File '%1%' not created.") % file_name;
     return file;
