@@ -74,7 +74,7 @@ std::vector<std::string> ToStringVector(const std::vector<T>& v)
     return result;
 }
 template<typename Collection>
-static std::string CollectionToString(const Collection& col, const std::string& separator = ", ")
+std::string CollectionToString(const Collection& col, const std::string& separator = ", ")
 {
     std::ostringstream ss;
     auto iter = col.begin();
