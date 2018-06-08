@@ -51,11 +51,17 @@ public:
             Long64_t pos = 0, selected_pos = dist(rnd);
             size_t tuple_index = 0;
             while(tuple_index < n_remaining_entries.size() && pos + n_remaining_entries[tuple_index] < selected_pos) {
-                ++tuple_index;
-                pos += n_remaining_entries[tuple_index];
+                pos += n_remaining_entries[tuple_index++];
             }
-            if(tuple_index == n_remaining_entries.size())
+            if(tuple_index == n_remaining_entries.size()) {
+                std::cerr << "pos:" << pos << "\nremain: " << n_entries_total
+                          << "\nselected pos: " << selected_pos << "\nn tuples: " << n_remaining_entries.size()
+                          <<  std::endl;
+                for(auto x : n_remaining_entries)
+                    std::cout << "\t" << x << "\n";
+                std::cout << std::endl;
                 throw exception("Tuple index is out of range.");
+            }
             auto input_tuple = input_tuples.at(tuple_index);
             input_tuple->GetEntry(current_entries.at(tuple_index)++);
             output_tuple() = input_tuple->data();
