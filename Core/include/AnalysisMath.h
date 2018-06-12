@@ -22,6 +22,8 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 #include "PhysicalValue.h"
 
+extern template TMatrixT<double>::TMatrixT(int, int);
+
 namespace analysis {
 
 using LorentzVectorXYZ = ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double>>;
@@ -35,14 +37,17 @@ using LorentzVectorE_Float = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<f
 
 template<unsigned n>
 using SquareMatrix = ROOT::Math::SMatrix<double, n, n, ROOT::Math::MatRepStd<double, n>>;
-
+    
 template<unsigned n>
 TMatrixD ConvertMatrix(const SquareMatrix<n>& m)
 {
-    TMatrixD result(n, n);
+    TMatrixD result(n,n);
     for(unsigned k = 0; k < n; ++k) {
-        for(unsigned l = 0; l < n; ++l)
-            result[k][l] = m[k][l];
+        for(unsigned l = 0; l < n; ++l) {
+            int kk = static_cast<int>(k);
+            int ll = static_cast<int>(l);
+            result(kk, ll) = m(k,l);
+        }
     }
     return result;
 }
