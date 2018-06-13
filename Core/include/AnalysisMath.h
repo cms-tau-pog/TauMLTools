@@ -22,7 +22,8 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 #include "PhysicalValue.h"
 
-extern template TMatrixT<double>::TMatrixT(int, int);
+//extern template TMatrixT<double>::TMatrixT(int, int);
+extern template class TMatrixT<double>;
 
 namespace analysis {
 
