@@ -3,3 +3,4 @@ __init__.py
 /CMakeLists.txt.user
 /tuples
 /results
+/*.pb
