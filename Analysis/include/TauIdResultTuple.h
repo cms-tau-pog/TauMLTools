@@ -9,6 +9,7 @@
     VAR(UInt_t, run) /* run */ \
     VAR(UInt_t, lumi) /* lumi section */ \
     VAR(ULong64_t, evt) /* event number */ \
+    VAR(Float_t, genEventWeight) /* gen event weight */ \
     VAR(UInt_t, tau_index) /* index of the tau */ \
     VAR(Float_t, pt) /* tau pt */ \
     VAR(Float_t, eta) /* tau eta */ \
@@ -18,10 +19,10 @@
     VAR(Bool_t, gen_mu) /* matches mu at gen level */ \
     VAR(Bool_t, gen_tau) /* matches hadronic tau at gen level */ \
     VAR(Bool_t, gen_jet) /* matches jet at gen level */ \
-    VAR(Float_t, deepId_e) /* DeepTau e->tau id value */ \
-    VAR(Float_t, deepId_mu) /* DeepTau mu->tau id value */ \
-    VAR(Float_t, deepId_tau) /* DeepTau hadronic tau->tau id value */ \
-    VAR(Float_t, deepId_jet) /* DeepTau jet->tau id value */ \
+    VAR(Float_t, deepId_tau_vs_e) /* DeepTau tau vs e id value */ \
+    VAR(Float_t, deepId_tau_vs_mu) /* DeepTau tau vs mu id value */ \
+    VAR(Float_t, deepId_tau_vs_jet) /* DeepTau tau vs jet id value */ \
+    VAR(Float_t, deepId_tau_vs_all) /* DeepTau tau vs all id value */ \
     VAR(Float_t, refId_e) /* Reference e->tau id value */ \
     VAR(Float_t, refId_mu_loose) /* Reference mu->tau id value (loose WP) */ \
     VAR(Float_t, refId_mu_tight) /* Reference mu->tau id value (Tight WP) */ \

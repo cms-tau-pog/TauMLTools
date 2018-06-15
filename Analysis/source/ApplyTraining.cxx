@@ -19,6 +19,7 @@ struct Arguments {
     REQ_ARG(std::string, output);
     REQ_ARG(std::string, model);
     OPT_ARG(std::string, tree_name, "taus");
+    OPT_ARG(size_t, n_max, std::numeric_limits<size_t>::max());
 };
 
 namespace analysis {
@@ -77,11 +78,11 @@ namespace analysis {
               isolationGammaCands_nTotal) \
     /**/
 
-namespace dnn_input {
+struct dnn_input_2017v1 {
 #define VAR(name) name,
     enum vars { INPUT_VARS() NumberOfInputs };
 #undef VAR
-}
+};
 
 class ApplyTraining {
 public:
@@ -94,9 +95,9 @@ public:
 
     ApplyTraining(const Arguments& _args) :
         args(_args), graph(tensorflow::loadGraphDef(args.model())), session(tensorflow::createSession(graph.get())),
-        x(tensorflow::DT_FLOAT, {1, dnn_input::NumberOfInputs})
+        x(tensorflow::DT_FLOAT, {1, dnn_input_2017v1::NumberOfInputs})
     {
-        std::cout << "Total number of inputs: " << static_cast<int>(dnn_input::NumberOfInputs) << std::endl;
+        std::cout << "Total number of inputs: " << static_cast<int>(dnn_input_2017v1::NumberOfInputs) << std::endl;
         std::ifstream cfg(args.input_list());
         if(cfg.fail())
             throw exception("Failed to open config '%1%'.") % args.input_list();
@@ -119,7 +120,13 @@ public:
     {
         auto output_file = root_ext::CreateRootFile(args.output(), ROOT::kLZ4, 5);
         TauIdResultTuple output_tuple(args.tree_name(), output_file.get(), false);
-        for(const auto& input_name : input_files) {
+        const std::string& input_layer = graph->node(0).name();
+        const std::string& output_layer = graph->node(graph->node_size() - 1).name();
+        std::cout << "Input: " << input_layer << "\nOutput: " << output_layer << std::endl;
+
+        size_t n_processed = 0;
+        for(size_t input_index = 0; input_index < input_files.size() && n_processed < args.n_max(); ++input_index) {
+            const auto& input_name = input_files.at(input_index);
             std::cout << "Processing '" << input_name << "'..." << std::endl;
             auto file = root_ext::OpenRootFile(args.input_dir() + "/" + input_name);
             TauTuple tuple(args.tree_name(), file.get(), true);
@@ -148,7 +155,7 @@ public:
                                                                      DiscriminatorWP::Tight);
                 output_tuple().refId_jet = tau.byIsolationMVArun2017v2DBoldDMwLTraw2017;
 
-                const auto& pred = RunGraph(tau);
+                const auto& pred = RunGraph<dnn_input_2017v1>(tau, input_layer, output_layer);
                 output_tuple().deepId_e = pred.matrix<float>()(0, 0);
                 output_tuple().deepId_mu = pred.matrix<float>()(0, 1);
                 output_tuple().deepId_tau = pred.matrix<float>()(0, 2);
@@ -157,6 +164,8 @@ public:
                 output_tuple.Fill();
                 if(++n % 10000 == 0)
                     std::cout << "\tProgress: " << n << "/" << n_total << std::endl;
+                ++n_processed;
+                if(n_processed >= args.n_max()) break;
             }
         }
 
@@ -168,12 +177,13 @@ private:
 
 #define VAR(name) x.matrix<float>()(0, dnn_input::name) = tau.name;
 
-    tensorflow::Tensor RunGraph(const Tau& tau)
+    template<typename dnn_input>
+    tensorflow::Tensor RunGraph(const Tau& tau, const std::string& input_layer, const std::string& output_layer)
     {
         INPUT_VARS()
 
         std::vector<tensorflow::Tensor> pred;
-        tensorflow::run(session, { { "dense_94_input:0", x } }, { "output_node0:0"}, &pred);
+        tensorflow::run(session, { { input_layer, x } }, { output_layer }, &pred);
         return pred.at(0);
     }
 
