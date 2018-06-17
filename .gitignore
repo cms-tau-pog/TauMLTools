@@ -2,3 +2,5 @@ __init__.py
 *.pyc
 /CMakeLists.txt.user
 /tuples
+/results
+/*.pb
