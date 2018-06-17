@@ -30,6 +30,7 @@ parser.add_argument('--unitsPerJob', required=False, dest='unitsPerJob', type=in
 					help="number of units per job (default: use values from the config file)")
 parser.add_argument('--maxMemory', required=False, dest='maxMemory', type=int, default=2000,
 					help="maximum amount of memory (in MB) a job is allowed to use (default: 2000 MB )")
+parser.add_argument('--allowNonValid', action="store_true", help="Allow nonvalid dataset as an input.")
 parser.add_argument('job_file', type=str, nargs='+', help="text file with jobs descriptions")
 args = parser.parse_args()
 
@@ -46,6 +47,7 @@ config.JobType.psetName = args.cfg
 config.JobType.maxMemoryMB = args.maxMemory
 
 config.Data.inputDBS = 'global'
+config.Data.allowNonValidInputDataset = args.allowNonValid
 config.General.transferOutputs = True
 config.General.transferLogs = True
 config.Data.publication = False
