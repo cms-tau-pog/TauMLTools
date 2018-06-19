@@ -37,32 +37,41 @@ public:
 
     void Run()
     {
-        const Long64_t entry = FindEntry();
+        static const std::string sep(10, '-');
+        std::vector<Long64_t> entries = FindEntries();
+        if(!entries.size())
+            throw exception("Event %1% not found.") % selectedEventId;
         const auto branch_names = SmartBranch::CollectBranchNames(*tree);
-        for(const std::string& name : branch_names) {
-            try {
-                SmartBranch branch(*tree, name);
-                branch.Enable();
-                branch->GetEntry(entry);
-                branch.PrintValue(std::cout);
-            } catch(exception& e) {
-                std::cerr << e.what() << std::endl;
+        for(Long64_t entry : entries) {
+            std::cout << sep << " entry " << entry << " START " << sep << std::endl;
+            for(const std::string& name : branch_names) {
+                try {
+                    SmartBranch branch(*tree, name);
+                    branch.Enable();
+                    branch->GetEntry(entry);
+                    branch.PrintValue(std::cout);
+                } catch(exception& e) {
+                    std::cerr << e.what() << std::endl;
+                }
             }
+            std::cout << sep << " entry " << entry << " END " << sep << std::endl;
         }
     }
 
 private:
-    Long64_t FindEntry() const
+    std::vector<Long64_t> FindEntries() const
     {
+        std::vector<Long64_t> entries;
         for(Long64_t n = 0; n < tree->GetEntries(); ++n) {
+
             tree->GetEntry(n);
             const EventIdentifier currentEventId(idBranches.at(0).GetValue<EventIdentifier::IdType>(),
                                                  idBranches.at(1).GetValue<EventIdentifier::IdType>(),
                                                  idBranches.at(2).GetValue<EventIdentifier::IdType>());
             if(currentEventId == selectedEventId)
-                return n;
+                entries.push_back(n);
         }
-        throw exception("Event %1% not found.") % selectedEventId;
+        return entries;
     }
 
 private:
