@@ -150,8 +150,6 @@ struct MuonHitMatch {
          tau.muon_n_hits_RPC_2 = n_hits.at(MuonSubdetId::RPC).at(1);
          tau.muon_n_hits_RPC_3 = n_hits.at(MuonSubdetId::RPC).at(2);
          tau.muon_n_hits_RPC_4 = n_hits.at(MuonSubdetId::RPC).at(3);
-         tau.muon_n_stations_with_matches_03 = CountMuonStationsWithMatches(0, 3);
-         tau.muon_n_stations_with_hits_23 = CountMuonStationsWithHits(2, 3);
      }
 
 private:
@@ -389,6 +387,8 @@ private:
         tauTuple().leadChargedHadrCand_dPhi = leadChargedHadrCand
                 ? dPhi(leadChargedHadrCand->p4(), tau.p4()) : default_value;
         tauTuple().leadChargedHadrCand_mass = leadChargedHadrCand ? leadChargedHadrCand->p4().mass() : default_value;
+        tauTuple().leadChargedCand_etaAtEcalEntrance = tau.etaAtEcalEntranceLeadChargedCand();
+
 
         tauTuple().pt_weighted_deta_strip = clusterVariables.tau_pt_weighted_deta_strip(tau, tau.decayMode());
         tauTuple().pt_weighted_dphi_strip = clusterVariables.tau_pt_weighted_dphi_strip(tau, tau.decayMode());
@@ -400,10 +400,7 @@ private:
         tauTuple().n_photons = clusterVariables.tau_n_photons_total(tau);
 
         tauTuple().emFraction = tau.emFraction_MVA();
-        CalculateEtaPhiAtEcalEntrance(tau, tauTuple().etaAtEcalEntrance, tauTuple().phiAtEcalEntrance);
         tauTuple().inside_ecal_crack = IsInEcalCrack(tau.p4().Eta());
-        tauTuple().ecal_crack_dPhi = CalculateDeltaPhiCrack(tauTuple().etaAtEcalEntrance, tauTuple().phiAtEcalEntrance);
-        tauTuple().ecal_crack_dEta = CalculateDeltaEtaCrack(tauTuple().etaAtEcalEntrance);
 
         tauTuple().has_gsf_track = leadChargedHadrCand && std::abs(leadChargedHadrCand->pdgId()) == 11;
         auto gsf_ele = FindMatchedElectron(tau, electrons, 0.3);
@@ -411,12 +408,10 @@ private:
         tauTuple().gsf_ele_pt = gsf_ele != nullptr ? gsf_ele->p4().Pt() : default_value;
         tauTuple().gsf_ele_dEta = gsf_ele != nullptr ? dEta(gsf_ele->p4(), tau.p4()) : default_value;
         tauTuple().gsf_ele_dPhi = gsf_ele != nullptr ? dPhi(gsf_ele->p4(), tau.p4()) : default_value;
-        tauTuple().gsf_ele_mass = gsf_ele != nullptr ? gsf_ele->p4().mass() : default_value;
+        tauTuple().gsf_ele_energy = gsf_ele != nullptr ? gsf_ele->p4().E() : default_value;
         CalculateElectronClusterVars(gsf_ele, tauTuple().gsf_ele_Ee, tauTuple().gsf_ele_Egamma);
         tauTuple().gsf_ele_Pin = gsf_ele != nullptr ? gsf_ele->trackMomentumAtVtx().R() : default_value;
         tauTuple().gsf_ele_Pout = gsf_ele != nullptr ? gsf_ele->trackMomentumOut().R() : default_value;
-        tauTuple().gsf_ele_EtotOverPin = tauTuple().gsf_ele_Pin > 0
-                ? (tauTuple().gsf_ele_Ee + tauTuple().gsf_ele_Egamma) / tauTuple().gsf_ele_Pin : default_value;
         tauTuple().gsf_ele_Eecal = gsf_ele != nullptr ? gsf_ele->ecalEnergy() : default_value;
         tauTuple().gsf_ele_dEta_SeedClusterTrackAtCalo = gsf_ele != nullptr
                 ? gsf_ele->deltaEtaSeedClusterTrackAtCalo() : default_value;
@@ -445,15 +440,6 @@ private:
             tauTuple().gsf_ele_KFNumHits = gsf_ele->closestCtfTrackRef()->numberOfValidHits();
         }
 
-        tauTuple().leadChargedCand_etaAtEcalEntrance = tau.etaAtEcalEntranceLeadChargedCand();
-        tauTuple().leadChargedCand_pt = tau.ptLeadChargedCand();
-
-        tauTuple().leadChargedHadrCand_HoP = default_value;
-        tauTuple().leadChargedHadrCand_EoP = default_value;
-        if(tau.leadChargedHadrCand()->pt() > 0) {
-            tauTuple().leadChargedHadrCand_HoP = tau.hcalEnergyLeadChargedHadrCand() / tau.leadChargedHadrCand()->pt();
-            tauTuple().leadChargedHadrCand_EoP = tau.ecalEnergyLeadChargedHadrCand() / tau.leadChargedHadrCand()->pt();
-        }
 
         MuonHitMatch muon_hit_match;
         if(tau.leadPFChargedHadrCand().isNonnull() && tau.leadPFChargedHadrCand()->muonRef().isNonnull())
@@ -463,132 +449,72 @@ private:
         for(auto muon : matched_muons)
             muon_hit_match.AddMatchedMuon(*muon, tau);
         muon_hit_match.FillTuple(tauTuple(), tau);
-
-        tauTuple().leadTrack_p = default_value;
-        if(tau.leadPFChargedHadrCand().isNonnull()) {
-            tauTuple().energy_ECAL = tau.leadPFChargedHadrCand()->ecalEnergy();
-            tauTuple().energy_HCAL = tau.leadPFChargedHadrCand()->hcalEnergy();
-            const reco::Track* leadTrack = nullptr;
-            if(tau.leadPFChargedHadrCand()->trackRef().isNonnull())
-                leadTrack = tau.leadPFChargedHadrCand()->trackRef().get();
-            else if(tau.leadPFChargedHadrCand()->gsfTrackRef().isNonnull())
-                leadTrack = tau.leadPFChargedHadrCand()->gsfTrackRef().get();
-            if(leadTrack)
-                tauTuple().leadTrack_p = leadTrack->p();
-        } else {
-            tauTuple().energy_ECAL = default_value;
-            tauTuple().energy_HCAL = default_value;
-        }
     }
 
-#define SET_P4(branch, cand_p4, n) \
-    tauTuple().branch##_pt = n != 0 ? cand_p4.Pt() : default_value; \
-    tauTuple().branch##_dEta = n != 0 ? dEta(cand_p4, tau.p4()) : default_value; \
-    tauTuple().branch##_dPhi = n != 0 ? dPhi(cand_p4, tau.p4()) : default_value; \
-    tauTuple().branch##_mass = n != 0 ? cand_p4.mass() : default_value
-
-#define ADD_P4(branch, cand_p4) \
-    tauTuple().branch##_pt.push_back(cand_p4.Pt()); \
-    tauTuple().branch##_dEta.push_back(dEta(cand_p4, tau.p4())); \
-    tauTuple().branch##_dPhi.push_back(dPhi(cand_p4, tau.p4())); \
-    tauTuple().branch##_mass.push_back(cand_p4.mass())
-
-#define PRE_PROCESS_SIG_CAND(branch) \
-    analysis::LorentzVectorXYZ branch##_sumIn(0, 0, 0, 0), branch##_sumOut(0, 0, 0, 0); \
-    tauTuple().branch##_nTotal_innerSigCone = 0; \
-    tauTuple().branch##_nTotal_outerSigCone = 0; \
+#define PROCESS_COMP(prefix, flav, col, dR2_min, dR2_max) \
+    ProcessComponentCollection(tau, tau.prefix##flav(), dR2_min, dR2_max, \
+        tauTuple().col##_##flav##_sum_pt, tauTuple().col##_##flav##_sum_ht, tauTuple().col##_##flav##_sum_dPhi, \
+        tauTuple().col##_##flav##_sum_dEta, tauTuple().col##_##flav##_sum_mass, tauTuple().col##_##flav##_sum_energy, \
+        tauTuple().col##_##flav##_nTotal)
     /**/
 
-#define PROCESS_SIG_CAND(branch) \
-    const double dR = ROOT::Math::VectorUtil::DeltaR(cand->p4(), tau.leadChargedHadrCand()->p4()); \
-    const bool isInside_innerSigCone = dR < innerSigCone_radius; \
-    tauTuple().branch##_isInside_innerSigCone.push_back(isInside_innerSigCone); \
-    ADD_P4(branch, cand->p4()); \
-    if(isInside_innerSigCone) { \
-        branch##_sumIn += cand->p4(); \
-        ++tauTuple().branch##_nTotal_innerSigCone; \
-    } else { \
-        branch##_sumOut += cand->p4(); \
-        ++tauTuple().branch##_nTotal_outerSigCone; \
-    } \
-    /**/
-
-#define POST_PROCESS_SIG_CAND(branch) \
-    SET_P4(branch##_sum_innerSigCone, branch##_sumIn, tauTuple().branch##_nTotal_innerSigCone); \
-    SET_P4(branch##_sum_outerSigCone, branch##_sumOut, tauTuple().branch##_nTotal_outerSigCone); \
-    /**/
-
-#define PRE_PROCESS_ISO_CAND(branch) \
-    analysis::LorentzVectorXYZ branch##_sum(0, 0, 0, 0); \
-    tauTuple().branch##_nTotal = 0; \
-    /**/
-
-#define PROCESS_ISO_CAND(branch) \
-    ADD_P4(branch, cand->p4()); \
-    branch##_sum += cand->p4(); \
-    ++tauTuple().branch##_nTotal; \
-    /**/
-
-#define POST_PROCESS_ISO_CAND(branch) \
-    SET_P4(branch##_sum, branch##_sum, tauTuple().branch##_nTotal); \
+#define PROCESS_COMP_SET(prefix, col, dR2_min, dR2_max) \
+    PROCESS_COMP(prefix, ChargedHadrCands, col, dR2_min, dR2_max); \
+    PROCESS_COMP(prefix, NeutrHadrCands, col, dR2_min, dR2_max); \
+    PROCESS_COMP(prefix, GammaCands, col, dR2_min, dR2_max) \
     /**/
 
     void FillComponents(const pat::Tau& tau)
     {
-        static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
         const double innerSigCone_radius = GetInnerSignalConeRadius(tau.pt());
 
-        PRE_PROCESS_SIG_CAND(signalChargedHadrCands)
-        for(const auto& cand : tau.signalChargedHadrCands()) {
-            PROCESS_SIG_CAND(signalChargedHadrCands)
-        }
-        POST_PROCESS_SIG_CAND(signalChargedHadrCands)
-
-        PRE_PROCESS_SIG_CAND(signalNeutrHadrCands)
-        for(const auto& cand : tau.signalNeutrHadrCands()) {
-            PROCESS_SIG_CAND(signalNeutrHadrCands)
-        }
-        POST_PROCESS_SIG_CAND(signalNeutrHadrCands)
-
-        PRE_PROCESS_SIG_CAND(signalGammaCands)
-        for(const auto& cand : tau.signalGammaCands()) {
-            PROCESS_SIG_CAND(signalGammaCands)
-        }
-        POST_PROCESS_SIG_CAND(signalGammaCands)
-
-        PRE_PROCESS_ISO_CAND(isolationChargedHadrCands)
-        for(const auto& cand : tau.isolationChargedHadrCands()) {
-            PROCESS_ISO_CAND(isolationChargedHadrCands)
-        }
-        POST_PROCESS_ISO_CAND(isolationChargedHadrCands)
-
-        PRE_PROCESS_ISO_CAND(isolationNeutrHadrCands)
-        for(const auto& cand : tau.isolationNeutrHadrCands()) {
-            PROCESS_ISO_CAND(isolationNeutrHadrCands)
-        }
-        POST_PROCESS_ISO_CAND(isolationNeutrHadrCands)
-
-        PRE_PROCESS_ISO_CAND(isolationGammaCands)
-        for(const auto& cand : tau.isolationGammaCands()) {
-            PROCESS_ISO_CAND(isolationGammaCands)
-        }
-        POST_PROCESS_ISO_CAND(isolationGammaCands)
-
-        tauTuple().tau_visMass_innerSigCone = (signalGammaCands_sumIn + signalChargedHadrCands_sumIn).mass();
+        PROCESS_COMP_SET(signal, innerSigCone, 0, innerSigCone_radius);
+        PROCESS_COMP_SET(signal, outerSigCone, innerSigCone_radius, 0.5);
+        PROCESS_COMP_SET(isolation, isoRing02, 0, 0.2);
+        PROCESS_COMP_SET(isolation, isoRing03, 0.2, 0.3);
+        PROCESS_COMP_SET(isolation, isoRing04, 0.3, 0.4);
+        PROCESS_COMP_SET(isolation, isoRing05, 0.4, 0.5);
     }
 
-#undef SET_P4
-#undef ADD_P4
-#undef PRE_PROCESS_SIG_CAND
-#undef PROCESS_SIG_CAND
-#undef POST_PROCESS_SIG_CAND
-#undef PRE_PROCESS_ISO_CAND
-#undef PROCESS_ISO_CAND
-#undef POST_PROCESS_ISO_CAND
+#undef PROCESS_COMP_SET
+#undef PROCESS_COMP
+
+    template<typename CandCollection>
+    static void ProcessComponentCollection(const pat::Tau& tau, const CandCollection& cands,
+                                           double dR2_min, double dR2_max,
+                                           float& sum_pt, float& sum_ht, float& sum_dPhi, float& sum_dEta,
+                                           float& sum_mass, float& sum_energy, unsigned& nTotal)
+    {
+        static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
+
+        analysis::LorentzVectorXYZ sum_p4(0, 0, 0, 0);
+        nTotal = 0;
+        sum_ht = 0;
+        for(const auto& cand : cands) {
+            if(!IsInsideRing(tau.p4(), cand->p4(), dR2_min, dR2_max)) continue;
+            sum_p4 += cand->p4();
+            sum_ht += cand->p4().pt();
+            ++nTotal;
+        }
+
+        sum_pt = sum_p4.pt();
+        sum_dPhi = nTotal > 0 ? dPhi(sum_p4, tau.p4()) : default_value;
+        sum_dEta = nTotal > 0 ? dEta(sum_p4, tau.p4()) : default_value;
+        sum_mass = sum_p4.mass();
+        sum_energy = sum_p4.E();
+    }
 
     static double GetInnerSignalConeRadius(double pt)
     {
         return std::max(.05, std::min(.1, 3./std::max(1., pt)));
+    }
+
+    template<typename LorentzVector1, typename LorentzVector2>
+    static double IsInsideRing(const LorentzVector1& p4_tau, const LorentzVector2& p4_cand,
+                               double dR2_min, double dR2_max)
+    {
+        const double dR2 = ROOT::Math::VectorUtil::DeltaR2(p4_tau, p4_cand);
+        return dR2 >= dR2_min && dR2 < dR2_max;
     }
 
     // Copied from https://github.com/cms-sw/cmssw/blob/CMSSW_9_4_X/RecoTauTag/RecoTau/plugins/PATTauDiscriminationByMVAIsolationRun2.cc#L218
