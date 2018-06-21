@@ -140,8 +140,6 @@ def ExtractMuonDiscriminators(id_flags):
     return mu_disc
 
 def ProcessFile(session, graph, file_name):
-    full_name = args.input + '/' + file_name
-
     print("Loading inputs...")
 
     result_branches = [
@@ -149,11 +147,11 @@ def ProcessFile(session, graph, file_name):
         'byIsolationMVArun2017v2DBoldDMwLTraw2017'
     ]
 
-    df = ReadBrancesToDataFrame(full_name, args.tree, result_branches)
+    df = ReadBrancesToDataFrame(file_name, args.tree, result_branches)
     refId_mu = ExtractMuonDiscriminators(df.id_flags)
 
-    X = ReadBranchesTo2DArray(full_name, args.tree, input_branches, np.float32, chunk_size=200)
-    Y_raw = ReadBranchesTo2DArray(full_name, args.tree, truth_branches, int)
+    X = ReadBranchesTo2DArray(file_name, args.tree, input_branches, np.float32, chunk_size=200)
+    Y_raw = ReadBranchesTo2DArray(file_name, args.tree, truth_branches, int)
     Y = VectorizeGenMatch(Y_raw, int)
     N = X.shape[0]
 
@@ -182,7 +180,12 @@ def ProcessFile(session, graph, file_name):
     })
 
 if args.filelist is None:
-    file_list = [ f for f in os.listdir(args.input) if f.endswith('.root') ]
+    if os.path.isdir(args.input):
+        file_list = [ f for f in os.listdir(args.input) if f.endswith('.root') ]
+        prefix = args.input + '/'
+    else:
+        file_list = [ args.input ]
+        prefix = ''
 else:
     with open(args.filelist, 'r') as f_list:
         file_list = [ f.strip() for f in f_list if len(f) != 0 ]
@@ -198,7 +201,8 @@ sess = tf.Session(graph=graph)
 
 for file_name in file_list:
     print("Processing '{}'".format(file_name))
-    df = ProcessFile(sess, graph, file_name)
+    full_name = prefix + file_name
+    df = ProcessFile(sess, graph, full_name)
     print("Saving output into '{}'...".format(args.output))
     df.to_hdf(args.output, 'taus', append=True, complevel=9, complib='zlib')
 
