@@ -1,0 +1,10 @@
+Automatic
+globalTag=94X_mc2017_realistic_v14 sampleType=Fall17MC
+
+ZprimeToTauTau_M-1000   1000    /ZprimeToTauTau_M-1000_TuneCP5_13TeV-pythia8-tauola/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
+ZprimeToTauTau_M-1500   1000    /ZprimeToTauTau_M-1500_TuneCP5_13TeV-pythia8-tauola/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
+ZprimeToTauTau_M-2000   1000    /ZprimeToTauTau_M-2000_TuneCP5_13TeV-pythia8-tauola/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
+ZprimeToTauTau_M-2500   1000    /ZprimeToTauTau_M-2500_TuneCP5_13TeV-pythia8-tauola/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
+ZprimeToTauTau_M-3000   1000    /ZprimeToTauTau_M-3000_TuneCP5_13TeV-pythia8-tauola/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
+ZprimeToTauTau_M-3500   1000    /ZprimeToTauTau_M-3500_TuneCP5_13TeV-pythia8-tauola/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
+ZprimeToTauTau_M-4000   1000    /ZprimeToTauTau_M-4000_TuneCP5_13TeV-pythia8-tauola/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
