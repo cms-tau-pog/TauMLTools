@@ -18,6 +18,7 @@
 #include "AnalysisTools/Core/include/Tools.h"
 #include "AnalysisTools/Core/include/TextIO.h"
 #include "TauML/Analysis/include/TauTuple.h"
+#include "TauML/Analysis/include/SummaryTuple.h"
 #include "TauML/Production/include/GenTruthTools.h"
 #include "TauML/Analysis/include/TauIdResults.h"
 
@@ -191,7 +192,10 @@ private:
 
 class TauTupleProducer : public edm::EDAnalyzer {
 public:
+    using clock = std::chrono::system_clock;
+
     TauTupleProducer(const edm::ParameterSet& cfg) :
+        start(clock::now()),
         isMC(cfg.getParameter<bool>("isMC")),
         saveGenTopInfo(cfg.getParameter<bool>("saveGenTopInfo")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
@@ -203,14 +207,18 @@ public:
         electrons_token(mayConsume<pat::ElectronCollection>(cfg.getParameter<edm::InputTag>("electrons"))),
         muons_token(mayConsume<pat::MuonCollection>(cfg.getParameter<edm::InputTag>("muons"))),
         taus_token(mayConsume<pat::TauCollection>(cfg.getParameter<edm::InputTag>("taus"))),
-        tauTuple("taus", &edm::Service<TFileService>()->file(), false)
+        tauTuple("taus", &edm::Service<TFileService>()->file(), false),
+        summaryTuple("summary", &edm::Service<TFileService>()->file(), false)
     {
+        summaryTuple().numberOfProcessedEvents = 0;
     }
 
 private:
     virtual void analyze(const edm::Event& event, const edm::EventSetup&) override
     {
         static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
+
+        summaryTuple().numberOfProcessedEvents++;
 
         tauTuple().run  = event.id().run();
         tauTuple().lumi = event.id().luminosityBlock();
@@ -330,6 +338,10 @@ private:
     virtual void endJob() override
     {
         tauTuple.Write();
+        const auto stop = clock::now();
+        summaryTuple().exeTime = std::chrono::duration_cast<std::chrono::seconds>(stop - start).count();
+        summaryTuple.Fill();
+        summaryTuple.Write();
     }
 
 private:
@@ -697,6 +709,7 @@ private:
     }
 
 private:
+    const clock::time_point start;
     const bool isMC, saveGenTopInfo;
 
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;
@@ -710,6 +723,7 @@ private:
     edm::EDGetTokenT<pat::TauCollection> taus_token;
 
     tau_tuple::TauTuple tauTuple;
+    tau_tuple::SummaryTuple summaryTuple;
     TauIdMVAAuxiliaries clusterVariables;
 };
 
