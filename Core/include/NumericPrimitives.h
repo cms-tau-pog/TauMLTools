@@ -30,6 +30,50 @@ struct RangeSize<T, true> {
         return delta;
     }
 };
+
+template<typename T>
+inline T FloatRound(T x, T /*ref*/)
+{
+    return x;
+}
+
+template<>
+inline float FloatRound<float>(float x, float ref)
+{
+    static constexpr float precision = 1e-6f;
+    if(ref == 0) return x;
+    return std::round(x / ref / precision) * precision * ref;
+}
+
+template<>
+inline double FloatRound<double>(double x, double ref)
+{
+    static constexpr double precision = 1e-8;
+    if(ref == 0) return x;
+    return std::round(x / ref / precision) * precision * ref;
+}
+
+
+template<typename T>
+inline size_t GetNumberOfGridPoints(T min, T max, T step)
+{
+    return static_cast<size_t>((max - min) / step);
+}
+
+template<>
+inline size_t GetNumberOfGridPoints<float>(float min, float max, float step)
+{
+    static constexpr float precision = 1e-6f;
+    return static_cast<size_t>(std::round((max - min) / step / precision) * precision);
+}
+
+template<>
+inline size_t GetNumberOfGridPoints<double>(double min, double max, double step)
+{
+    static constexpr double precision = 1e-8;
+    return static_cast<size_t>(std::round((max - min) / step / precision) * precision);
+}
+
 } // namespace detail
 
 template<typename T>
@@ -292,6 +336,7 @@ struct RangeWithStep : public Range<T> {
     using ValueType = typename Range<T>::ValueType;
     using ConstRefType = typename Range<T>::ConstRefType;
 
+
     enum class PrintMode { Step = 0, NGridPoints = 1, NBins = 2 };
     struct iterator {
         iterator(const RangeWithStep<T>& _range, size_t _pos) : range(&_range), pos(_pos) {}
@@ -306,22 +351,37 @@ struct RangeWithStep : public Range<T> {
     };
 
     RangeWithStep() : _step(0) {}
-    RangeWithStep(ConstRefType min, ConstRefType max, ConstRefType step) : Range<T>(min, max), _step(step) {}
+    RangeWithStep(ConstRefType min, ConstRefType max, ConstRefType step) :
+        Range<T>(min, max, RangeBoundaries::BothIncluded), _step(step)
+    {
+    }
 
     ConstRefType step() const { return _step; }
-    T grid_point_value(size_t index) const { return this->min() + T(index) * step(); }
+    T grid_point_value(size_t index) const
+    {
+        const T ref = std::max(std::abs(this->min()), std::abs(this->max()));
+        return detail::FloatRound<T>(this->min() + T(index) * step(), ref);
+    }
     size_t n_grid_points() const
     {
         if(this->max() == this->min()) return 1;
         if(step() == 0)
             throw exception("Number of grid points is not defined for a non-point range with the step = 0.");
-        size_t n_points = static_cast<size_t>((this->max() - this->min()) / step());
+        size_t n_points = detail::GetNumberOfGridPoints(this->min(), this->max(), step());
         if(this->Contains(grid_point_value(n_points)))
             ++n_points;
         return n_points;
     }
     size_t n_bins() const { return n_grid_points() - 1; }
 
+    size_t find_bin(T value) const
+    {
+        if(!this->Contains(value))
+            throw exception("find_bin: value is out of range.");
+        if(n_bins() == 0)
+            throw exception("find_bin: number of bins is 0.");
+        return static_cast<size_t>((value - this->min()) / step());
+    }
 
     iterator begin() const { return iterator(*this, 0); }
     iterator end() const { return iterator(*this, n_grid_points()); }
