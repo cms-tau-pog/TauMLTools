@@ -8,6 +8,11 @@ This file is part of https://github.com/hh-italian-group/h-tautau. */
 
 namespace analysis {
 
+enum class TauType { e = 0, mu = 1, tau = 2, jet = 3 };
+ENUM_NAMES(TauType) = {
+    { TauType::e, "e" }, { TauType::mu, "mu" }, { TauType::tau, "tau" }, { TauType::jet, "jet" }
+};
+
 enum class DiscriminatorWP { VVLoose, VLoose, Loose, Medium, Tight, VTight, VVTight };
 ENUM_NAMES(DiscriminatorWP) = {
     { DiscriminatorWP::VVLoose, "VVLoose" }, { DiscriminatorWP::VLoose, "VLoose" }, { DiscriminatorWP::Loose, "Loose" },
@@ -37,6 +42,14 @@ ENUM_NAMES(GenMatch) = {
     { GenMatch::Tau, "gen_tau" },
     { GenMatch::NoMatch, "no_gen_match" }
 };
+
+inline TauType GenMatchToTauType(GenMatch gen_match)
+{
+    if(gen_match == GenMatch::Electron || gen_match == GenMatch::TauElectron) return TauType::e;
+    if(gen_match == GenMatch::Muon || gen_match == GenMatch::TauMuon) return TauType::mu;
+    if(gen_match == GenMatch::Tau) return TauType::tau;
+    return TauType::jet;
+}
 
 enum class GenEventType { Other = 0, TTbar_Hadronic = 1, TTbar_SemiLeptonic = 2, TTbar_Leptonic = 3 };
 ENUM_NAMES(GenEventType) = {
