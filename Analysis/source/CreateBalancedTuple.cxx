@@ -11,14 +11,13 @@
 namespace analysis {
 
 struct Arguments {
-    REQ_ARG(std::string, output);
     REQ_ARG(std::string, tree_name);
-    REQ_ARG(std::string, input_dir);
+    REQ_ARG(std::string, output_dir);
     REQ_ARG(std::string, input_list);
-    REQ_ARG(TauType, tau_type);
     REQ_ARG(RangeWithStep<double>, pt_range);
     REQ_ARG(RangeWithStep<double>, eta_range);
     REQ_ARG(unsigned, target_entries_per_bin);
+    OPT_ARG(bool, take_only_odd_event_ids, false);
 };
 
 
@@ -78,6 +77,8 @@ public:
     size_t NumberOfPartiallyFilledBins() const { return NumberOfIncompleteBins() - NumberOfEmptyBins(); }
 
     size_t TotalCount() const { return total_count; }
+    size_t TargetCount() const { return NumberOfBins() * target_entries_per_bin; }
+    double Completeness() const { return double(TotalCount()) / TargetCount(); }
 
 
     TH2I ExportCounts() const
@@ -130,9 +131,14 @@ public:
     using TauTuple = tau_tuple::TauTuple;
     using BinRange = EntryCountMap::BinRange;
 
+    static const std::vector<TauType> TauTypeList()
+    {
+        static const std::vector<TauType> types = { TauType::e, TauType::mu, TauType::tau, TauType::jet };
+        return types;
+    }
 
     CreateBalancedTuple(const Arguments& _args) :
-        args(_args), count_map(args.pt_range(), args.eta_range(), args.target_entries_per_bin())
+        args(_args)
     {
         std::ifstream cfg(args.input_list());
         if(cfg.fail())
@@ -145,94 +151,118 @@ public:
             if(line.empty() || line.at(0) == '#') continue;
             input_files.push_back(line);
         }
+
+        for(TauType tau_type : TauTypeList()) {
+            count_maps[tau_type] = std::make_shared<EntryCountMap>(args.pt_range(),
+                    args.eta_range(), args.target_entries_per_bin());
+        }
     }
 
     void Run()
     {
         std::cout << "Creating tuple with balanced (pt, eta) bins..." << std::endl;
-        auto output_file = root_ext::CreateRootFile(args.output(), ROOT::kLZ4, 5);
-        TauTuple output_tuple(args.tree_name(), output_file.get(), false);
+        std::map<TauType, std::shared_ptr<TFile>> output_files;
+        std::map<TauType, std::shared_ptr<TauTuple>> output_tuples;
 
-        const bool map_filled = ProcessInputs(output_tuple);
+        for(TauType tau_type : TauTypeList()) {
+            const std::string output_file_name = args.output_dir() + "/" + ToString(tau_type) + ".root";
+            output_files[tau_type] = root_ext::CreateRootFile(output_file_name, ROOT::kLZ4, 5);
+            output_tuples[tau_type] = std::make_shared<TauTuple>(args.tree_name(),
+                    output_files.at(tau_type).get(), false);
+        }
 
-        output_tuple.Write();
-        const auto hist = count_map.ExportCounts();
-        root_ext::WriteObject(hist, output_file.get());
+        ProcessInputs(output_tuples);
 
-        if(map_filled) {
-            std::cout << "Output is fully filled." << std::endl;
-        } else {
-            std::cout << "Output is partially filled." << std::endl;
+        for(TauType tau_type : TauTypeList()) {
+            output_tuples.at(tau_type)->Write();
+            const auto hist = count_maps.at(tau_type)->ExportCounts();
+            root_ext::WriteObject(hist, output_files.at(tau_type).get());
+
+            const std::string filled = count_maps.at(tau_type)->IsComplete() ? "fully" : "partially";
+            std::cout << "Output for tau type = " << tau_type << " is " << filled << " filled." << std::endl;
         }
     }
 
 private:
-    void ReportStatus(bool report_bin_list, bool report_summary, size_t prev_count, size_t n_processed) const
+    void ReportStatus(TauType tau_type, bool report_bin_list, bool report_summary, size_t prev_count,
+                      size_t n_processed) const
     {
-        static const std::string sep(20, '-');
+        static const std::string sep(4, '-');
+
+        const auto& count_map = *count_maps.at(tau_type);
         if(report_bin_list) {
             if(!count_map.IsComplete()) {
-                std::cout << sep << "\nPartially filled bins:\n";
+                std::cout << sep << "\nPartially filled bins for " << tau_type << ":\n";
                 count_map.ReportPartiallyFilledBins(std::cout);
                 std::cout << sep << std::endl;
             }
             if(count_map.HasEmptyBins()) {
-                std::cout << sep << "\nEmpty bins:\n";
+                std::cout << sep << "\nEmpty bins for " << tau_type << ":\n";
                 count_map.ReportEmptyBins(std::cout);
                 std::cout << sep << std::endl;
             }
         }
         if(report_summary) {
-            std::cout << sep << "\ntotal number of bins: " << count_map.NumberOfBins()
-                      << "\nnumber of complete bins: " << count_map.NumberOfCompleteBins()
-                      << "\nnumer of partially filled bins: " << count_map.NumberOfPartiallyFilledBins()
-                      << "\nnumber of empty bins: " << count_map.NumberOfEmptyBins()
-                      << "\nnumber of accepted taus: " << count_map.TotalCount();
-            if(prev_count) {
-                const size_t new_acc = count_map.TotalCount() - prev_count;
-                const double eff = double(new_acc) / n_processed * 100.;
-                std::cout << "\nnumber of newly accepted taus: " << new_acc << " (efficiency " << eff << "%).";
-            }
-            std::cout << "\n" << sep << std::endl;
+            const size_t new_acc = count_map.TotalCount() - prev_count;
+            const double eff = double(new_acc) / n_processed * 100.;
+
+            std::cout << sep << " tau type: " << tau_type
+                      << "\n\tnumber of bins (total / complete / partially filled /empty): " << count_map.NumberOfBins()
+                      << " / " << count_map.NumberOfCompleteBins() << " / " << count_map.NumberOfPartiallyFilledBins()
+                      << " / " << count_map.NumberOfEmptyBins()
+                      << "\n\tnumber of accepted / newly accepted taus: " << count_map.TotalCount()
+                      << " (completeness " << count_map.Completeness() * 100 << "%) / "
+                      << new_acc << " (efficiency " << eff << "%)." << std::endl;
         }
     }
 
-    bool ProcessInputs(TauTuple& output_tuple)
+    void ProcessInputs(const std::map<TauType, std::shared_ptr<TauTuple>>& output_tuples)
     {
-        size_t prev_count = 0;
+        std::map<TauType, size_t> prev_counts;
         for(const auto& file_name : input_files) {
             std::cout << "Processing '" << file_name << "'..." << std::endl;
-            const std::string input_name = args.input_dir() + "/" + file_name;
-            auto file = root_ext::OpenRootFile(input_name);
+            auto file = root_ext::OpenRootFile(file_name);
             auto tuple = std::make_shared<TauTuple>(args.tree_name(), file.get(), true);
             Long64_t n_processed = 0, n_total = tuple->GetEntries();
             for(const auto& tau : *tuple) {
-                if(!CheckTauType(tau)) continue;
-                if(count_map.AddEntry(tau.pt, tau.eta)) {
-                    output_tuple() = tau;
-                    output_tuple.Fill();
-                    if(count_map.IsComplete()) return true;
-                }
-                if(++n_processed % 100000 == 0)
-                    std::cout << "\tProcessed " << n_processed << " entries out of " << n_total
-                              << ". Number of accepted taus = " << count_map.TotalCount() << "." << std::endl;
-            }
-            ReportStatus(true, true, prev_count, static_cast<size_t>(n_total));
-            prev_count = count_map.TotalCount();
-        }
-        return false;
-    }
+                if(args.take_only_odd_event_ids() && tau.evt % 2 == 0) continue;
+                const GenMatch gen_match = static_cast<GenMatch>(tau.gen_match);
+                const TauType tau_type = GenMatchToTauType(gen_match);
+                if(!output_tuples.count(tau_type)) continue;
+                if(count_maps.at(tau_type)->AddEntry(tau.pt, tau.eta)) {
+                    (*output_tuples.at(tau_type))() = tau;
+                    output_tuples.at(tau_type)->Fill();
 
-    bool CheckTauType(const Tau& tau) const
-    {
-        const GenMatch gen_match = static_cast<GenMatch>(tau.gen_match);
-        const TauType tau_type = GenMatchToTauType(gen_match);
-        return tau_type == args.tau_type();
+                    bool all_complete = true;
+                    for(const auto& m : count_maps) {
+                        if(!m.second->IsComplete()) {
+                            all_complete = false;
+                            break;
+                        }
+                    }
+                    if(all_complete) return;
+                }
+                if(++n_processed % 100000 == 0) {
+                    std::cout << "\tProcessed " << n_processed << " entries out of " << n_total
+                              << ". Number of accepted taus (";
+                    for(size_t n = 0; n < TauTypeList().size() - 1; ++n)
+                        std::cout << TauTypeList().at(n) << ", ";
+                    std::cout << TauTypeList().back() << "): ";
+                    for(size_t n = 0; n < TauTypeList().size() - 1; ++n)
+                        std::cout << count_maps.at(TauTypeList().at(n))->TotalCount() << ", ";
+                    std::cout << count_maps.at(TauTypeList().back())->TotalCount() << "." << std::endl;
+                }
+            }
+            for(TauType tau_type : TauTypeList()) {
+                ReportStatus(tau_type, false, true, prev_counts[tau_type], static_cast<size_t>(n_total));
+                prev_counts[tau_type] = count_maps.at(tau_type)->TotalCount();
+            }
+        }
     }
 
 private:
     Arguments args;
-    EntryCountMap count_map;
+    std::map<TauType, std::shared_ptr<EntryCountMap>> count_maps;
     std::vector<std::string> input_files;
 };
 
