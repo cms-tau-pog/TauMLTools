@@ -380,7 +380,10 @@ struct RangeWithStep : public Range<T> {
             throw exception("find_bin: value is out of range.");
         if(n_bins() == 0)
             throw exception("find_bin: number of bins is 0.");
-        return static_cast<size_t>((value - this->min()) / step());
+        size_t bin_id = static_cast<size_t>((value - this->min()) / step());
+        if(bin_id == n_bins())
+            --bin_id;
+        return bin_id;
     }
 
     iterator begin() const { return iterator(*this, 0); }
