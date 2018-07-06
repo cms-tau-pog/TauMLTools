@@ -13,7 +13,7 @@ args = parser.parse_args()
 #ROOT.gROOT.ProcessLine('ROOT::EnableImplicitMT(6)')
 
 with open(args.filelist, 'r') as f_list:
-    file_list = [ f.strip() for f in f_list if len(f) != 0 ]
+    file_list = [ f.strip() for f in f_list if len(f.strip()) != 0 ]
 
 chain = ROOT.TChain("taus")
 for f in file_list:

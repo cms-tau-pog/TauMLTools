@@ -18,6 +18,7 @@ struct Arguments {
     REQ_ARG(RangeWithStep<double>, eta_range);
     REQ_ARG(unsigned, target_entries_per_bin);
     OPT_ARG(bool, take_only_odd_event_ids, false);
+    OPT_ARG(bool, take_only_even_event_ids, false);
 };
 
 
@@ -226,6 +227,7 @@ private:
             Long64_t n_processed = 0, n_total = tuple->GetEntries();
             for(const auto& tau : *tuple) {
                 if(args.take_only_odd_event_ids() && tau.evt % 2 == 0) continue;
+                if(args.take_only_even_event_ids() && tau.evt % 2 != 0) continue;
                 const GenMatch gen_match = static_cast<GenMatch>(tau.gen_match);
                 const TauType tau_type = GenMatchToTauType(gen_match);
                 if(!output_tuples.count(tau_type)) continue;
