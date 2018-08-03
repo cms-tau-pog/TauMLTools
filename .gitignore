@@ -4,3 +4,5 @@ __init__.py
 /tuples
 /results
 /*.pb
+/Analysis/python/build
+/Analysis/python/sf_calc.c*
