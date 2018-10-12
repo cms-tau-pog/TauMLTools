@@ -14,6 +14,9 @@
     VAR(Float_t, pt) /* tau pt */ \
     VAR(Float_t, eta) /* tau eta */ \
     VAR(Float_t, phi) /* tau phi */ \
+    VAR(Float_t, dxy) /* tau dxy */ \
+    VAR(Float_t, dz) /* tau dz */ \
+    VAR(Bool_t, decayModeFinding) /* tau old decay mode finding result */ \
     VAR(Int_t, decayMode) /* tau decay mode */ \
     VAR(Bool_t, gen_e) /* matches e at gen level */ \
     VAR(Bool_t, gen_mu) /* matches mu at gen level */ \
@@ -27,7 +30,9 @@
     VAR(Float_t, refId_mu_loose) /* Reference mu->tau id value (loose WP) */ \
     VAR(Float_t, refId_mu_tight) /* Reference mu->tau id value (Tight WP) */ \
     VAR(Float_t, refId_jet) /* Reference jet->tau id value */ \
-
+    VAR(Float_t, otherId_tau_vs_all) /* Alternative tau vs all id value */ \
+    VAR(Float_t, refId_jet_dR0p32017v2) /* */ \
+    VAR(Float_t, refId_jet_newDM2017v2) /* */ \
     /**/
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
