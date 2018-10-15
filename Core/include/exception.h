@@ -39,6 +39,8 @@ public:
                 msg = boost::str(*f_msg);
             } catch(boost::io::too_few_args&) {
                 msg = "too few arguments are provided to the error message = '" + f_str + "'.";
+            } catch(std::exception& e) {
+                process_unexpected_exception(e);
             }
             msg_valid = true;
         }
@@ -48,15 +50,24 @@ public:
     template<typename T>
     exception& operator % (const T& t) noexcept
     {
-        msg_valid = false;
         try {
-            if(f_msg)
+            if(!msg_valid && f_msg)
                 *f_msg % t;
         } catch(boost::io::too_many_args&) {
             msg = "too many arguments are provided to the error message = '" + f_str + "'.";
             msg_valid = true;
+        } catch(std::exception& e) {
+            process_unexpected_exception(e);
         }
         return *this;
+    }
+
+private:
+    void process_unexpected_exception(const std::exception& e) const
+    {
+        msg = "An exception has been raised while creating an error message. Error message = '" + f_str +
+              "'. Exception message = '" + e.what() + "'.";
+        msg_valid = true;
     }
 
 private:

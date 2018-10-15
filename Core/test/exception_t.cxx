@@ -9,6 +9,25 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <boost/test/unit_test.hpp>
 
 using exception = analysis::exception;
+namespace {
+struct Foo {
+    bool throw_when_creating{false}, throw_when_printing{false};
+
+    Foo(bool _throw_when_creating, bool _throw_when_printing) :
+        throw_when_creating(_throw_when_creating), throw_when_printing(_throw_when_printing)
+    {
+        if(throw_when_creating)
+            throw std::runtime_error("Unable to create Foo.");
+    }
+};
+std::ostream& operator<<(std::ostream& os, const Foo& foo)
+{
+    if(foo.throw_when_printing)
+        throw std::runtime_error("Unable to convert Foo to string.");
+    os << "Foo";
+    return os;
+}
+}
 
 BOOST_AUTO_TEST_CASE(message_test)
 {
@@ -45,4 +64,25 @@ BOOST_AUTO_TEST_CASE(message_test)
         e % 2 % 3.14;
         BOOST_TEST(e.message() == "hello 2, 3.14.");
     }
+
+    try {
+        throw exception("hello %1%.") % Foo(false, false);
+    } catch(exception& e) {
+        BOOST_TEST(e.message() == "hello Foo.");
+    }
+
+    try {
+        throw exception("hello %1%.") % Foo(false, true);
+    } catch(exception& e) {
+        BOOST_TEST(e.message() == "An exception has been raised while creating an error message."
+                                  " Error message = 'hello %1%.'."
+                                  " Exception message = 'Unable to convert Foo to string.'.");
+    }
+
+    try {
+        throw exception("hello %1%.") % Foo(true, false);
+    } catch(std::runtime_error& e) {
+        BOOST_TEST(e.what() == "Unable to create Foo.");
+    }
+
 }
