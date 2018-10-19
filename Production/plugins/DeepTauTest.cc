@@ -85,13 +85,15 @@ private:
             output_tuple().refId_jet = tau.tauID("byIsolationMVArun2017v2DBoldDMwLTraw2017");
             output_tuple().refId_jet_dR0p32017v2 = tau.tauID("byIsolationMVArun2017v2DBoldDMdR0p3wLTraw2017");
             output_tuple().refId_jet_newDM2017v2 = tau.tauID("byIsolationMVArun2017v2DBnewDMwLTraw2017");
-            output_tuple().otherId_tau_vs_all = tau.tauID("DPFTau_2016_v0tauVSall");
+            output_tuple().byDPFTau2016v0VSallraw = tau.tauID("byDPFTau2016v0VSallraw");
+            output_tuple().byDPFTau2016v1VSallraw = tau.tauID("byDPFTau2016v1VSallraw");
+            // output_tuple().otherId_tau_vs_all = tau.tauID("byDPFTau2016v1VSallraw");
 
-            output_tuple().deepId_tau_vs_e = tau.tauID("deepTau2017v1tauVSe");
-            output_tuple().deepId_tau_vs_mu = tau.tauID("deepTau2017v1tauVSmu");
-            output_tuple().deepId_tau_vs_jet = tau.tauID("deepTau2017v1tauVSjet");
-            output_tuple().deepId_tau_vs_all = tau.tauID("deepTau2017v1tauVSall");
+            output_tuple().byDeepTau2017v1VSeraw = tau.tauID("byDeepTau2017v1VSeraw");
+            output_tuple().byDeepTau2017v1VSmuraw = tau.tauID("byDeepTau2017v1VSmuraw");
+            output_tuple().byDeepTau2017v1VSjetraw = tau.tauID("byDeepTau2017v1VSjetraw");
 
+            // output_tuple().deepId_tau_vs_jet_Loose = tau.tauID("byDeepTau2017v1VSjetLoose");
             output_tuple.Fill();
         }
     }

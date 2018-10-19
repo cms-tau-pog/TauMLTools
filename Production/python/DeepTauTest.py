@@ -71,7 +71,8 @@ if period == 'Run2017':
     import RecoTauTag.RecoTau.runTauIdMVA as tauIdConfig
     #tauIdConfig = imp.load_source('runTauIdMVA', 'RecoTauTag/RecoTau/python/runTauIdMVA.py')
     tauIdEmbedder = tauIdConfig.TauIDEmbedder(process, cms, debug = True,
-                        toKeep = [ "2017v2", "dR0p32017v2", "2016v1", "newDM2017v2", "deepTau2017v1", "DPFTau_2016_v0" ])
+                        toKeep = [ "2017v2", "dR0p32017v2", "2016v1", "newDM2017v2", "deepTau2017v1", "DPFTau_2016_v0",
+                                   "DPFTau_2016_v1"])
                         #toKeep = [ "2017v1", "2017v2", "newDM2017v2", "dR0p32017v2", "2016v1", "newDM2016v1" ])
     tauIdEmbedder.runTauID()
     tauSrc_InputTag = cms.InputTag('NewTauIDsEmbedded')

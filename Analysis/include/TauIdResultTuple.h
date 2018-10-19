@@ -33,6 +33,11 @@
     VAR(Float_t, otherId_tau_vs_all) /* Alternative tau vs all id value */ \
     VAR(Float_t, refId_jet_dR0p32017v2) /* */ \
     VAR(Float_t, refId_jet_newDM2017v2) /* */ \
+    VAR(Float_t, byDPFTau2016v0VSallraw) /* */ \
+    VAR(Float_t, byDPFTau2016v1VSallraw) /* */ \
+    VAR(Float_t, byDeepTau2017v1VSeraw) /* */ \
+    VAR(Float_t, byDeepTau2017v1VSmuraw) /* */ \
+    VAR(Float_t, byDeepTau2017v1VSjetraw) /* */ \
     /**/
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
