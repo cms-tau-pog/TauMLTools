@@ -9,10 +9,13 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
+#include "DataFormats/PatCandidates/interface/PackedCandidate.h"
 #include "DataFormats/PatCandidates/interface/Tau.h"
+
 
 #include "TauML/Production/include/GenTruthTools.h"
 #include "TauML/Analysis/include/TauIdResultTuple.h"
+#include "TauML/Analysis/include/TauTuple.h"
 
 
 class DeepTauTest : public edm::EDAnalyzer {
@@ -49,11 +52,18 @@ private:
             static const bool id_names_printed = PrintTauIdNames(tau);
             (void)id_names_printed;
 
+            static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
+            auto leadChargedHadrCand = dynamic_cast<const pat::PackedCandidate*>(tau.leadChargedHadrCand().get());
+
             output_tuple().tau_index = tau_index++;
             output_tuple().pt = tau.p4().pt();
             output_tuple().eta = tau.p4().eta();
             output_tuple().phi = tau.p4().phi();
+            output_tuple().decayModeFinding = tau.tauID("decayModeFinding") > 0.5;
             output_tuple().decayMode = tau.decayMode();
+            output_tuple().dxy = tau.dxy();
+            output_tuple().dz = leadChargedHadrCand ? leadChargedHadrCand->dz() : default_value;
+
 
             if(isMC) {
                 edm::Handle<std::vector<reco::GenParticle>> genParticles;
@@ -73,12 +83,17 @@ private:
             output_tuple().refId_mu_loose = tau.tauID("againstMuonLoose3");
             output_tuple().refId_mu_tight = tau.tauID("againstMuonTight3");
             output_tuple().refId_jet = tau.tauID("byIsolationMVArun2017v2DBoldDMwLTraw2017");
+            output_tuple().refId_jet_dR0p32017v2 = tau.tauID("byIsolationMVArun2017v2DBoldDMdR0p3wLTraw2017");
+            output_tuple().refId_jet_newDM2017v2 = tau.tauID("byIsolationMVArun2017v2DBnewDMwLTraw2017");
+            output_tuple().byDPFTau2016v0VSallraw = tau.tauID("byDPFTau2016v0VSallraw");
+            output_tuple().byDPFTau2016v1VSallraw = tau.tauID("byDPFTau2016v1VSallraw");
+            // output_tuple().otherId_tau_vs_all = tau.tauID("byDPFTau2016v1VSallraw");
 
-            output_tuple().deepId_tau_vs_e = tau.tauID("deepTau2017v1tauVSe");
-            output_tuple().deepId_tau_vs_mu = tau.tauID("deepTau2017v1tauVSmu");
-            output_tuple().deepId_tau_vs_jet = tau.tauID("deepTau2017v1tauVSjet");
-            output_tuple().deepId_tau_vs_all = tau.tauID("deepTau2017v1tauVSall");
+            output_tuple().byDeepTau2017v1VSeraw = tau.tauID("byDeepTau2017v1VSeraw");
+            output_tuple().byDeepTau2017v1VSmuraw = tau.tauID("byDeepTau2017v1VSmuraw");
+            output_tuple().byDeepTau2017v1VSjetraw = tau.tauID("byDeepTau2017v1VSjetraw");
 
+            // output_tuple().deepId_tau_vs_jet_Loose = tau.tauID("byDeepTau2017v1VSjetLoose");
             output_tuple.Fill();
         }
     }

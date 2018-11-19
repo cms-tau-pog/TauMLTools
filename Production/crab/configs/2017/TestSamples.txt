@@ -1,0 +1,9 @@
+Automatic
+globalTag=94X_mc2017_realistic_v14 sampleType=Fall17MC
+
+
+GluGluHToTauTau_M125	300	/GluGluHToTauTau_M125_13TeV_powheg_pythia8/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
+
+ZprimeToTauTau_M-2500   300    /ZprimeToTauTau_M-2500_TuneCP5_13TeV-pythia8-tauola/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
+
+QCD_Pt-15to7000_TuneCUETP8M1_Flat   300    /QCD_Pt-15to7000_TuneCUETP8M1_Flat_13TeV_pythia8/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
