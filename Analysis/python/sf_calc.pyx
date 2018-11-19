@@ -2,15 +2,24 @@ cimport numpy as np
 import numpy as np
 import math
 
-cpdef np.ndarray[int, ndim=2] CalculatePtEtaBinIds(np.ndarray pt_bins, np.ndarray eta_bins,
-                np.ndarray pt, np.ndarray eta, np.ndarray gen_tau):
+cpdef double BinArea(np.ndarray pt_bins, np.ndarray eta_bins, int pt_bin_id, int eta_bin_id):
+    return (pt_bins[pt_bin_id + 1] - pt_bins[pt_bin_id]) * (eta_bins[eta_bin_id + 1] - eta_bins[eta_bin_id])
+
+cpdef double TotalBinsArea(np.ndarray pt_bins, np.ndarray eta_bins):
+    return (pt_bins[-1] - pt_bins[0]) * (eta_bins[-1] - eta_bins[0])
+
+cpdef list ApplyUniformWeights(np.ndarray pt_bins, np.ndarray eta_bins, np.ndarray pt, np.ndarray eta, np.ndarray Y):
+    cdef Py_ssize_t n_pt_bins = len(pt_bins) - 1, n_eta_bins = len(eta_bins) - 1, n_classes = Y.shape[1]
     cdef Py_ssize_t n_entries = pt.shape[0], n
-    cdef int pt_bin_id = 0, eta_bin_id = 0
-    cdef np.ndarray[int, ndim=2] result = np.empty((n_entries, 2), dtype=np.int)
+    cdef int pt_bin_id = 0, eta_bin_id = 0, class_id = 0
+    cdef double exp_per_class = n_entries / n_classes
+    cdef double total_area = TotalBinsArea(pt_bins, eta_bins), bin_area, exp_per_bin, n_inside_bin
+    cdef np.ndarray[double, ndim=4] counts = np.zeros((n_classes, n_pt_bins, n_eta_bins, 2))
+    cdef np.ndarray[int, ndim=2] bin_ids = np.empty((n_entries, 3), dtype=np.int)
+    cdef np.ndarray[double, ndim=1] weights = np.empty(n_entries)
+    cdef list result
 
     for n in range(n_entries):
-        if gen_tau[n] != 1: continue
-
         pt_bin_id = 0
         eta_bin_id = 0
         while pt_bins[pt_bin_id + 1] < pt[n]:
@@ -18,10 +27,34 @@ cpdef np.ndarray[int, ndim=2] CalculatePtEtaBinIds(np.ndarray pt_bins, np.ndarra
         abs_eta = abs(eta[n])
         while eta_bins[eta_bin_id + 1] < abs_eta:
             eta_bin_id += 1
+        class_id = 0
+        while Y[n, class_id] != 1:
+            class_id += 1
 
-        result[n, 0] = pt_bin_id
-        result[n, 1] = eta_bin_id
+        bin_ids[n, 0] = pt_bin_id
+        bin_ids[n, 1] = eta_bin_id
+        bin_ids[n, 2] = class_id
+        counts[class_id, pt_bin_id, eta_bin_id, 0] += 1
 
+    for pt_bin_id in range(n_pt_bins):
+        for eta_bin_id in range(n_eta_bins):
+            bin_area = BinArea(pt_bins, eta_bins, pt_bin_id, eta_bin_id)
+            exp_per_bin = bin_area / total_area * exp_per_class
+            for class_id in range(n_classes):
+                n_inside_bin = counts[class_id, pt_bin_id, eta_bin_id, 0]
+                if n_inside_bin == 0:
+                    raise RuntimeError("Empty bin: pt = [{}, {}), eta = [{}, {}), cl = {}".format(pt_bins[pt_bin_id],
+                                       pt_bins[pt_bin_id + 1], eta_bins[eta_bin_id], eta_bins[eta_bin_id + 1],
+                                       class_id))
+                counts[class_id, pt_bin_id, eta_bin_id, 1] = exp_per_bin / n_inside_bin
+
+    for n in range(n_entries):
+        pt_bin_id = bin_ids[n, 0]
+        eta_bin_id = bin_ids[n, 1]
+        class_id = bin_ids[n, 2]
+        weights[n] = counts[class_id, pt_bin_id, eta_bin_id, 1]
+
+    result = [weights, bin_ids]
     return result
 
 cpdef np.ndarray[double, ndim=4] CalculateScaleFactors(np.ndarray pt_bins, np.ndarray eta_bins, np.ndarray tau_vs_e,

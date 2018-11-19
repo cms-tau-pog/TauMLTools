@@ -193,24 +193,24 @@ class TauLosses:
         return TauLosses.Lbase(target, output, weights, tau, jet, 2)
 
     @staticmethod
-    def sLe(target, output, weights):
-        sf = tf.convert_to_tensor(TauLosses.Le_sf, output.dtype.base_dtype)
-        return sf * TauLosses.Le(target, output, weights)
+    def sLe(target, output, weights, sf):
+        #sf = tf.convert_to_tensor(TauLosses.Le_sf, output.dtype.base_dtype)
+        return sf[:, 0] * TauLosses.Le(target, output, weights)
 
     @staticmethod
-    def sLmu(target, output, weights):
-        sf = tf.convert_to_tensor(TauLosses.Lmu_sf, output.dtype.base_dtype)
-        return sf * TauLosses.Lmu(target, output, weights)
+    def sLmu(target, output, weights, sf):
+        #sf = tf.convert_to_tensor(TauLosses.Lmu_sf, output.dtype.base_dtype)
+        return sf[:, 1] * TauLosses.Lmu(target, output, weights)
 
     @staticmethod
-    def sLjet(target, output, weights):
-        sf = tf.convert_to_tensor(TauLosses.Ljet_sf, output.dtype.base_dtype)
-        return sf * TauLosses.Ljet(target, output, weights)
+    def sLjet(target, output, weights, sf):
+        #sf = tf.convert_to_tensor(TauLosses.Ljet_sf, output.dtype.base_dtype)
+        return sf[:, 2] * TauLosses.Ljet(target, output, weights)
 
     @staticmethod
-    def tau_crossentropy(target, output, weights):
-        return TauLosses.sLe(target, output, weights) + TauLosses.sLmu(target, output, weights) + \
-               TauLosses.sLjet(target, output, weights)
+    def tau_crossentropy(target, output, weights, sf):
+        return TauLosses.sLe(target, output, weights, sf) + TauLosses.sLmu(target, output, weights, sf) + \
+               TauLosses.sLjet(target, output, weights, sf)
 
     @staticmethod
     def tau_vs_other(prob_tau, prob_other):
@@ -220,14 +220,15 @@ class TauLosses:
 def LoadModel(model_file, compile=True):
     if compile:
         weight_input = tf.placeholder(tf.float32, shape=(None, 3))
+        sf_input = tf.placeholder(tf.float32, shape=(None, 3))
 
-        tau_crossentropy = functools.partial(TauLosses.tau_crossentropy, weights=weight_input)
+        tau_crossentropy = functools.partial(TauLosses.tau_crossentropy, weights=weight_input, sf=sf_input)
         Le = functools.partial(TauLosses.Le, weights=weight_input)
         Lmu = functools.partial(TauLosses.Lmu, weights=weight_input)
         Ljet = functools.partial(TauLosses.Ljet, weights=weight_input)
-        sLe = functools.partial(TauLosses.sLe, weights=weight_input)
-        sLmu = functools.partial(TauLosses.sLmu, weights=weight_input)
-        sLjet = functools.partial(TauLosses.sLjet, weights=weight_input)
+        sLe = functools.partial(TauLosses.sLe, weights=weight_input, sf=sf_input)
+        sLmu = functools.partial(TauLosses.sLmu, weights=weight_input, sf=sf_input)
+        sLjet = functools.partial(TauLosses.sLjet, weights=weight_input, sf=sf_input)
 
         functools.update_wrapper(tau_crossentropy, TauLosses.tau_crossentropy)
         functools.update_wrapper(Le, TauLosses.Le)

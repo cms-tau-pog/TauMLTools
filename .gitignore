@@ -6,3 +6,4 @@ __init__.py
 /*.pb
 /Analysis/python/build
 /Analysis/python/sf_calc.c*
+.ipynb_checkpoints

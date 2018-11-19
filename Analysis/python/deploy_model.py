@@ -18,7 +18,7 @@ model = LoadModel(args.input)
 
 print(model.inputs[0].name)
 print(model.outputs[0].name)
-#raise RuntimeError("stop")
+raise RuntimeError("stop")
 
 input_nodes = ["main_input"]#  [model.inputs[0].name]
 output_nodes = ["main_output/Softmax"]#["output_node"]
@@ -35,6 +35,7 @@ with K.get_session() as sess:
         "remove_nodes(op=Identity, op=CheckNumerics)",
         "fold_constants(ignore_errors=true)",
         "fold_batch_norms",
+        "quantize_weights"
     ]
     final_graph = TransformGraph(const_graph, input_nodes, output_nodes, transforms)
 
