@@ -6,189 +6,28 @@
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
-#include "CommonTools/UtilAlgos/interface/TFileService.h"
-#include "DataFormats/PatCandidates/interface/Tau.h"
-#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
-#include "AnalysisDataFormats/TopObjects/interface/TtGenEvent.h"
-#include "DataFormats/PatCandidates/interface/PackedCandidate.h"
-#include "RecoTauTag/RecoTau/interface/PFRecoTauClusterVariables.h"
+
 #include "DataFormats/PatCandidates/interface/Electron.h"
 #include "DataFormats/PatCandidates/interface/Muon.h"
+#include "DataFormats/PatCandidates/interface/Tau.h"
+#include "DataFormats/PatCandidates/interface/Jet.h"
+#include "DataFormats/PatCandidates/interface/PackedCandidate.h"
+
+#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
+#include "AnalysisDataFormats/TopObjects/interface/TtGenEvent.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "RecoTauTag/RecoTau/interface/PFRecoTauClusterVariables.h"
 
 #include "AnalysisTools/Core/include/Tools.h"
 #include "AnalysisTools/Core/include/TextIO.h"
 #include "TauML/Analysis/include/TauTuple.h"
 #include "TauML/Analysis/include/SummaryTuple.h"
-#include "TauML/Production/include/GenTruthTools.h"
 #include "TauML/Analysis/include/TauIdResults.h"
+#include "TauML/Production/include/GenTruthTools.h"
+#include "TauML/Production/include/TauAnalysis.h"
+#include "TauML/Production/include/MuonHitMatch.h"
 
-namespace {
-
-namespace MuonSubdetId {
-enum { DT = 1, CSC = 2, RPC = 3, GEM = 4, ME0 = 5 };
-}
-
-template<typename LVector1, typename LVector2>
-float dEta(const LVector1& p4, const LVector2& tau_p4)
-{
-    return static_cast<float>(p4.eta() - tau_p4.eta());
-}
-
-template<typename LVector1, typename LVector2>
-float dPhi(const LVector1& p4, const LVector2& tau_p4)
-{
-    return static_cast<float>(ROOT::Math::VectorUtil::DeltaPhi(p4, tau_p4));
-}
-
-struct MuonHitMatch {
-    static constexpr int n_muon_stations = 4;
-
-    std::map<int, std::vector<UInt_t>> n_matches, n_hits;
-    unsigned n_muons{0};
-    const pat::Muon* best_matched_muon{nullptr};
-    double deltaR2_best_match{-1};
-
-    MuonHitMatch()
-    {
-        n_matches[MuonSubdetId::DT].assign(n_muon_stations, 0);
-        n_matches[MuonSubdetId::CSC].assign(n_muon_stations, 0);
-        n_matches[MuonSubdetId::RPC].assign(n_muon_stations, 0);
-        n_hits[MuonSubdetId::DT].assign(n_muon_stations, 0);
-        n_hits[MuonSubdetId::CSC].assign(n_muon_stations, 0);
-        n_hits[MuonSubdetId::RPC].assign(n_muon_stations, 0);
-    }
-
-    void AddMatchedMuon(const pat::Muon& muon, const pat::Tau& tau)
-    {
-        static constexpr int n_stations = 4;
-
-        ++n_muons;
-        const double dR2 = ROOT::Math::VectorUtil::DeltaR2(tau.p4(), muon.p4());
-        if(!best_matched_muon || dR2 < deltaR2_best_match) {
-            best_matched_muon = &muon;
-            deltaR2_best_match = dR2;
-        }
-
-        for(const auto& segment : muon.matches()) {
-            if(segment.segmentMatches.empty()) continue;
-            if(n_matches.count(segment.detector()))
-                ++n_matches.at(segment.detector()).at(segment.station() - 1);
-        }
-
-        if(muon.outerTrack().isNonnull()) {
-            const auto& hit_pattern = muon.outerTrack()->hitPattern();
-            for(int hit_index = 0; hit_index < hit_pattern.numberOfAllHits(reco::HitPattern::TRACK_HITS);
-                ++hit_index) {
-                auto hit_id = hit_pattern.getHitPattern(reco::HitPattern::TRACK_HITS, hit_index);
-                if(hit_id == 0) break;
-                if(hit_pattern.muonHitFilter(hit_id) && (hit_pattern.getHitType(hit_id) == TrackingRecHit::valid
-                                                         || hit_pattern.getHitType(hit_id == TrackingRecHit::bad))) {
-                    const int station = hit_pattern.getMuonStation(hit_id) - 1;
-                    if(station > 0 && station < n_stations) {
-                        std::vector<UInt_t>* muon_n_hits = nullptr;
-                        if(hit_pattern.muonDTHitFilter(hit_id))
-                            muon_n_hits = &n_hits.at(MuonSubdetId::DT);
-                        else if(hit_pattern.muonCSCHitFilter(hit_id))
-                            muon_n_hits = &n_hits.at(MuonSubdetId::CSC);
-                        else if(hit_pattern.muonRPCHitFilter(hit_id))
-                            muon_n_hits = &n_hits.at(MuonSubdetId::RPC);
-
-                        if(muon_n_hits)
-                            ++muon_n_hits->at(station);
-                    }
-                }
-            }
-        }
-    }
-
-    static std::vector<const pat::Muon*> FindMatchedMuons(const pat::Tau& tau, const pat::MuonCollection& muons,
-                                                           double deltaR, double minPt)
-    {
-        const reco::Muon* hadr_cand_muon = nullptr;
-        if(tau.leadPFChargedHadrCand().isNonnull() && tau.leadPFChargedHadrCand()->muonRef().isNonnull())
-            hadr_cand_muon = tau.leadPFChargedHadrCand()->muonRef().get();
-        std::vector<const pat::Muon*> matched_muons;
-        const double deltaR2 = std::pow(deltaR, 2);
-        for(const pat::Muon& muon : muons) {
-            const reco::Muon* reco_muon = &muon;
-            if(muon.pt() <= minPt) continue;
-            if(reco_muon == hadr_cand_muon) continue;
-            if(ROOT::Math::VectorUtil::DeltaR2(tau.p4(), muon.p4()) >= deltaR2) continue;
-            matched_muons.push_back(&muon);
-        }
-        return matched_muons;
-    }
-
-     void FillTuple(tau_tuple::Tau& tau, const pat::Tau& reco_tau) const
-     {
-         static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
-
-         tau.n_matched_muons = n_muons;
-         tau.muon_pt = best_matched_muon != nullptr ? best_matched_muon->p4().pt() : default_value;
-         tau.muon_dEta = best_matched_muon != nullptr ? dEta(best_matched_muon->p4(), reco_tau.p4()) : default_value;
-         tau.muon_dPhi = best_matched_muon != nullptr ? dPhi(best_matched_muon->p4(), reco_tau.p4()) : default_value;
-         tau.muon_n_matches_DT_1 = n_matches.at(MuonSubdetId::DT).at(0);
-         tau.muon_n_matches_DT_2 = n_matches.at(MuonSubdetId::DT).at(1);
-         tau.muon_n_matches_DT_3 = n_matches.at(MuonSubdetId::DT).at(2);
-         tau.muon_n_matches_DT_4 = n_matches.at(MuonSubdetId::DT).at(3);
-         tau.muon_n_matches_CSC_1 = n_matches.at(MuonSubdetId::CSC).at(0);
-         tau.muon_n_matches_CSC_2 = n_matches.at(MuonSubdetId::CSC).at(1);
-         tau.muon_n_matches_CSC_3 = n_matches.at(MuonSubdetId::CSC).at(2);
-         tau.muon_n_matches_CSC_4 = n_matches.at(MuonSubdetId::CSC).at(3);
-         tau.muon_n_matches_RPC_1 = n_matches.at(MuonSubdetId::RPC).at(0);
-         tau.muon_n_matches_RPC_2 = n_matches.at(MuonSubdetId::RPC).at(1);
-         tau.muon_n_matches_RPC_3 = n_matches.at(MuonSubdetId::RPC).at(2);
-         tau.muon_n_matches_RPC_4 = n_matches.at(MuonSubdetId::RPC).at(3);
-         tau.muon_n_hits_DT_1 = n_hits.at(MuonSubdetId::DT).at(0);
-         tau.muon_n_hits_DT_2 = n_hits.at(MuonSubdetId::DT).at(1);
-         tau.muon_n_hits_DT_3 = n_hits.at(MuonSubdetId::DT).at(2);
-         tau.muon_n_hits_DT_4 = n_hits.at(MuonSubdetId::DT).at(3);
-         tau.muon_n_hits_CSC_1 = n_hits.at(MuonSubdetId::CSC).at(0);
-         tau.muon_n_hits_CSC_2 = n_hits.at(MuonSubdetId::CSC).at(1);
-         tau.muon_n_hits_CSC_3 = n_hits.at(MuonSubdetId::CSC).at(2);
-         tau.muon_n_hits_CSC_4 = n_hits.at(MuonSubdetId::CSC).at(3);
-         tau.muon_n_hits_RPC_1 = n_hits.at(MuonSubdetId::RPC).at(0);
-         tau.muon_n_hits_RPC_2 = n_hits.at(MuonSubdetId::RPC).at(1);
-         tau.muon_n_hits_RPC_3 = n_hits.at(MuonSubdetId::RPC).at(2);
-         tau.muon_n_hits_RPC_4 = n_hits.at(MuonSubdetId::RPC).at(3);
-     }
-
-private:
-    unsigned CountMuonStationsWithMatches(size_t first_station, size_t last_station) const
-    {
-        static const std::map<int, std::vector<bool>> masks = {
-            { MuonSubdetId::DT, { false, false, false, false } },
-            { MuonSubdetId::CSC, { true, false, false, false } },
-            { MuonSubdetId::RPC, { false, false, false, false } },
-        };
-        unsigned cnt = 0;
-        for(unsigned n = first_station; n <= last_station; ++n) {
-            for(const auto& match : n_matches) {
-                if(!masks.at(match.first).at(n) && match.second.at(n) > 0) ++cnt;
-            }
-        }
-        return cnt;
-    }
-
-    unsigned CountMuonStationsWithHits(size_t first_station, size_t last_station) const
-    {
-        static const std::map<int, std::vector<bool>> masks = {
-            { MuonSubdetId::DT, { false, false, false, false } },
-            { MuonSubdetId::CSC, { false, false, false, false } },
-            { MuonSubdetId::RPC, { false, false, false, false } },
-        };
-
-        unsigned cnt = 0;
-        for(unsigned n = first_station; n <= last_station; ++n) {
-            for(const auto& hit : n_hits) {
-                if(!masks.at(hit.first).at(n) && hit.second.at(n) > 0) ++cnt;
-            }
-        }
-        return cnt;
-    }
-};
-}
-
+namespace tau_analysis {
 
 class TauTupleProducer : public edm::EDAnalyzer {
 public:
@@ -197,9 +36,7 @@ public:
     TauTupleProducer(const edm::ParameterSet& cfg) :
         start(clock::now()),
         isMC(cfg.getParameter<bool>("isMC")),
-        saveGenTopInfo(cfg.getParameter<bool>("saveGenTopInfo")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
-        topGenEvent_token(mayConsume<TtGenEvent>(cfg.getParameter<edm::InputTag>("topGenEvent"))),
         genParticles_token(consumes<std::vector<reco::GenParticle>>(cfg.getParameter<edm::InputTag>("genParticles"))),
         puInfo_token(mayConsume<std::vector<PileupSummaryInfo>>(cfg.getParameter<edm::InputTag>("puInfo"))),
         vertices_token(mayConsume<std::vector<reco::Vertex> >(cfg.getParameter<edm::InputTag>("vertices"))),
@@ -207,6 +44,7 @@ public:
         electrons_token(mayConsume<pat::ElectronCollection>(cfg.getParameter<edm::InputTag>("electrons"))),
         muons_token(mayConsume<pat::MuonCollection>(cfg.getParameter<edm::InputTag>("muons"))),
         taus_token(mayConsume<pat::TauCollection>(cfg.getParameter<edm::InputTag>("taus"))),
+        jets_token(mayConsume<pat::JetCollection>(cfg.getParameter<edm::InputTag>("jets"))),
         tauTuple("taus", &edm::Service<TFileService>()->file(), false),
         summaryTuple("summary", &edm::Service<TFileService>()->file(), false)
     {
@@ -237,23 +75,8 @@ private:
 
             edm::Handle<std::vector<PileupSummaryInfo>> puInfo;
             event.getByToken(puInfo_token, puInfo);
-            tauTuple().npu = analysis::gen_truth::GetNumberOfPileUpInteractions(puInfo);
+            tauTuple().npu = gen_truth::GetNumberOfPileUpInteractions(puInfo);
             tauTuple().genEventWeight = genEvent->weight();
-
-            if(saveGenTopInfo) {
-                edm::Handle<TtGenEvent> topGenEvent;
-                event.getByToken(topGenEvent_token, topGenEvent);
-                if(topGenEvent.isValid()) {
-                    analysis::GenEventType genEventType = analysis::GenEventType::Other;
-                    if(topGenEvent->isFullHadronic())
-                        genEventType = analysis::GenEventType::TTbar_Hadronic;
-                    else if(topGenEvent->isSemiLeptonic())
-                        genEventType = analysis::GenEventType::TTbar_SemiLeptonic;
-                    else if(topGenEvent->isFullLeptonic())
-                        genEventType = analysis::GenEventType::TTbar_Leptonic;
-                    tauTuple().genEventType = static_cast<int>(genEventType);
-                }
-            }
         }
 
         edm::Handle<pat::ElectronCollection> electrons;
@@ -265,22 +88,35 @@ private:
         edm::Handle<pat::TauCollection> taus;
         event.getByToken(taus_token, taus);
 
-        unsigned tau_index = 0;
-        for(const pat::Tau& tau : *taus) {
+        edm::Handle<pat::JetCollection> jets;
+        event.getByToken(jets_token, jets);
+
+
+        std::set<size_t> processed_taus;
+        for(const pat::Jet& jet : *jets) {
+
+            size_t tau_index = 0;
+            if(!FindTau(jet, *taus, tau_index)) continue;
+
+            if(processed_taus.count(tau_index))
+                throw cms::Exception("TauTupleProducer") << "Duplicated tau";
+            processed_taus.insert(tau_index);
+            const pat::Tau& tau = taus->at(tau_index);
+
             static const bool id_names_printed = PrintTauIdNames(tau);
             (void)id_names_printed;
 
-            tauTuple().tau_index = tau_index++;
-            tauTuple().pt = tau.p4().pt();
-            tauTuple().eta = tau.p4().eta();
-            tauTuple().phi = tau.p4().phi();
-            tauTuple().mass = tau.p4().mass();
+            tauTuple().tau_index = static_cast<int>(tau_index);
+            tauTuple().tau_pt = tau.p4().pt();
+            tauTuple().tau_eta = tau.p4().eta();
+            tauTuple().tau_phi = tau.p4().phi();
+            tauTuple().tau_mass = tau.p4().mass();
             tauTuple().charge = tau.charge();
 
             if(isMC) {
                 edm::Handle<std::vector<reco::GenParticle>> genParticles;
                 event.getByToken(genParticles_token, genParticles);
-                const auto match = analysis::gen_truth::LeptonGenMatch(tau.p4(), *genParticles);
+                const auto match = gen_truth::LeptonGenMatch(tau.p4(), *genParticles);
                 tauTuple().gen_match = static_cast<int>(match.first);
                 tauTuple().gen_pt = match.second ? match.second->p4().pt() : default_value;
                 tauTuple().gen_eta = match.second ? match.second->p4().eta() : default_value;
@@ -294,8 +130,8 @@ private:
                 static const std::vector<int> pdgIdsGenQuarkOrGluon = { -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 21 };
 
                 double dRmin;
-                auto gen_ele = FindMatchingGenParticle(tau.p4(), *genParticles, minGenVisPt, pdgIdsGenElectron,
-                                                       dRmatch, dRmin);
+                auto gen_ele = gen_truth::FindMatchingGenParticle(tau.p4(), *genParticles, minGenVisPt,
+                                                                            pdgIdsGenElectron, dRmatch, dRmin);
                 tauTuple().has_gen_ele_match = gen_ele != nullptr;
                 tauTuple().gen_ele_match_dR = gen_ele != nullptr ? dRmin : default_value;
                 tauTuple().gen_ele_pdg = gen_ele != nullptr ? gen_ele->pdgId() : 0;
@@ -304,7 +140,7 @@ private:
                 tauTuple().gen_ele_phi = gen_ele != nullptr ? gen_ele->p4().phi() : default_value;
                 tauTuple().gen_ele_mass = gen_ele != nullptr ? gen_ele->p4().mass() : default_value;
 
-                auto gen_muon = FindMatchingGenParticle(tau.p4(), *genParticles, minGenVisPt, pdgIdsGenMuon,
+                auto gen_muon = gen_truth::FindMatchingGenParticle(tau.p4(), *genParticles, minGenVisPt, pdgIdsGenMuon,
                                                        dRmatch, dRmin);
                 tauTuple().has_gen_muon_match = gen_muon != nullptr;
                 tauTuple().gen_muon_match_dR = gen_muon != nullptr ? dRmin : default_value;
@@ -314,7 +150,7 @@ private:
                 tauTuple().gen_muon_phi = gen_muon != nullptr ? gen_muon->p4().phi() : default_value;
                 tauTuple().gen_muon_mass = gen_muon != nullptr ? gen_muon->p4().mass() : default_value;
 
-                auto gen_qg = FindMatchingGenParticle(tau.p4(), *genParticles, minGenVisPt, pdgIdsGenMuon,
+                auto gen_qg = gen_truth::FindMatchingGenParticle(tau.p4(), *genParticles, minGenVisPt, pdgIdsGenMuon,
                                                        dRmatch, dRmin);
                 tauTuple().has_gen_qg_match = gen_qg != nullptr;
                 tauTuple().gen_qg_match_dR = gen_qg != nullptr ? dRmin : default_value;
@@ -332,6 +168,21 @@ private:
             FillComponents(tau);
 
             tauTuple.Fill();
+        }
+
+        std::cout << "Total = " << taus->size() << ". Total - processed = " << taus->size() - processed_taus.size()
+                  << std::endl;
+
+        if(taus->size() != processed_taus.size()) {
+            for(size_t tau_index = 0; tau_index < taus->size(); ++tau_index) {
+                if(processed_taus.count(tau_index)) continue;
+                const pat::Tau& tau = taus->at(tau_index);
+                std::cout << "Missing tau: (" << tau.pt() << ", " << tau.eta() << ", " << tau.phi() << ")" << std::endl;
+            }
+            for(const pat::Jet& jet : *jets) {
+                std::cout << "Available jet: (" << jet.pt() << ", " << jet.eta() << ", " << jet.phi() << ")" << std::endl;
+            }
+            throw cms::Exception("TauTupleProducer") << "Some taus are not found.";
         }
     }
 
@@ -358,6 +209,31 @@ private:
         std::cout << header << std::endl;
 
         return true;
+    }
+
+    static bool FindTau(const pat::Jet& jet, const pat::TauCollection& taus, size_t& tau_index)
+    {
+        std::cout << "new jet\n";
+        const size_t n_daughters = jet.numberOfDaughters();
+        for(tau_index = 0; tau_index < taus.size(); ++tau_index) {
+            const pat::Tau& tau = taus.at(tau_index);
+            auto leadChargedHadrCand = dynamic_cast<const pat::PackedCandidate*>(tau.leadChargedHadrCand().get());
+//            auto leadChargedHadrCandId = tau.leadChargedHadrCand().id();
+            std::cout << "new tau\n";
+            for(size_t n = 0; n < n_daughters; ++n) {
+                const auto& daughter = jet.daughterPtr(n);
+
+            //for(const auto& cand_ptr : jet.getPFConstituents()) {
+//                std::cout << "Validity checks: " << cand_ptr.isAvailable() << " " << cand_ptr.isNull() << " "
+//                          << cand_ptr.isTransient() << std::endl;
+//                if(!cand_ptr.isAvailable() || cand_ptr.isNull() || cand_ptr.isTransient()) continue;
+                auto cand = dynamic_cast<const pat::PackedCandidate*>(daughter.get());
+                std::cout << cand << std::endl;
+                if(cand == leadChargedHadrCand)
+                    return true;
+            }
+        }
+        return false;
     }
 
     static analysis::TauIdResults CreateTauIdResults(const pat::Tau& tau)
@@ -516,11 +392,6 @@ private:
         sum_energy = sum_p4.E();
     }
 
-    static double GetInnerSignalConeRadius(double pt)
-    {
-        return std::max(.05, std::min(.1, 3./std::max(1., pt)));
-    }
-
     template<typename LorentzVector1, typename LorentzVector2>
     static double IsInsideRing(const LorentzVector1& p4_tau, const LorentzVector2& p4_cand,
                                double dR2_min, double dR2_max)
@@ -529,22 +400,11 @@ private:
         return dR2 >= dR2_min && dR2 < dR2_max;
     }
 
-    // Copied from https://github.com/cms-sw/cmssw/blob/CMSSW_9_4_X/RecoTauTag/RecoTau/plugins/PATTauDiscriminationByMVAIsolationRun2.cc#L218
     static float CalculateGottfriedJacksonAngleDifference(const pat::Tau& tau)
     {
-        if(tau.decayMode() == 10) {
-            static constexpr double mTau = 1.77682;
-            const double mAOne = tau.p4().M();
-            const double pAOneMag = tau.p();
-            const double argumentThetaGJmax = (std::pow(mTau,2) - std::pow(mAOne,2) ) / ( 2 * mTau * pAOneMag );
-            const double argumentThetaGJmeasured = tau.p4().Vect().Dot(tau.flightLength())
-                    / ( pAOneMag * tau.flightLength().R() );
-            if ( std::abs(argumentThetaGJmax) <= 1. && std::abs(argumentThetaGJmeasured) <= 1. ) {
-                double thetaGJmax = std::asin( argumentThetaGJmax );
-                double thetaGJmeasured = std::acos( argumentThetaGJmeasured );
-                return thetaGJmeasured - thetaGJmax;
-            }
-        }
+        double gj_diff;
+        if(::tau_analysis::CalculateGottfriedJacksonAngleDifference(tau, gj_diff))
+            return static_cast<float>(gj_diff);
         return tau_tuple::DefaultFillValue<float>();
     }
 
@@ -563,89 +423,6 @@ private:
             eta = tau_tuple::DefaultFillValue<float>();
             phi = tau_tuple::DefaultFillValue<float>();
         }
-    }
-
-    static bool IsInEcalCrack(double eta)
-    {
-        const double abs_eta = std::abs(eta);
-        return abs_eta > 1.46 && abs_eta < 1.558;
-    }
-
-    static double AbsMin(double a, double b)
-    {
-        return std::abs(b) < std::abs(a) ? b : a;
-    }
-
-    // Copied from https://github.com/cms-sw/cmssw/blob/CMSSW_9_4_X/RecoTauTag/RecoTau/src/AntiElectronIDMVA6.cc#L1268
-    // Compute the (unsigned) distance to the closest phi-crack in the ECAL barrel
-    static double CalculateDeltaPhiCrack(double eta, double phi)
-    {
-        static constexpr double pi = M_PI;
-        static constexpr double delta_cPhi = 0.00638; // IN: shift of this location if eta < 0
-
-        // IN: define locations of the 18 phi-cracks
-        static const auto fill_cPhi = [&]() {
-            std::array<double, 18> c_phi;
-            c_phi[0] = 2.97025;
-            for ( unsigned iCrack = 1; iCrack <= 17; ++iCrack )
-                c_phi[iCrack] = c_phi[0] - 2.*iCrack*pi/18;
-            return c_phi;
-        };
-        static const std::array<double, 18> cPhi = fill_cPhi();
-
-        double retVal = 99.;
-        if ( eta >= -1.47464 && eta <= 1.47464 ) {
-            // the location is shifted
-            if ( eta < 0. ) phi += delta_cPhi;
-
-            // CV: need to bring-back phi into interval [-pi,+pi]
-            if ( phi >  pi ) phi -= 2.*pi;
-            if ( phi < -pi ) phi += 2.*pi;
-
-            if ( phi >= -pi && phi <= pi ) {
-                // the problem of the extrema:
-                if ( phi < cPhi[17] || phi >= cPhi[0] ) {
-                    if ( phi < 0. ) phi += 2.*pi;
-                    retVal = AbsMin(phi - cPhi[0], phi - cPhi[17] - 2.*pi);
-                } else {
-                    // between these extrema...
-                    bool OK = false;
-                    unsigned iCrack = 16;
-                    while( !OK ) {
-                        if ( phi < cPhi[iCrack] ) {
-                            retVal = AbsMin(phi - cPhi[iCrack + 1], phi - cPhi[iCrack]);
-                            OK = true;
-                        } else {
-                            iCrack -= 1;
-                        }
-                    }
-                }
-            } else {
-                retVal = 0.; // IN: if there is a problem, we assume that we are in a crack
-            }
-        } else {
-            return -99.;
-        }
-
-        return std::abs(retVal);
-    }
-
-
-    // Copied from https://github.com/cms-sw/cmssw/blob/CMSSW_9_4_X/RecoTauTag/RecoTau/src/AntiElectronIDMVA6.cc#L1317
-    // Compute the (unsigned) distance to the closest eta-crack in the ECAL barrel
-    static double CalculateDeltaEtaCrack(double eta)
-    {
-        // IN: define locations of the eta-cracks
-        static constexpr double cracks[5] = { 0., 4.44747e-01, 7.92824e-01, 1.14090e+00, 1.47464e+00 };
-
-        double retVal = 99.;
-        for ( int iCrack = 0; iCrack < 5 ; ++iCrack ) {
-            double d = AbsMin(eta - cracks[iCrack], eta + cracks[iCrack]);
-            if ( std::abs(d) < std::abs(retVal) ) {
-                retVal = d;
-            }
-        }
-        return std::abs(retVal);
     }
 
     static const pat::Electron* FindMatchedElectron(const pat::Tau& tau, const pat::ElectronCollection& electrons,
@@ -680,40 +457,11 @@ private:
         }
     }
 
-    // Copied from https://github.com/cms-tau-pog/TauAnalysisTools/blob/master/TauAnalysisTools/plugins/TauIdMVATrainingNtupleProducer.cc#L808-L833
-    static const reco::GenParticle* FindMatchingGenParticle(const reco::Candidate::LorentzVector& recTauP4,
-        const reco::GenParticleCollection& genParticles, double minGenVisPt, const std::vector<int>& pdgIds,
-        double dRmatch, double& dRmin)
-    {
-        const reco::GenParticle* genParticle_matched = nullptr;
-        dRmin = dRmatch;
-        for ( reco::GenParticleCollection::const_iterator genParticle = genParticles.begin();
-              genParticle != genParticles.end(); ++genParticle ) {
-            if ( !(genParticle->pt() > minGenVisPt) ) continue;
-            double dR = ROOT::Math::VectorUtil::DeltaR(genParticle->p4(), recTauP4);
-            if ( dR < dRmin ) {
-                bool matchedPdgId = false;
-                for ( std::vector<int>::const_iterator pdgId = pdgIds.begin(); pdgId != pdgIds.end(); ++pdgId ) {
-                    if ( genParticle->pdgId() == (*pdgId) ) {
-                        matchedPdgId = true;
-                        break;
-                    }
-                }
-                if ( matchedPdgId ) {
-                    genParticle_matched = &(*genParticle);
-                    dRmin = dR;
-                }
-            }
-        }
-        return genParticle_matched;
-    }
-
 private:
     const clock::time_point start;
-    const bool isMC, saveGenTopInfo;
+    const bool isMC;
 
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;
-    edm::EDGetTokenT<TtGenEvent> topGenEvent_token;
     edm::EDGetTokenT<std::vector<reco::GenParticle>> genParticles_token;
     edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puInfo_token;
     edm::EDGetTokenT<std::vector<reco::Vertex>> vertices_token;
@@ -721,11 +469,15 @@ private:
     edm::EDGetTokenT<pat::ElectronCollection> electrons_token;
     edm::EDGetTokenT<pat::MuonCollection> muons_token;
     edm::EDGetTokenT<pat::TauCollection> taus_token;
+    edm::EDGetTokenT<pat::JetCollection> jets_token;
 
     tau_tuple::TauTuple tauTuple;
     tau_tuple::SummaryTuple summaryTuple;
     TauIdMVAAuxiliaries clusterVariables;
 };
 
+} // namespace tau_analysis
+
 #include "FWCore/Framework/interface/MakerMacros.h"
+using TauTupleProducer = tau_analysis::TauTupleProducer;
 DEFINE_FWK_MODULE(TauTupleProducer);

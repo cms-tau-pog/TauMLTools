@@ -4,6 +4,7 @@
 #pragma once
 
 #include "AnalysisTools/Core/include/SmartTree.h"
+#include <Math/VectorUtil.h>
 
 #define RAW_TAU_IDS() \
     VAR(Float_t, againstElectronMVA6Raw) /* */ \
@@ -65,12 +66,18 @@
     VAR(Int_t, npv) /* number of primary vertices */ \
     VAR(Float_t, rho) /* rho */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
+    /* Jet variables */ \
+    VAR(UInt_t, jet_index) /* index of the jet */ \
+    VAR(Float_t, jet_pt) /* jet pt */ \
+    VAR(Float_t, jet_eta) /* jet eta */ \
+    VAR(Float_t, jet_phi) /* jet phi */ \
+    VAR(Float_t, jet_mass) /* jet mass */ \
     /* Basic tau variables */ \
-    VAR(UInt_t, tau_index) /* index of the tau */ \
-    VAR(Float_t, pt) /* tau pt */ \
-    VAR(Float_t, eta) /* tau eta */ \
-    VAR(Float_t, phi) /* tau phi */ \
-    VAR(Float_t, mass) /* tau mass */ \
+    VAR(Int_t, tau_index) /* index of the tau */ \
+    VAR(Float_t, tau_pt) /* tau pt */ \
+    VAR(Float_t, tau_eta) /* tau eta */ \
+    VAR(Float_t, tau_phi) /* tau phi */ \
+    VAR(Float_t, tau_mass) /* tau mass */ \
     VAR(Int_t, charge) /* tau charge */ \
     VAR(Int_t, gen_match) /* generator matching, see Htautau Twiki*/\
     VAR(Float_t, gen_pt) /* pt of the matched gen particle */ \
@@ -194,4 +201,5 @@ template<>
 constexpr float DefaultFillValue<float>() { return -999.; }
 
 enum class ComponenetType { Gamma = 0, ChargedHadronCandidate = 1, NeutralHadronCandidate = 2};
+
 } // namespace tau_tuple

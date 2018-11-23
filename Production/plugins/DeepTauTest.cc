@@ -18,6 +18,8 @@
 #include "TauML/Analysis/include/TauTuple.h"
 
 
+namespace tau_analysis {
+
 class DeepTauTest : public edm::EDAnalyzer {
 public:
     DeepTauTest(const edm::ParameterSet& cfg) :
@@ -28,6 +30,8 @@ public:
         output_tuple("taus", &edm::Service<TFileService>()->file(), false)
     {
     }
+
+    virtual ~DeepTauTest() override {}
 
 private:
     virtual void analyze(const edm::Event& event, const edm::EventSetup&) override
@@ -68,15 +72,15 @@ private:
             if(isMC) {
                 edm::Handle<std::vector<reco::GenParticle>> genParticles;
                 event.getByToken(genParticles_token, genParticles);
-                const auto match = analysis::gen_truth::LeptonGenMatch(tau.p4(), *genParticles);
+                const auto match = gen_truth::LeptonGenMatch(tau.p4(), *genParticles);
                 const auto gen_match = match.first;
 
-                output_tuple().gen_e = gen_match == analysis::GenMatch::Electron
-                        || gen_match == analysis::GenMatch::TauElectron;
-                output_tuple().gen_mu = gen_match == analysis::GenMatch::Muon
-                        || gen_match == analysis::GenMatch::TauMuon;
-                output_tuple().gen_tau = gen_match == analysis::GenMatch::Tau;
-                output_tuple().gen_jet = gen_match == analysis::GenMatch::NoMatch;
+                output_tuple().gen_e = gen_match == GenLeptonMatch::Electron
+                        || gen_match == GenLeptonMatch::TauElectron;
+                output_tuple().gen_mu = gen_match == GenLeptonMatch::Muon
+                        || gen_match == GenLeptonMatch::TauMuon;
+                output_tuple().gen_tau = gen_match == GenLeptonMatch::Tau;
+                output_tuple().gen_jet = gen_match == GenLeptonMatch::NoMatch;
             }
 
             output_tuple().refId_e = tau.tauID("againstElectronMVA6Raw");
@@ -129,5 +133,8 @@ private:
     tau_tuple::TauIdResultTuple output_tuple;
 };
 
+} // namespace tau_analysis
+
 #include "FWCore/Framework/interface/MakerMacros.h"
+using DeepTauTest = tau_analysis::DeepTauTest;
 DEFINE_FWK_MODULE(DeepTauTest);
