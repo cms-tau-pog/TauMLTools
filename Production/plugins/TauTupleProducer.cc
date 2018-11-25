@@ -26,6 +26,7 @@
 #include "TauML/Production/include/GenTruthTools.h"
 #include "TauML/Production/include/TauAnalysis.h"
 #include "TauML/Production/include/MuonHitMatch.h"
+#include "TauML/Production/include/TauJet.h"
 
 namespace tau_analysis {
 
@@ -45,6 +46,7 @@ public:
         muons_token(mayConsume<pat::MuonCollection>(cfg.getParameter<edm::InputTag>("muons"))),
         taus_token(mayConsume<pat::TauCollection>(cfg.getParameter<edm::InputTag>("taus"))),
         jets_token(mayConsume<pat::JetCollection>(cfg.getParameter<edm::InputTag>("jets"))),
+        cands_token(mayConsume<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("pfCandidates"))),
         tauTuple("taus", &edm::Service<TFileService>()->file(), false),
         summaryTuple("summary", &edm::Service<TFileService>()->file(), false)
     {
@@ -91,16 +93,21 @@ private:
         edm::Handle<pat::JetCollection> jets;
         event.getByToken(jets_token, jets);
 
+        edm::Handle<pat::PackedCandidateCollection> cands;
+        event.getByToken(cands_token, cands);
 
-        std::set<size_t> processed_taus;
-        for(const pat::Jet& jet : *jets) {
+        edm::Handle<std::vector<reco::GenParticle>> hGenParticles;
+        if(isMC)
+            event.getByToken(genParticles_token, hGenParticles);
 
-            size_t tau_index = 0;
-            if(!FindTau(jet, *taus, tau_index)) continue;
+        auto genParticles = hGenParticles.isValid() ? hGenParticles.product() : nullptr;
 
-            if(processed_taus.count(tau_index))
-                throw cms::Exception("TauTupleProducer") << "Duplicated tau";
-            processed_taus.insert(tau_index);
+        TauJetBuilder builder(jets, taus, cands, genParticles);
+
+        const auto tauJets = builder.Build();
+
+        for(const TauJet& tauJet : tauJets) {
+
             const pat::Tau& tau = taus->at(tau_index);
 
             static const bool id_names_printed = PrintTauIdNames(tau);
@@ -115,7 +122,7 @@ private:
 
             if(isMC) {
                 edm::Handle<std::vector<reco::GenParticle>> genParticles;
-                event.getByToken(genParticles_token, genParticles);
+
                 const auto match = gen_truth::LeptonGenMatch(tau.p4(), *genParticles);
                 tauTuple().gen_match = static_cast<int>(match.first);
                 tauTuple().gen_pt = match.second ? match.second->p4().pt() : default_value;
@@ -169,21 +176,6 @@ private:
 
             tauTuple.Fill();
         }
-
-        std::cout << "Total = " << taus->size() << ". Total - processed = " << taus->size() - processed_taus.size()
-                  << std::endl;
-
-        if(taus->size() != processed_taus.size()) {
-            for(size_t tau_index = 0; tau_index < taus->size(); ++tau_index) {
-                if(processed_taus.count(tau_index)) continue;
-                const pat::Tau& tau = taus->at(tau_index);
-                std::cout << "Missing tau: (" << tau.pt() << ", " << tau.eta() << ", " << tau.phi() << ")" << std::endl;
-            }
-            for(const pat::Jet& jet : *jets) {
-                std::cout << "Available jet: (" << jet.pt() << ", " << jet.eta() << ", " << jet.phi() << ")" << std::endl;
-            }
-            throw cms::Exception("TauTupleProducer") << "Some taus are not found.";
-        }
     }
 
     virtual void endJob() override
@@ -209,31 +201,6 @@ private:
         std::cout << header << std::endl;
 
         return true;
-    }
-
-    static bool FindTau(const pat::Jet& jet, const pat::TauCollection& taus, size_t& tau_index)
-    {
-        std::cout << "new jet\n";
-        const size_t n_daughters = jet.numberOfDaughters();
-        for(tau_index = 0; tau_index < taus.size(); ++tau_index) {
-            const pat::Tau& tau = taus.at(tau_index);
-            auto leadChargedHadrCand = dynamic_cast<const pat::PackedCandidate*>(tau.leadChargedHadrCand().get());
-//            auto leadChargedHadrCandId = tau.leadChargedHadrCand().id();
-            std::cout << "new tau\n";
-            for(size_t n = 0; n < n_daughters; ++n) {
-                const auto& daughter = jet.daughterPtr(n);
-
-            //for(const auto& cand_ptr : jet.getPFConstituents()) {
-//                std::cout << "Validity checks: " << cand_ptr.isAvailable() << " " << cand_ptr.isNull() << " "
-//                          << cand_ptr.isTransient() << std::endl;
-//                if(!cand_ptr.isAvailable() || cand_ptr.isNull() || cand_ptr.isTransient()) continue;
-                auto cand = dynamic_cast<const pat::PackedCandidate*>(daughter.get());
-                std::cout << cand << std::endl;
-                if(cand == leadChargedHadrCand)
-                    return true;
-            }
-        }
-        return false;
     }
 
     static analysis::TauIdResults CreateTauIdResults(const pat::Tau& tau)
@@ -470,6 +437,7 @@ private:
     edm::EDGetTokenT<pat::MuonCollection> muons_token;
     edm::EDGetTokenT<pat::TauCollection> taus_token;
     edm::EDGetTokenT<pat::JetCollection> jets_token;
+    edm::EDGetTokenT<pat::PackedCandidateCollection> cands_token;
 
     tau_tuple::TauTuple tauTuple;
     tau_tuple::SummaryTuple summaryTuple;

@@ -23,13 +23,10 @@ struct MuonHitMatch {
 
     MuonHitMatch();
     void AddMatchedMuon(const pat::Muon& muon, const pat::Tau& tau);
-    static std::vector<const pat::Muon*> FindMatchedMuons(const pat::Tau& tau, const pat::MuonCollection& muons,
-                                                          double deltaR, double minPt);
     void FillTuple(tau_tuple::Tau& tau, const pat::Tau& reco_tau) const;
 
 private:
     unsigned CountMuonStationsWithMatches(size_t first_station, size_t last_station) const;
-
     unsigned CountMuonStationsWithHits(size_t first_station, size_t last_station) const;
 };
 

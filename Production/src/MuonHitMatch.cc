@@ -42,7 +42,7 @@ void MuonHitMatch::AddMatchedMuon(const pat::Muon& muon, const pat::Tau& tau)
             if(hit_pattern.muonHitFilter(hit_id) && (hit_pattern.getHitType(hit_id) == TrackingRecHit::valid
                                                      || hit_pattern.getHitType(hit_id == TrackingRecHit::bad))) {
                 const int station = hit_pattern.getMuonStation(hit_id) - 1;
-                if(station > 0 && station < n_stations) {
+                if(station >= 0 && station < n_stations) {
                     std::vector<UInt_t>* muon_n_hits = nullptr;
                     if(hit_pattern.muonDTHitFilter(hit_id))
                         muon_n_hits = &n_hits.at(MuonSubdetId::DT);
@@ -57,24 +57,6 @@ void MuonHitMatch::AddMatchedMuon(const pat::Muon& muon, const pat::Tau& tau)
             }
         }
     }
-}
-
-std::vector<const pat::Muon*> MuonHitMatch::FindMatchedMuons(const pat::Tau& tau, const pat::MuonCollection& muons,
-                                                             double deltaR, double minPt)
-{
-    const reco::Muon* hadr_cand_muon = nullptr;
-    if(tau.leadPFChargedHadrCand().isNonnull() && tau.leadPFChargedHadrCand()->muonRef().isNonnull())
-        hadr_cand_muon = tau.leadPFChargedHadrCand()->muonRef().get();
-    std::vector<const pat::Muon*> matched_muons;
-    const double deltaR2 = std::pow(deltaR, 2);
-    for(const pat::Muon& muon : muons) {
-        const reco::Muon* reco_muon = &muon;
-        if(muon.pt() <= minPt) continue;
-        if(reco_muon == hadr_cand_muon) continue;
-        if(reco::deltaR2(tau.p4(), muon.p4()) >= deltaR2) continue;
-        matched_muons.push_back(&muon);
-    }
-    return matched_muons;
 }
 
 void MuonHitMatch::FillTuple(tau_tuple::Tau& tau, const pat::Tau& reco_tau) const
