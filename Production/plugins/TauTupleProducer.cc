@@ -54,9 +54,12 @@ public:
     }
 
 private:
+    static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
+    static constexpr int default_int_value = tau_tuple::DefaultFillValue<int>();
+
     virtual void analyze(const edm::Event& event, const edm::EventSetup&) override
     {
-        static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
+        static const TauIdMVAAuxiliaries clusterVariables;
 
         summaryTuple().numberOfProcessedEvents++;
 
@@ -66,10 +69,10 @@ private:
 
         edm::Handle<std::vector<reco::Vertex>> vertices;
         event.getByToken(vertices_token, vertices);
-        tauTuple().npv = vertices->size();
+        tauTuple().npv = static_cast<unsigned>(vertices->size());
         edm::Handle<double> rho;
         event.getByToken(rho_token, rho);
-        tauTuple().rho = *rho;
+        tauTuple().rho = static_cast<float>(*rho);
 
         if(isMC) {
             edm::Handle<GenEventInfoProduct> genEvent;
@@ -78,7 +81,7 @@ private:
             edm::Handle<std::vector<PileupSummaryInfo>> puInfo;
             event.getByToken(puInfo_token, puInfo);
             tauTuple().npu = gen_truth::GetNumberOfPileUpInteractions(puInfo);
-            tauTuple().genEventWeight = genEvent->weight();
+            tauTuple().genEventWeight = static_cast<float>(genEvent->weight());
         }
 
         edm::Handle<pat::ElectronCollection> electrons;
@@ -102,77 +105,69 @@ private:
 
         auto genParticles = hGenParticles.isValid() ? hGenParticles.product() : nullptr;
 
-        TauJetBuilder builder(jets, taus, cands, genParticles);
+        TauJetBuilder builder(*jets, *taus, *cands, genParticles);
 
         const auto tauJets = builder.Build();
 
         for(const TauJet& tauJet : tauJets) {
+            tauTuple().jet_index = tauJet.jetIndex;
+            tauTuple().jet_pt = static_cast<float>(tauJet.jet->p4().pt());
+            tauTuple().jet_eta = static_cast<float>(tauJet.jet->p4().eta());
+            tauTuple().jet_phi = static_cast<float>(tauJet.jet->p4().phi());
+            tauTuple().jet_mass = static_cast<float>(tauJet.jet->p4().mass());
 
-            const pat::Tau& tau = taus->at(tau_index);
-
-            static const bool id_names_printed = PrintTauIdNames(tau);
-            (void)id_names_printed;
-
-            tauTuple().tau_index = static_cast<int>(tau_index);
-            tauTuple().tau_pt = tau.p4().pt();
-            tauTuple().tau_eta = tau.p4().eta();
-            tauTuple().tau_phi = tau.p4().phi();
-            tauTuple().tau_mass = tau.p4().mass();
-            tauTuple().charge = tau.charge();
-
-            if(isMC) {
-                edm::Handle<std::vector<reco::GenParticle>> genParticles;
-
-                const auto match = gen_truth::LeptonGenMatch(tau.p4(), *genParticles);
-                tauTuple().gen_match = static_cast<int>(match.first);
-                tauTuple().gen_pt = match.second ? match.second->p4().pt() : default_value;
-                tauTuple().gen_eta = match.second ? match.second->p4().eta() : default_value;
-                tauTuple().gen_phi = match.second ? match.second->p4().phi() : default_value;
-                tauTuple().gen_mass = match.second ? match.second->p4().mass() : default_value;
-
-                static constexpr double minGenVisPt = 10;
-                static const double dRmatch = 0.3;
-                static const std::vector<int> pdgIdsGenElectron = { -11, 11 };
-                static const std::vector<int> pdgIdsGenMuon = { -13, 13 };
-                static const std::vector<int> pdgIdsGenQuarkOrGluon = { -6, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 6, 21 };
-
-                double dRmin;
-                auto gen_ele = gen_truth::FindMatchingGenParticle(tau.p4(), *genParticles, minGenVisPt,
-                                                                            pdgIdsGenElectron, dRmatch, dRmin);
-                tauTuple().has_gen_ele_match = gen_ele != nullptr;
-                tauTuple().gen_ele_match_dR = gen_ele != nullptr ? dRmin : default_value;
-                tauTuple().gen_ele_pdg = gen_ele != nullptr ? gen_ele->pdgId() : 0;
-                tauTuple().gen_ele_pt = gen_ele != nullptr ? gen_ele->p4().pt() : default_value;
-                tauTuple().gen_ele_eta = gen_ele != nullptr ? gen_ele->p4().eta() : default_value;
-                tauTuple().gen_ele_phi = gen_ele != nullptr ? gen_ele->p4().phi() : default_value;
-                tauTuple().gen_ele_mass = gen_ele != nullptr ? gen_ele->p4().mass() : default_value;
-
-                auto gen_muon = gen_truth::FindMatchingGenParticle(tau.p4(), *genParticles, minGenVisPt, pdgIdsGenMuon,
-                                                       dRmatch, dRmin);
-                tauTuple().has_gen_muon_match = gen_muon != nullptr;
-                tauTuple().gen_muon_match_dR = gen_muon != nullptr ? dRmin : default_value;
-                tauTuple().gen_muon_pdg = gen_muon != nullptr ? gen_muon->pdgId() : 0;
-                tauTuple().gen_muon_pt = gen_muon != nullptr ? gen_muon->p4().pt() : default_value;
-                tauTuple().gen_muon_eta = gen_muon != nullptr ? gen_muon->p4().eta() : default_value;
-                tauTuple().gen_muon_phi = gen_muon != nullptr ? gen_muon->p4().phi() : default_value;
-                tauTuple().gen_muon_mass = gen_muon != nullptr ? gen_muon->p4().mass() : default_value;
-
-                auto gen_qg = gen_truth::FindMatchingGenParticle(tau.p4(), *genParticles, minGenVisPt, pdgIdsGenMuon,
-                                                       dRmatch, dRmin);
-                tauTuple().has_gen_qg_match = gen_qg != nullptr;
-                tauTuple().gen_qg_match_dR = gen_qg != nullptr ? dRmin : default_value;
-                tauTuple().gen_qg_pdg = gen_qg != nullptr ? gen_qg->pdgId() : 0;
-                tauTuple().gen_qg_pt = gen_qg != nullptr ? gen_qg->p4().pt() : default_value;
-                tauTuple().gen_qg_eta = gen_qg != nullptr ? gen_qg->p4().eta() : default_value;
-                tauTuple().gen_qg_phi = gen_qg != nullptr ? gen_qg->p4().phi() : default_value;
-                tauTuple().gen_qg_mass = gen_qg != nullptr ? gen_qg->p4().mass() : default_value;
+            const bool has_tau = tauJet.tauIndex >= 0;
+            auto tau = tauJet.tau;
+            if(has_tau) {
+                static const bool id_names_printed = PrintTauIdNames(*tau);
+                (void)id_names_printed;
             }
 
-            tauTuple().decayMode = tau.decayMode();
-            tauTuple().id_flags = CreateTauIdResults(tau).GetResultBits();
+
+            tauTuple().tau_index = tauJet.tauIndex;
+            tauTuple().tau_pt = has_tau ? static_cast<float>(tau->polarP4().pt()) : default_value;
+            tauTuple().tau_eta = has_tau ? static_cast<float>(tau->polarP4().eta()) : default_value;
+            tauTuple().tau_phi = has_tau ? static_cast<float>(tau->polarP4().phi()) : default_value;
+            tauTuple().tau_mass = has_tau ? static_cast<float>(tau->polarP4().mass()) : default_value;
+            tauTuple().tau_charge = has_tau ? tau->charge() : default_int_value;
+
+            if(has_tau)
+                FillGenMatchResult(tauJet.tauGenLeptonMatchResult, tauJet.tauGenQcdMatchResult);
+            else
+                FillGenMatchResult(tauJet.jetGenLeptonMatchResult, tauJet.jetGenQcdMatchResult);
+
+            tauTuple().tau_decayMode = has_tau ? tau->decayMode() : default_int_value;
+            tauTuple().tau_id_flags = has_tau ? CreateTauIdResults(*tau).GetResultBits() : 0;
             FillRawTauIds(tau);
-            FillExtendedVariables(tau, *electrons, *muons);
-            FillComponents(tau);
+
+            const pat::PackedCandidate* leadChargedHadrCand =
+                    has_tau ? dynamic_cast<const pat::PackedCandidate*>(tau->leadChargedHadrCand().get()) : nullptr;
+            tauTuple().tau_dxy = has_tau ? tau->dxy() : default_value;
+            tauTuple().tau_dxy_sig = has_tau ? tau->dxy_Sig() : default_value;
+            tauTuple().tau_dz = leadChargedHadrCand ? leadChargedHadrCand->dz() : default_value;
+            tauTuple().tau_ip3d = has_tau ? tau->ip3d() : default_value;
+            tauTuple().tau_ip3d_sig = has_tau ? tau->ip3d_Sig() : default_value;
+            tauTuple().tau_hasSecondaryVertex = has_tau ? tau->hasSecondaryVertex() : default_int_value;
+            tauTuple().tau_flightLength_r = has_tau ? tau->flightLength().R() : default_value;
+            tauTuple().tau_flightLength_dEta = has_tau ? dEta(tau->flightLength(), tau->polarP4()) : default_value;
+            tauTuple().tau_flightLength_dPhi = has_tau ? dPhi(tau->flightLength(), tau->polarP4()) : default_value;
+            tauTuple().tau_flightLength_sig = has_tau ? tau->flightLengthSig() : default_value;
+
+            tauTuple().tau_pt_weighted_deta_strip =
+                    has_tau ? clusterVariables.tau_pt_weighted_deta_strip(*tau, tau->decayMode()) : default_value;
+            tauTuple().tau_pt_weighted_dphi_strip =
+                    has_tau ? clusterVariables.tau_pt_weighted_dphi_strip(*tau, tau->decayMode()) : default_value;
+            tauTuple().tau_pt_weighted_dr_signal =
+                    has_tau ? clusterVariables.tau_pt_weighted_dr_signal(*tau, tau->decayMode()) : default_value;
+            tauTuple().tau_pt_weighted_dr_iso =
+                    has_tau ? clusterVariables.tau_pt_weighted_dr_iso(*tau, tau->decayMode()) : default_value;
+            tauTuple().tau_leadingTrackNormChi2 = has_tau ? tau->leadingTrackNormChi2() : default_value;
+            tauTuple().tau_e_ratio = has_tau ? clusterVariables.tau_Eratio(*tau) : default_value;
+            tauTuple().tau_gj_angle_diff = has_tau ? CalculateGottfriedJacksonAngleDifference(*tau) : default_value;
+            tauTuple().tau_n_photons = has_tau ? clusterVariables.tau_n_photons_total(*tau) : default_value;
+
+            tauTuple().tau_emFraction = has_tau ? tau->emFraction_MVA() : default_value;
+            tauTuple().tau_inside_ecal_crack = has_tau ? IsInEcalCrack(tau->p4().Eta()) : default_value;
 
             tauTuple.Fill();
         }
@@ -182,7 +177,8 @@ private:
     {
         tauTuple.Write();
         const auto stop = clock::now();
-        summaryTuple().exeTime = std::chrono::duration_cast<std::chrono::seconds>(stop - start).count();
+        summaryTuple().exeTime = static_cast<unsigned>(
+                    std::chrono::duration_cast<std::chrono::seconds>(stop - start).count());
         summaryTuple.Fill();
         summaryTuple.Write();
     }
@@ -212,51 +208,46 @@ private:
         return results;
     }
 
-    void FillRawTauIds(const pat::Tau& tau)
+    void FillGenMatchResult(const gen_truth::LeptonMatchResult& leptonMatch, const gen_truth::QcdMatchResult& qcdMatch)
     {
-#define VAR(type, name) tauTuple().name = tau.tauID(#name);
+        const bool has_lepton = leptonMatch.match != GenLeptonMatch::NoMatch;
+        tauTuple().lepton_gen_match = static_cast<int>(leptonMatch.match);
+        tauTuple().lepton_gen_charge = has_lepton ? leptonMatch.gen_particle->charge() : default_int_value;
+        tauTuple().lepton_gen_pt = has_lepton ? static_cast<float>(leptonMatch.gen_particle->polarP4().pt())
+                                              : default_value;
+        tauTuple().lepton_gen_eta = has_lepton ? static_cast<float>(leptonMatch.gen_particle->polarP4().eta())
+                                               : default_value;
+        tauTuple().lepton_gen_phi = has_lepton ? static_cast<float>(leptonMatch.gen_particle->polarP4().phi())
+                                               : default_value;
+        tauTuple().lepton_gen_mass = has_lepton ? static_cast<float>(leptonMatch.gen_particle->polarP4().mass())
+                                                : default_value;
+        for(auto daughter : leptonMatch.visible_daughters) {
+            tauTuple().lepton_gen_vis_pdg.push_back(daughter->pdgId());
+            tauTuple().lepton_gen_vis_pt.push_back(static_cast<float>(daughter->polarP4().pt()));
+            tauTuple().lepton_gen_vis_eta.push_back(static_cast<float>(daughter->polarP4().eta()));
+            tauTuple().lepton_gen_vis_phi.push_back(static_cast<float>(daughter->polarP4().phi()));
+            tauTuple().lepton_gen_vis_mass.push_back(static_cast<float>(daughter->polarP4().mass()));
+        }
+
+        const bool has_qcd = qcdMatch.match != GenQcdMatch::NoMatch;
+        tauTuple().qcd_gen_match = static_cast<int>(qcdMatch.match);
+        tauTuple().qcd_gen_charge = has_qcd ? qcdMatch.gen_particle->charge() : default_int_value;
+        tauTuple().qcd_gen_pt = has_qcd ? static_cast<float>(qcdMatch.gen_particle->polarP4().pt()) : default_value;
+        tauTuple().qcd_gen_eta = has_qcd ? static_cast<float>(qcdMatch.gen_particle->polarP4().eta()) : default_value;
+        tauTuple().qcd_gen_phi = has_qcd ? static_cast<float>(qcdMatch.gen_particle->polarP4().phi()) : default_value;
+        tauTuple().qcd_gen_mass = has_qcd ? static_cast<float>(qcdMatch.gen_particle->polarP4().mass()) : default_value;
+    }
+
+    void FillRawTauIds(const pat::Tau* tau)
+    {
+#define VAR(type, name) tauTuple().name = tau ? tau->tauID(#name) : default_value;
         RAW_TAU_IDS()
 #undef VAR
     }
-
+/*
     void FillExtendedVariables(const pat::Tau& tau, const pat::ElectronCollection& electrons,
                                const pat::MuonCollection& muons)
     {
-        static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
-        auto leadChargedHadrCand = dynamic_cast<const pat::PackedCandidate*>(tau.leadChargedHadrCand().get());
-
-        tauTuple().dxy = tau.dxy();
-        tauTuple().dxy_sig = tau.dxy_Sig();
-        tauTuple().dz = leadChargedHadrCand ? leadChargedHadrCand->dz() : default_value;
-        tauTuple().ip3d = tau.ip3d();
-        tauTuple().ip3d_sig = tau.ip3d_Sig();
-        tauTuple().hasSecondaryVertex = tau.hasSecondaryVertex();
-        tauTuple().flightLength_r = tau.flightLength().R();
-        tauTuple().flightLength_dEta = dEta(tau.flightLength(), tau.p4());
-        tauTuple().flightLength_dPhi = dPhi(tau.flightLength(), tau.p4());
-        tauTuple().flightLength_sig = tau.flightLengthSig();
-
-        tauTuple().leadChargedHadrCand_pt = leadChargedHadrCand ? leadChargedHadrCand->p4().Pt() : default_value;
-        tauTuple().leadChargedHadrCand_dEta = leadChargedHadrCand
-                ? dEta(leadChargedHadrCand->p4(), tau.p4()) : default_value;
-        tauTuple().leadChargedHadrCand_dPhi = leadChargedHadrCand
-                ? dPhi(leadChargedHadrCand->p4(), tau.p4()) : default_value;
-        tauTuple().leadChargedHadrCand_mass = leadChargedHadrCand ? leadChargedHadrCand->p4().mass() : default_value;
-        tauTuple().leadChargedCand_etaAtEcalEntrance = tau.etaAtEcalEntranceLeadChargedCand();
-
-
-        tauTuple().pt_weighted_deta_strip = clusterVariables.tau_pt_weighted_deta_strip(tau, tau.decayMode());
-        tauTuple().pt_weighted_dphi_strip = clusterVariables.tau_pt_weighted_dphi_strip(tau, tau.decayMode());
-        tauTuple().pt_weighted_dr_signal = clusterVariables.tau_pt_weighted_dr_signal(tau, tau.decayMode());
-        tauTuple().pt_weighted_dr_iso = clusterVariables.tau_pt_weighted_dr_iso(tau, tau.decayMode());
-        tauTuple().leadingTrackNormChi2 = tau.leadingTrackNormChi2();
-        tauTuple().e_ratio = clusterVariables.tau_Eratio(tau);
-        tauTuple().gj_angle_diff = CalculateGottfriedJacksonAngleDifference(tau);
-        tauTuple().n_photons = clusterVariables.tau_n_photons_total(tau);
-
-        tauTuple().emFraction = tau.emFraction_MVA();
-        tauTuple().inside_ecal_crack = IsInEcalCrack(tau.p4().Eta());
-
         tauTuple().has_gsf_track = leadChargedHadrCand && std::abs(leadChargedHadrCand->pdgId()) == 11;
         auto gsf_ele = FindMatchedElectron(tau, electrons, 0.3);
         tauTuple().gsf_ele_matched = gsf_ele != nullptr;
@@ -305,74 +296,13 @@ private:
             muon_hit_match.AddMatchedMuon(*muon, tau);
         muon_hit_match.FillTuple(tauTuple(), tau);
     }
-
-#define PROCESS_COMP(prefix, flav, col, dR2_min, dR2_max) \
-    ProcessComponentCollection(tau, tau.prefix##flav(), dR2_min, dR2_max, \
-        tauTuple().col##_##flav##_sum_pt, tauTuple().col##_##flav##_sum_ht, tauTuple().col##_##flav##_sum_dPhi, \
-        tauTuple().col##_##flav##_sum_dEta, tauTuple().col##_##flav##_sum_mass, tauTuple().col##_##flav##_sum_energy, \
-        tauTuple().col##_##flav##_nTotal)
-    /**/
-
-#define PROCESS_COMP_SET(prefix, col, dR2_min, dR2_max) \
-    PROCESS_COMP(prefix, ChargedHadrCands, col, dR2_min, dR2_max); \
-    PROCESS_COMP(prefix, NeutrHadrCands, col, dR2_min, dR2_max); \
-    PROCESS_COMP(prefix, GammaCands, col, dR2_min, dR2_max) \
-    /**/
-
-    void FillComponents(const pat::Tau& tau)
-    {
-        const double innerSigCone_radius = GetInnerSignalConeRadius(tau.pt());
-
-        PROCESS_COMP_SET(signal, innerSigCone, 0, innerSigCone_radius);
-        PROCESS_COMP_SET(signal, outerSigCone, innerSigCone_radius, 0.5);
-        PROCESS_COMP_SET(isolation, isoRing02, 0, 0.2);
-        PROCESS_COMP_SET(isolation, isoRing03, 0.2, 0.3);
-        PROCESS_COMP_SET(isolation, isoRing04, 0.3, 0.4);
-        PROCESS_COMP_SET(isolation, isoRing05, 0.4, 0.5);
-    }
-
-#undef PROCESS_COMP_SET
-#undef PROCESS_COMP
-
-    template<typename CandCollection>
-    static void ProcessComponentCollection(const pat::Tau& tau, const CandCollection& cands,
-                                           double dR2_min, double dR2_max,
-                                           float& sum_pt, float& sum_ht, float& sum_dPhi, float& sum_dEta,
-                                           float& sum_mass, float& sum_energy, unsigned& nTotal)
-    {
-        static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
-
-        analysis::LorentzVectorXYZ sum_p4(0, 0, 0, 0);
-        nTotal = 0;
-        sum_ht = 0;
-        for(const auto& cand : cands) {
-            if(!IsInsideRing(tau.p4(), cand->p4(), dR2_min, dR2_max)) continue;
-            sum_p4 += cand->p4();
-            sum_ht += cand->p4().pt();
-            ++nTotal;
-        }
-
-        sum_pt = sum_p4.pt();
-        sum_dPhi = nTotal > 0 ? dPhi(sum_p4, tau.p4()) : default_value;
-        sum_dEta = nTotal > 0 ? dEta(sum_p4, tau.p4()) : default_value;
-        sum_mass = sum_p4.mass();
-        sum_energy = sum_p4.E();
-    }
-
-    template<typename LorentzVector1, typename LorentzVector2>
-    static double IsInsideRing(const LorentzVector1& p4_tau, const LorentzVector2& p4_cand,
-                               double dR2_min, double dR2_max)
-    {
-        const double dR2 = ROOT::Math::VectorUtil::DeltaR2(p4_tau, p4_cand);
-        return dR2 >= dR2_min && dR2 < dR2_max;
-    }
-
+*/
     static float CalculateGottfriedJacksonAngleDifference(const pat::Tau& tau)
     {
         double gj_diff;
         if(::tau_analysis::CalculateGottfriedJacksonAngleDifference(tau, gj_diff))
             return static_cast<float>(gj_diff);
-        return tau_tuple::DefaultFillValue<float>();
+        return default_value;
     }
 
     static void CalculateEtaPhiAtEcalEntrance(const pat::Tau& tau, float& eta, float& phi)
@@ -390,20 +320,6 @@ private:
             eta = tau_tuple::DefaultFillValue<float>();
             phi = tau_tuple::DefaultFillValue<float>();
         }
-    }
-
-    static const pat::Electron* FindMatchedElectron(const pat::Tau& tau, const pat::ElectronCollection& electrons,
-                                                    double deltaR)
-    {
-        const double deltaR2 = std::pow(deltaR, 2);
-        const pat::Electron* matched_ele = nullptr;
-        for(const auto& ele : electrons) {
-            if(ROOT::Math::VectorUtil::DeltaR2(tau.p4(), ele.p4()) < deltaR2 &&
-                    (!matched_ele || matched_ele->pt() < ele.pt())) {
-                matched_ele = &ele;
-            }
-        }
-        return matched_ele;
     }
 
     static void CalculateElectronClusterVars(const pat::Electron* ele, float& elecEe, float& elecEgamma)
@@ -441,7 +357,6 @@ private:
 
     tau_tuple::TauTuple tauTuple;
     tau_tuple::SummaryTuple summaryTuple;
-    TauIdMVAAuxiliaries clusterVariables;
 };
 
 } // namespace tau_analysis

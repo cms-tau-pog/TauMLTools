@@ -60,9 +60,9 @@ private:
             auto leadChargedHadrCand = dynamic_cast<const pat::PackedCandidate*>(tau.leadChargedHadrCand().get());
 
             output_tuple().tau_index = tau_index++;
-            output_tuple().pt = tau.p4().pt();
-            output_tuple().eta = tau.p4().eta();
-            output_tuple().phi = tau.p4().phi();
+            output_tuple().pt = static_cast<float>(tau.p4().pt());
+            output_tuple().eta = static_cast<float>(tau.p4().eta());
+            output_tuple().phi = static_cast<float>(tau.p4().phi());
             output_tuple().decayModeFinding = tau.tauID("decayModeFinding") > 0.5;
             output_tuple().decayMode = tau.decayMode();
             output_tuple().dxy = tau.dxy();
@@ -72,8 +72,8 @@ private:
             if(isMC) {
                 edm::Handle<std::vector<reco::GenParticle>> genParticles;
                 event.getByToken(genParticles_token, genParticles);
-                const auto match = gen_truth::LeptonGenMatch(tau.p4(), *genParticles);
-                const auto gen_match = match.first;
+                const auto match = gen_truth::LeptonGenMatch(tau.polarP4(), *genParticles);
+                const auto gen_match = match.match;
 
                 output_tuple().gen_e = gen_match == GenLeptonMatch::Electron
                         || gen_match == GenLeptonMatch::TauElectron;

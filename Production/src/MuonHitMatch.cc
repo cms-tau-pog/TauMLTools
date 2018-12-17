@@ -61,6 +61,7 @@ void MuonHitMatch::AddMatchedMuon(const pat::Muon& muon, const pat::Tau& tau)
 
 void MuonHitMatch::FillTuple(tau_tuple::Tau& tau, const pat::Tau& reco_tau) const
 {
+    /*
     static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
 
     tau.n_matched_muons = n_muons;
@@ -91,6 +92,7 @@ void MuonHitMatch::FillTuple(tau_tuple::Tau& tau, const pat::Tau& reco_tau) cons
     tau.muon_n_hits_RPC_2 = n_hits.at(MuonSubdetId::RPC).at(1);
     tau.muon_n_hits_RPC_3 = n_hits.at(MuonSubdetId::RPC).at(2);
     tau.muon_n_hits_RPC_4 = n_hits.at(MuonSubdetId::RPC).at(3);
+    */
 }
 
 unsigned MuonHitMatch::CountMuonStationsWithMatches(size_t first_station, size_t last_station) const

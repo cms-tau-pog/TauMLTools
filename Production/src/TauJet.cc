@@ -36,7 +36,7 @@ TauJet::TauJet(const pat::Jet* _jet, const pat::Tau* _tau, JetTauMatch _jetTauMa
 
 TauJetBuilder::TauJetBuilder(const pat::JetCollection& jets, const pat::TauCollection& taus,
                              const pat::PackedCandidateCollection& cands,
-                             const reco::GenParticleCollection& genParticles) :
+                             const reco::GenParticleCollection* genParticles) :
     jets_(jets), taus_(taus), cands_(cands), genParticles_(genParticles)
 {
 }
@@ -57,8 +57,8 @@ std::vector<TauJet> TauJetBuilder::Build()
             availableJets_.insert(n);
     }
 
-    MatchJetsAndTaus(JetTauMatch::PF);
-    MatchJetsAndTaus(JetTauMatch::dR);
+    MatchJetsAndTaus(JetTauMatch::PF, tauJets);
+    MatchJetsAndTaus(JetTauMatch::dR, tauJets);
 
     if(!availableTaus_.empty()) {
         for(size_t tau_index : availableTaus_) {
