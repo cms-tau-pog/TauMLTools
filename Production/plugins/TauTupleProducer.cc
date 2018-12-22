@@ -77,11 +77,11 @@ private:
         if(isMC) {
             edm::Handle<GenEventInfoProduct> genEvent;
             event.getByToken(genEvent_token, genEvent);
+            tauTuple().genEventWeight = static_cast<float>(genEvent->weight());
 
             edm::Handle<std::vector<PileupSummaryInfo>> puInfo;
             event.getByToken(puInfo_token, puInfo);
             tauTuple().npu = gen_truth::GetNumberOfPileUpInteractions(puInfo);
-            tauTuple().genEventWeight = static_cast<float>(genEvent->weight());
         }
 
         edm::Handle<pat::ElectronCollection> electrons;
@@ -115,6 +115,24 @@ private:
             tauTuple().jet_eta = static_cast<float>(tauJet.jet->p4().eta());
             tauTuple().jet_phi = static_cast<float>(tauJet.jet->p4().phi());
             tauTuple().jet_mass = static_cast<float>(tauJet.jet->p4().mass());
+            const auto& uncorrected_jet = tauJet.jet->correctedJet("Uncorrected");
+            tauTuple().jet_neutralHadronEnergyFraction = uncorrected_jet.neutralHadronEnergyFraction();
+            tauTuple().jet_neutralEmEnergyFraction = uncorrected_jet.neutralEmEnergyFraction();
+            tauTuple().jet_nConstituents = uncorrected_jet.nConstituents();
+            tauTuple().jet_chargedMultiplicity = uncorrected_jet.chargedMultiplicity();
+            tauTuple().jet_neutralMultiplicity = uncorrected_jet.neutralMultiplicity();
+            tauTuple().jet_partonFlavour = tauJet.jet->partonFlavour();
+            tauTuple().jet_hadronFlavour = tauJet.jet->hadronFlavour();
+            auto genJet = tauJet.jet->genJet();
+            tauTuple().jet_has_gen_match = genJet != nullptr;
+            tauTuple().jet_gen_pt = genJet != nullptr ? static_cast<float>(genJet->polarP4().pt()) : default_value;
+            tauTuple().jet_gen_eta = genJet != nullptr ? static_cast<float>(genJet->polarP4().eta()) : default_value;
+            tauTuple().jet_gen_phi = genJet != nullptr ? static_cast<float>(genJet->polarP4().phi()) : default_value;
+            tauTuple().jet_gen_mass = genJet != nullptr ? static_cast<float>(genJet->polarP4().mass()) : default_value;
+            tauTuple().jet_gen_n_b = genJet != nullptr
+                    ? static_cast<int>(tauJet.jet->jetFlavourInfo().getbHadrons().size()) : default_int_value;
+            tauTuple().jet_gen_n_c = genJet != nullptr
+                    ? static_cast<int>(tauJet.jet->jetFlavourInfo().getcHadrons().size()) : default_int_value;
 
             const bool has_tau = tauJet.tauIndex >= 0;
             auto tau = tauJet.tau;

@@ -32,13 +32,12 @@
 
 #define TAU_DATA() \
     /* Event Variables */ \
-    VAR(UInt_t, run) /* run */ \
+    VAR(UInt_t, run) /* run number */ \
     VAR(UInt_t, lumi) /* lumi section */ \
     VAR(ULong64_t, evt) /* event number */ \
-    VAR(Int_t, genEventType) /* gen event type */ \
-    VAR(Float_t, genEventWeight) /* gen event weight */ \
     VAR(UInt_t, npv) /* number of primary vertices */ \
-    VAR(Float_t, rho) /* rho */ \
+    VAR(Float_t, rho) /* fixed grid energy density */ \
+    VAR(Float_t, genEventWeight) /* gen event weight */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
     /* Jet variables */ \
     VAR(Int_t, jet_index) /* index of the jet */ \
@@ -46,6 +45,20 @@
     VAR(Float_t, jet_eta) /* jet eta */ \
     VAR(Float_t, jet_phi) /* jet phi */ \
     VAR(Float_t, jet_mass) /* jet mass */ \
+    VAR(Float_t, jet_neutralHadronEnergyFraction) /* jet neutral hadron energy fraction (relative to uncorrected jet energy) */ \
+    VAR(Float_t, jet_neutralEmEnergyFraction) /* jet neutral EM energy fraction (relative to uncorrected jet energy) */ \
+    VAR(Int_t, jet_nConstituents) /* number of jet constituents */ \
+    VAR(Int_t, jet_chargedMultiplicity) /* jet charged multiplicity */ \
+    VAR(Int_t, jet_neutralMultiplicity) /* jet neutral multiplicity */ \
+    VAR(Int_t, jet_partonFlavour) /* parton-based flavour of the jet */ \
+    VAR(Int_t, jet_hadronFlavour) /* hadron-based flavour of the jet */ \
+    VAR(Int_t, jet_has_gen_match) /* jet has a matched gen-jet */ \
+    VAR(Float_t, jet_gen_pt) /* gen jet pt */ \
+    VAR(Float_t, jet_gen_eta) /* gen jet eta */ \
+    VAR(Float_t, jet_gen_phi) /* gen jet phi */ \
+    VAR(Float_t, jet_gen_mass) /* gen jet mass */ \
+    VAR(Int_t, jet_gen_n_b) /* number of b hadrons clustered inside the jet */ \
+    VAR(Int_t, jet_gen_n_c) /* number of c hadrons clustered inside the jet */ \
     /* Basic tau variables */ \
     VAR(Int_t, jetTauMatch) /* match between jet and tau */ \
     VAR(Int_t, tau_index) /* index of the tau */ \
