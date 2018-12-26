@@ -38,15 +38,15 @@ public:
         start(clock::now()),
         isMC(cfg.getParameter<bool>("isMC")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
-        genParticles_token(consumes<std::vector<reco::GenParticle>>(cfg.getParameter<edm::InputTag>("genParticles"))),
+        genParticles_token(mayConsume<std::vector<reco::GenParticle>>(cfg.getParameter<edm::InputTag>("genParticles"))),
         puInfo_token(mayConsume<std::vector<PileupSummaryInfo>>(cfg.getParameter<edm::InputTag>("puInfo"))),
-        vertices_token(mayConsume<std::vector<reco::Vertex> >(cfg.getParameter<edm::InputTag>("vertices"))),
+        vertices_token(consumes<std::vector<reco::Vertex> >(cfg.getParameter<edm::InputTag>("vertices"))),
         rho_token(consumes<double>(cfg.getParameter<edm::InputTag>("rho"))),
-        electrons_token(mayConsume<pat::ElectronCollection>(cfg.getParameter<edm::InputTag>("electrons"))),
-        muons_token(mayConsume<pat::MuonCollection>(cfg.getParameter<edm::InputTag>("muons"))),
-        taus_token(mayConsume<pat::TauCollection>(cfg.getParameter<edm::InputTag>("taus"))),
-        jets_token(mayConsume<pat::JetCollection>(cfg.getParameter<edm::InputTag>("jets"))),
-        cands_token(mayConsume<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("pfCandidates"))),
+        electrons_token(consumes<pat::ElectronCollection>(cfg.getParameter<edm::InputTag>("electrons"))),
+        muons_token(consumes<pat::MuonCollection>(cfg.getParameter<edm::InputTag>("muons"))),
+        taus_token(consumes<pat::TauCollection>(cfg.getParameter<edm::InputTag>("taus"))),
+        jets_token(consumes<pat::JetCollection>(cfg.getParameter<edm::InputTag>("jets"))),
+        cands_token(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("pfCandidates"))),
         tauTuple("taus", &edm::Service<TFileService>()->file(), false),
         summaryTuple("summary", &edm::Service<TFileService>()->file(), false)
     {
@@ -110,20 +110,25 @@ private:
         const auto tauJets = builder.Build();
 
         for(const TauJet& tauJet : tauJets) {
+            const bool has_jet = tauJet.jetIndex >= 0;
             tauTuple().jet_index = tauJet.jetIndex;
-            tauTuple().jet_pt = static_cast<float>(tauJet.jet->p4().pt());
-            tauTuple().jet_eta = static_cast<float>(tauJet.jet->p4().eta());
-            tauTuple().jet_phi = static_cast<float>(tauJet.jet->p4().phi());
-            tauTuple().jet_mass = static_cast<float>(tauJet.jet->p4().mass());
-            const auto& uncorrected_jet = tauJet.jet->correctedJet("Uncorrected");
-            tauTuple().jet_neutralHadronEnergyFraction = uncorrected_jet.neutralHadronEnergyFraction();
-            tauTuple().jet_neutralEmEnergyFraction = uncorrected_jet.neutralEmEnergyFraction();
-            tauTuple().jet_nConstituents = uncorrected_jet.nConstituents();
-            tauTuple().jet_chargedMultiplicity = uncorrected_jet.chargedMultiplicity();
-            tauTuple().jet_neutralMultiplicity = uncorrected_jet.neutralMultiplicity();
-            tauTuple().jet_partonFlavour = tauJet.jet->partonFlavour();
-            tauTuple().jet_hadronFlavour = tauJet.jet->hadronFlavour();
-            auto genJet = tauJet.jet->genJet();
+            tauTuple().jet_pt = has_jet ? static_cast<float>(tauJet.jet->p4().pt()) : default_value;
+            tauTuple().jet_eta = has_jet ? static_cast<float>(tauJet.jet->p4().eta()) : default_value;
+            tauTuple().jet_phi = has_jet ? static_cast<float>(tauJet.jet->p4().phi()) : default_value;
+            tauTuple().jet_mass = has_jet ? static_cast<float>(tauJet.jet->p4().mass()) : default_value;
+            boost::optional<pat::Jet> uncorrected_jet;
+            if(has_jet)
+                uncorrected_jet = tauJet.jet->correctedJet("Uncorrected");
+            tauTuple().jet_neutralHadronEnergyFraction = has_jet
+                    ? uncorrected_jet->neutralHadronEnergyFraction() : default_value;
+            tauTuple().jet_neutralEmEnergyFraction = has_jet
+                    ? uncorrected_jet->neutralEmEnergyFraction() : default_value;
+            tauTuple().jet_nConstituents = has_jet ? uncorrected_jet->nConstituents() : default_int_value;
+            tauTuple().jet_chargedMultiplicity = has_jet ? uncorrected_jet->chargedMultiplicity() : default_int_value;
+            tauTuple().jet_neutralMultiplicity = has_jet ? uncorrected_jet->neutralMultiplicity() : default_int_value;
+            tauTuple().jet_partonFlavour = has_jet ? tauJet.jet->partonFlavour() : default_int_value;
+            tauTuple().jet_hadronFlavour = has_jet ? tauJet.jet->hadronFlavour() : default_int_value;
+            const reco::GenJet* genJet = has_jet ? tauJet.jet->genJet() : nullptr;
             tauTuple().jet_has_gen_match = genJet != nullptr;
             tauTuple().jet_gen_pt = genJet != nullptr ? static_cast<float>(genJet->polarP4().pt()) : default_value;
             tauTuple().jet_gen_eta = genJet != nullptr ? static_cast<float>(genJet->polarP4().eta()) : default_value;

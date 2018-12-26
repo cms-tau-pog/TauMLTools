@@ -98,7 +98,8 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     electrons       = cms.InputTag('slimmedElectrons'),
     muons           = cms.InputTag('slimmedMuons'),
     taus            = tauSrc_InputTag,
-    jets            = cms.InputTag('slimmedJets')
+    jets            = cms.InputTag('slimmedJets'),
+    pfCandidates    = cms.InputTag('packedPFCandidates')
 )
 
 process.tupleProductionSequence = cms.Sequence(process.tauTupleProducer)

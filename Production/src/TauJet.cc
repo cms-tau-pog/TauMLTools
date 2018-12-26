@@ -27,6 +27,11 @@ TauJet::TauJet(const pat::Jet* _jet, size_t _jetIndex) :
 {
 }
 
+TauJet::TauJet(const pat::Tau* _tau, size_t _tauIndex) :
+    jet(nullptr), tau(_tau), jetTauMatch(JetTauMatch::NoMatch), jetIndex(-1), tauIndex(static_cast<int>(_tauIndex))
+{
+}
+
 TauJet::TauJet(const pat::Jet* _jet, const pat::Tau* _tau, JetTauMatch _jetTauMatch, size_t _jetIndex,
                size_t _tauIndex) :
     jet(_jet), tau(_tau), jetTauMatch(_jetTauMatch), jetIndex(static_cast<int>(_jetIndex)),
@@ -44,6 +49,7 @@ TauJetBuilder::TauJetBuilder(const pat::JetCollection& jets, const pat::TauColle
 std::vector<TauJet> TauJetBuilder::Build()
 {
     static constexpr double minJetPt = 10, maxJetEta = 3.0;
+    static constexpr bool forceTauJetMatch = false;
 
     std::vector<TauJet> tauJets;
 
@@ -60,7 +66,7 @@ std::vector<TauJet> TauJetBuilder::Build()
     MatchJetsAndTaus(JetTauMatch::PF, tauJets);
     MatchJetsAndTaus(JetTauMatch::dR, tauJets);
 
-    if(!availableTaus_.empty()) {
+    if(forceTauJetMatch && !availableTaus_.empty()) {
         for(size_t tau_index : availableTaus_) {
             const pat::Tau& tau = taus_.at(tau_index);
             std::cout << "Missing tau: (" << tau.pt() << ", " << tau.eta() << ", " << tau.phi() << ")" << std::endl;
@@ -72,6 +78,13 @@ std::vector<TauJet> TauJetBuilder::Build()
         throw cms::Exception("TauJetBuilder") << "Some taus are not found.";
     }
 
+    for(size_t tauIndex : availableTaus_) {
+        const pat::Tau& tau = taus_.at(tauIndex);
+        tauJets.emplace_back(&tau, tauIndex);
+        processedTaus_.insert(tauIndex);
+    }
+    availableTaus_.clear();
+
     for(size_t jetIndex : availableJets_) {
         const pat::Jet& jet = jets_.at(jetIndex);
         tauJets.emplace_back(&jet, jetIndex);
@@ -80,10 +93,12 @@ std::vector<TauJet> TauJetBuilder::Build()
     availableJets_.clear();
 
     for(TauJet& tauJet : tauJets) {
-        tauJet.cands = FindMatchedPFCandidates(*tauJet.jet, tauJet.tau);
+        tauJet.cands = FindMatchedPFCandidates(tauJet.jet, tauJet.tau);
         if(genParticles_) {
-            tauJet.jetGenLeptonMatchResult = gen_truth::LeptonGenMatch(tauJet.jet->polarP4(), *genParticles_);
-            tauJet.jetGenQcdMatchResult = gen_truth::QcdGenMatch(tauJet.jet->polarP4(), *genParticles_);
+            if(tauJet.jet) {
+                tauJet.jetGenLeptonMatchResult = gen_truth::LeptonGenMatch(tauJet.jet->polarP4(), *genParticles_);
+                tauJet.jetGenQcdMatchResult = gen_truth::QcdGenMatch(tauJet.jet->polarP4(), *genParticles_);
+            }
             if(tauJet.tau) {
                 tauJet.tauGenLeptonMatchResult = gen_truth::LeptonGenMatch(tauJet.tau->polarP4(), *genParticles_);
                 tauJet.tauGenQcdMatchResult = gen_truth::QcdGenMatch(tauJet.tau->polarP4(), *genParticles_);
@@ -175,17 +190,21 @@ bool TauJetBuilder::FindJet(const pat::Tau& tau, JetTauMatch matchStrategy, size
     return matchStrategy == JetTauMatch::dR && matchDR2 < dR2Threshold;
 }
 
-std::vector<PFCandDesc> TauJetBuilder::FindMatchedPFCandidates(const pat::Jet& jet, const pat::Tau* tau) const
+std::vector<PFCandDesc> TauJetBuilder::FindMatchedPFCandidates(const pat::Jet* jet, const pat::Tau* tau) const
 {
-    static constexpr double deltaR2 = std::pow(0.7, 2);
+    static constexpr double deltaR2Jet = std::pow(0.7, 2);
+    static constexpr double deltaR2Tau = std::pow(0.5, 2);
 
-    const auto jet_p4 = jet.polarP4();
+    if(!jet && !tau)
+        throw cms::Exception("TauJetBuilder") << "FindMatchedPFCandidates: both jet and tau are nullptr.";
+    const auto ref_p4 = jet != nullptr ? jet->polarP4() : tau->polarP4();
+    const double deltaR2 = jet != nullptr ? deltaR2Jet : deltaR2Tau;
     std::vector<PFCandDesc> matched_cands;
     for(const auto& cand : cands_) {
-        if(ROOT::Math::VectorUtil::DeltaR2(jet_p4, cand.polarP4()) >= deltaR2) continue;
+        if(ROOT::Math::VectorUtil::DeltaR2(ref_p4, cand.polarP4()) >= deltaR2) continue;
         PFCandDesc desc;
         desc.candidate = &cand;
-        desc.jetDaughter = IsJetDaughter(jet, cand);
+        desc.jetDaughter = jet != nullptr && IsJetDaughter(*jet, cand);
         desc.tauSignal = tau != nullptr && IsTauSignalCand(*tau, cand);
         desc.leadChargedHadrCand = tau != nullptr && IsLeadChargedHadrCand(*tau, cand);
         desc.tauIso = tau != nullptr && IsTauIsoCand(*tau, cand);

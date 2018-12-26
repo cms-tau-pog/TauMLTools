@@ -11,7 +11,6 @@
 
 #include "GenTruthTools.h"
 
-
 namespace tau_analysis {
 
 enum class JetTauMatch { NoMatch = 0, PF = 1, dR = 2 };
@@ -32,6 +31,7 @@ struct TauJet {
     gen_truth::QcdMatchResult jetGenQcdMatchResult, tauGenQcdMatchResult;
 
     TauJet(const pat::Jet* _jet, size_t _jetIndex);
+    TauJet(const pat::Tau* _tau, size_t _tauIndex);
     TauJet(const pat::Jet* _jet, const pat::Tau* _tau, JetTauMatch _jetTauMatch, size_t _jetIndex, size_t _tauIndex);
 };
 
@@ -56,7 +56,7 @@ private:
 
     void MatchJetsAndTaus(JetTauMatch matchStrategy, std::vector<TauJet>& tauJets);
     bool FindJet(const pat::Tau& tau, JetTauMatch matchStrategy, size_t& matchedJetIndex) const;
-    std::vector<PFCandDesc> FindMatchedPFCandidates(const pat::Jet& jet, const pat::Tau* tau) const;
+    std::vector<PFCandDesc> FindMatchedPFCandidates(const pat::Jet* jet, const pat::Tau* tau) const;
 
 private:
     const pat::JetCollection& jets_;
