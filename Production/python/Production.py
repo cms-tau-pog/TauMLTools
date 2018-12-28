@@ -69,12 +69,15 @@ if period == 'Run2016':
     tauSrc_InputTag = cms.InputTag('slimmedTaus')
 
 if period == 'Run2017':
-    tauIdConfig = importlib.import_module('TauML.Production.runTauIdMVA')
-    tauIdEmbedder = tauIdConfig.TauIDEmbedder(process, cms, debug = True,
-                        toKeep = [ "2017v2", "dR0p32017v2", "2016v1" ])
-                        #toKeep = [ "2017v1", "2017v2", "newDM2017v2", "dR0p32017v2", "2016v1", "newDM2016v1" ])
+    import RecoTauTag.RecoTau.tools.runTauIdMVA as tauIdConfig
+    updatedTauName = "slimmedTausNewID"
+    tauIdEmbedder = tauIdConfig.TauIDEmbedder(
+        process, cms, debug = False, updatedTauName = updatedTauName,
+        toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "2016v1", "newDM2016v1",
+                   "deepTau2017v1", "DPFTau_2016_v0", "againstEle2018", ]
+    )
     tauIdEmbedder.runTauID()
-    tauSrc_InputTag = cms.InputTag('NewTauIDsEmbedded')
+    tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
 
 process.topGenSequence = cms.Sequence()
 if options.saveGenTopInfo:
@@ -113,7 +116,7 @@ if period == 'Run2016':
 if period == 'Run2017':
     process.p = cms.Path(
         process.rerunMvaIsolationSequence *
-        process.NewTauIDsEmbedded *
+        getattr(process, updatedTauName) *
         process.topGenSequence *
         process.tupleProductionSequence
     )

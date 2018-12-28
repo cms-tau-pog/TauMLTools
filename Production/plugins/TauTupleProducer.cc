@@ -166,8 +166,27 @@ private:
                 FillGenMatchResult(tauJet.jetGenLeptonMatchResult, tauJet.jetGenQcdMatchResult);
 
             tauTuple().tau_decayMode = has_tau ? tau->decayMode() : default_int_value;
-            tauTuple().tau_id_flags = has_tau ? CreateTauIdResults(*tau).GetResultBits() : 0;
-            FillRawTauIds(tau);
+            tauTuple().tau_decayModeFinding = has_tau ? tau->tauID("decayModeFinding") > 0.5f : default_int_value;
+            tauTuple().tau_decayModeFindingNewDMs = has_tau ? tau->tauID("decayModeFindingNewDMs") > 0.5f
+                                                            : default_int_value;
+            tauTuple().chargedIsoPtSum = has_tau ? tau->tauID("chargedIsoPtSum") : default_value;
+            tauTuple().chargedIsoPtSumdR03 = has_tau ? tau->tauID("chargedIsoPtSumdR03") : default_value;
+            tauTuple().footprintCorrection = has_tau ? tau->tauID("footprintCorrection") : default_value;
+            tauTuple().footprintCorrectiondR03 = has_tau ? tau->tauID("footprintCorrectiondR03") : default_value;
+            tauTuple().neutralIsoPtSum = has_tau ? tau->tauID("neutralIsoPtSum") : default_value;
+            tauTuple().neutralIsoPtSumWeight = has_tau ? tau->tauID("neutralIsoPtSumWeight") : default_value;
+            tauTuple().neutralIsoPtSumWeightdR03 = has_tau ? tau->tauID("neutralIsoPtSumWeightdR03") : default_value;
+            tauTuple().neutralIsoPtSumdR03 = has_tau ? tau->tauID("neutralIsoPtSumdR03") : default_value;
+            tauTuple().photonPtSumOutsideSignalCone = has_tau ? tau->tauID("photonPtSumOutsideSignalCone")
+                                                              : default_value;
+            tauTuple().photonPtSumOutsideSignalConedR03 = has_tau ? tau->tauID("photonPtSumOutsideSignalConedR03")
+                                                                  : default_value;
+            tauTuple().puCorrPtSum = has_tau ? tau->tauID("puCorrPtSum") : default_value;
+
+            for(const auto& tau_id_entry : analysis::tau_id::GetTauIdDescriptors()) {
+                const auto& desc = tau_id_entry.second;
+                desc.FillTuple(tauTuple, tau, default_value);
+            }
 
             tauTuple().tau_dxy_pca_x = has_tau ? tau->dxy_PCA().x() : default_value;
             tauTuple().tau_dxy_pca_y = has_tau ? tau->dxy_PCA().y() : default_value;
@@ -236,15 +255,6 @@ private:
         return true;
     }
 
-    static analysis::TauIdResults CreateTauIdResults(const pat::Tau& tau)
-    {
-        analysis::TauIdResults results;
-        const auto& descs = analysis::TauIdResults::GetResultDescriptors();
-        for(size_t n = 0; n < descs.size(); ++n)
-            results.SetResult(n, tau.tauID(descs.at(n).ToString()) > .5f);
-        return results;
-    }
-
     void FillGenMatchResult(const gen_truth::LeptonMatchResult& leptonMatch, const gen_truth::QcdMatchResult& qcdMatch)
     {
         const bool has_lepton = leptonMatch.match != GenLeptonMatch::NoMatch;
@@ -275,12 +285,6 @@ private:
         tauTuple().qcd_gen_mass = has_qcd ? static_cast<float>(qcdMatch.gen_particle->polarP4().mass()) : default_value;
     }
 
-    void FillRawTauIds(const pat::Tau* tau)
-    {
-#define VAR(type, name) tauTuple().name = tau ? tau->tauID(#name) : default_value;
-        RAW_TAU_IDS()
-#undef VAR
-    }
 /*
     void FillExtendedVariables(const pat::Tau& tau, const pat::ElectronCollection& electrons,
                                const pat::MuonCollection& muons)

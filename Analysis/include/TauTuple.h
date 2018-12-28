@@ -4,30 +4,10 @@
 #pragma once
 
 #include "AnalysisTools/Core/include/SmartTree.h"
+#include "TauML/Analysis/include/TauIdResults.h"
 #include <Math/VectorUtil.h>
 
-#define RAW_TAU_IDS() \
-    VAR(Float_t, againstElectronMVA6Raw) /* */ \
-    VAR(Float_t, againstElectronMVA6category) /* */ \
-    VAR(Float_t, byCombinedIsolationDeltaBetaCorrRaw3Hits) /* */ \
-    VAR(Float_t, byIsolationMVArun2v1DBoldDMwLTraw) /* */ \
-    VAR(Float_t, byIsolationMVArun2v1DBdR03oldDMwLTraw) /* */ \
-    VAR(Float_t, byIsolationMVArun2v1DBoldDMwLTraw2016) /* */ \
-    VAR(Float_t, byIsolationMVArun2017v2DBoldDMwLTraw2017) /* */ \
-    VAR(Float_t, byIsolationMVArun2017v2DBoldDMdR0p3wLTraw2017) /* */ \
-    VAR(Float_t, chargedIsoPtSum) /* */ \
-    VAR(Float_t, chargedIsoPtSumdR03) /* */ \
-    VAR(Float_t, footprintCorrection) /* */ \
-    VAR(Float_t, footprintCorrectiondR03) /* */ \
-    VAR(Float_t, neutralIsoPtSum) /* */ \
-    VAR(Float_t, neutralIsoPtSumWeight) /* */ \
-    VAR(Float_t, neutralIsoPtSumWeightdR03) /* */ \
-    VAR(Float_t, neutralIsoPtSumdR03) /* */ \
-    VAR(Float_t, photonPtSumOutsideSignalCone) /* */ \
-    VAR(Float_t, photonPtSumOutsideSignalConedR03) /* */ \
-    VAR(Float_t, puCorrPtSum) /* */ \
-    /**/
-
+#define TAU_ID(name, pattern, has_raw, wp_list) VAR(uint16_t, name) VAR(Float_t, name##raw)
 #define CAND_VAR(type, name) VAR(std::vector<type>, pfCand_##name)
 
 #define VAR2(type, name1, name2) VAR(type, name1) VAR(type, name2)
@@ -80,8 +60,28 @@
     VAR4(Float_t, qcd_gen_pt, qcd_gen_eta, qcd_gen_phi, qcd_gen_mass) /* 4-momentum of the matched gen QCD particle */ \
     /* Tau ID variables */ \
     VAR(Int_t, tau_decayMode) /* tau decay mode */ \
-    VAR(ULong64_t, tau_id_flags) /* boolean tau id variables */ \
-    RAW_TAU_IDS() \
+    VAR(Int_t, tau_decayModeFinding) /* tau passed the old decay mode finding requirements */ \
+    VAR(Int_t, tau_decayModeFindingNewDMs) /* tau passed the new decay mode finding requirements */ \
+    VAR(Float_t, chargedIsoPtSum) /* sum of the transverse momentums of charged pf candidates inside
+                                     the tau isolation cone with dR < 0.5 */ \
+    VAR(Float_t, chargedIsoPtSumdR03) /* sum of the transverse momentums of charged pf candidates inside
+                                         the tau isolation cone with dR < 0.3 */ \
+    VAR(Float_t, footprintCorrection) /* tau footprint correction inside the tau isolation cone with dR < 0.5 */ \
+    VAR(Float_t, footprintCorrectiondR03) /* tau footprint correction inside the tau isolation cone with dR < 0.3 */ \
+    VAR(Float_t, neutralIsoPtSum) /* sum of the transverse momentums of neutral pf candidates inside
+                                     the tau isolation cone with dR < 0.5 */ \
+    VAR(Float_t, neutralIsoPtSumWeight) /* weighted sum of the transverse momentums of neutral pf candidates inside
+                                           the tau isolation cone with dR < 0.5 */ \
+    VAR(Float_t, neutralIsoPtSumWeightdR03) /* weighted sum of the transverse momentums of neutral pf candidates inside
+                                               the tau isolation cone with dR < 0.3 */ \
+    VAR(Float_t, neutralIsoPtSumdR03) /* sum of the transverse momentums of neutral pf candidates inside
+                                         the tau isolation cone with dR < 0.3 */ \
+    VAR(Float_t, photonPtSumOutsideSignalCone) /* sum of the transverse momentums of photons
+                                                  inside the tau isolation cone with dR < 0.5 */ \
+    VAR(Float_t, photonPtSumOutsideSignalConedR03) /* sum of the transverse momentums of photons inside
+                                                      the tau isolation cone with dR < 0.3 */ \
+    VAR(Float_t, puCorrPtSum) /* pile-up correction for the sum of the transverse momentums */ \
+    TAU_IDS() \
     /* Tau transverse impact paramters.
        See cmssw/RecoTauTag/RecoTau/plugins/PFTauTransverseImpactParameters.cc for details */ \
     VAR3(Float_t, tau_dxy_pca_x, tau_dxy_pca_y, tau_dxy_pca_z) /* The point of closest approach (PCA) of
@@ -179,8 +179,12 @@ DECLARE_TREE(tau_tuple, Tau, TauTuple, TAU_DATA, "taus")
 #define VAR(type, name) ADD_DATA_TREE_BRANCH(name)
 INITIALIZE_TREE(tau_tuple, TauTuple, TAU_DATA)
 #undef VAR
+#undef VAR2
+#undef VAR3
+#undef VAR4
 #undef TAU_DATA
 #undef CAND_VAR
+#undef TAU_ID
 
 namespace tau_tuple {
 

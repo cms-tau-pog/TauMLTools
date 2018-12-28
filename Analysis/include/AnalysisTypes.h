@@ -8,7 +8,8 @@ This file is part of https://github.com/hh-italian-group/h-tautau. */
 
 namespace analysis {
 
-enum class DiscriminatorWP { VVVLoose, VVLoose, VLoose, Loose, Medium, Tight, VTight, VVTight, VVVTight };
+enum class DiscriminatorWP { VVVLoose = 0, VVLoose = 1, VLoose = 2, Loose = 3, Medium = 4, Tight = 5,
+                             VTight = 6, VVTight = 7, VVVTight = 8 };
 ENUM_NAMES(DiscriminatorWP) = {
     { DiscriminatorWP::VVVLoose, "VVVLoose" }, { DiscriminatorWP::VVLoose, "VVLoose" },
     { DiscriminatorWP::VLoose, "VLoose" }, { DiscriminatorWP::Loose, "Loose" }, { DiscriminatorWP::Medium, "Medium" },
