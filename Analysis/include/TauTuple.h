@@ -30,6 +30,10 @@
 
 #define CAND_VAR(type, name) VAR(std::vector<type>, pfCand_##name)
 
+#define VAR2(type, name1, name2) VAR(type, name1) VAR(type, name2)
+#define VAR3(type, name1, name2, name3) VAR2(type, name1, name2) VAR(type, name3)
+#define VAR4(type, name1, name2, name3, name4) VAR3(type, name1, name2, name3) VAR(type, name4)
+
 #define TAU_DATA() \
     /* Event Variables */ \
     VAR(UInt_t, run) /* run number */ \
@@ -39,66 +43,59 @@
     VAR(Float_t, rho) /* fixed grid energy density */ \
     VAR(Float_t, genEventWeight) /* gen event weight */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
+    VAR3(Float_t, pv_x, pv_y, pv_z) /* position of the primary vertex (PV) */ \
+    VAR(Float_t, pv_chi2) /* chi^2 of the primary vertex (PV) */ \
+    VAR(Float_t, pv_ndof) /* Number of degrees of freedom of the primary vertex (PV) */ \
     /* Jet variables */ \
     VAR(Int_t, jet_index) /* index of the jet */ \
-    VAR(Float_t, jet_pt) /* jet pt */ \
-    VAR(Float_t, jet_eta) /* jet eta */ \
-    VAR(Float_t, jet_phi) /* jet phi */ \
-    VAR(Float_t, jet_mass) /* jet mass */ \
-    VAR(Float_t, jet_neutralHadronEnergyFraction) /* jet neutral hadron energy fraction (relative to uncorrected jet energy) */ \
-    VAR(Float_t, jet_neutralEmEnergyFraction) /* jet neutral EM energy fraction (relative to uncorrected jet energy) */ \
+    VAR4(Float_t, jet_pt, jet_eta, jet_phi, jet_mass) /* 4-momentum of the jet */ \
+    VAR(Float_t, jet_neutralHadronEnergyFraction) /* jet neutral hadron energy fraction
+                                                     (relative to uncorrected jet energy) */ \
+    VAR(Float_t, jet_neutralEmEnergyFraction) /* jet neutral EM energy fraction
+                                                 (relative to uncorrected jet energy) */ \
     VAR(Int_t, jet_nConstituents) /* number of jet constituents */ \
     VAR(Int_t, jet_chargedMultiplicity) /* jet charged multiplicity */ \
     VAR(Int_t, jet_neutralMultiplicity) /* jet neutral multiplicity */ \
     VAR(Int_t, jet_partonFlavour) /* parton-based flavour of the jet */ \
     VAR(Int_t, jet_hadronFlavour) /* hadron-based flavour of the jet */ \
     VAR(Int_t, jet_has_gen_match) /* jet has a matched gen-jet */ \
-    VAR(Float_t, jet_gen_pt) /* gen jet pt */ \
-    VAR(Float_t, jet_gen_eta) /* gen jet eta */ \
-    VAR(Float_t, jet_gen_phi) /* gen jet phi */ \
-    VAR(Float_t, jet_gen_mass) /* gen jet mass */ \
+    VAR4(Float_t, jet_gen_pt, jet_gen_eta, jet_gen_phi, jet_gen_mass) /* 4-momentum of the gen jet */ \
     VAR(Int_t, jet_gen_n_b) /* number of b hadrons clustered inside the jet */ \
     VAR(Int_t, jet_gen_n_c) /* number of c hadrons clustered inside the jet */ \
     /* Basic tau variables */ \
     VAR(Int_t, jetTauMatch) /* match between jet and tau */ \
     VAR(Int_t, tau_index) /* index of the tau */ \
-    VAR(Float_t, tau_pt) /* tau pt */ \
-    VAR(Float_t, tau_eta) /* tau eta */ \
-    VAR(Float_t, tau_phi) /* tau phi */ \
-    VAR(Float_t, tau_mass) /* tau mass */ \
+    VAR4(Float_t, tau_pt, tau_eta, tau_phi, tau_mass) /* 4-momentum of the tau */ \
     VAR(Int_t, tau_charge) /* tau charge */ \
-    VAR(Int_t, lepton_gen_match) /* generator matching, see Htautau Twiki*/\
-    VAR(Int_t, lepton_gen_charge) /* generator matching, see Htautau Twiki*/\
-    VAR(Float_t, lepton_gen_pt) /* pt of the matched gen particle */ \
-    VAR(Float_t, lepton_gen_eta) /* eta of the matched gen particle */ \
-    VAR(Float_t, lepton_gen_phi) /* phi of the matched gen particle */ \
-    VAR(Float_t, lepton_gen_mass) /* mass of the matched gen particle */ \
-    VAR(std::vector<Int_t>, lepton_gen_vis_pdg) /* generator matching, see Htautau Twiki*/\
-    VAR(std::vector<Float_t>, lepton_gen_vis_pt) \
-    VAR(std::vector<Float_t>, lepton_gen_vis_eta) \
-    VAR(std::vector<Float_t>, lepton_gen_vis_phi) \
-    VAR(std::vector<Float_t>, lepton_gen_vis_mass) \
-    VAR(Int_t, qcd_gen_match) /* generator matching, see Htautau Twiki*/\
-    VAR(Int_t, qcd_gen_charge) /* generator matching, see Htautau Twiki*/\
-    VAR(Float_t, qcd_gen_pt) /* pt of the matched gen particle */ \
-    VAR(Float_t, qcd_gen_eta) /* eta of the matched gen particle */ \
-    VAR(Float_t, qcd_gen_phi) /* phi of the matched gen particle */ \
-    VAR(Float_t, qcd_gen_mass) /* mass of the matched gen particle */ \
+    VAR(Int_t, lepton_gen_match) /* matching with leptons on the generator level, see Htautau Twiki for details */\
+    VAR(Int_t, lepton_gen_charge) /* charge of the matched gen lepton */\
+    VAR4(Float_t, lepton_gen_pt, lepton_gen_eta, \
+                  lepton_gen_phi, lepton_gen_mass) /* 4-momentum of the matched gen lepton */ \
+    VAR(std::vector<Int_t>, lepton_gen_vis_pdg) /* PDG of the matched lepton */\
+    VAR4(std::vector<Float_t>, lepton_gen_vis_pt, lepton_gen_vis_eta, \
+                               lepton_gen_vis_phi, lepton_gen_vis_mass) /* 4-momenta of the visible products
+                                                                           of the matched gen lepton */ \
+    VAR(Int_t, qcd_gen_match) /* matching with QCD particles on the generator level */\
+    VAR(Int_t, qcd_gen_charge) /* charge of the matched gen QCD particle */\
+    VAR4(Float_t, qcd_gen_pt, qcd_gen_eta, qcd_gen_phi, qcd_gen_mass) /* 4-momentum of the matched gen QCD particle */ \
     /* Tau ID variables */ \
     VAR(Int_t, tau_decayMode) /* tau decay mode */ \
     VAR(ULong64_t, tau_id_flags) /* boolean tau id variables */ \
     RAW_TAU_IDS() \
+    /* Tau transverse impact paramters.
+       See cmssw/RecoTauTag/RecoTau/plugins/PFTauTransverseImpactParameters.cc for details */ \
+    VAR3(Float_t, tau_dxy_pca_x, tau_dxy_pca_y, tau_dxy_pca_z) /* The point of closest approach (PCA) of
+                                                                  the leadPFChargedHadrCand to the primary vertex */ \
+    VAR(Float_t, tau_dxy) /* tau signed transverse impact parameter wrt to the primary vertex */ \
+    VAR(Float_t, tau_dxy_sig) /* significance of the transverse impact parameter measurement */ \
+    VAR(Float_t, tau_ip3d) /* tau signed 3D impact parameter wrt to the primary vertex */ \
+    VAR(Float_t, tau_ip3d_sig) /* significance of the 3D impact parameter measurement */ \
+    VAR(Float_t, tau_dz) /* tau dz of the leadChargedHadrCand wrt to the primary vertex */ \
+    VAR(Int_t, tau_hasSecondaryVertex) /* tau has the secondary vertex */ \
+    VAR3(Float_t, tau_sv_x, tau_sv_y, tau_sv_z) /* position of the secondary vertex */ \
+    VAR3(Float_t, tau_flightLength_x, tau_flightLength_y, tau_flightLength_z) /* flight length of the tau */ \
+    VAR(Float_t, tau_flightLength_sig) /* significance of the flight length measurement */ \
     /* Extended tau variables */ \
-    VAR(Float_t, tau_dxy) /* tau dxy with respect to primary vertex */ \
-    VAR(Float_t, tau_dxy_sig) /* significance of dxy */ \
-    VAR(Float_t, tau_dz) /* tau dz with respect to primary vertex */ \
-    VAR(Float_t, tau_ip3d) /* */ \
-    VAR(Float_t, tau_ip3d_sig) /* */ \
-    VAR(Int_t, tau_hasSecondaryVertex) /* */ \
-    VAR(Float_t, tau_flightLength_r) /* */ \
-    VAR(Float_t, tau_flightLength_dEta) /* */ \
-    VAR(Float_t, tau_flightLength_dPhi) /* */ \
-    VAR(Float_t, tau_flightLength_sig) /* */ \
     VAR(Float_t, tau_pt_weighted_deta_strip) /* */ \
     VAR(Float_t, tau_pt_weighted_dphi_strip) /* */ \
     VAR(Float_t, tau_pt_weighted_dr_signal) /* */ \

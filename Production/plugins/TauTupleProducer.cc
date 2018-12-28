@@ -84,6 +84,13 @@ private:
             tauTuple().npu = gen_truth::GetNumberOfPileUpInteractions(puInfo);
         }
 
+        const auto& PV = vertices->at(0);
+        tauTuple().pv_x = static_cast<float>(PV.position().x());
+        tauTuple().pv_y = static_cast<float>(PV.position().y());
+        tauTuple().pv_z = static_cast<float>(PV.position().z());
+        tauTuple().pv_chi2 = static_cast<float>(PV.chi2());
+        tauTuple().pv_ndof = static_cast<float>(PV.ndof());
+
         edm::Handle<pat::ElectronCollection> electrons;
         event.getByToken(electrons_token, electrons);
 
@@ -140,12 +147,11 @@ private:
                     ? static_cast<int>(tauJet.jet->jetFlavourInfo().getcHadrons().size()) : default_int_value;
 
             const bool has_tau = tauJet.tauIndex >= 0;
-            auto tau = tauJet.tau;
+            const pat::Tau* tau = tauJet.tau;
             if(has_tau) {
                 static const bool id_names_printed = PrintTauIdNames(*tau);
                 (void)id_names_printed;
             }
-
 
             tauTuple().tau_index = tauJet.tauIndex;
             tauTuple().tau_pt = has_tau ? static_cast<float>(tau->polarP4().pt()) : default_value;
@@ -163,18 +169,26 @@ private:
             tauTuple().tau_id_flags = has_tau ? CreateTauIdResults(*tau).GetResultBits() : 0;
             FillRawTauIds(tau);
 
-            const pat::PackedCandidate* leadChargedHadrCand =
-                    has_tau ? dynamic_cast<const pat::PackedCandidate*>(tau->leadChargedHadrCand().get()) : nullptr;
+            tauTuple().tau_dxy_pca_x = has_tau ? tau->dxy_PCA().x() : default_value;
+            tauTuple().tau_dxy_pca_y = has_tau ? tau->dxy_PCA().y() : default_value;
+            tauTuple().tau_dxy_pca_z = has_tau ? tau->dxy_PCA().z() : default_value;
             tauTuple().tau_dxy = has_tau ? tau->dxy() : default_value;
             tauTuple().tau_dxy_sig = has_tau ? tau->dxy_Sig() : default_value;
-            tauTuple().tau_dz = leadChargedHadrCand ? leadChargedHadrCand->dz() : default_value;
             tauTuple().tau_ip3d = has_tau ? tau->ip3d() : default_value;
             tauTuple().tau_ip3d_sig = has_tau ? tau->ip3d_Sig() : default_value;
+            const bool has_sv = has_tau && tau->hasSecondaryVertex();
             tauTuple().tau_hasSecondaryVertex = has_tau ? tau->hasSecondaryVertex() : default_int_value;
-            tauTuple().tau_flightLength_r = has_tau ? tau->flightLength().R() : default_value;
-            tauTuple().tau_flightLength_dEta = has_tau ? dEta(tau->flightLength(), tau->polarP4()) : default_value;
-            tauTuple().tau_flightLength_dPhi = has_tau ? dPhi(tau->flightLength(), tau->polarP4()) : default_value;
+            tauTuple().tau_sv_x = has_sv ? tau->secondaryVertexPos().x() : default_value;
+            tauTuple().tau_sv_y = has_sv ? tau->secondaryVertexPos().y() : default_value;
+            tauTuple().tau_sv_z = has_sv ? tau->secondaryVertexPos().z() : default_value;
+            tauTuple().tau_flightLength_x = has_tau ? tau->flightLength().x() : default_value;
+            tauTuple().tau_flightLength_y = has_tau ? tau->flightLength().y() : default_value;
+            tauTuple().tau_flightLength_z = has_tau ? tau->flightLength().z() : default_value;
             tauTuple().tau_flightLength_sig = has_tau ? tau->flightLengthSig() : default_value;
+
+            const pat::PackedCandidate* leadChargedHadrCand =
+                    has_tau ? dynamic_cast<const pat::PackedCandidate*>(tau->leadChargedHadrCand().get()) : nullptr;
+            tauTuple().tau_dz = leadChargedHadrCand ? leadChargedHadrCand->dz() : default_value;
 
             tauTuple().tau_pt_weighted_deta_strip =
                     has_tau ? clusterVariables.tau_pt_weighted_deta_strip(*tau, tau->decayMode()) : default_value;
