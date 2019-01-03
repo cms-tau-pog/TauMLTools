@@ -112,8 +112,8 @@ private:
 
         auto genParticles = hGenParticles.isValid() ? hGenParticles.product() : nullptr;
 
-        TauJetBuilder builder(*jets, *taus, *cands, genParticles);
-
+        TauJetBuilderSetup builder_setup;
+        TauJetBuilder builder(builder_setup, *jets, *taus, *cands, *electrons, *muons, genParticles);
         const auto tauJets = builder.Build();
 
         for(const TauJet& tauJet : tauJets) {
@@ -153,6 +153,7 @@ private:
                 (void)id_names_printed;
             }
 
+            tauTuple().jetTauMatch = static_cast<int>(tauJet.jetTauMatch);
             tauTuple().tau_index = tauJet.tauIndex;
             tauTuple().tau_pt = has_tau ? static_cast<float>(tau->polarP4().pt()) : default_value;
             tauTuple().tau_eta = has_tau ? static_cast<float>(tau->polarP4().eta()) : default_value;
@@ -192,9 +193,9 @@ private:
             tauTuple().tau_dxy_pca_y = has_tau ? tau->dxy_PCA().y() : default_value;
             tauTuple().tau_dxy_pca_z = has_tau ? tau->dxy_PCA().z() : default_value;
             tauTuple().tau_dxy = has_tau ? tau->dxy() : default_value;
-            tauTuple().tau_dxy_sig = has_tau ? tau->dxy_Sig() : default_value;
+            tauTuple().tau_dxy_error = has_tau ? tau->dxy_error() : default_value;
             tauTuple().tau_ip3d = has_tau ? tau->ip3d() : default_value;
-            tauTuple().tau_ip3d_sig = has_tau ? tau->ip3d_Sig() : default_value;
+            tauTuple().tau_ip3d_error = has_tau ? tau->ip3d_error() : default_value;
             const bool has_sv = has_tau && tau->hasSecondaryVertex();
             tauTuple().tau_hasSecondaryVertex = has_tau ? tau->hasSecondaryVertex() : default_int_value;
             tauTuple().tau_sv_x = has_sv ? tau->secondaryVertexPos().x() : default_value;
@@ -208,6 +209,7 @@ private:
             const pat::PackedCandidate* leadChargedHadrCand =
                     has_tau ? dynamic_cast<const pat::PackedCandidate*>(tau->leadChargedHadrCand().get()) : nullptr;
             tauTuple().tau_dz = leadChargedHadrCand ? leadChargedHadrCand->dz() : default_value;
+            tauTuple().tau_dz_error = leadChargedHadrCand ? leadChargedHadrCand->dzError() : default_value;
 
             tauTuple().tau_pt_weighted_deta_strip =
                     has_tau ? clusterVariables.tau_pt_weighted_deta_strip(*tau, tau->decayMode()) : default_value;
@@ -224,6 +226,10 @@ private:
 
             tauTuple().tau_emFraction = has_tau ? tau->emFraction_MVA() : default_value;
             tauTuple().tau_inside_ecal_crack = has_tau ? IsInEcalCrack(tau->p4().Eta()) : default_value;
+            tauTuple().leadChargedCand_etaAtEcalEntrance =
+                    has_tau ? tau->etaAtEcalEntranceLeadChargedCand() : default_value;
+
+            FillPFCandidates(tauJet.cands);
 
             tauTuple.Fill();
         }
@@ -255,6 +261,11 @@ private:
         return true;
     }
 
+    static float Significance(float meas, float err)
+    {
+       return err != 0 ? meas / err : 0.f;
+    }
+
     void FillGenMatchResult(const gen_truth::LeptonMatchResult& leptonMatch, const gen_truth::QcdMatchResult& qcdMatch)
     {
         const bool has_lepton = leptonMatch.match != GenLeptonMatch::NoMatch;
@@ -283,6 +294,53 @@ private:
         tauTuple().qcd_gen_eta = has_qcd ? static_cast<float>(qcdMatch.gen_particle->polarP4().eta()) : default_value;
         tauTuple().qcd_gen_phi = has_qcd ? static_cast<float>(qcdMatch.gen_particle->polarP4().phi()) : default_value;
         tauTuple().qcd_gen_mass = has_qcd ? static_cast<float>(qcdMatch.gen_particle->polarP4().mass()) : default_value;
+    }
+
+    void FillPFCandidates(const std::vector<PFCandDesc>& cands)
+    {
+        for(const PFCandDesc& cand_desc : cands) {
+            const pat::PackedCandidate* cand = cand_desc.candidate;
+
+            tauTuple().pfCand_jetDaughter.push_back(cand_desc.jetDaughter);
+            tauTuple().pfCand_tauSignal.push_back(cand_desc.tauSignal);
+            tauTuple().pfCand_leadChargedHadrCand.push_back(cand_desc.leadChargedHadrCand);
+            tauTuple().pfCand_tauIso.push_back(cand_desc.tauIso);
+
+            tauTuple().pfCand_pt.push_back(static_cast<float>(cand->polarP4().pt()));
+            tauTuple().pfCand_eta.push_back(static_cast<float>(cand->polarP4().eta()));
+            tauTuple().pfCand_phi.push_back(static_cast<float>(cand->polarP4().phi()));
+            tauTuple().pfCand_mass.push_back(static_cast<float>(cand->polarP4().mass()));
+
+            tauTuple().pfCand_pvAssociationQuality.push_back(cand->pvAssociationQuality());
+            tauTuple().pfCand_fromPV.push_back(cand->fromPV());
+            tauTuple().pfCand_puppiWeight.push_back(cand->puppiWeight());
+            tauTuple().pfCand_puppiWeightNoLep.push_back(cand->puppiWeightNoLep());
+            tauTuple().pfCand_pdgId.push_back(cand->pdgId());
+            tauTuple().pfCand_charge.push_back(cand->charge());
+            tauTuple().pfCand_lostInnerHits.push_back(cand->lostInnerHits());
+            tauTuple().pfCand_numberOfPixelHits.push_back(cand->numberOfPixelHits());
+
+            tauTuple().pfCand_vertex_x.push_back(static_cast<float>(cand->vertex().x()));
+            tauTuple().pfCand_vertex_y.push_back(static_cast<float>(cand->vertex().y()));
+            tauTuple().pfCand_vertex_z.push_back(static_cast<float>(cand->vertex().z()));
+            tauTuple().pfCand_vertex_chi2.push_back(static_cast<float>(cand->vertexChi2()));
+            tauTuple().pfCand_vertex_ndof.push_back(static_cast<float>(cand->vertexNdof()));
+            tauTuple().pfCand_vertex_mass.push_back(static_cast<float>(cand->vertexRef()->p4().mass()));
+
+            const bool hasTrackDetails = cand->hasTrackDetails();
+            tauTuple().pfCand_hasTrackDetails.push_back(hasTrackDetails);
+            tauTuple().pfCand_dxy.push_back(cand->dxy());
+            tauTuple().pfCand_dxy_error.push_back(cand->dxyError());
+            tauTuple().pfCand_dz.push_back(cand->dz());
+            tauTuple().pfCand_dz_error.push_back(cand->dzError());
+            tauTuple().pfCand_track_chi2.push_back(
+                        hasTrackDetails ? static_cast<float>(cand->pseudoTrack().chi2()) : default_value);
+            tauTuple().pfCand_track_ndof.push_back(
+                        hasTrackDetails ? static_cast<float>(cand->pseudoTrack().ndof()) : default_value);
+
+            tauTuple().pfCand_hcalFraction.push_back(cand->hcalFraction());
+            tauTuple().pfCand_rawCaloFraction.push_back(cand->rawCaloFraction());
+        }
     }
 
 /*

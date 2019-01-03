@@ -27,6 +27,8 @@ struct TauJet {
     int jetIndex{-1}, tauIndex{-1};
 
     std::vector<PFCandDesc> cands;
+    std::vector<const pat::Electron*> electrons;
+    std::vector<const pat::Muon*> muons;
     gen_truth::LeptonMatchResult jetGenLeptonMatchResult, tauGenLeptonMatchResult;
     gen_truth::QcdMatchResult jetGenQcdMatchResult, tauGenQcdMatchResult;
 
@@ -35,13 +37,23 @@ struct TauJet {
     TauJet(const pat::Jet* _jet, const pat::Tau* _tau, JetTauMatch _jetTauMatch, size_t _jetIndex, size_t _tauIndex);
 };
 
+struct TauJetBuilderSetup {
+    double minJetPt{20.};
+    double maxJetEta{30.};
+    bool forceTauJetMatch{false}, useOnlyTauObjectMatch{false};
+    double tauJetMatchDeltaR2Threshold{std::pow(0.2, 2)};
+    double objectMatchDeltaR2ThresholdJet{std::pow(0.7, 2)};
+    double objectMatchDeltaR2ThresholdTau{std::pow(0.5, 2)};
+};
+
 class TauJetBuilder {
 public:
     using IndexSet = std::set<size_t>;
+    using PolarLorentzVector = reco::LeafCandidate::PolarLorentzVector;
 
-    TauJetBuilder(const pat::JetCollection& jets, const pat::TauCollection& taus,
-                  const pat::PackedCandidateCollection& cands,
-                  const reco::GenParticleCollection* genParticles);
+    TauJetBuilder(const TauJetBuilderSetup& setup, const pat::JetCollection& jets, const pat::TauCollection& taus,
+                  const pat::PackedCandidateCollection& cands, const pat::ElectronCollection& electrons,
+                  const pat::MuonCollection& muons, const reco::GenParticleCollection* genParticles);
 
     TauJetBuilder(const TauJetBuilder&) = delete;
     TauJetBuilder& operator=(const TauJetBuilder&) = delete;
@@ -56,12 +68,19 @@ private:
 
     void MatchJetsAndTaus(JetTauMatch matchStrategy, std::vector<TauJet>& tauJets);
     bool FindJet(const pat::Tau& tau, JetTauMatch matchStrategy, size_t& matchedJetIndex) const;
+    bool GetMatchReferences(const pat::Jet* jet, const pat::Tau* tau,
+                            PolarLorentzVector& ref_p4, double& deltaR2) const;
     std::vector<PFCandDesc> FindMatchedPFCandidates(const pat::Jet* jet, const pat::Tau* tau) const;
+    std::vector<const pat::Electron*> FindMatchedElectrons(const pat::Jet* jet, const pat::Tau* tau) const;
+    std::vector<const pat::Muon*> FindMatchedMuons(const pat::Jet* jet, const pat::Tau* tau) const;
 
 private:
+    const TauJetBuilderSetup setup_;
     const pat::JetCollection& jets_;
     const pat::TauCollection& taus_;
     const pat::PackedCandidateCollection& cands_;
+    const pat::ElectronCollection& electrons_;
+    const pat::MuonCollection& muons_;
     const reco::GenParticleCollection* genParticles_;
 
     IndexSet availableJets_, processedJets_;
