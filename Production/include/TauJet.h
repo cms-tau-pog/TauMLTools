@@ -38,8 +38,8 @@ struct TauJet {
 };
 
 struct TauJetBuilderSetup {
-    double minJetPt{20.};
-    double maxJetEta{30.};
+    double minJetPt{10.};
+    double maxJetEta{3.};
     bool forceTauJetMatch{false}, useOnlyTauObjectMatch{false};
     double tauJetMatchDeltaR2Threshold{std::pow(0.2, 2)};
     double objectMatchDeltaR2ThresholdJet{std::pow(0.7, 2)};

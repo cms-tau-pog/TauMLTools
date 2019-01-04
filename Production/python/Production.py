@@ -90,9 +90,19 @@ if options.saveGenTopInfo:
     process.decaySubset.runMode = cms.string("Run2")
     process.topGenSequence += process.makeGenEvt
 
+tauJetdR = 0.2
+objectdR = 0.5
+
 process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
-    isMC            = cms.bool(not isData),
-    storeJetsWithoutTau = cms.bool(options.storeJetsWithoutTau),
+    isMC                            = cms.bool(not isData),
+    minJetPt                        = cms.double(10.),
+    maxJetEta                       = cms.double(3.),
+    forceTauJetMatch                = cms.bool(False),
+    storeJetsWithoutTau             = cms.bool(options.storeJetsWithoutTau),
+    tauJetMatchDeltaRThreshold      = cms.double(tauJetdR),
+    objectMatchDeltaR2ThresholdTau  = cms.double(objectdR),
+    objectMatchDeltaR2ThresholdJet  = cms.double(tauJetdR + objectdR),
+
     lheEventProduct = cms.InputTag('externalLHEProducer'),
     genEvent        = cms.InputTag('generator'),
     genParticles    = cms.InputTag('prunedGenParticles'),
@@ -103,7 +113,7 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     muons           = cms.InputTag('slimmedMuons'),
     taus            = tauSrc_InputTag,
     jets            = cms.InputTag('slimmedJets'),
-    pfCandidates    = cms.InputTag('packedPFCandidates')
+    pfCandidates    = cms.InputTag('packedPFCandidates'),
 )
 
 process.tupleProductionSequence = cms.Sequence(process.tauTupleProducer)

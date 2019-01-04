@@ -127,6 +127,15 @@ public:
         tauTuple(data->tauTuple),
         summaryTuple(data->summaryTuple)
     {
+        builderSetup.minJetPt = cfg.getParameter<double>("minJetPt");
+        builderSetup.maxJetEta = cfg.getParameter<double>("maxJetEta");
+        builderSetup.forceTauJetMatch = cfg.getParameter<bool>("forceTauJetMatch");
+        builderSetup.useOnlyTauObjectMatch = !storeJetsWithoutTau;
+        builderSetup.tauJetMatchDeltaR2Threshold = std::pow(cfg.getParameter<double>("tauJetMatchDeltaRThreshold"), 2);
+        builderSetup.objectMatchDeltaR2ThresholdJet =
+                std::pow(cfg.getParameter<double>("objectMatchDeltaRThresholdJet"), 2);
+        builderSetup.objectMatchDeltaR2ThresholdTau =
+                std::pow(cfg.getParameter<double>("objectMatchDeltaRThresholdTau"), 2);
     }
 
 private:
@@ -189,9 +198,7 @@ private:
 
         auto genParticles = hGenParticles.isValid() ? hGenParticles.product() : nullptr;
 
-        TauJetBuilderSetup builder_setup;
-        builder_setup.useOnlyTauObjectMatch = !storeJetsWithoutTau;
-        TauJetBuilder builder(builder_setup, *jets, *taus, *cands, *electrons, *muons, genParticles);
+        TauJetBuilder builder(builderSetup, *jets, *taus, *cands, *electrons, *muons, genParticles);
         const auto tauJets = builder.Build();
 
         for(const TauJet& tauJet : tauJets) {
@@ -543,6 +550,7 @@ private:
 
 private:
     const bool isMC, storeJetsWithoutTau;
+    TauJetBuilderSetup builderSetup;
 
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;
     edm::EDGetTokenT<std::vector<reco::GenParticle>> genParticles_token;
