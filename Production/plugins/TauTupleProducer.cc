@@ -64,6 +64,8 @@ public:
         {
             std::lock_guard<std::mutex> lock(data->mutex);
             ++data->n_producers;
+            std::cout << "New request of TauTupleProducerData. Total number of producers = " << data->n_producers
+                      << "." << std::endl;
         }
         return data;
     }
@@ -78,6 +80,8 @@ public:
             if(!data->n_producers)
                 throw cms::Exception("TauTupleProducerData") << "Release before any request.";
             --data->n_producers;
+            std::cout << "TauTupleProducerData has been released. Total number of producers = " << data->n_producers
+                      << "." << std::endl;
             if(!data->n_producers) {
                 data->tauTuple.Write();
                 const auto stop = clock::now();
@@ -87,6 +91,7 @@ public:
                 data->summaryTuple.Write();
                 delete data;
                 data = nullptr;
+                std::cout << "TauTupleProducerData has been destroyed." << std::endl;
             }
         }
 
@@ -104,7 +109,9 @@ private:
         TFile& file = edm::Service<TFileService>()->file();
         file.SetCompressionAlgorithm(ROOT::kZLIB);
         file.SetCompressionLevel(9);
-        return new TauTupleProducerData(file);
+        TauTupleProducerData* data = new TauTupleProducerData(file);
+        std::cout << "TauTupleProducerData has been created." << std::endl;
+        return data;
     }
 };
 
@@ -297,7 +304,8 @@ private:
             const pat::PackedCandidate* leadChargedHadrCand =
                     has_tau ? dynamic_cast<const pat::PackedCandidate*>(tau->leadChargedHadrCand().get()) : nullptr;
             tauTuple().tau_dz = leadChargedHadrCand ? leadChargedHadrCand->dz() : default_value;
-            tauTuple().tau_dz_error = leadChargedHadrCand ? leadChargedHadrCand->dzError() : default_value;
+            tauTuple().tau_dz_error = leadChargedHadrCand && leadChargedHadrCand->hasTrackDetails()
+                    ? leadChargedHadrCand->dzError() : default_value;
 
             tauTuple().tau_pt_weighted_deta_strip =
                     has_tau ? clusterVariables.tau_pt_weighted_deta_strip(*tau, tau->decayMode()) : default_value;
@@ -320,6 +328,7 @@ private:
 
             FillPFCandidates(tauJet.cands);
             FillElectrons(tauJet.electrons);
+            FillMuons(tauJet.muons);
 
             tauTuple.Fill();
         }
@@ -344,11 +353,6 @@ private:
         std::cout << header << std::endl;
 
         return true;
-    }
-
-    static float Significance(float meas, float err)
-    {
-       return err != 0 ? meas / err : 0.f;
     }
 
     void FillGenMatchResult(const gen_truth::LeptonMatchResult& leptonMatch, const gen_truth::QcdMatchResult& qcdMatch)
@@ -408,16 +412,13 @@ private:
             tauTuple().pfCand_vertex_x.push_back(static_cast<float>(cand->vertex().x()));
             tauTuple().pfCand_vertex_y.push_back(static_cast<float>(cand->vertex().y()));
             tauTuple().pfCand_vertex_z.push_back(static_cast<float>(cand->vertex().z()));
-            tauTuple().pfCand_vertex_chi2.push_back(static_cast<float>(cand->vertexChi2()));
-            tauTuple().pfCand_vertex_ndof.push_back(static_cast<float>(cand->vertexNdof()));
-            tauTuple().pfCand_vertex_mass.push_back(static_cast<float>(cand->vertexRef()->p4().mass()));
 
             const bool hasTrackDetails = cand->hasTrackDetails();
             tauTuple().pfCand_hasTrackDetails.push_back(hasTrackDetails);
             tauTuple().pfCand_dxy.push_back(cand->dxy());
-            tauTuple().pfCand_dxy_error.push_back(cand->dxyError());
+            tauTuple().pfCand_dxy_error.push_back(hasTrackDetails ? cand->dxyError() : default_value);
             tauTuple().pfCand_dz.push_back(cand->dz());
-            tauTuple().pfCand_dz_error.push_back(cand->dzError());
+            tauTuple().pfCand_dz_error.push_back(hasTrackDetails ? cand->dzError() : default_value);
             tauTuple().pfCand_track_chi2.push_back(
                         hasTrackDetails ? static_cast<float>(cand->pseudoTrack().chi2()) : default_value);
             tauTuple().pfCand_track_ndof.push_back(
@@ -464,8 +465,6 @@ private:
             tauTuple().ele_mvaInput_sigmaEtaEta.push_back(ele->mvaInput().sigmaEtaEta);
             tauTuple().ele_mvaInput_hadEnergy.push_back(ele->mvaInput().hadEnergy);
             tauTuple().ele_mvaInput_deltaEta.push_back(ele->mvaInput().deltaEta);
-            tauTuple().ele_mvaInput_nClusterOutsideMustache.push_back(ele->mvaInput().nClusterOutsideMustache);
-            tauTuple().ele_mvaInput_etOutsideMustache.push_back(ele->mvaInput().etOutsideMustache);
 
             const auto& gsfTrack = ele->gsfTrack();
             tauTuple().ele_gsfTrack_normalizedChi2.push_back(
@@ -494,8 +493,10 @@ private:
             tauTuple().muon_mass.push_back(static_cast<float>(muon->polarP4().mass()));
             tauTuple().muon_dxy.push_back(static_cast<float>(muon->dB(pat::Muon::PV2D)));
             tauTuple().muon_dxy_error.push_back(static_cast<float>(muon->edB(pat::Muon::PV2D)));
-            tauTuple().muon_normalizedChi2.push_back(static_cast<float>(muon->normChi2()));
-            tauTuple().muon_numberOfValidHits.push_back(static_cast<int>(muon->numberOfValidHits()));
+            tauTuple().muon_normalizedChi2.push_back(
+                muon->globalTrack().isNonnull() ? static_cast<float>(muon->normChi2()) : default_value);
+            tauTuple().muon_numberOfValidHits.push_back(
+                muon->innerTrack().isNonnull() ? static_cast<int>(muon->numberOfValidHits()) : default_value);
             tauTuple().muon_segmentCompatibility.push_back(static_cast<float>(muon->segmentCompatibility()));
             tauTuple().muon_caloCompatibility.push_back(muon->caloCompatibility());
             tauTuple().muon_pfEcalEnergy.push_back(muon->pfEcalEnergy());

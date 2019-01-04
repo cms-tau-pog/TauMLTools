@@ -154,10 +154,6 @@
                                       oneLostInnerHit = 1, moreLostInnerHits = 2 */ \
     CAND_VAR(Int_t, numberOfPixelHits) /* number of valid pixel hits */ \
     CAND_VAR3(Float_t, vertex_x, vertex_y, vertex_z) /* position of the vertex to which the candidate is associated */ \
-    CAND_VAR(Float_t, vertex_chi2) /* chi^2 of the vertex to which the candidate is associated */ \
-    CAND_VAR(Float_t, vertex_ndof) /* number of degrees of freedom of the vertex
-                                      to which the candidate is associated */ \
-    CAND_VAR(Float_t, vertex_mass) /* mass of the vertex to which the candidate is associated */ \
     CAND_VAR(Int_t, hasTrackDetails) /* has track details */ \
     CAND_VAR(Float_t, dxy) /* signed transverse impact parameter wrt to the primary vertex */ \
     CAND_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
@@ -210,10 +206,6 @@
     ELE_VAR(Float_t, mvaInput_sigmaEtaEta) /* Sigma-eta-eta with the PF cluster */ \
     ELE_VAR(Float_t, mvaInput_hadEnergy) /* Associated PF Had Cluster energy */ \
     ELE_VAR(Float_t, mvaInput_deltaEta) /* PF-cluster GSF track delta-eta */ \
-    ELE_VAR(Int_t, mvaInput_nClusterOutsideMustache) /* number of clusters "outside the mustache":
-                                                        unknown = -2, could not be evaluated = -1,
-                                                        number of clusters >= 0 */ \
-    ELE_VAR(Float_t, mvaInput_etOutsideMustache) /* total transverse energy "outside the mustache" */ \
     ELE_VAR(Float_t, gsfTrack_normalizedChi2) /* chi^2 divided by number of degrees of freedom of the GSF track */ \
     ELE_VAR(Int_t, gsfTrack_numberOfValidHits) /* number of valid hits on the GSF track */ \
     ELE_VAR(Float_t, gsfTrack_pt) /* pt of the GSF track */ \
