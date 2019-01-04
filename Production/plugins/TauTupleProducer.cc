@@ -1,6 +1,8 @@
 /*! Creates tuple for tau analysis.
 */
 
+#include "Compression.h"
+
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -30,13 +32,87 @@
 
 namespace tau_analysis {
 
-class TauTupleProducer : public edm::EDAnalyzer {
-public:
+struct TauTupleProducerData {
     using clock = std::chrono::system_clock;
 
-    TauTupleProducer(const edm::ParameterSet& cfg) :
+    const clock::time_point start;
+    tau_tuple::TauTuple tauTuple;
+    tau_tuple::SummaryTuple summaryTuple;
+    std::mutex mutex;
+
+private:
+    size_t n_producers;
+
+    TauTupleProducerData(TFile& file) :
         start(clock::now()),
+        tauTuple("taus", &file, false),
+        summaryTuple("summary", &file, false),
+        n_producers(0)
+    {
+        summaryTuple().numberOfProcessedEvents = 0;
+    }
+
+    ~TauTupleProducerData() {}
+
+public:
+
+    static TauTupleProducerData* RequestGlobalData()
+    {
+        TauTupleProducerData* data = GetGlobalData();
+        if(data == nullptr)
+            throw cms::Exception("TauTupleProducerData") << "Request after all data copies were released.";
+        {
+            std::lock_guard<std::mutex> lock(data->mutex);
+            ++data->n_producers;
+        }
+        return data;
+    }
+
+    static void ReleaseGlobalData()
+    {
+        TauTupleProducerData*& data = GetGlobalData();
+        if(data == nullptr)
+            throw cms::Exception("TauTupleProducerData") << "Another release after all data copies were released.";
+        {
+            std::lock_guard<std::mutex> lock(data->mutex);
+            if(!data->n_producers)
+                throw cms::Exception("TauTupleProducerData") << "Release before any request.";
+            --data->n_producers;
+            if(!data->n_producers) {
+                data->tauTuple.Write();
+                const auto stop = clock::now();
+                data->summaryTuple().exeTime = static_cast<unsigned>(
+                            std::chrono::duration_cast<std::chrono::seconds>(stop - data->start).count());
+                data->summaryTuple.Fill();
+                data->summaryTuple.Write();
+                delete data;
+                data = nullptr;
+            }
+        }
+
+    }
+
+private:
+    static TauTupleProducerData*& GetGlobalData()
+    {
+        static TauTupleProducerData* data = InitializeGlobalData();
+        return data;
+    }
+
+    static TauTupleProducerData* InitializeGlobalData()
+    {
+        TFile& file = edm::Service<TFileService>()->file();
+        file.SetCompressionAlgorithm(ROOT::kZLIB);
+        file.SetCompressionLevel(9);
+        return new TauTupleProducerData(file);
+    }
+};
+
+class TauTupleProducer : public edm::EDAnalyzer {
+public:
+    TauTupleProducer(const edm::ParameterSet& cfg) :
         isMC(cfg.getParameter<bool>("isMC")),
+        storeJetsWithoutTau(cfg.getParameter<bool>("storeJetsWithoutTau")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
         genParticles_token(mayConsume<std::vector<reco::GenParticle>>(cfg.getParameter<edm::InputTag>("genParticles"))),
         puInfo_token(mayConsume<std::vector<PileupSummaryInfo>>(cfg.getParameter<edm::InputTag>("puInfo"))),
@@ -47,10 +123,10 @@ public:
         taus_token(consumes<pat::TauCollection>(cfg.getParameter<edm::InputTag>("taus"))),
         jets_token(consumes<pat::JetCollection>(cfg.getParameter<edm::InputTag>("jets"))),
         cands_token(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("pfCandidates"))),
-        tauTuple("taus", &edm::Service<TFileService>()->file(), false),
-        summaryTuple("summary", &edm::Service<TFileService>()->file(), false)
+        data(TauTupleProducerData::RequestGlobalData()),
+        tauTuple(data->tauTuple),
+        summaryTuple(data->summaryTuple)
     {
-        summaryTuple().numberOfProcessedEvents = 0;
     }
 
 private:
@@ -61,6 +137,7 @@ private:
     {
         static const TauIdMVAAuxiliaries clusterVariables;
 
+        std::lock_guard<std::mutex> lock(data->mutex);
         summaryTuple().numberOfProcessedEvents++;
 
         tauTuple().run  = event.id().run();
@@ -113,11 +190,15 @@ private:
         auto genParticles = hGenParticles.isValid() ? hGenParticles.product() : nullptr;
 
         TauJetBuilderSetup builder_setup;
+        builder_setup.useOnlyTauObjectMatch = !storeJetsWithoutTau;
         TauJetBuilder builder(builder_setup, *jets, *taus, *cands, *electrons, *muons, genParticles);
         const auto tauJets = builder.Build();
 
         for(const TauJet& tauJet : tauJets) {
             const bool has_jet = tauJet.jetIndex >= 0;
+            const bool has_tau = tauJet.tauIndex >= 0;
+            if(!has_tau && !storeJetsWithoutTau) continue;
+
             tauTuple().jet_index = tauJet.jetIndex;
             tauTuple().jet_pt = has_jet ? static_cast<float>(tauJet.jet->p4().pt()) : default_value;
             tauTuple().jet_eta = has_jet ? static_cast<float>(tauJet.jet->p4().eta()) : default_value;
@@ -146,7 +227,7 @@ private:
             tauTuple().jet_gen_n_c = genJet != nullptr
                     ? static_cast<int>(tauJet.jet->jetFlavourInfo().getcHadrons().size()) : default_int_value;
 
-            const bool has_tau = tauJet.tauIndex >= 0;
+
             const pat::Tau* tau = tauJet.tau;
             if(has_tau) {
                 static const bool id_names_printed = PrintTauIdNames(*tau);
@@ -237,12 +318,7 @@ private:
 
     virtual void endJob() override
     {
-        tauTuple.Write();
-        const auto stop = clock::now();
-        summaryTuple().exeTime = static_cast<unsigned>(
-                    std::chrono::duration_cast<std::chrono::seconds>(stop - start).count());
-        summaryTuple.Fill();
-        summaryTuple.Write();
+        TauTupleProducerData::ReleaseGlobalData();
     }
 
 private:
@@ -440,8 +516,7 @@ private:
     }
 
 private:
-    const clock::time_point start;
-    const bool isMC;
+    const bool isMC, storeJetsWithoutTau;
 
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;
     edm::EDGetTokenT<std::vector<reco::GenParticle>> genParticles_token;
@@ -454,8 +529,9 @@ private:
     edm::EDGetTokenT<pat::JetCollection> jets_token;
     edm::EDGetTokenT<pat::PackedCandidateCollection> cands_token;
 
-    tau_tuple::TauTuple tauTuple;
-    tau_tuple::SummaryTuple summaryTuple;
+    TauTupleProducerData* data;
+    tau_tuple::TauTuple& tauTuple;
+    tau_tuple::SummaryTuple& summaryTuple;
 };
 
 } // namespace tau_analysis

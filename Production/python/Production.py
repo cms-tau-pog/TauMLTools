@@ -26,6 +26,8 @@ options.register('dumpPython', False, VarParsing.multiplicity.singleton, VarPars
                  "Dump full config into stdout.")
 options.register('numberOfThreads', 1, VarParsing.multiplicity.singleton, VarParsing.varType.int,
                  "Number of threads.")
+options.register('storeJetsWithoutTau', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                 "Store jets that don't match to any pat::Tau.")
 
 options.parseArguments()
 
@@ -90,10 +92,9 @@ if options.saveGenTopInfo:
 
 process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     isMC            = cms.bool(not isData),
-    saveGenTopInfo  = cms.bool(options.saveGenTopInfo),
+    storeJetsWithoutTau = cms.bool(options.storeJetsWithoutTau),
     lheEventProduct = cms.InputTag('externalLHEProducer'),
     genEvent        = cms.InputTag('generator'),
-    topGenEvent     = cms.InputTag('genEvt'),
     genParticles    = cms.InputTag('prunedGenParticles'),
     puInfo          = cms.InputTag('slimmedAddPileupInfo'),
     vertices        = cms.InputTag('offlineSlimmedPrimaryVertices'),

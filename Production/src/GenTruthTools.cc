@@ -71,7 +71,7 @@ LeptonMatchResult LeptonGenMatch(const LorentzVectorM& p4, const GenParticleColl
 
     for(const reco::GenParticle& particle : genParticles) {
         const bool isTauProduct = particle.statusFlags().isDirectPromptTauDecayProduct();
-        if((!particle.statusFlags().isPrompt() && !isTauProduct) || !particle.statusFlags().isLastCopy()) continue;
+        if((!particle.statusFlags().isPrompt() && !isTauProduct) /*|| !particle.statusFlags().isLastCopy()*/) continue;
 
         const int abs_pdg = std::abs(particle.pdgId());
         if(!pt_thresholds.count(abs_pdg)) continue;
