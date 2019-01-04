@@ -311,6 +311,7 @@ private:
                     has_tau ? tau->etaAtEcalEntranceLeadChargedCand() : default_value;
 
             FillPFCandidates(tauJet.cands);
+            FillElectrons(tauJet.electrons);
 
             tauTuple.Fill();
         }
@@ -419,6 +420,63 @@ private:
         }
     }
 
+    void FillElectrons(const std::vector<const pat::Electron*>& electrons)
+    {
+        for(const pat::Electron* ele : electrons) {
+            tauTuple().ele_pt.push_back(static_cast<float>(ele->polarP4().pt()));
+            tauTuple().ele_eta.push_back(static_cast<float>(ele->polarP4().eta()));
+            tauTuple().ele_phi.push_back(static_cast<float>(ele->polarP4().phi()));
+            tauTuple().ele_mass.push_back(static_cast<float>(ele->polarP4().mass()));
+            float cc_ele_energy, cc_gamma_energy;
+            int cc_n_gamma;
+            CalculateElectronClusterVars(*ele, cc_ele_energy, cc_gamma_energy, cc_n_gamma);
+            tauTuple().ele_cc_ele_energy.push_back(cc_ele_energy);
+            tauTuple().ele_cc_gamma_energy.push_back(cc_gamma_energy);
+            tauTuple().ele_cc_n_gamma.push_back(cc_n_gamma);
+            tauTuple().ele_trackMomentumAtVtx.push_back(ele->trackMomentumAtVtx().R());
+            tauTuple().ele_trackMomentumAtCalo.push_back(ele->trackMomentumAtCalo().R());
+            tauTuple().ele_trackMomentumOut.push_back(ele->trackMomentumOut().R());
+            tauTuple().ele_trackMomentumAtEleClus.push_back(ele->trackMomentumAtEleClus().R());
+            tauTuple().ele_trackMomentumAtVtxWithConstraint.push_back(ele->trackMomentumAtVtxWithConstraint().R());
+            tauTuple().ele_ecalEnergy.push_back(ele->ecalEnergy());
+            tauTuple().ele_ecalEnergy_error.push_back(ele->ecalEnergyError());
+            tauTuple().ele_eSuperClusterOverP.push_back(ele->eSuperClusterOverP());
+            tauTuple().ele_eSeedClusterOverP.push_back(ele->eSeedClusterOverP());
+            tauTuple().ele_eSeedClusterOverPout.push_back(ele->eSeedClusterOverPout());
+            tauTuple().ele_eEleClusterOverPout.push_back(ele->eEleClusterOverPout());
+            tauTuple().ele_deltaEtaSuperClusterTrackAtVtx.push_back(ele->deltaEtaSuperClusterTrackAtVtx());
+            tauTuple().ele_deltaEtaSeedClusterTrackAtCalo.push_back(ele->deltaEtaSeedClusterTrackAtCalo());
+            tauTuple().ele_deltaEtaEleClusterTrackAtCalo.push_back(ele->deltaEtaEleClusterTrackAtCalo());
+            tauTuple().ele_deltaPhiEleClusterTrackAtCalo.push_back(ele->deltaPhiEleClusterTrackAtCalo());
+            tauTuple().ele_deltaPhiSuperClusterTrackAtVtx.push_back(ele->deltaPhiSuperClusterTrackAtVtx());
+            tauTuple().ele_deltaPhiSeedClusterTrackAtCalo.push_back(ele->deltaPhiSeedClusterTrackAtCalo());
+
+            tauTuple().ele_mvaInput_earlyBrem.push_back(ele->mvaInput().earlyBrem);
+            tauTuple().ele_mvaInput_lateBrem.push_back(ele->mvaInput().lateBrem);
+            tauTuple().ele_mvaInput_sigmaEtaEta.push_back(ele->mvaInput().sigmaEtaEta);
+            tauTuple().ele_mvaInput_hadEnergy.push_back(ele->mvaInput().hadEnergy);
+            tauTuple().ele_mvaInput_deltaEta.push_back(ele->mvaInput().deltaEta);
+            tauTuple().ele_mvaInput_nClusterOutsideMustache.push_back(ele->mvaInput().nClusterOutsideMustache);
+            tauTuple().ele_mvaInput_etOutsideMustache.push_back(ele->mvaInput().etOutsideMustache);
+
+            const auto& gsfTrack = ele->gsfTrack();
+            tauTuple().ele_gsfTrack_normalizedChi2.push_back(
+                        gsfTrack.isNonnull() ? static_cast<float>(gsfTrack->normalizedChi2()) : default_value);
+            tauTuple().ele_gsfTrack_numberOfValidHits.push_back(
+                        gsfTrack.isNonnull() ? gsfTrack->numberOfValidHits() : default_int_value);
+            tauTuple().ele_gsfTrack_pt.push_back(
+                        gsfTrack.isNonnull() ? static_cast<float>(gsfTrack->pt()) : default_value);
+            tauTuple().ele_gsfTrack_pt_error.push_back(
+                        gsfTrack.isNonnull() ? static_cast<float>(gsfTrack->ptError()) : default_value);
+
+            const auto& closestCtfTrack = ele->closestCtfTrackRef();
+            tauTuple().ele_closestCtfTrack_normalizedChi2.push_back(closestCtfTrack.isNonnull()
+                        ? static_cast<float>(closestCtfTrack->normalizedChi2()) : default_value);
+            tauTuple().ele_closestCtfTrack_numberOfValidHits.push_back(
+                        closestCtfTrack.isNonnull() ? closestCtfTrack->numberOfValidHits() : default_int_value);
+        }
+    }
+
 /*
     void FillExtendedVariables(const pat::Tau& tau, const pat::ElectronCollection& electrons,
                                const pat::MuonCollection& muons)
@@ -480,38 +538,26 @@ private:
         return default_value;
     }
 
-    static void CalculateEtaPhiAtEcalEntrance(const pat::Tau& tau, float& eta, float& phi)
+    static void CalculateElectronClusterVars(const pat::Electron& ele, float& cc_ele_energy, float& cc_gamma_energy,
+                                             int& cc_n_gamma)
     {
-        float sumEtaTimesEnergy = 0., sumPhiTimesEnergy = 0., sumEnergy = 0.;
-        for(const auto& pfCandidate : tau.signalPFCands()) {
-            sumEtaTimesEnergy += pfCandidate->positionAtECALEntrance().eta() * pfCandidate->energy();
-            sumPhiTimesEnergy += pfCandidate->positionAtECALEntrance().phi() * pfCandidate->energy();
-            sumEnergy += pfCandidate->energy();
-        }
-        if(sumEnergy > 0) {
-            eta = sumEtaTimesEnergy / sumEnergy;
-            phi = sumPhiTimesEnergy / sumEnergy;
-        } else {
-            eta = tau_tuple::DefaultFillValue<float>();
-            phi = tau_tuple::DefaultFillValue<float>();
-        }
-    }
-
-    static void CalculateElectronClusterVars(const pat::Electron* ele, float& elecEe, float& elecEgamma)
-    {
-        if(ele) {
-            elecEe = elecEgamma = 0;
-            auto superCluster = ele->superCluster();
-            if(superCluster.isNonnull() && superCluster.isAvailable() && superCluster->clusters().isNonnull()
-                    && superCluster->clusters().isAvailable()) {
-                for(auto iter = superCluster->clustersBegin(); iter != superCluster->clustersEnd(); ++iter) {
-                    const double energy = (*iter)->energy();
-                    if(iter == superCluster->clustersBegin()) elecEe += energy;
-                    else elecEgamma += energy;
+        cc_ele_energy = cc_gamma_energy = 0;
+        cc_n_gamma = 0;
+        const auto& superCluster = ele.superCluster();
+        if(superCluster.isNonnull() && superCluster.isAvailable() && superCluster->clusters().isNonnull()
+                && superCluster->clusters().isAvailable()) {
+            for(auto iter = superCluster->clustersBegin(); iter != superCluster->clustersEnd(); ++iter) {
+                const float energy = static_cast<float>((*iter)->energy());
+                if(iter == superCluster->clustersBegin())
+                    cc_ele_energy += energy;
+                else {
+                    cc_gamma_energy += energy;
+                    ++cc_n_gamma;
                 }
             }
         } else {
-            elecEe = elecEgamma = tau_tuple::DefaultFillValue<float>();
+            cc_ele_energy = cc_gamma_energy = default_value;
+            cc_n_gamma = default_int_value;
         }
     }
 
