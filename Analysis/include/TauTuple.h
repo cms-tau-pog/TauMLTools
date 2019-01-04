@@ -33,7 +33,7 @@
     VAR(UInt_t, run) /* run number */ \
     VAR(UInt_t, lumi) /* lumi section */ \
     VAR(ULong64_t, evt) /* event number */ \
-    VAR(UInt_t, npv) /* number of primary vertices */ \
+    VAR(Int_t, npv) /* number of primary vertices */ \
     VAR(Float_t, rho) /* fixed grid energy density */ \
     VAR(Float_t, genEventWeight) /* gen event weight */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
@@ -127,8 +127,8 @@
     VAR(Float_t, tau_e_ratio) /* ratio of energy in ECAL over sum of energy in ECAL and HCAL */ \
     VAR(Float_t, tau_gj_angle_diff) /* Gottfried-Jackson angle difference
                                        (defined olny when the secondary vertex is reconstructed) */ \
-    VAR(UInt_t, tau_n_photons) /* total number of pf photon candidates with pT>500 MeV,
-                                  which are associated to signal */ \
+    VAR(Int_t, tau_n_photons) /* total number of pf photon candidates with pT>500 MeV,
+                                 which are associated to signal */ \
     VAR(Float_t, tau_emFraction) /* tau->emFraction_MVA */ \
     VAR(Int_t, tau_inside_ecal_crack) /* tau is inside the ECAL crack (1.46 < |eta| < 1.558) */ \
     VAR(Float_t, leadChargedCand_etaAtEcalEntrance) /* eta at ECAL entrance of the leadChargedCand */ \
@@ -204,31 +204,45 @@
                                                         from the innermost track state */ \
     ELE_VAR(Float_t, deltaPhiSeedClusterTrackAtCalo) /* seed cluster phi - track phi position at calo extrapolated
                                                         from the outermost track state */ \
-    ELE_VAR(Int_t, mvaInput_earlyBrem) /* Early Brem detected: -2 => unknown, -1 => could not be evaluated, 0 => wrong,
-                                          1 => true */ \
-    ELE_VAR(Int_t, mvaInput_lateBrem) /* Late Brem detected: -2 => unknown, -1 => could not be evaluated, 0 => wrong,
-                                         1 => true */ \
+    ELE_VAR2(Int_t, mvaInput_earlyBrem, mvaInput_lateBrem) /* early/late bremsstrahlung is detected:
+                                                              unknown = -2, could not be evaluated = -1,
+                                                              wrong = 0, true = 1 */ \
     ELE_VAR(Float_t, mvaInput_sigmaEtaEta) /* Sigma-eta-eta with the PF cluster */ \
     ELE_VAR(Float_t, mvaInput_hadEnergy) /* Associated PF Had Cluster energy */ \
     ELE_VAR(Float_t, mvaInput_deltaEta) /* PF-cluster GSF track delta-eta */ \
     ELE_VAR(Int_t, mvaInput_nClusterOutsideMustache) /* number of clusters "outside the mustache":
-                                                        -2 => unknown, -1 =>could not be evaluated,
-                                                        0 and more => number of clusters*/ \
+                                                        unknown = -2, could not be evaluated = -1,
+                                                        number of clusters >= 0 */ \
     ELE_VAR(Float_t, mvaInput_etOutsideMustache) /* total transverse energy "outside the mustache" */ \
-    ELE_VAR(Float_t, gsfTrack_normalizedChi2) /* chi-squared divided by n.d.o.f. of the GSF track */ \
+    ELE_VAR(Float_t, gsfTrack_normalizedChi2) /* chi^2 divided by number of degrees of freedom of the GSF track */ \
     ELE_VAR(Int_t, gsfTrack_numberOfValidHits) /* number of valid hits on the GSF track */ \
     ELE_VAR(Float_t, gsfTrack_pt) /* pt of the GSF track */ \
     ELE_VAR(Float_t, gsfTrack_pt_error) /* uncertainty of the pt measurement of the GSF track */ \
-    ELE_VAR(Float_t, closestCtfTrack_normalizedChi2) /* chi-squared divided by n.d.o.f. of the closest CTF track */ \
+    ELE_VAR(Float_t, closestCtfTrack_normalizedChi2) /* chi^2 divided by number of degrees of freedom
+                                                        of the closest CTF track */ \
     ELE_VAR(Int_t, closestCtfTrack_numberOfValidHits) /* number of valid hits on the closest CTF track */ \
     /* PAT muons */ \
-    MUON_VAR4(Float_t, pt, eta, phi, mass) /* */ \
-    MUON_VAR4(UInt_t, n_matches_DT_1, n_matches_DT_2, n_matches_DT_3, n_matches_DT_4) /* */ \
-    MUON_VAR4(UInt_t, n_matches_CSC_1, n_matches_CSC_2, n_matches_CSC_3, n_matches_CSC_4) /* */ \
-    MUON_VAR4(UInt_t, n_matches_RPC_1, n_matches_RPC_2, n_matches_RPC_3, n_matches_RPC_4) /* */ \
-    MUON_VAR4(UInt_t, n_hits_DT_1, n_hits_DT_2, n_hits_DT_3, n_hits_DT_4) /* */ \
-    MUON_VAR4(UInt_t, n_hits_CSC_1, n_hits_CSC_2, n_hits_CSC_3, n_hits_CSC_4) /* */ \
-    MUON_VAR4(UInt_t, n_hits_RPC_1, n_hits_RPC_2, n_hits_RPC_3, n_hits_RPC_4) /* */ \
+    MUON_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the muon */ \
+    MUON_VAR(Float_t, dxy) /* signed transverse impact parameter of the inner track wrt to the primary vertex */ \
+    MUON_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
+    MUON_VAR(Float_t, normalizedChi2) /* chi^2 divided by number of degrees of freedom of the global track */ \
+    MUON_VAR(Int_t, numberOfValidHits) /* number of valid hits on the global track */ \
+    MUON_VAR(Float_t, segmentCompatibility) /* segment compatibility for a track with matched muon info */ \
+    MUON_VAR(Float_t, caloCompatibility) /* relative likelihood based on ECAL, HCAL, HO energy defined as
+                                            L_muon / (L_muon + L_not_muon) */ \
+    MUON_VAR(Float_t, pfEcalEnergy) /* PF based energy deposition in the ECAL */ \
+    MUON_VAR4(Int_t, n_matches_DT_1, n_matches_DT_2, n_matches_DT_3, \
+                     n_matches_DT_4) /* number of segment matches for the DT subdetector stations */ \
+    MUON_VAR4(Int_t, n_matches_CSC_1, n_matches_CSC_2, n_matches_CSC_3, \
+                     n_matches_CSC_4) /* number of segment matches for the CSC subdetector stations */ \
+    MUON_VAR4(Int_t, n_matches_RPC_1, n_matches_RPC_2, n_matches_RPC_3, \
+                     n_matches_RPC_4) /* number of segment matches for the RPC subdetector stations */ \
+    MUON_VAR4(Int_t, n_hits_DT_1, n_hits_DT_2, n_hits_DT_3, \
+                     n_hits_DT_4) /* number of valid and bad hits for the DT subdetector stations */ \
+    MUON_VAR4(Int_t, n_hits_CSC_1, n_hits_CSC_2, n_hits_CSC_3, \
+                     n_hits_CSC_4) /* number of valid and bad hits for the CSC subdetector stations */ \
+    MUON_VAR4(Int_t, n_hits_RPC_1, n_hits_RPC_2, n_hits_RPC_3, \
+                     n_hits_RPC_4) /* number of valid and bad hits for the RPC subdetector stations */ \
     /**/
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)

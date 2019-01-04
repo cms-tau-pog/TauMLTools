@@ -146,7 +146,7 @@ private:
 
         edm::Handle<std::vector<reco::Vertex>> vertices;
         event.getByToken(vertices_token, vertices);
-        tauTuple().npv = static_cast<unsigned>(vertices->size());
+        tauTuple().npv = static_cast<int>(vertices->size());
         edm::Handle<double> rho;
         event.getByToken(rho_token, rho);
         tauTuple().rho = static_cast<float>(*rho);
@@ -303,7 +303,8 @@ private:
             tauTuple().tau_leadingTrackNormChi2 = has_tau ? tau->leadingTrackNormChi2() : default_value;
             tauTuple().tau_e_ratio = has_tau ? clusterVariables.tau_Eratio(*tau) : default_value;
             tauTuple().tau_gj_angle_diff = has_tau ? CalculateGottfriedJacksonAngleDifference(*tau) : default_value;
-            tauTuple().tau_n_photons = has_tau ? clusterVariables.tau_n_photons_total(*tau) : default_value;
+            tauTuple().tau_n_photons =
+                    has_tau ? static_cast<int>(clusterVariables.tau_n_photons_total(*tau)) : default_int_value;
 
             tauTuple().tau_emFraction = has_tau ? tau->emFraction_MVA() : default_value;
             tauTuple().tau_inside_ecal_crack = has_tau ? IsInEcalCrack(tau->p4().Eta()) : default_value;
@@ -477,59 +478,38 @@ private:
         }
     }
 
-/*
-    void FillExtendedVariables(const pat::Tau& tau, const pat::ElectronCollection& electrons,
-                               const pat::MuonCollection& muons)
+    void FillMuons(const std::vector<const pat::Muon*>& muons)
     {
-        tauTuple().has_gsf_track = leadChargedHadrCand && std::abs(leadChargedHadrCand->pdgId()) == 11;
-        auto gsf_ele = FindMatchedElectron(tau, electrons, 0.3);
-        tauTuple().gsf_ele_matched = gsf_ele != nullptr;
-        tauTuple().gsf_ele_pt = gsf_ele != nullptr ? gsf_ele->p4().Pt() : default_value;
-        tauTuple().gsf_ele_dEta = gsf_ele != nullptr ? dEta(gsf_ele->p4(), tau.p4()) : default_value;
-        tauTuple().gsf_ele_dPhi = gsf_ele != nullptr ? dPhi(gsf_ele->p4(), tau.p4()) : default_value;
-        tauTuple().gsf_ele_energy = gsf_ele != nullptr ? gsf_ele->p4().E() : default_value;
-        CalculateElectronClusterVars(gsf_ele, tauTuple().gsf_ele_Ee, tauTuple().gsf_ele_Egamma);
-        tauTuple().gsf_ele_Pin = gsf_ele != nullptr ? gsf_ele->trackMomentumAtVtx().R() : default_value;
-        tauTuple().gsf_ele_Pout = gsf_ele != nullptr ? gsf_ele->trackMomentumOut().R() : default_value;
-        tauTuple().gsf_ele_Eecal = gsf_ele != nullptr ? gsf_ele->ecalEnergy() : default_value;
-        tauTuple().gsf_ele_dEta_SeedClusterTrackAtCalo = gsf_ele != nullptr
-                ? gsf_ele->deltaEtaSeedClusterTrackAtCalo() : default_value;
-        tauTuple().gsf_ele_dPhi_SeedClusterTrackAtCalo = gsf_ele != nullptr
-                ? gsf_ele->deltaPhiSeedClusterTrackAtCalo() : default_value;
-        tauTuple().gsf_ele_mvaIn_sigmaEtaEta = gsf_ele != nullptr ? gsf_ele->mvaInput().sigmaEtaEta : default_value;
-        tauTuple().gsf_ele_mvaIn_hadEnergy = gsf_ele != nullptr ? gsf_ele->mvaInput().hadEnergy : default_value;
-        tauTuple().gsf_ele_mvaIn_deltaEta = gsf_ele != nullptr ? gsf_ele->mvaInput().deltaEta : default_value;
-        tauTuple().gsf_ele_Chi2NormGSF = default_value;
-        tauTuple().gsf_ele_GSFNumHits = default_value;
-        tauTuple().gsf_ele_GSFTrackResol = default_value;
-        tauTuple().gsf_ele_GSFTracklnPt = default_value;
-        if(gsf_ele != nullptr && gsf_ele->gsfTrack().isNonnull()) {
-            tauTuple().gsf_ele_Chi2NormGSF = gsf_ele->gsfTrack()->normalizedChi2();
-            tauTuple().gsf_ele_GSFNumHits = gsf_ele->gsfTrack()->numberOfValidHits();
-            if(gsf_ele->gsfTrack()->pt() > 0) {
-                tauTuple().gsf_ele_GSFTrackResol = gsf_ele->gsfTrack()->ptError() / gsf_ele->gsfTrack()->pt();
-                tauTuple().gsf_ele_GSFTracklnPt = std::log10(gsf_ele->gsfTrack()->pt());
+        for(const pat::Muon* muon : muons) {
+            tauTuple().muon_pt.push_back(static_cast<float>(muon->polarP4().pt()));
+            tauTuple().muon_eta.push_back(static_cast<float>(muon->polarP4().eta()));
+            tauTuple().muon_phi.push_back(static_cast<float>(muon->polarP4().phi()));
+            tauTuple().muon_mass.push_back(static_cast<float>(muon->polarP4().mass()));
+            tauTuple().muon_dxy.push_back(static_cast<float>(muon->dB(pat::Muon::PV2D)));
+            tauTuple().muon_dxy_error.push_back(static_cast<float>(muon->edB(pat::Muon::PV2D)));
+            tauTuple().muon_normalizedChi2.push_back(static_cast<float>(muon->normChi2()));
+            tauTuple().muon_numberOfValidHits.push_back(static_cast<int>(muon->numberOfValidHits()));
+            tauTuple().muon_segmentCompatibility.push_back(static_cast<float>(muon->segmentCompatibility()));
+            tauTuple().muon_caloCompatibility.push_back(muon->caloCompatibility());
+            tauTuple().muon_pfEcalEnergy.push_back(muon->pfEcalEnergy());
+
+            const MuonHitMatch hit_match(*muon);
+            for(int subdet : MuonHitMatch::ConsideredSubdets()) {
+                const std::string& subdetName = MuonHitMatch::SubdetName(subdet);
+                for(int station = MuonHitMatch::first_station_id; station <= MuonHitMatch::last_station_id; ++station) {
+                    const std::string matches_branch_name = "muon_n_matches_" + subdetName + "_"
+                            + std::to_string(station);
+                    const std::string hits_branch_name = "muon_n_hits_" + subdetName + "_" + std::to_string(station);
+
+                    const unsigned n_matches = hit_match.NMatches(subdet, station);
+                    const unsigned n_hits = hit_match.NHits(subdet, station);
+                    tauTuple.get<std::vector<int>>(matches_branch_name).push_back(static_cast<int>(n_matches));
+                    tauTuple.get<std::vector<int>>(hits_branch_name).push_back(static_cast<int>(n_hits));
+                }
             }
         }
-
-        tauTuple().gsf_ele_Chi2NormKF = default_value;
-        tauTuple().gsf_ele_KFNumHits = default_value;
-        if(gsf_ele != nullptr && gsf_ele->closestCtfTrackRef().isNonnull()) {
-            tauTuple().gsf_ele_Chi2NormKF = gsf_ele->closestCtfTrackRef()->normalizedChi2();
-            tauTuple().gsf_ele_KFNumHits = gsf_ele->closestCtfTrackRef()->numberOfValidHits();
-        }
-
-
-        MuonHitMatch muon_hit_match;
-        if(tau.leadPFChargedHadrCand().isNonnull() && tau.leadPFChargedHadrCand()->muonRef().isNonnull())
-            muon_hit_match.AddMatchedMuon(*tau.leadPFChargedHadrCand()->muonRef(), tau);
-
-        auto matched_muons = muon_hit_match.FindMatchedMuons(tau, muons, 0.3, 5);
-        for(auto muon : matched_muons)
-            muon_hit_match.AddMatchedMuon(*muon, tau);
-        muon_hit_match.FillTuple(tauTuple(), tau);
     }
-*/
+
     static float CalculateGottfriedJacksonAngleDifference(const pat::Tau& tau)
     {
         double gj_diff;
