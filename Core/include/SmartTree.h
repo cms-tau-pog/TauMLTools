@@ -326,25 +326,46 @@ public:
     const Data& data() const { return *_data; }
 
     template<typename T>
+    T& get(const std::string& branch_name)
+    {
+        auto iter = entries.find(branch_name);
+        if(iter == entries.end())
+            throw_branch_not_found(branch_name);
+        auto base_entry = dynamic_cast<detail::SmartTreePtrEntry<T>*>(iter->second.get());
+        if(!base_entry)
+            throw_invalid_type(branch_name);
+        return *base_entry->value;
+    }
+
+    template<typename T>
     const T& get(const std::string& branch_name) const
     {
         auto iter = entries.find(branch_name);
-        if(iter == entries.end()) {
-            std::ostringstream ss;
-            ss << "Branch '" << branch_name << "' not found.";
-            throw std::runtime_error(ss.str());
-        }
+        if(iter == entries.end())
+            throw_branch_not_found(branch_name);
         auto base_entry = dynamic_cast<const detail::SmartTreePtrEntry<T>*>(iter->second.get());
-        if(!base_entry) {
-            std::ostringstream ss;
-            ss << "Invalid type for branch '" << branch_name << "'.";
-            throw std::runtime_error(ss.str());
-        }
+        if(!base_entry)
+            throw_invalid_type(branch_name);
         return *base_entry->value;
     }
 
     iterator begin() { return iterator(*this, 0); }
     iterator end() { return iterator(*this, GetEntries()); }
+
+private:
+    void throw_branch_not_found(const std::string& branch_name) const
+    {
+        std::ostringstream ss;
+        ss << "Branch '" << branch_name << "' not found.";
+        throw std::runtime_error(ss.str());
+    }
+
+    void throw_invalid_type(const std::string& branch_name) const
+    {
+        std::ostringstream ss;
+        ss << "Invalid type for branch '" << branch_name << "'.";
+        throw std::runtime_error(ss.str());
+    }
 
 protected:
     std::shared_ptr<Data> _data{new Data()};
