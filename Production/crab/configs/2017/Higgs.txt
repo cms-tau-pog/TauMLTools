@@ -1,6 +1,5 @@
 Automatic
 globalTag=94X_mc2017_realistic_v14 sampleType=Fall17MC
 
-
 ttHToTauTau_M125		1000	/ttHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
 GluGluHToTauTau_M125	1000	/GluGluHToTauTau_M125_13TeV_powheg_pythia8/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM

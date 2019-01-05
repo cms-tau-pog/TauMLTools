@@ -20,14 +20,14 @@ options.register('lumiFile', '', VarParsing.multiplicity.singleton, VarParsing.v
                  "JSON file with lumi mask.")
 options.register('eventList', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "List of events to process.")
-options.register('saveGenTopInfo', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
-                 "Save generator-level information for top quarks.")
 options.register('dumpPython', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Dump full config into stdout.")
-options.register('numberOfThreads', 1, VarParsing.multiplicity.singleton, VarParsing.varType.int,
+options.register('numberOfThreads', 4, VarParsing.multiplicity.singleton, VarParsing.varType.int,
                  "Number of threads.")
 options.register('storeJetsWithoutTau', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Store jets that don't match to any pat::Tau.")
+options.register('requireGenMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                 "Store only taus/jets that have GenLeptonMatch or GenQcdMatch.")
 
 options.parseArguments()
 
@@ -81,15 +81,6 @@ if period == 'Run2017':
     tauIdEmbedder.runTauID()
     tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
 
-process.topGenSequence = cms.Sequence()
-if options.saveGenTopInfo:
-    process.load("TopQuarkAnalysis.TopEventProducers.sequences.ttGenEvent_cff")
-    process.decaySubset.fillMode = cms.string("kME")
-    process.initSubset.src = cms.InputTag('prunedGenParticles')
-    process.decaySubset.src = cms.InputTag('prunedGenParticles')
-    process.decaySubset.runMode = cms.string("Run2")
-    process.topGenSequence += process.makeGenEvt
-
 tauJetdR = 0.2
 objectdR = 0.5
 
@@ -100,8 +91,9 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     forceTauJetMatch                = cms.bool(False),
     storeJetsWithoutTau             = cms.bool(options.storeJetsWithoutTau),
     tauJetMatchDeltaRThreshold      = cms.double(tauJetdR),
-    objectMatchDeltaRThresholdTau  = cms.double(objectdR),
-    objectMatchDeltaRThresholdJet  = cms.double(tauJetdR + objectdR),
+    objectMatchDeltaRThresholdTau   = cms.double(objectdR),
+    objectMatchDeltaRThresholdJet   = cms.double(tauJetdR + objectdR),
+    requireGenMatch                 = cms.bool(options.requireGenMatch),
 
     lheEventProduct = cms.InputTag('externalLHEProducer'),
     genEvent        = cms.InputTag('generator'),
@@ -128,7 +120,6 @@ if period == 'Run2017':
     process.p = cms.Path(
         process.rerunMvaIsolationSequence *
         getattr(process, updatedTauName) *
-        process.topGenSequence *
         process.tupleProductionSequence
     )
 

@@ -120,6 +120,7 @@ public:
     TauTupleProducer(const edm::ParameterSet& cfg) :
         isMC(cfg.getParameter<bool>("isMC")),
         storeJetsWithoutTau(cfg.getParameter<bool>("storeJetsWithoutTau")),
+        requireGenMatch(cfg.getParameter<bool>("requireGenMatch")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
         genParticles_token(mayConsume<std::vector<reco::GenParticle>>(cfg.getParameter<edm::InputTag>("genParticles"))),
         puInfo_token(mayConsume<std::vector<PileupSummaryInfo>>(cfg.getParameter<edm::InputTag>("puInfo"))),
@@ -213,6 +214,12 @@ private:
             const bool has_tau = tauJet.tauIndex >= 0;
             if(!has_tau && !storeJetsWithoutTau) continue;
 
+            const auto& leptonGenMatch = has_tau ? tauJet.tauGenLeptonMatchResult : tauJet.jetGenLeptonMatchResult;
+            const auto& qcdGenMatch = has_tau ? tauJet.tauGenQcdMatchResult : tauJet.jetGenQcdMatchResult;
+
+            if(requireGenMatch && leptonGenMatch.match == GenLeptonMatch::NoMatch
+                    && qcdGenMatch.match == GenQcdMatch::NoMatch) continue;
+
             tauTuple().jet_index = tauJet.jetIndex;
             tauTuple().jet_pt = has_jet ? static_cast<float>(tauJet.jet->p4().pt()) : default_value;
             tauTuple().jet_eta = has_jet ? static_cast<float>(tauJet.jet->p4().eta()) : default_value;
@@ -256,10 +263,7 @@ private:
             tauTuple().tau_mass = has_tau ? static_cast<float>(tau->polarP4().mass()) : default_value;
             tauTuple().tau_charge = has_tau ? tau->charge() : default_int_value;
 
-            if(has_tau)
-                FillGenMatchResult(tauJet.tauGenLeptonMatchResult, tauJet.tauGenQcdMatchResult);
-            else
-                FillGenMatchResult(tauJet.jetGenLeptonMatchResult, tauJet.jetGenQcdMatchResult);
+            FillGenMatchResult(leptonGenMatch, qcdGenMatch);
 
             tauTuple().tau_decayMode = has_tau ? tau->decayMode() : default_int_value;
             tauTuple().tau_decayModeFinding = has_tau ? tau->tauID("decayModeFinding") > 0.5f : default_int_value;
@@ -550,7 +554,7 @@ private:
     }
 
 private:
-    const bool isMC, storeJetsWithoutTau;
+    const bool isMC, storeJetsWithoutTau, requireGenMatch;
     TauJetBuilderSetup builderSetup;
 
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;

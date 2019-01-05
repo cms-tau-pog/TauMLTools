@@ -96,7 +96,7 @@ QcdMatchResult QcdGenMatch(const LorentzVectorM& p4, const GenParticleCollection
 {
     static const std::set<int> qcdPdg = { 1, 2, 3, 4, 5, 6, 21 };
     static constexpr double dR2_threshold = std::pow(0.5, 2);
-    static constexpr double pt_threshold = 15;
+    static constexpr double pt_threshold = 10;
 
     QcdMatchResult result;
     double match_dr2 = dR2_threshold;

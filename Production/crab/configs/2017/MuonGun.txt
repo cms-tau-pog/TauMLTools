@@ -1,0 +1,5 @@
+Automatic
+globalTag=94X_mc2017_realistic_v14 sampleType=Fall17MC
+
+Muminus_Pt1000-gun  1000    /Muminus_Pt1000-gun/RunIIFall17MiniAODv2-PU2017RECOSIMstep_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
+Muplus_Pt1000-gun   1000    /Muplus_Pt1000-gun/RunIIFall17MiniAODv2-PU2017RECOSIMstep_12Apr2018_94X_mc2017_realistic_v14-v1/MINIAODSIM
