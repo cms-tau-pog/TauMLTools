@@ -19,6 +19,7 @@ struct Arguments {
     REQ_ARG(unsigned, target_entries_per_bin);
     OPT_ARG(bool, take_only_odd_event_ids, false);
     OPT_ARG(bool, take_only_even_event_ids, false);
+    OPT_ARG(bool, use_tau_p4, true);
 };
 
 
@@ -228,10 +229,13 @@ private:
             for(const auto& tau : *tuple) {
                 if(args.take_only_odd_event_ids() && tau.evt % 2 == 0) continue;
                 if(args.take_only_even_event_ids() && tau.evt % 2 != 0) continue;
-                const GenMatch gen_match = static_cast<GenMatch>(tau.gen_match);
+                if(args.use_tau_p4() && tau.tau_index < 0) continue;
+                const GenLeptonMatch gen_match = static_cast<GenLeptonMatch>(tau.lepton_gen_match);
                 const TauType tau_type = GenMatchToTauType(gen_match);
                 if(!output_tuples.count(tau_type)) continue;
-                if(count_maps.at(tau_type)->AddEntry(tau.pt, tau.eta)) {
+                const float pt = args.use_tau_p4() ? tau.tau_pt : tau.jet_pt;
+                const float eta = args.use_tau_p4() ? tau.tau_eta : tau.jet_eta;
+                if(count_maps.at(tau_type)->AddEntry(pt, eta)) {
                     (*output_tuples.at(tau_type))() = tau;
                     output_tuples.at(tau_type)->Fill();
 
