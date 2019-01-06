@@ -24,7 +24,7 @@ template<typename DataType, bool startNewLine = false>
 struct SmartBranchEntry : BaseSmartBranchEntry {
     DataType* value;
     SmartBranchEntry() : value(new DataType()) {}
-    virtual ~SmartBranchEntry() { delete value; }
+    virtual ~SmartBranchEntry() override { delete value; }
 
     virtual void SetBranchAddress(TBranch& branch) override
     {
@@ -56,7 +56,7 @@ struct SmartBranchEntry<std::map<KeyType, ValueType>, false> : BaseSmartBranchEn
     using DataType = std::map<KeyType, ValueType>;
     DataType* value;
     SmartBranchEntry() : value(new DataType()) {}
-    virtual ~SmartBranchEntry() { delete value; }
+    virtual ~SmartBranchEntry() override { delete value; }
 
     virtual void SetBranchAddress(TBranch& branch) override
     {
@@ -81,7 +81,7 @@ struct SmartBranchEntry<std::vector<ValueType>, false> : BaseSmartBranchEntry {
     using DataType = std::vector<ValueType>;
     DataType* value;
     SmartBranchEntry() : value(new DataType()) {}
-    virtual ~SmartBranchEntry() { delete value; }
+    virtual ~SmartBranchEntry() override { delete value; }
 
     virtual void SetBranchAddress(TBranch& branch) override
     {
