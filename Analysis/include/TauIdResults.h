@@ -22,7 +22,7 @@ struct TauIdResults {
         if(bit_index > MaxNumberOfWorkingPoints)
             throw exception("Discriminator WP = '{}' is not supported.") % wp;
 
-        const BitsContainer mask = BitsContainer(1) << bit_index;
+        const BitsContainer mask = static_cast<BitsContainer>(BitsContainer(1) << bit_index);
         return (results & mask) != BitsContainer(0);
     }
     bool Failed(DiscriminatorWP wp) const { return !Passed(wp); }
@@ -32,8 +32,8 @@ struct TauIdResults {
         const unsigned bit_index = static_cast<unsigned>(wp);
         if(bit_index > MaxNumberOfWorkingPoints)
             throw exception("Discriminator WP = '{}' is not supported.") % wp;
-        const BitsContainer mask = BitsContainer(1) << bit_index;
-        results = (results & ~mask) | (BitsContainer(result) << bit_index);
+        const BitsContainer mask = static_cast<BitsContainer>(BitsContainer(1) << bit_index);
+        results = (results & ~mask) | static_cast<BitsContainer>(BitsContainer(result) << bit_index);
     }
 
     BitsContainer GetResultBits() const { return results; }

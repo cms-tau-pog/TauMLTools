@@ -273,4 +273,24 @@ constexpr int DefaultFillValue<int>() { return -999; }
 
 enum class ComponenetType { Gamma = 0, ChargedHadronCandidate = 1, NeutralHadronCandidate = 2};
 
+struct TauTupleEntryId {
+    UInt_t run;
+    UInt_t lumi;
+    ULong64_t evt;
+    Int_t jet_index, tau_index;
+
+    TauTupleEntryId() {}
+    explicit TauTupleEntryId(const Tau& tau) :
+        run(tau.run), lumi(tau.lumi), evt(tau.evt), jet_index(tau.jet_index), tau_index(tau.tau_index) {}
+
+    bool operator<(const TauTupleEntryId& other) const
+    {
+        if(run != other.run) return run < other.run;
+        if(lumi != other.lumi) return lumi < other.lumi;
+        if(evt != other.evt) return evt < other.evt;
+        if(jet_index != other.jet_index) return jet_index < other.jet_index;
+        return tau_index < other.tau_index;
+    }
+};
+
 } // namespace tau_tuple
