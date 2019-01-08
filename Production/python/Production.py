@@ -22,7 +22,7 @@ options.register('eventList', '', VarParsing.multiplicity.singleton, VarParsing.
                  "List of events to process.")
 options.register('dumpPython', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Dump full config into stdout.")
-options.register('numberOfThreads', 4, VarParsing.multiplicity.singleton, VarParsing.varType.int,
+options.register('numberOfThreads', 1, VarParsing.multiplicity.singleton, VarParsing.varType.int,
                  "Number of threads.")
 options.register('storeJetsWithoutTau', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Store jets that don't match to any pat::Tau.")
