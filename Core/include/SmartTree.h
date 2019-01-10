@@ -191,6 +191,7 @@ public:
     {
         static constexpr Long64_t maxVirtualSize = 200 * 1024 * 1024;
         static constexpr Long64_t autoFlush = - 50 * 1024 * 1024;
+        static constexpr Long64_t maxTreeSize = 1000000000000LL;
 
         if(readMode) {
             if(!directory)
@@ -206,6 +207,7 @@ public:
             if(directory) {
                 tree->SetMaxVirtualSize(maxVirtualSize);
                 tree->SetAutoFlush(autoFlush);
+                tree->SetMaxTreeSize(maxTreeSize);
             }
         }
     }
