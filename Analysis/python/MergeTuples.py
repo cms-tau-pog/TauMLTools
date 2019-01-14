@@ -13,7 +13,8 @@ args = parser.parse_args()
 if not os.path.isdir(args.input):
     raise RuntimeError("Input directory '{}' not found".format(args.input))
 
-os.makedirs(args.output, exist_ok=True)
+if not os.path.isdir(args.output):
+	os.makedirs(args.output)
 
 crab_prefix = "crab_"
 
