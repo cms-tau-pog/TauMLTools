@@ -84,7 +84,6 @@ public:
     {
         static const size_t n_tau_types = analysis::EnumNameMap<TauType>::GetDefault().GetEnumEntries().size();
 
-
         if(pt_range.size() <= 2 || eta_range.size() <= 2)
             throw analysis::exception("Number of pt & eta bins should be >= 1.");
 
@@ -191,6 +190,9 @@ public:
                                                     args.exclude_list(), args.exclude_dir_list())),
         n_total_duplicates(0)
     {
+		if(args.n_threads() > 1)
+            ROOT::EnableImplicitMT(args.n_threads());
+
         if(!boost::filesystem::exists(args.output()))
             boost::filesystem::create_directory(args.output());
         const auto pt_range = ParseBins(args.pt_bins());
