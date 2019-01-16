@@ -100,8 +100,6 @@ public:
 
     using HistPtr = HistDescriptor::HistPtr;
     using ChainPtr = TreeDescriptor::ChainPtr;
-//    namespace fs = boost::filesystem;
-
 
     RootFilesMerger(const std::string& output, const std::vector<std::string>& input_dirs,
                     const std::string& file_name_pattern, const std::string& exclude_list,
@@ -164,9 +162,6 @@ public:
         }
     }
 
-private:
-    virtual void ProcessFile(const std::string& /*file_name*/, const std::shared_ptr<TFile>& /*file*/) {}
-
     static std::vector<std::string> FindInputFiles(const std::vector<std::string>& dirs,
                                                    const std::string& file_name_pattern,
                                                    const std::string& exclude_list,
@@ -186,6 +181,9 @@ private:
         }
         return files;
     }
+
+private:
+    virtual void ProcessFile(const std::string& /*file_name*/, const std::shared_ptr<TFile>& /*file*/) {}
 
     static void CollectInputFiles(const boost::filesystem::path& dir, std::vector<std::string>& files,
                                   const boost::regex& pattern, const std::set<std::string>& exclude,

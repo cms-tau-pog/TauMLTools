@@ -240,6 +240,18 @@ public:
         return tree->GetEntry(entry);
     }
 
+    void SetMaxVirtualSize(Long64_t size)
+    {
+        std::lock_guard<Mutex> lock(mutex);
+        tree->SetMaxVirtualSize(size);
+    }
+
+    void SetAutoFlush(Long64_t autof)
+    {
+        std::lock_guard<Mutex> lock(mutex);
+        tree->SetAutoFlush(autof);
+    }
+
     void Write()
     {
         std::lock_guard<Mutex> lock(mutex);
