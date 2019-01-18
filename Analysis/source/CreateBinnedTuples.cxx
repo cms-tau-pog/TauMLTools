@@ -160,9 +160,9 @@ public:
     {
         if(!Contains(bins, value))
             throw analysis::exception("FindBin: value is out of range.");
-        size_t bin_id = 0;
-        for(; bin_id < bins.size() - 2 && bins.at(bin_id) < value; ++bin_id);
-        return bin_id;
+        size_t bin_id = 1;
+        for(; value >= bins.at(bin_id); ++bin_id);
+        return bin_id - 1;
     }
 
 private:
