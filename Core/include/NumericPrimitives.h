@@ -31,6 +31,16 @@ struct RangeSize<T, true> {
     }
 };
 
+template<typename T, bool is_unsigned = std::is_unsigned<T>::value>
+struct Abs {
+    static T abs(T value) { return std::abs(value); }
+};
+
+template<typename T>
+struct Abs<T, true> {
+    static T abs(T value) { return value; }
+};
+
 template<typename T>
 inline T FloatRound(T x, T /*ref*/)
 {
@@ -359,7 +369,7 @@ struct RangeWithStep : public Range<T> {
     ConstRefType step() const { return _step; }
     T grid_point_value(size_t index) const
     {
-        const T ref = std::max(std::abs(this->min()), std::abs(this->max()));
+        const T ref = std::max<T>(detail::Abs<T>::abs(this->min()), detail::Abs<T>::abs(this->max()));
         return detail::FloatRound<T>(this->min() + T(index) * step(), ref);
     }
     size_t n_grid_points() const
