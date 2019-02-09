@@ -275,7 +275,7 @@ public:
                 divide_by_bin_width = true;
             } else{
                 SetBins(DefaultNumberOfBins, 0, 0);
-                GetXaxis()->SetCanExtend(TH1::kAllAxes);
+                GetXaxis()->SetCanExtend(true);
                 SetBuffer(DefaultBufferSize);
             }
 

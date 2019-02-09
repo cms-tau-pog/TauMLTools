@@ -3,6 +3,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 #pragma once
 
+#include <algorithm>
 #include <stdexcept>
 #include <sstream>
 #include <memory>

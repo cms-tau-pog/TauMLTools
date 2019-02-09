@@ -48,9 +48,9 @@ namespace root_ext {
 class AnalyzerData;
 
 struct AnalyzerDataEntryBase {
-    inline AnalyzerDataEntryBase(const std::string& _name, AnalyzerData* _data);
+    AnalyzerDataEntryBase(const std::string& _name, AnalyzerData* _data);
     virtual ~AnalyzerDataEntryBase() {}
-    const std::string& Name() const { return name; }
+    const std::string& Name() const;
 private:
     std::string name;
 protected:
@@ -68,51 +68,22 @@ public:
     using Entry = AnalyzerDataEntryBase;
     using EntryContainer = std::unordered_map<std::string, Entry*>;
 
-    AnalyzerData() : directory(nullptr), readMode(false) {}
+    AnalyzerData();
 
-    explicit AnalyzerData(const std::string& outputFileName) :
-        outputFile(CreateRootFile(outputFileName)), directory(outputFile.get()), readMode(false) {}
+    explicit AnalyzerData(const std::string& outputFileName);
 
     explicit AnalyzerData(std::shared_ptr<TFile> _outputFile, const std::string& directoryName = "",
-                          bool _readMode = false) :
-        outputFile(_outputFile), readMode(_readMode)
-    {
-        if(!outputFile)
-            throw analysis::exception("Output file is nullptr.");
-        directory = directoryName.size() ? GetDirectory(*outputFile, directoryName, true) : outputFile.get();
-    }
+                          bool _readMode = false);
 
-    explicit AnalyzerData(TDirectory* _directory, const std::string& subDirectoryName = "", bool _readMode = false) :
-        readMode(_readMode)
-    {
-        if(!_directory)
-            throw analysis::exception("Output directory is nullptr.");
-        directory = subDirectoryName.size() ? GetDirectory(*_directory, subDirectoryName, true) : _directory;
-    }
+    explicit AnalyzerData(TDirectory* _directory, const std::string& subDirectoryName = "", bool _readMode = false);
 
-    virtual ~AnalyzerData()
-    {
-        if(directory && !readMode) {
-            for(const auto& hist : histograms)
-                hist.second->WriteRootObject();
-        }
-    }
+    virtual ~AnalyzerData();
+    TDirectory* GetOutputDirectory() const;
+    std::shared_ptr<TFile> GetOutputFile() const;
+    bool ReadMode() const;
 
-    TDirectory* GetOutputDirectory() const { return directory; }
-    std::shared_ptr<TFile> GetOutputFile() const { return outputFile; }
-    bool ReadMode() const { return readMode; }
-
-    void AddHistogram(HistPtr hist)
-    {
-        if(!hist)
-            throw analysis::exception("Can't add nullptr histogram into AnalyzerData");
-        if(histograms.count(hist->Name()))
-            throw analysis::exception("Histogram '%1%' already exists in this AnalyzerData.") % hist->Name();
-        TDirectory* hist_dir = readMode ? nullptr : directory;
-        hist->SetOutputDirectory(hist_dir);
-        histograms[hist->Name()] = hist;
-    }
-    const HistContainer& GetHistograms() const { return histograms; }
+    void AddHistogram(HistPtr hist);
+    const HistContainer& GetHistograms() const;
 
     template<typename Histogram>
     std::map<std::string, std::shared_ptr<SmartHistogram<Histogram>>> GetHistogramsEx() const
@@ -135,13 +106,8 @@ public:
         return std::dynamic_pointer_cast<SmartHistogram<Histogram>>(hist);
     }
 
-    void AddEntry(Entry& entry)
-    {
-        if(entries.count(entry.Name()))
-            throw analysis::exception("Entry '%1%' already exists in this AnalyzerData.") % entry.Name();
-        entries[entry.Name()] = &entry;
-    }
-    const EntryContainer& GetEntries() const { return entries; }
+    void AddEntry(Entry& entry);
+    const EntryContainer& GetEntries() const;
 
     template<typename Histogram>
     std::map<std::string, AnalyzerDataEntry<Histogram>*> GetEntriesEx() const;
@@ -156,11 +122,6 @@ private:
     HistContainer histograms;
 };
 
-AnalyzerDataEntryBase::AnalyzerDataEntryBase(const std::string& _name, AnalyzerData* _data)
-    : name(_name), data(_data)
-{
-    data->AddEntry(*this);
-}
 
 template<typename _ValueType>
 struct AnalyzerDataEntry : AnalyzerDataEntryBase  {

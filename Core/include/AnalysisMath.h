@@ -16,13 +16,9 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <TH2.h>
 #include <TMatrixD.h>
 #include <TLorentzVector.h>
-#include <boost/math/constants/constants.hpp>
-#include <boost/math/special_functions/erf.hpp>
-
 
 #include "PhysicalValue.h"
 
-//extern template TMatrixT<double>::TMatrixT(int, int);
 extern template class TMatrixT<double>;
 
 namespace analysis {
@@ -38,7 +34,7 @@ using LorentzVectorE_Float = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<f
 
 template<unsigned n>
 using SquareMatrix = ROOT::Math::SMatrix<double, n, n, ROOT::Math::MatRepStd<double, n>>;
-    
+
 template<unsigned n>
 TMatrixD ConvertMatrix(const SquareMatrix<n>& m)
 {
@@ -118,7 +114,6 @@ double Calculate_visiblePzeta(const LVector1& l1_p4, const LVector2& l2_p4)
     return ll_p2u / ll_mod;
 }
 
-
 template<typename Iterator>
 double Calculate_HT(Iterator begin, const Iterator& end){
     double sum = 0;
@@ -126,7 +121,6 @@ double Calculate_HT(Iterator begin, const Iterator& end){
         sum += begin->pt();
     return sum;
 }
-
 
 namespace four_bodies{
 
@@ -150,7 +144,6 @@ std::pair<double, double> Calculate_topPairMasses(const LVector1& lepton1_p4, co
     return vector_mass_top.at(distance.front().first);
 }
 
-
 // dR between the two final state particle in the h rest frame
 template<typename LVector1, typename LVector2, typename LVector3 >
 double Calculate_dR_boosted(const LVector1& particle_1, const LVector2& particle_2, const LVector3& h){
@@ -172,7 +165,6 @@ double Calculate_phi(const LVector1& lepton1, const LVector2& lepton2, const LVe
     return ROOT::Math::VectorUtil::Angle(n1, n2);
 }
 
-
 // Cosin of the production angle between the h  and the parton axis defined in the hh rest frame
 template<typename LVector1, typename LVector2>
 double  Calculate_cosThetaStar(const LVector1& h1, const LVector2& h2){
@@ -193,7 +185,6 @@ double Calculate_phi1(const LVector1& object1, const LVector2& object2, const LV
     return ROOT::Math::VectorUtil::Angle(n1,n3);
 }
 
-
 //Cosin of theta angle between the first final state particle and the direction of flight of h in the h rest frame
 template<typename LVector1, typename LVector2>
 double Calculate_cosTheta_2bodies(const LVector1& object1, const LVector2&  hh){
@@ -213,75 +204,23 @@ double Calculate_MX(const LVector1& lepton1, const LVector2& lepton2, const LVec
 
 }
 
-
 struct EllipseParameters {
-
     double x0{0.0};
     double r_x{0.0};
     double y0{0.0};
     double r_y{0.0};
 
-    bool IsInside(double x, double y) const
-    {
-        const double ellipse_cut = std::pow(x-x0, 2)/std::pow(r_x, 2)
-                                 + std::pow(y-y0, 2)/std::pow(r_y, 2);
-        return ellipse_cut<1;
-    }
+    bool IsInside(double x, double y) const;
 };
 
+std::ostream& operator<<(std::ostream& os, const EllipseParameters& ellipseParams);
+std::istream& operator>>(std::istream& is, EllipseParameters& ellipseParams);
 
-inline std::ostream& operator<<(std::ostream& os, const EllipseParameters& ellipseParams)
-{
-    os << ellipseParams.x0 << ellipseParams.r_x << ellipseParams.y0 << ellipseParams.r_y;
-    return os;
-}
-
-inline std::istream& operator>>(std::istream& is, EllipseParameters& ellipseParams)
-{
-    is >> ellipseParams.x0 >> ellipseParams.r_x >> ellipseParams.y0 >> ellipseParams.r_y;
-    return is;
-}
-
-inline PhysicalValue Integral(const TH1& histogram, bool include_overflows = true)
-{
-    using limit_pair = std::pair<Int_t, Int_t>;
-    const limit_pair limits = include_overflows ? limit_pair(0, histogram.GetNbinsX() + 1)
-                                                : limit_pair(1, histogram.GetNbinsX());
-
-    double error = 0;
-    const double integral = histogram.IntegralAndError(limits.first, limits.second, error);
-    return PhysicalValue(integral, error);
-}
-
-inline PhysicalValue Integral(const TH1& histogram, Int_t first_bin, Int_t last_bin)
-{
-    double error = 0;
-    const double integral = histogram.IntegralAndError(first_bin, last_bin, error);
-    return PhysicalValue(integral, error);
-}
-
-
-inline PhysicalValue Integral(const TH2& histogram, bool include_overflows = true)
-{
-    using limit_pair = std::pair<Int_t, Int_t>;
-    const limit_pair limits_x = include_overflows ? limit_pair(0, histogram.GetNbinsX() + 1)
-                                                : limit_pair(1, histogram.GetNbinsX());
-    const limit_pair limits_y = include_overflows ? limit_pair(0, histogram.GetNbinsY() + 1)
-                                                : limit_pair(1, histogram.GetNbinsY());
-
-    double error = 0;
-    const double integral = histogram.IntegralAndError(limits_x.first, limits_x.second, limits_y.first, limits_y.second,
-                                                       error);
-    return PhysicalValue(integral, error);
-}
-
-inline PhysicalValue Integral(const TH2& histogram, Int_t first_x_bin, Int_t last_x_bin,
-                              Int_t first_y_bin, Int_t last_y_bin)
-{
-    double error = 0;
-    const double integral = histogram.IntegralAndError(first_x_bin, last_x_bin, first_y_bin, last_y_bin, error);
-    return PhysicalValue(integral, error);
-}
+PhysicalValue Integral(const TH1& histogram, bool include_overflows = true);
+PhysicalValue Integral(const TH1& histogram, Int_t first_bin, Int_t last_bin);
+PhysicalValue Integral(const TH2& histogram, bool include_overflows = true);
+PhysicalValue Integral(const TH2& histogram, Int_t first_x_bin, Int_t last_x_bin,
+                       Int_t first_y_bin, Int_t last_y_bin);
 
 template<typename Histogram>
 inline void RenormalizeHistogram(Histogram& histogram, double norm, bool include_overflows = true)
@@ -292,38 +231,6 @@ inline void RenormalizeHistogram(Histogram& histogram, double norm, bool include
     histogram.Scale(norm / integral);
 }
 
-inline double crystalball(double m, double m0, double sigma, double alpha, double n, double norm)
-{
-    if(m<1. || 1000.<m)
-        throw analysis::exception("The parameter m is out of range");
-
-    static constexpr double sqrtPiOver2 = boost::math::constants::root_half_pi<double>();
-    static constexpr double sqrt2 = boost::math::constants::root_two<double>();
-    double sig = std::abs(sigma);
-    double t = (m - m0)/sig;
-    if(alpha < 0) t = -t;
-    double absAlpha =  std::abs(alpha/sig);
-    double a = std::pow(n/absAlpha,n)*std::exp(-0.5*absAlpha*absAlpha);
-    double b = absAlpha - n/absAlpha;
-    double ApproxErf;
-    double arg = absAlpha / sqrt2;
-    if (arg > 5.) ApproxErf = 1;
-    else if (arg < -5.) ApproxErf = -1;
-    else ApproxErf = boost::math::erf(arg);
-    double leftArea = (1 + ApproxErf) * sqrtPiOver2;
-    double rightArea = ( a * 1/std::pow(absAlpha - b,n-1)) / (n - 1);
-    double area = leftArea + rightArea;
-    if( t <= absAlpha ) {
-        arg = t / sqrt2;
-        if(arg > 5.) ApproxErf = 1;
-        else if (arg < -5.) ApproxErf = -1;
-        else ApproxErf = boost::math::erf(arg);
-        return norm * (1 + ApproxErf) * sqrtPiOver2 / area;
-    }
-    else {
-        return norm * (leftArea + a * (1/std::pow(t-b,n-1) -  1/std::pow(absAlpha - b,n-1)) / (1 - n)) / area;
-    }
-}
-
+double crystalball(double m, double m0, double sigma, double alpha, double n, double norm);
 
 } // namespace analysis

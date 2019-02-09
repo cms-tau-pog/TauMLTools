@@ -1,0 +1,78 @@
+/*! Base class for Analyzer data containers.
+This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+
+#include "AnalysisTools/Core/include/AnalyzerData.h"
+
+#include <vector>
+#include <unordered_map>
+#include <utility>
+#include "AnalysisTools/Core/include/RootExt.h"
+#include "AnalysisTools/Core/include/TextIO.h"
+#include "AnalysisTools/Core/include/SmartHistogram.h"
+
+namespace root_ext {
+
+AnalyzerDataEntryBase::AnalyzerDataEntryBase(const std::string& _name, AnalyzerData* _data)
+    : name(_name), data(_data)
+{
+    data->AddEntry(*this);
+}
+const std::string& AnalyzerDataEntryBase::Name() const { return name; }
+
+
+AnalyzerData::AnalyzerData() : directory(nullptr), readMode(false) {}
+
+AnalyzerData::AnalyzerData(const std::string& outputFileName) :
+    outputFile(CreateRootFile(outputFileName)), directory(outputFile.get()), readMode(false) {}
+
+AnalyzerData::AnalyzerData(std::shared_ptr<TFile> _outputFile, const std::string& directoryName,
+                           bool _readMode) :
+    outputFile(_outputFile), readMode(_readMode)
+{
+    if(!outputFile)
+        throw analysis::exception("Output file is nullptr.");
+    directory = directoryName.size() ? GetDirectory(*outputFile, directoryName, true) : outputFile.get();
+}
+
+AnalyzerData::AnalyzerData(TDirectory* _directory, const std::string& subDirectoryName, bool _readMode) :
+    readMode(_readMode)
+{
+    if(!_directory)
+        throw analysis::exception("Output directory is nullptr.");
+    directory = subDirectoryName.size() ? GetDirectory(*_directory, subDirectoryName, true) : _directory;
+}
+
+AnalyzerData::~AnalyzerData()
+{
+    if(directory && !readMode) {
+        for(const auto& hist : histograms)
+            hist.second->WriteRootObject();
+    }
+}
+
+TDirectory* AnalyzerData::GetOutputDirectory() const { return directory; }
+std::shared_ptr<TFile> AnalyzerData::GetOutputFile() const { return outputFile; }
+bool AnalyzerData::ReadMode() const { return readMode; }
+
+void AnalyzerData::AddHistogram(HistPtr hist)
+{
+    if(!hist)
+        throw analysis::exception("Can't add nullptr histogram into AnalyzerData");
+    if(histograms.count(hist->Name()))
+        throw analysis::exception("Histogram '%1%' already exists in this AnalyzerData.") % hist->Name();
+    TDirectory* hist_dir = readMode ? nullptr : directory;
+    hist->SetOutputDirectory(hist_dir);
+    histograms[hist->Name()] = hist;
+}
+const AnalyzerData::HistContainer& AnalyzerData::GetHistograms() const { return histograms; }
+
+
+void AnalyzerData::AddEntry(Entry& entry)
+{
+    if(entries.count(entry.Name()))
+        throw analysis::exception("Entry '%1%' already exists in this AnalyzerData.") % entry.Name();
+    entries[entry.Name()] = &entry;
+}
+const AnalyzerData::EntryContainer& AnalyzerData::GetEntries() const { return entries; }
+
+} // root_ext
