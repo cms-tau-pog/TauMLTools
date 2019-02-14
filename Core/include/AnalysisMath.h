@@ -11,11 +11,13 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <Math/LorentzVector.h>
 #include <Math/SMatrix.h>
 #include <Math/VectorUtil.h>
+#include <Math/Point3D.h>
 #include <TVector3.h>
 #include <TH1.h>
 #include <TH2.h>
 #include <TMatrixD.h>
 #include <TLorentzVector.h>
+#include "Math/GenVector/Cartesian3D.h"
 
 #include "PhysicalValue.h"
 
@@ -31,6 +33,8 @@ using LorentzVector = LorentzVectorE;
 using LorentzVectorXYZ_Float = ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<float>>;
 using LorentzVectorM_Float = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<float>>;
 using LorentzVectorE_Float = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<float>>;
+using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<double>>;
+using Point3D_Float = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<float>>;
 
 template<unsigned n>
 using SquareMatrix = ROOT::Math::SMatrix<double, n, n, ROOT::Math::MatRepStd<double, n>>;
