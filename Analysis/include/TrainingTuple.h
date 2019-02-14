@@ -1,4 +1,4 @@
-/*! Definition of a tuple with all event information that is required for the tau analysis.
+/*! Definition of a tuple with inputs prepared for the training.
 */
 
 #pragma once
@@ -8,9 +8,9 @@
 #include <Math/VectorUtil.h>
 
 #define TAU_ID(name, pattern, has_raw, wp_list) VAR(uint16_t, name) VAR(Float_t, name##raw)
-#define CAND_VAR(type, name) VAR(std::vector<type>, pfCand_##name)
-#define ELE_VAR(type, name) VAR(std::vector<type>, ele_##name)
-#define MUON_VAR(type, name) VAR(std::vector<type>, muon_##name)
+#define CAND_VAR(type, name) VAR(type, pfCand_##name)
+#define ELE_VAR(type, name) VAR(type, ele_##name)
+#define MUON_VAR(type, name) VAR(type, muon_##name)
 
 #define VAR2(type, name1, name2) VAR(type, name1) VAR(type, name2)
 #define VAR3(type, name1, name2, name3) VAR2(type, name1, name2) VAR(type, name3)
@@ -28,7 +28,8 @@
 #define MUON_VAR3(type, name1, name2, name3) MUON_VAR2(type, name1, name2) MUON_VAR(type, name3)
 #define MUON_VAR4(type, name1, name2, name3, name4) MUON_VAR3(type, name1, name2, name3) MUON_VAR(type, name4)
 
-#define TAU_DATA() \
+
+#define TRAINING_TAU_DATA() \
     /* Event Variables */ \
     VAR(UInt_t, run) /* run number */ \
     VAR(UInt_t, lumi) /* lumi section */ \
@@ -36,6 +37,7 @@
     VAR(Int_t, npv) /* number of primary vertices */ \
     VAR(Float_t, rho) /* fixed grid energy density */ \
     VAR(Float_t, genEventWeight) /* gen event weight */ \
+    VAR(Float_t, trainingWeight) /* weight that should be applied during the training */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
     VAR3(Float_t, pv_x, pv_y, pv_z) /* position of the primary vertex (PV) */ \
     VAR(Float_t, pv_chi2) /* chi^2 of the primary vertex (PV) */ \
@@ -66,10 +68,9 @@
     VAR(Int_t, lepton_gen_charge) /* charge of the matched gen lepton */ \
     VAR4(Float_t, lepton_gen_pt, lepton_gen_eta, \
                   lepton_gen_phi, lepton_gen_mass) /* 4-momentum of the matched gen lepton */ \
-    VAR(std::vector<Int_t>, lepton_gen_vis_pdg) /* PDG of the matched lepton */ \
-    VAR4(std::vector<Float_t>, lepton_gen_vis_pt, lepton_gen_vis_eta, \
-                               lepton_gen_vis_phi, lepton_gen_vis_mass) /* 4-momenta of the visible products
-                                                                           of the matched gen lepton */ \
+    VAR4(Float_t, lepton_gen_vis_pt, lepton_gen_vis_eta, \
+                  lepton_gen_vis_phi, lepton_gen_vis_mass) /* sum of the 4-momenta of the visible products
+                                                              of the matched gen lepton */ \
     VAR(Int_t, qcd_gen_match) /* matching with QCD particles on the generator level:
                                  NoMatch = 0, Down = 1, Up = 2, Strange = 3, Charm = 4, Bottom = 5, Top = 6,
                                  Gluon = 21 */ \
@@ -132,12 +133,19 @@
     VAR(Float_t, tau_emFraction) /* tau->emFraction_MVA */ \
     VAR(Int_t, tau_inside_ecal_crack) /* tau is inside the ECAL crack (1.46 < |eta| < 1.558) */ \
     VAR(Float_t, leadChargedCand_etaAtEcalEntrance) /* eta at ECAL entrance of the leadChargedCand */ \
+    /**/
+
+#define TRAINING_CELL_DATA() \
+    /* Common variables */ \
+    VAR2(Int_t, eta_index, phi_index) \
+    VAR4(Float_t, tau_pt, sum_pt, sum_pt_scalar, sum_E) \
+    VAR4(Int_t, n_pf_charged, n_pf_neutral, n_pf_photons, n_pf_total) \
+    VAR2(Int_t, n_ele, n_mu) \
     /* PF candidates */ \
     CAND_VAR(Int_t, jetDaughter) /* PF candidate is a jet daughter */ \
     CAND_VAR(Int_t, tauSignal) /* PF candidate is a part of the tau signal */ \
     CAND_VAR(Int_t, leadChargedHadrCand) /* PF candidate is the leadChargedHadrCand */ \
     CAND_VAR(Int_t, tauIso) /* PF candidate is a parto of the tau isolation */ \
-    CAND_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the PF candidate */ \
     CAND_VAR(Int_t, pvAssociationQuality) /* information about how the association to the PV is obtained:
                                              NotReconstructedPrimary = 0, OtherDeltaZ = 1, CompatibilityBTag = 4,
                                              CompatibilityDz = 5, UsedInFitLoose = 6, UsedInFitTight = 7 */ \
@@ -166,7 +174,6 @@
                                        and isolated charged hadrons */ \
     CAND_VAR(Float_t, rawCaloFraction) /* raw ECAL+HCAL energy over candidate energy for isolated charged hadrons */ \
     /* PAT electrons */ \
-    ELE_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the electron */ \
     ELE_VAR(Float_t, cc_ele_energy) /* energy of the first calo cluster in the electron super cluster */ \
     ELE_VAR(Float_t, cc_gamma_energy) /* sum of the energies of additional calo clusters
                                          in the electron super cluster */ \
@@ -214,7 +221,6 @@
                                                         of the closest CTF track */ \
     ELE_VAR(Int_t, closestCtfTrack_numberOfValidHits) /* number of valid hits on the closest CTF track */ \
     /* PAT muons */ \
-    MUON_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the muon */ \
     MUON_VAR(Float_t, dxy) /* signed transverse impact parameter of the inner track wrt to the primary vertex */ \
     MUON_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
     MUON_VAR(Float_t, normalizedChi2) /* chi^2 divided by number of degrees of freedom of the global track */ \
@@ -237,29 +243,27 @@
                      n_hits_RPC_4) /* number of valid and bad hits for the RPC subdetector stations */ \
     /**/
 
-#define AUX_DATA() \
-    VAR(Float_t, trainingWeight) /* training weight */ \
-    /**/
-
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
-DECLARE_TREE(tau_tuple, Tau, TauTuple, TAU_DATA, "taus")
+DECLARE_TREE(tau_tuple, TrainingTau, TrainingTauTuple, TRAINING_TAU_DATA, "taus")
 #undef VAR
 
 #define VAR(type, name) ADD_DATA_TREE_BRANCH(name)
-INITIALIZE_TREE(tau_tuple, TauTuple, TAU_DATA)
+INITIALIZE_TREE(tau_tuple, TrainingTauTuple, TRAINING_TAU_DATA)
 #undef VAR
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
-DECLARE_TREE(tau_tuple, Aux, AuxTuple, AUX_DATA, "aux")
+DECLARE_TREE(tau_tuple, TrainingCell, TrainingCellTuple, TRAINING_CELL_DATA, "cells")
 #undef VAR
 
 #define VAR(type, name) ADD_DATA_TREE_BRANCH(name)
-INITIALIZE_TREE(tau_tuple, AuxTuple, AUX_DATA)
+INITIALIZE_TREE(tau_tuple, TrainingCellTuple, TRAINING_CELL_DATA)
 #undef VAR
+
 #undef VAR2
 #undef VAR3
 #undef VAR4
-#undef TAU_DATA
+#undef TRAINING_TAU_DATA
+#undef TRAINING_OBJECT_DATA
 #undef CAND_VAR
 #undef CAND_VAR2
 #undef CAND_VAR3
@@ -285,24 +289,5 @@ constexpr int DefaultFillValue<int>() { return -999; }
 
 enum class ComponenetType { Gamma = 0, ChargedHadronCandidate = 1, NeutralHadronCandidate = 2};
 
-struct TauTupleEntryId {
-    UInt_t run;
-    UInt_t lumi;
-    ULong64_t evt;
-    Int_t jet_index, tau_index;
-
-    TauTupleEntryId() {}
-    explicit TauTupleEntryId(const Tau& tau) :
-        run(tau.run), lumi(tau.lumi), evt(tau.evt), jet_index(tau.jet_index), tau_index(tau.tau_index) {}
-
-    bool operator<(const TauTupleEntryId& other) const
-    {
-        if(run != other.run) return run < other.run;
-        if(lumi != other.lumi) return lumi < other.lumi;
-        if(evt != other.evt) return evt < other.evt;
-        if(jet_index != other.jet_index) return jet_index < other.jet_index;
-        return tau_index < other.tau_index;
-    }
-};
 
 } // namespace tau_tuple
