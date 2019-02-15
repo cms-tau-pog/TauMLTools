@@ -36,6 +36,7 @@
     VAR(Int_t, npv) /* number of primary vertices */ \
     VAR(Float_t, rho) /* fixed grid energy density */ \
     VAR(Float_t, genEventWeight) /* gen event weight */ \
+    VAR(Float_t, trainingWeight) /* training weight */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
     VAR3(Float_t, pv_x, pv_y, pv_z) /* position of the primary vertex (PV) */ \
     VAR(Float_t, pv_chi2) /* chi^2 of the primary vertex (PV) */ \
@@ -237,24 +238,12 @@
                      n_hits_RPC_4) /* number of valid and bad hits for the RPC subdetector stations */ \
     /**/
 
-#define AUX_DATA() \
-    VAR(Float_t, trainingWeight) /* training weight */ \
-    /**/
-
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
 DECLARE_TREE(tau_tuple, Tau, TauTuple, TAU_DATA, "taus")
 #undef VAR
 
 #define VAR(type, name) ADD_DATA_TREE_BRANCH(name)
 INITIALIZE_TREE(tau_tuple, TauTuple, TAU_DATA)
-#undef VAR
-
-#define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
-DECLARE_TREE(tau_tuple, Aux, AuxTuple, AUX_DATA, "aux")
-#undef VAR
-
-#define VAR(type, name) ADD_DATA_TREE_BRANCH(name)
-INITIALIZE_TREE(tau_tuple, AuxTuple, AUX_DATA)
 #undef VAR
 #undef VAR2
 #undef VAR3

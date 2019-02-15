@@ -9,6 +9,7 @@
 #include "AnalysisTools/Run/include/program_main.h"
 #include "AnalysisTools/Core/include/RootExt.h"
 #include "AnalysisTools/Core/include/PropertyConfigReader.h"
+#include "AnalysisTools/Core/include/ProgressReporter.h"
 #include "TauML/Analysis/include/TauTuple.h"
 
 namespace analysis {
@@ -33,6 +34,8 @@ struct Arguments {
                                             std::numeric_limits<size_t>::max()};
     run::Argument<unsigned> n_threads{"n-threads", "number of threads", 1};
     run::Argument<unsigned> seed{"seed", "random seed to initialize the generator used for sampling", 1234567};
+    run::Argument<std::string> disabled_branches{"disabled-branches",
+                                                 "list of branches to disabled in the input tuples", ""};
 };
 
 namespace {
@@ -42,9 +45,9 @@ struct SourceDesc {
     using TauTuple = tau_tuple::TauTuple;
 
     SourceDesc(const std::string& _name, const std::vector<std::string>& _file_names, size_t _total_n_events,
-               double _weight) :
-        name(_name), file_names(_file_names), weight(_weight), current_n_processed(0), total_n_processed(0),
-        total_n_events(_total_n_events)
+               double _weight, const std::set<std::string>& _disabled_branches) :
+        name(_name), file_names(_file_names), disabled_branches(_disabled_branches), weight(_weight),
+        current_n_processed(0), total_n_processed(0), total_n_events(_total_n_events)
     {
         if(file_names.empty())
             throw analysis::exception("Empty list of files for the source '%1%'.") % name;
@@ -61,7 +64,7 @@ struct SourceDesc {
     const Tau& GetNextTau()
     {
         if(!HasNextTau())
-            throw analysis::exception("No taus are available in the source '%1%'.") % name;
+            throw analysis::exception("No taus are available in the source '%1%' in bin '%2%'.") % name % bin_name;
 
         while(!current_file_index || current_n_processed == current_tuple->GetEntries()) {
             if(!current_file_index)
@@ -75,7 +78,7 @@ struct SourceDesc {
             const std::string& file_name = file_names.at(*current_file_index);
             current_tuple.reset();
             current_file = root_ext::OpenRootFile(file_name);
-            current_tuple = std::make_shared<TauTuple>("taus", current_file.get(), true);
+            current_tuple = std::make_shared<TauTuple>("taus", current_file.get(), true, disabled_branches);
         }
         ++total_n_processed;
         current_tuple->GetEntry(current_n_processed++);
@@ -86,11 +89,15 @@ struct SourceDesc {
     const std::string& GetName() const { return name; }
     const std::vector<std::string>& GetFileNames() const { return file_names; }
     double GetWeight() const { return weight; }
+    const std::string& GetBinName() const { return bin_name; }
+    void SetBinName(const std::string& _bin_name) { bin_name = _bin_name; }
 
 private:
     const std::string name;
     const std::vector<std::string> file_names;
+    const std::set<std::string> disabled_branches;
     const double weight;
+    std::string bin_name;
     boost::optional<size_t> current_file_index;
     std::shared_ptr<TFile> current_file;
     std::shared_ptr<TauTuple> current_tuple;
@@ -107,7 +114,7 @@ public:
 
     EventBin(const std::string& _bin_name, double _bin_size, size_t _max_n_events, Generator& _gen) :
         bin_name(_bin_name), bin_size(_bin_size), max_n_events(_max_n_events), n_events(0), n_processed(0),
-        bin_weight(1), total_sources_weight(0), gen(&_gen)
+        bin_weight(1), gen(&_gen)
     {
     }
 
@@ -116,7 +123,7 @@ public:
         if(n_processed > 0)
             throw analysis::exception("Some events in the bin has already been processed. Unable to add a new entry.");
         n_events += source->GetNumberOfEvents();
-        total_sources_weight += source->GetWeight();
+        source->SetBinName(bin_name);
         sources.push_back(source);
     }
 
@@ -145,31 +152,35 @@ public:
         std::iota(source_indices.begin(), source_indices.end(), 0);
         std::sort(source_indices.begin(), source_indices.end(), sourceCmp);
 
-        for(size_t n = 0; n < n_sources; ++n) {
-            const size_t source_id = source_indices.at(n);
-            const auto& source = sources.at(source_id);
-            const size_t expected_events_per_source = static_cast<size_t>(
-                n_remaining_events * source->GetWeight() / total_sources_weight);
+        while(n_non_assigned_events > 0) {
+            double total_sources_weight = 0;
+            for(size_t n = 0; n < n_sources; ++n) {
+                const size_t source_id = source_indices.at(n);
+                const auto& source = sources.at(source_id);
+                const size_t n_available_source_events = source->GetNumberOfEvents()
+                                                         - n_remaining_events_per_source.at(source_id);
+                if(n_available_source_events == 0) continue;
+                total_sources_weight += source->GetWeight();
+            }
 
-            const size_t n_source_events = source->GetNumberOfEvents();
-            const size_t events_per_source = std::min(expected_events_per_source, n_source_events);
-
-            n_remaining_events_per_source.at(source_id) += events_per_source;
-            n_non_assigned_events -= events_per_source;
+            size_t n_newly_assigned_events = 0;
+            for(size_t n = 0; n < n_sources; ++n) {
+                const size_t source_id = source_indices.at(n);
+                const auto& source = sources.at(source_id);
+                const size_t n_available_source_events = source->GetNumberOfEvents()
+                                                         - n_remaining_events_per_source.at(source_id);
+                if(n_available_source_events == 0) continue;
+                const size_t expected_events_per_source = static_cast<size_t>(
+                    std::ceil(n_non_assigned_events * source->GetWeight() / total_sources_weight));
+                const size_t events_per_source = std::min(
+                    std::min(expected_events_per_source, n_available_source_events),
+                    n_non_assigned_events - n_newly_assigned_events
+                );
+                n_remaining_events_per_source.at(source_id) += events_per_source;
+                n_newly_assigned_events += events_per_source;
+            }
+            n_non_assigned_events -= n_newly_assigned_events;
         }
-
-        for(size_t n = 0; n < n_sources && n_non_assigned_events > 0; ++n) {
-            const size_t source_id = source_indices.at(n);
-            const auto& source = sources.at(source_id);
-            const size_t n_source_events = source->GetNumberOfEvents() - n_remaining_events_per_source.at(source_id);
-            const size_t events_per_source = std::min(n_non_assigned_events, n_source_events);
-
-            n_remaining_events_per_source.at(source_id) += events_per_source;
-            n_non_assigned_events -= events_per_source;
-        }
-
-        if(n_non_assigned_events != 0)
-            throw analysis::exception("Error in a CreateBalancedInputs algorithm.");
     }
 
     const std::string& GetName() const { return bin_name; }
@@ -217,7 +228,7 @@ private:
     const double bin_size;
     const size_t max_n_events;
     size_t n_events, n_processed;
-    double bin_weight, total_sources_weight;
+    double bin_weight;
     Generator* gen;
     std::vector<std::shared_ptr<SourceDesc>> sources;
     std::vector<size_t> n_remaining_events_per_source;
@@ -334,7 +345,8 @@ public:
 
     EventBinMap(const std::vector<EntryDesc>& entries, const std::vector<double>& pt_bins,
                 const std::vector<double>& eta_bins, bool calc_weights, size_t max_bin_occupancy, Generator& _gen,
-                const std::map<std::string, size_t>& n_events_per_file, bool verbose) :
+                const std::map<std::string, size_t>& n_events_per_file,
+                const std::set<std::string>& disabled_branches, bool verbose) :
         gen(&_gen)
     {
         double total_area;
@@ -343,13 +355,11 @@ public:
         const std::map<std::string, double> bin_sizes = CalculateBinSizes(pt_bins, eta_bins, total_area);
         if(verbose)
             std::cout << "done.\n\tCreating bins..." << std::endl;
-        CreateBins(entries, bin_sizes, max_bin_occupancy, n_events_per_file, verbose);
+        CreateBins(entries, bin_sizes, max_bin_occupancy, n_events_per_file, disabled_branches, !calc_weights, verbose);
         if(calc_weights) {
             if(verbose)
-                std::cout << "\tCalculating weigts... " << std::flush;
+                std::cout << "\tCalculating weigts..." << std::endl;
             CalcWeigts(total_area);
-            if(verbose)
-                std::cout << "done.\n";
         }
         if(verbose)
             std::cout << "\tCreating remaining counts... " << std::flush;
@@ -360,6 +370,7 @@ public:
         }
     }
 
+    size_t GetNumberOfRemainingEvents() const { return n_remaining_events; }
     bool HasNextTau() const { return n_remaining_events > 0; }
     const Tau& GetNextTau(double& weight)
     {
@@ -370,7 +381,7 @@ public:
 
         size_t n = 0;
         for(size_t index = distr(*gen); index >= n_remaining_events_per_bin.at(n);
-            ++n, index -= n_remaining_events_per_bin.at(n));
+            index -= n_remaining_events_per_bin.at(n++));
 
         --n_remaining_events_per_bin.at(n);
         --n_remaining_events;
@@ -389,7 +400,8 @@ public:
 
 private:
     void CreateBins(const std::vector<EntryDesc>& entries, const std::map<std::string, double>& bin_sizes,
-                    size_t max_bin_occupancy, const std::map<std::string, size_t>& n_events_per_file, bool verbose)
+                    size_t max_bin_occupancy, const std::map<std::string, size_t>& n_events_per_file,
+                    const std::set<std::string>& disabled_branches, bool allow_empty_bins, bool verbose)
     {
         std::set<TauType> tau_types;
         for(const auto& entry : entries)
@@ -406,11 +418,9 @@ private:
             }
         }
         if(verbose)
-            std::cout << "done.\n\t\tCreating sources..." << std::endl;
+            std::cout << "done.\n\t\tCreating sources... " << std::flush;
 
         for(const auto& entry : entries) {
-            if(verbose)
-                std::cout << "\t\t\t" << entry.name << "... " << std::flush;
             for(const auto& bin_entry : entry.bin_files) {
                 const std::string& bin_name = bin_entry.first;
                 const auto& file_names = bin_entry.second;
@@ -426,19 +436,22 @@ private:
                     n_events_bin += n_events_per_file.at(file_name);
                 }
 
-                auto source = std::make_shared<SourceDesc>(entry.name, file_names, n_events_bin, entry.weight);
+                auto source = std::make_shared<SourceDesc>(entry.name, file_names, n_events_bin, entry.weight,
+                                                           disabled_branches);
                 bins_map.at(bin_name).AddSource(source);
             }
-            if(verbose)
-                std::cout << "done.\n";
         }
 
         if(verbose)
-            std::cout << "\t\tCreating balanced inputs... " << std::flush;
+            std::cout << "done.\n\t\tCreating balanced inputs... " << std::flush;
         for(auto& bin_entry : bins_map) {
             EventBin& bin_desc = bin_entry.second;
-            bin_desc.CreateBalancedInputs();
-            bins.emplace_back(std::move(bin_desc));
+            if(bin_desc.GetTotalNumberOfEvents() > 0) {
+                bin_desc.CreateBalancedInputs();
+                bins.emplace_back(std::move(bin_desc));
+            } else if(!allow_empty_bins) {
+                throw analysis::exception("Bin '%1%' is empty.") % bin_desc.GetName();
+            }
         }
         if(verbose)
             std::cout << "done." << std::endl;
@@ -459,9 +472,10 @@ private:
             max_weight = std::max(max_weight, weight);
         }
 
-        std::cout << boost::format("Range of the bin weight distribution: [%1%, %2%].") % min_weight % max_weight
-                  << std::endl;
-        if(min_weight <= 0 || max_weight / min_weight >= 1e7)
+        const double dyn_range = max_weight / min_weight;
+        std::cout << boost::format("\t\tRange of the bin weight distribution: [%1%, %2%]. max/min = %3%.")
+                     % min_weight % max_weight % dyn_range << std::endl;
+        if(min_weight <= 0 || dyn_range >= 1e7)
             throw analysis::exception("Range of the bin weight distribution is too large to be applied during"
                                       " the training.");
     }
@@ -479,7 +493,7 @@ private:
     static std::map<std::string, double> CalculateBinSizes(const std::vector<double>& pt_bins,
                                                            const std::vector<double>& eta_bins, double& total_area)
     {
-        if(pt_bins.size() <= 2 || eta_bins.size() <= 2)
+        if(pt_bins.size() < 2 || eta_bins.size() < 2)
             throw analysis::exception("Number of pt & eta bins should be >= 1.");
 
         const size_t n_pt_bins = pt_bins.size() - 1, n_eta_bins = eta_bins.size() - 1;
@@ -514,14 +528,17 @@ class ShuffleMerge {
 public:
     using Tau = tau_tuple::Tau;
     using TauTuple = tau_tuple::TauTuple;
-    using AuxTuple = tau_tuple::AuxTuple;
     using Generator = EventBinMap::Generator;
 
     ShuffleMerge(const Arguments& _args) :
-        args(_args), pt_bins(ParseBins(args.pt_bins())), eta_bins(ParseBins(args.eta_bins()))
+        args(_args), pt_bins(ParseBins(args.pt_bins())), eta_bins(ParseBins(args.eta_bins())),
+        n_events_per_file(LoadNumberOfEventsPerFile(args.input() + "/size_list.txt", args.input()))
     {
 		if(args.n_threads() > 1)
             ROOT::EnableImplicitMT(args.n_threads());
+
+        const auto disabled_branches_vec = SplitValueList(args.disabled_branches(), false, " ,");
+        disabled_branches.insert(disabled_branches_vec.begin(), disabled_branches_vec.end());
 
         PrintBins("pt bins", pt_bins);
         PrintBins("eta bins", eta_bins);
@@ -550,29 +567,27 @@ public:
                 std::cout << ' ' << entry.name;
             std::cout << "\nOutput: " << file_name << std::endl;
             auto output_file = root_ext::CreateRootFile(file_name, ROOT::kLZ4, 4);
-            TauTuple output_tuple("taus", output_file.get(), false);
-            std::shared_ptr<AuxTuple> aux_tuple;
-            if(args.calc_weights())
-                aux_tuple = std::make_shared<AuxTuple>("aux", output_file.get(), false);
+            auto output_tuple = std::make_shared<TauTuple>("taus", output_file.get(), false);
             std::cout << "Creating event bin map..." << std::endl;
             EventBinMap bin_map(entry_list, pt_bins, eta_bins, args.calc_weights(), args.max_bin_occupancy(), gen,
-                                true);
-
+                                n_events_per_file, disabled_branches, true);
+            tools::ProgressReporter reporter(10, std::cout, "Sampling taus...");
+            reporter.SetTotalNumberOfEvents(bin_map.GetNumberOfRemainingEvents());
+            size_t n_processed = 0;
             while(bin_map.HasNextTau()) {
                 double weight;
                 const auto& tau = bin_map.GetNextTau(weight);
-                output_tuple() = tau;
-                output_tuple.Fill();
-                if(args.calc_weights()) {
-                    (*aux_tuple)().trainingWeight = static_cast<float>(weight);
-                    aux_tuple->Fill();
-                }
+                (*output_tuple)() = tau;
+                if(args.calc_weights())
+                    (*output_tuple)().trainingWeight = static_cast<float>(weight);
+                output_tuple->Fill();
+                if(++n_processed % 1000 == 0)
+                    reporter.Report(n_processed);
             }
-
-            output_tuple.Write();
-            if(args.calc_weights())
-                aux_tuple->Write();
-
+            reporter.Report(n_processed, true);
+            std::cout << "Writing output tuples..." << std::endl;
+            output_tuple->Write();
+            output_tuple.reset();
             std::cout << file_name << " has been successfully created." << std::endl;
         }
 
@@ -590,7 +605,8 @@ private:
         return entries;
     }
 
-    static std::map<std::string, size_t> LoadNumberOfEventsPerFile(const std::string& cfg_file_name)
+    static std::map<std::string, size_t> LoadNumberOfEventsPerFile(const std::string& cfg_file_name,
+                                                                   const std::string& base_dir_name)
     {
         std::ifstream cfg(cfg_file_name);
         if(cfg.fail())
@@ -601,9 +617,9 @@ private:
             std::string line;
             std::getline(cfg, line);
             if(line.empty() || line.at(0) == '#') continue;
-            auto split = SplitValueList(line, true, ' \t', true);
+            auto split = SplitValueList(line, true, " \t", true);
             if(split.size() == 2) {
-                const std::string& file_name = split.at(0);
+                const std::string& file_name = base_dir_name + "/" + split.at(0);
                 if(n_events_per_file.count(file_name))
                     throw exception("Duplicated entry for '%1%'") % file_name;
                 size_t n_events;
@@ -647,6 +663,8 @@ private:
     Arguments args;
     std::map<std::string, std::vector<EntryDesc>> entries;
     const std::vector<double> pt_bins, eta_bins;
+    std::set<std::string> disabled_branches;
+    std::map<std::string, size_t> n_events_per_file;
 };
 
 } // namespace analysis
