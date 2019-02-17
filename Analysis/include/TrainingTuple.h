@@ -63,8 +63,12 @@
     VAR(Int_t, tau_index) /* index of the tau */ \
     VAR4(Float_t, tau_pt, tau_eta, tau_phi, tau_mass) /* 4-momentum of the tau */ \
     VAR(Int_t, tau_charge) /* tau charge */ \
+    VAR(Int_t, gen_e) /* tau is an electron based on gen matching */ \
+    VAR(Int_t, gen_mu) /* tau is a muon based on gen matching */ \
+    VAR(Int_t, gen_tau) /* tau is a hadronic tau based on gen matching */ \
+    VAR(Int_t, gen_jet) /* tau is a jet based on gen matching */ \
     VAR(Int_t, lepton_gen_match) /* matching with leptons on the generator level (see Htautau Twiki for details):
-                                    Electron = 1, Muon = 2, TauElectron = 3, TauMuon = 4, Tau = 5, NoMatch = 6 */\
+                                    Electron = 1, Muon = 2, TauElectron = 3, TauMuon = 4, Tau = 5, NoMatch = 6 */ \
     VAR(Int_t, lepton_gen_charge) /* charge of the matched gen lepton */ \
     VAR4(Float_t, lepton_gen_pt, lepton_gen_eta, \
                   lepton_gen_phi, lepton_gen_mass) /* 4-momentum of the matched gen lepton */ \
@@ -137,11 +141,12 @@
 
 #define TRAINING_CELL_DATA() \
     /* Common variables */ \
-    VAR2(Int_t, eta_index, phi_index) \
-    VAR4(Float_t, tau_pt, sum_pt, sum_pt_scalar, sum_E) \
-    VAR4(Int_t, n_pf_charged, n_pf_neutral, n_pf_photons, n_pf_total) \
-    VAR2(Int_t, n_ele, n_mu) \
+    VAR2(Int_t, eta_index, phi_index) /* eta and phi index of the cell in the grid */ \
+    VAR(Float_t, tau_pt) /* pt of the tau */ \
     /* PF candidates */ \
+    CAND_VAR(Int_t, n_total) /* number of PF candidates in the cell */ \
+    CAND_VAR(Float_t, max_pt) /* transverse momentum of the most energetic PF candidate in the cell */ \
+    CAND_VAR3(Float_t, sum_pt, sum_pt_scalar, sum_E) /* sum of the 4-momenta of the PF candidates in the cell */ \
     CAND_VAR(Int_t, jetDaughter) /* PF candidate is a jet daughter */ \
     CAND_VAR(Int_t, tauSignal) /* PF candidate is a part of the tau signal */ \
     CAND_VAR(Int_t, leadChargedHadrCand) /* PF candidate is the leadChargedHadrCand */ \
@@ -174,6 +179,9 @@
                                        and isolated charged hadrons */ \
     CAND_VAR(Float_t, rawCaloFraction) /* raw ECAL+HCAL energy over candidate energy for isolated charged hadrons */ \
     /* PAT electrons */ \
+    ELE_VAR(Int_t, n_total) /* number of PAT electrons in the cell */ \
+    ELE_VAR(Float_t, max_pt) /* transverse momentum of the most energetic PT electron in the cell */ \
+    ELE_VAR3(Float_t, sum_pt, sum_pt_scalar, sum_E) /* sum of the 4-momenta of the PAT electrons in the cell */ \
     ELE_VAR(Float_t, cc_ele_energy) /* energy of the first calo cluster in the electron super cluster */ \
     ELE_VAR(Float_t, cc_gamma_energy) /* sum of the energies of additional calo clusters
                                          in the electron super cluster */ \
@@ -221,6 +229,9 @@
                                                         of the closest CTF track */ \
     ELE_VAR(Int_t, closestCtfTrack_numberOfValidHits) /* number of valid hits on the closest CTF track */ \
     /* PAT muons */ \
+    MUON_VAR(Int_t, n_total) /* number of PAT muons in the cell */ \
+    MUON_VAR(Float_t, max_pt) /* transverse momentum of the most energetic PAT muon in the cell */ \
+    MUON_VAR3(Float_t, sum_pt, sum_pt_scalar, sum_E) /* sum of the 4-momenta of the PAT muons in the cell */ \
     MUON_VAR(Float_t, dxy) /* signed transverse impact parameter of the inner track wrt to the primary vertex */ \
     MUON_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
     MUON_VAR(Float_t, normalizedChi2) /* chi^2 divided by number of degrees of freedom of the global track */ \
@@ -277,17 +288,3 @@ INITIALIZE_TREE(tau_tuple, TrainingCellTuple, TRAINING_CELL_DATA)
 #undef MUON_VAR3
 #undef MUON_VAR4
 #undef TAU_ID
-
-namespace tau_tuple {
-
-template<typename T>
-constexpr T DefaultFillValue() { return std::numeric_limits<T>::lowest(); }
-template<>
-constexpr float DefaultFillValue<float>() { return -999.; }
-template<>
-constexpr int DefaultFillValue<int>() { return -999; }
-
-enum class ComponenetType { Gamma = 0, ChargedHadronCandidate = 1, NeutralHadronCandidate = 2};
-
-
-} // namespace tau_tuple
