@@ -1,153 +1,88 @@
-import gc
 import uproot
 import pandas
 import numpy as np
 import tensorflow as tf
-import functools
-from keras.models import load_model
 
-try:
-    get_ipython
-    from tqdm import tqdm_notebook as tqdm
-except:
-    from tqdm import tqdm
+truth_branches = [ 'gen_e', 'gen_mu', 'gen_tau', 'gen_jet' ]
+weight_branches = [ 'trainingWeight' ]
+tau_id_branches = [ 'againstElectronMVA6', 'againstElectronMVA6raw', 'againstElectronMVA62018',
+                    'againstElectronMVA62018raw', 'againstMuon3', 'againstMuon3raw',
+                    'byCombinedIsolationDeltaBetaCorr3Hits', 'byCombinedIsolationDeltaBetaCorr3Hitsraw',
+                    'byIsolationMVArun2v1DBoldDMwLT2016', 'byIsolationMVArun2v1DBoldDMwLT2016raw',
+                    'byIsolationMVArun2v1DBnewDMwLT2016', 'byIsolationMVArun2v1DBnewDMwLT2016raw',
+                    'byIsolationMVArun2017v2DBoldDMwLT2017', 'byIsolationMVArun2017v2DBoldDMwLT2017raw',
+                    'byIsolationMVArun2017v2DBoldDMdR0p3wLT2017', 'byIsolationMVArun2017v2DBoldDMdR0p3wLT2017raw',
+                    'byIsolationMVArun2017v2DBnewDMwLT2017', 'byIsolationMVArun2017v2DBnewDMwLT2017raw',
+                    'byDeepTau2017v1VSe', 'byDeepTau2017v1VSeraw', 'byDeepTau2017v1VSmu', 'byDeepTau2017v1VSmuraw',
+                    'byDeepTau2017v1VSjet', 'byDeepTau2017v1VSjetraw', 'byDpfTau2016v0VSall', 'byDpfTau2016v0VSallraw' ]
+global_event_branches = [ 'rho', 'pv_x', 'pv_y', 'pv_z', 'pv_chi2', 'pv_ndof' ]
+input_tau_branches = [ 'tau_pt', 'tau_eta', 'tau_mass', 'tau_charge', 'tau_decayMode', 'chargedIsoPtSum',
+                       'chargedIsoPtSumdR03', 'footprintCorrection', 'footprintCorrectiondR03', 'neutralIsoPtSum',
+                       'neutralIsoPtSumWeight', 'neutralIsoPtSumWeightdR03', 'neutralIsoPtSumdR03',
+                       'photonPtSumOutsideSignalCone', 'photonPtSumOutsideSignalConedR03', 'puCorrPtSum',
+                       'tau_dxy_pca_x', 'tau_dxy_pca_y', 'tau_dxy_pca_z', 'tau_dxy', 'tau_dxy_error', 'tau_ip3d',
+                       'tau_ip3d_error', 'tau_dz', 'tau_dz_error', 'tau_hasSecondaryVertex', 'tau_sv_x', 'tau_sv_y',
+                       'tau_sv_z', 'tau_flightLength_x', 'tau_flightLength_y', 'tau_flightLength_z',
+                       'tau_flightLength_sig', 'tau_pt_weighted_deta_strip', 'tau_pt_weighted_dphi_strip',
+                       'tau_pt_weighted_dr_signal', 'tau_pt_weighted_dr_iso', 'tau_leadingTrackNormChi2',
+                       'tau_e_ratio', 'tau_gj_angle_diff', 'tau_n_photons', 'tau_emFraction', 'tau_inside_ecal_crack',
+                       'leadChargedCand_etaAtEcalEntrance' ]
 
-def MakeP4Branches(name, pt=True, ht=True, dEta=True, dPhi=True, energy=True, mass=True):
-    branches = []
-    if pt:
-        branches.append(name + '_pt')
-    if ht:
-        branches.append(name + '_ht')
-    if dEta:
-        branches.append(name + '_dEta')
-    if dPhi:
-        branches.append(name + '_dPhi')
-    if energy:
-        branches.append(name + '_energy')
-    if mass:
-        branches.append(name + '_mass')
-    return branches
+input_cell_common_branches = [ 'eta_index', 'phi_index', 'tau_pt' ]
+input_cell_pfCand_branches = [ 'pfCand_n_total', 'pfCand_max_pt', 'pfCand_sum_pt', 'pfCand_sum_pt_scalar',
+                               'pfCand_sum_E', 'pfCand_tauSignal', 'pfCand_leadChargedHadrCand', 'pfCand_tauIso',
+                               'pfCand_pvAssociationQuality', 'pfCand_fromPV', 'pfCand_puppiWeight',
+                               'pfCand_puppiWeightNoLep', 'pfCand_pdgId', 'pfCand_charge', 'pfCand_lostInnerHits',
+                               'pfCand_numberOfPixelHits', 'pfCand_vertex_x', 'pfCand_vertex_y', 'pfCand_vertex_z',
+                               'pfCand_hasTrackDetails', 'pfCand_dxy', 'pfCand_dxy_error', 'pfCand_dz',
+                               'pfCand_dz_error', 'pfCand_track_chi2', 'pfCand_track_ndof', 'pfCand_hcalFraction',
+                               'pfCand_rawCaloFraction' ]
+input_cell_ele_branches = [ 'ele_n_total', 'ele_max_pt', 'ele_sum_pt', 'ele_sum_pt_scalar', 'ele_sum_E',
+                            'ele_cc_ele_energy', 'ele_cc_gamma_energy', 'ele_cc_n_gamma', 'ele_trackMomentumAtVtx',
+                            'ele_trackMomentumAtCalo', 'ele_trackMomentumOut', 'ele_trackMomentumAtEleClus',
+                            'ele_trackMomentumAtVtxWithConstraint', 'ele_ecalEnergy', 'ele_ecalEnergy_error',
+                            'ele_eSuperClusterOverP', 'ele_eSeedClusterOverP', 'ele_eSeedClusterOverPout',
+                            'ele_eEleClusterOverPout', 'ele_deltaEtaSuperClusterTrackAtVtx',
+                            'ele_deltaEtaSeedClusterTrackAtCalo', 'ele_deltaEtaEleClusterTrackAtCalo',
+                            'ele_deltaPhiEleClusterTrackAtCalo', 'ele_deltaPhiSuperClusterTrackAtVtx',
+                            'ele_deltaPhiSeedClusterTrackAtCalo', 'ele_mvaInput_earlyBrem', 'ele_mvaInput_lateBrem',
+                            'ele_mvaInput_sigmaEtaEta', 'ele_mvaInput_hadEnergy', 'ele_mvaInput_deltaEta',
+                            'ele_gsfTrack_normalizedChi2', 'ele_gsfTrack_numberOfValidHits', 'ele_gsfTrack_pt',
+                            'ele_gsfTrack_pt_error', 'ele_closestCtfTrack_normalizedChi2',
+                            'ele_closestCtfTrack_numberOfValidHits' ]
+input_cell_muon_branches = [ 'muon_n_total', 'muon_max_pt', 'muon_sum_pt', 'muon_sum_pt_scalar', 'muon_sum_E',
+                             'muon_dxy', 'muon_dxy_error', 'muon_normalizedChi2', 'muon_numberOfValidHits',
+                             'muon_segmentCompatibility', 'muon_caloCompatibility', 'muon_pfEcalEnergy',
+                             'muon_n_matches_DT_1', 'muon_n_matches_DT_2', 'muon_n_matches_DT_3',
+                             'muon_n_matches_DT_4', 'muon_n_matches_CSC_1', 'muon_n_matches_CSC_2',
+                             'muon_n_matches_CSC_3', 'muon_n_matches_CSC_4', 'muon_n_matches_RPC_1',
+                             'muon_n_matches_RPC_2', 'muon_n_matches_RPC_3', 'muon_n_matches_RPC_4',
+                             'muon_n_hits_DT_1', 'muon_n_hits_DT_2', 'muon_n_hits_DT_3', 'muon_n_hits_DT_4',
+                             'muon_n_hits_CSC_1', 'muon_n_hits_CSC_2', 'muon_n_hits_CSC_3', 'muon_n_hits_CSC_4',
+                             'muon_n_hits_RPC_1', 'muon_n_hits_RPC_2', 'muon_n_hits_RPC_3', 'muon_n_hits_RPC_4' ]
 
-def MakePFRegionBranches(cone_name, ChargedHadrCands=True, NeutrHadrCands=True, GammaCands=True):
-    branches = []
-    if ChargedHadrCands:
-        branches.extend(MakeP4Branches(cone_name + '_ChargedHadrCands_sum'))
-        branches.append(cone_name + '_ChargedHadrCands_nTotal')
-    if NeutrHadrCands:
-        branches.extend(MakeP4Branches(cone_name + '_NeutrHadrCands_sum'))
-        branches.append(cone_name + '_NeutrHadrCands_nTotal')
-    if GammaCands:
-        branches.extend(MakeP4Branches(cone_name + '_GammaCands_sum'))
-        branches.append(cone_name + '_GammaCands_nTotal')
-    return branches
+df_tau_branches = truth_branches + weight_branches + input_tau_branches
+df_cell_branches = input_cell_common_branches + input_cell_pfCand_branches + input_cell_ele_branches \
+                 + input_cell_muon_branches
 
-
-central_tau_id_branches = ['againstElectronMVA6Raw', 'byCombinedIsolationDeltaBetaCorrRaw3Hits',
-    'byIsolationMVArun2v1DBoldDMwLTraw', 'byIsolationMVArun2v1DBdR03oldDMwLTraw',
-    'byIsolationMVArun2v1DBoldDMwLTraw2016', 'byIsolationMVArun2017v2DBoldDMwLTraw2017',
-    'byIsolationMVArun2017v2DBoldDMdR0p3wLTraw2017', 'id_flags']
-truth_branches = ['gen_match']
-input_branches = [ 'pt', 'eta', 'mass', 'decayMode', 'dxy', 'dxy_sig', 'dz', 'ip3d', 'ip3d_sig',
-                   'hasSecondaryVertex', 'flightLength_r', 'flightLength_dEta', 'flightLength_dPhi', 'flightLength_sig',
-                   'chargedIsoPtSum', 'chargedIsoPtSumdR03', 'footprintCorrection', 'footprintCorrectiondR03',
-                   'neutralIsoPtSum', 'neutralIsoPtSumdR03', 'neutralIsoPtSumWeight', 'neutralIsoPtSumWeightdR03',
-                   'photonPtSumOutsideSignalCone', 'photonPtSumOutsideSignalConedR03', 'puCorrPtSum',
-                   'pt_weighted_deta_strip', 'pt_weighted_dphi_strip', 'pt_weighted_dr_signal', 'pt_weighted_dr_iso',
-                   'leadingTrackNormChi2', 'e_ratio', 'gj_angle_diff', 'n_photons', 'emFraction', 'inside_ecal_crack',
-                   'has_gsf_track', 'gsf_ele_matched', 'gsf_ele_pt', 'gsf_ele_dEta', 'gsf_ele_dPhi', 'gsf_ele_energy',
-                   'gsf_ele_Ee', 'gsf_ele_Egamma', 'gsf_ele_Pin', 'gsf_ele_Pout', 'gsf_ele_Eecal',
-                   'gsf_ele_dEta_SeedClusterTrackAtCalo', 'gsf_ele_dPhi_SeedClusterTrackAtCalo', 'gsf_ele_mvaIn_sigmaEtaEta',
-                   'gsf_ele_mvaIn_hadEnergy', 'gsf_ele_mvaIn_deltaEta', 'gsf_ele_Chi2NormGSF', 'gsf_ele_GSFNumHits',
-                   'gsf_ele_GSFTrackResol', 'gsf_ele_GSFTracklnPt', 'gsf_ele_Chi2NormKF', 'gsf_ele_KFNumHits',
-                   'n_matched_muons', 'muon_pt', 'muon_dEta', 'muon_dPhi',
-                   'muon_n_matches_DT_1', 'muon_n_matches_DT_2', 'muon_n_matches_DT_3', 'muon_n_matches_DT_4',
-                   'muon_n_matches_CSC_1', 'muon_n_matches_CSC_2', 'muon_n_matches_CSC_3', 'muon_n_matches_CSC_4',
-                   'muon_n_hits_DT_2', 'muon_n_hits_DT_3', 'muon_n_hits_DT_4',
-                   'muon_n_hits_CSC_2', 'muon_n_hits_CSC_3', 'muon_n_hits_CSC_4',
-                   'muon_n_hits_RPC_2', 'muon_n_hits_RPC_3', 'muon_n_hits_RPC_4',
-                   'leadChargedCand_etaAtEcalEntrance' ]
-input_branches.extend(MakeP4Branches('leadChargedHadrCand', ht=False, energy=False))
-input_branches.extend(MakePFRegionBranches('innerSigCone'))
-input_branches.extend(MakePFRegionBranches('outerSigCone', ChargedHadrCands=False))
-input_branches.extend(MakePFRegionBranches('isoRing02'))
-input_branches.extend(MakePFRegionBranches('isoRing03'))
-input_branches.extend(MakePFRegionBranches('isoRing04', NeutrHadrCands=False))
-input_branches.extend(MakePFRegionBranches('isoRing05', ChargedHadrCands=False, NeutrHadrCands=False))
-
-all_branches = truth_branches + input_branches + central_tau_id_branches
 match_suffixes = [ 'e', 'mu', 'tau', 'jet' ]
-gen_match_ex_branches = [ 'gen_{}'.format(suff) for suff in match_suffixes ]
 e, mu, tau, jet = 0, 1, 2, 3
-input_shape = (len(input_branches), )
-n_outputs = len(gen_match_ex_branches)
+n_cells_eta, n_cells_phi = 13, 13
+n_cells = n_cells_eta * n_cells_phi
+input_shape_tau = (len(input_tau_branches), )
+input_shape_cell = (len(df_cell_branches), n_cells, )
+n_outputs = len(truth_branches)
 
-class GenMatch:
-    Electron = 1
-    Muon = 2
-    TauElectron = 3
-    TauMuon = 4
-    Tau = 5
-    NoMatch = 6
-
-
-def ReadBrancesToDataFrame(file_name, tree_name, branches, entrystart=None, entrystop=None):
+def ReadBranchesToDataFrame(file_name, tree_name, branches, entrystart=None, entrystop=None):
     with uproot.open(file_name) as file:
         tree = file[tree_name]
         df = tree.arrays(branches, entrystart=entrystart, entrystop=entrystop, outputtype=pandas.DataFrame)
-        df.columns = [ c.decode('utf-8') for c in df.columns ]
     return df
 
 def GetNumberOfEntries(file_name, tree_name):
     with uproot.open(file_name) as file:
         tree = file[tree_name]
         return tree.numentries
-
-def ReadBranchesTo2DArray(file_name, tree_name, branches, dtype, chunk_size = int(5e6), entrystart=None,
-                          entrystop=None):
-    if entrystop is None:
-        entrystop = GetNumberOfEntries(file_name, tree_name)
-        gc.collect()
-    if entrystart is None:
-        entrystart = 0
-    nentries = entrystop - entrystart
-    data = np.empty([nentries, len(branches)], dtype=dtype)
-
-    if chunk_size is None:
-        chunk_size = nentries
-
-    step = 0
-    current_start = entrystart
-    with tqdm(total=nentries) as pbar:
-        while current_start < entrystop:
-            current_stop = min(current_start + chunk_size, entrystop)
-            n_current = current_stop - current_start
-            df = ReadBrancesToDataFrame(file_name, tree_name, branches, current_start, current_stop)
-            for br_index in range(len(branches)):
-                data[chunk_size*step:chunk_size*(step+1), br_index] = df[branches[br_index]].astype(dtype)
-            del df
-            gc.collect()
-            current_start += chunk_size
-            step += 1
-            pbar.update(n_current)
-    return data
-
-def VectorizeGenMatch(data, dtype):
-    if data.shape[1] != 1:
-        raise RuntimeError("Invalid input")
-    v_data = np.zeros([data.shape[0], 4], dtype=dtype)
-    v_data[:, e] = ((data[:, 0] == GenMatch.Electron) | (data[:, 0] == GenMatch.TauElectron)).astype(dtype)
-    v_data[:, mu] = ((data[:, 0] == GenMatch.Muon) | (data[:, 0] == GenMatch.TauMuon)).astype(dtype)
-    v_data[:, tau] = (data[:, 0] == GenMatch.Tau).astype(dtype)
-    v_data[:, jet] = (data[:, 0] == GenMatch.NoMatch).astype(dtype)
-    return v_data
-
-def ReadXY(file_name, tree_name, chunk_size = int(5e6), entrystart=None, entrystop=None):
-    X = ReadBranchesTo2DArray(file_name, tree_name, input_branches, np.float32, chunk_size=chunk_size,
-                              entrystart=entrystart, entrystop=entrystop)
-    Y_raw = ReadBranchesTo2DArray(file_name, tree_name, truth_branches, int, entrystart=entrystart, entrystop=entrystop)
-    Y = VectorizeGenMatch(Y_raw, int)
-    return X, Y
-
 
 def load_graph(graph_filename):
     with tf.gfile.GFile(graph_filename, 'rb') as f:
@@ -171,46 +106,49 @@ class TauLosses:
     epsilon = 1e-6
 
     @staticmethod
-    def Lbase(target, output, weights, genuine_index, fake_index, weights_index):
+    def SetSFs(sf_e, sf_mu, sf_jet):
+        TauLosses.Le_sf = sf_e
+        TauLosses.Lmu_sf = sf_mu
+        TauLosses.Ljet_sf = sf_jet
+
+    @staticmethod
+    def Lbase(target, output, genuine_index, fake_index):
         epsilon = tf.convert_to_tensor(TauLosses.epsilon, output.dtype.base_dtype)
         genuine_vs_fake = output[:, genuine_index] / (output[:, genuine_index] + output[:, fake_index] + epsilon)
         genuine_vs_fake = tf.clip_by_value(genuine_vs_fake, epsilon, 1 - epsilon)
         loss = -target[:, genuine_index] * tf.log(genuine_vs_fake) - target[:, fake_index] * tf.log(1 - genuine_vs_fake)
-        w_sum = tf.reduce_sum((target[:, genuine_index] + target[:, fake_index]) * weights[:, weights_index])
-        n_items = tf.to_float(tf.shape(weights))[0]
-        return loss * weights[:, weights_index] / w_sum * n_items
+        return loss
 
     @staticmethod
-    def Le(target, output, weights):
-        return TauLosses.Lbase(target, output, weights, tau, e, 0)
+    def Le(target, output):
+        return TauLosses.Lbase(target, output, tau, e)
 
     @staticmethod
-    def Lmu(target, output, weights):
-        return TauLosses.Lbase(target, output, weights, tau, mu, 1)
+    def Lmu(target, output):
+        return TauLosses.Lbase(target, output, tau, mu)
 
     @staticmethod
-    def Ljet(target, output, weights):
-        return TauLosses.Lbase(target, output, weights, tau, jet, 2)
+    def Ljet(target, output):
+        return TauLosses.Lbase(target, output, tau, jet)
 
     @staticmethod
-    def sLe(target, output, weights, sf):
-        #sf = tf.convert_to_tensor(TauLosses.Le_sf, output.dtype.base_dtype)
-        return sf[:, 0] * TauLosses.Le(target, output, weights)
+    def sLe(target, output):
+        sf = tf.convert_to_tensor(TauLosses.Le_sf, output.dtype.base_dtype)
+        return sf * TauLosses.Le(target, output)
 
     @staticmethod
-    def sLmu(target, output, weights, sf):
-        #sf = tf.convert_to_tensor(TauLosses.Lmu_sf, output.dtype.base_dtype)
-        return sf[:, 1] * TauLosses.Lmu(target, output, weights)
+    def sLmu(target, output):
+        sf = tf.convert_to_tensor(TauLosses.Lmu_sf, output.dtype.base_dtype)
+        return sf * TauLosses.Lmu(target, output)
 
     @staticmethod
-    def sLjet(target, output, weights, sf):
-        #sf = tf.convert_to_tensor(TauLosses.Ljet_sf, output.dtype.base_dtype)
-        return sf[:, 2] * TauLosses.Ljet(target, output, weights)
+    def sLjet(target, output):
+        sf = tf.convert_to_tensor(TauLosses.Ljet_sf, output.dtype.base_dtype)
+        return sf * TauLosses.Ljet(target, output)
 
     @staticmethod
-    def tau_crossentropy(target, output, weights, sf):
-        return TauLosses.sLe(target, output, weights, sf) + TauLosses.sLmu(target, output, weights, sf) + \
-               TauLosses.sLjet(target, output, weights, sf)
+    def tau_crossentropy(target, output):
+        return TauLosses.sLe(target, output) + TauLosses.sLmu(target, output) + TauLosses.sLjet(target, output)
 
     @staticmethod
     def tau_vs_other(prob_tau, prob_other):
@@ -218,30 +156,11 @@ class TauLosses:
 
 
 def LoadModel(model_file, compile=True):
+    from keras.models import load_model
     if compile:
-        weight_input = tf.placeholder(tf.float32, shape=(None, 3))
-        sf_input = tf.placeholder(tf.float32, shape=(None, 3))
-
-        tau_crossentropy = functools.partial(TauLosses.tau_crossentropy, weights=weight_input, sf=sf_input)
-        Le = functools.partial(TauLosses.Le, weights=weight_input)
-        Lmu = functools.partial(TauLosses.Lmu, weights=weight_input)
-        Ljet = functools.partial(TauLosses.Ljet, weights=weight_input)
-        sLe = functools.partial(TauLosses.sLe, weights=weight_input, sf=sf_input)
-        sLmu = functools.partial(TauLosses.sLmu, weights=weight_input, sf=sf_input)
-        sLjet = functools.partial(TauLosses.sLjet, weights=weight_input, sf=sf_input)
-
-        functools.update_wrapper(tau_crossentropy, TauLosses.tau_crossentropy)
-        functools.update_wrapper(Le, TauLosses.Le)
-        functools.update_wrapper(Lmu, TauLosses.Lmu)
-        functools.update_wrapper(Ljet, TauLosses.Ljet)
-        functools.update_wrapper(sLe, TauLosses.sLe)
-        functools.update_wrapper(sLmu, TauLosses.sLmu)
-        functools.update_wrapper(sLjet, TauLosses.sLjet)
-
-
         return load_model(model_file, custom_objects = {
-            'tau_crossentropy': tau_crossentropy, 'Le': Le, 'Lmu': Lmu, 'Ljet': Ljet,
-            'sLe': sLe, 'sLmu': sLmu, 'sLjet': sLjet
+            'tau_crossentropy': TauLosses.tau_crossentropy, 'Le': TauLosses.Le, 'Lmu': TauLosses.Lmu,
+            'Ljet': TauLosses.Ljet, 'sLe': TauLosses.sLe, 'sLmu': TauLosses.sLmu, 'sLjet': TauLosses.sLjet
         })
     else:
         return load_model(model_file, compile = False)
