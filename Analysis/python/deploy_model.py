@@ -16,26 +16,33 @@ from common import LoadModel
 K.set_learning_phase(0)
 model = LoadModel(args.input)
 
-print(model.inputs[0].name)
-print(model.outputs[0].name)
-raise RuntimeError("stop")
+def node_names(nodes):
+    return [ node.name.split(':')[0] for node in nodes ]
+#print(model.inputs[0].name)
+#print(model.outputs[0].name)
+#raise RuntimeError("stop")
 
-input_nodes = ["main_input"]#  [model.inputs[0].name]
-output_nodes = ["main_output/Softmax"]#["output_node"]
+input_nodes = node_names(model.inputs)
+output_nodes = node_names(model.outputs)
+
+print("Inputs:", input_nodes)
+print("Outputs:", output_nodes)
+#input_nodes = ["main_input"]#  [model.inputs[0].name]
+#output_nodes = ["main_output/Softmax"]#["output_node"]
 #node_wrapper = tf.identity(model.outputs[0], name=output_nodes[0])
 
 with K.get_session() as sess:
     ops = sess.graph.get_operations()
 
-
+    #final_graph = sess.graph.as_graph_def()
     const_graph = convert_variables_to_constants(sess, sess.graph.as_graph_def(), output_nodes)
-    # final_graph = const_graph
+    #final_graph = const_graph
     transforms = [
         "strip_unused_nodes",
         "remove_nodes(op=Identity, op=CheckNumerics)",
         "fold_constants(ignore_errors=true)",
         "fold_batch_norms",
-        "quantize_weights"
+        #"quantize_weights"
     ]
     final_graph = TransformGraph(const_graph, input_nodes, output_nodes, transforms)
 
