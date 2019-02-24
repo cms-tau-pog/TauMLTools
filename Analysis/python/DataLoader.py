@@ -37,9 +37,15 @@ class DataLoader:
             if self.data_file_sizes[n] < batch_size:
                 raise RuntimeError("File {} has too few events.".format(self.data_files[n]))
         self.data_size = self.data_file_sizes.sum()
-        self.steps_per_epoch = math.floor(self.data_size / self.batch_size)
+        if allow_partial_batches:
+            self.steps_per_epoch = math.ceil(self.data_size / self.batch_size)
+        else:
+            self.steps_per_epoch = math.floor(self.data_size / self.batch_size)
         if has_validation_set:
-            self.validation_steps = math.floor(self.validation_size / self.batch_size)
+            if allow_partial_batches:
+                self.validation_steps = math.ceil(self.validation_size / self.batch_size)
+            else:
+                self.validation_steps = math.floor(self.validation_size / self.batch_size)
         self.executor = ThreadPoolExecutor(12)
 
     def generator(self, primary_set = True, return_truth = True, return_weights = True):
