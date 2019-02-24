@@ -1,7 +1,7 @@
 import glob
 import math
 from concurrent.futures import ThreadPoolExecutor
-from itertools import izip
+#from itertools import izip
 import numpy as np
 import uproot
 from common import *
@@ -68,7 +68,7 @@ class DataLoader:
 
         current_pass = 0
         while self.n_passes < 0 or current_pass < self.n_passes:
-            for df_taus, df_cells in izip(df_taus_gen(), df_cells_gen()):
+            for df_taus, df_cells in zip(df_taus_gen(), df_cells_gen()):
                 if not self.allow_partial_batches and df_taus[b'tau_pt'].shape[0] != self.batch_size: continue
 
                 b_size = df_taus[b'tau_pt'].shape[0]

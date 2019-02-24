@@ -59,20 +59,20 @@ all_discriminators = {
                       [ DiscriminatorWP.VLoose, DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight,
                         DiscriminatorWP.VTight ] ),
         Discriminator('deepTau 2017v1', 'byDeepTau2017v1VSeraw', True, True, 'blue'),
-        Discriminator('new deepTau', 'deepId_vs_e', True, False, 'magenta')
+        Discriminator('new deepTau', 'deepId_vs_e', True, False, 'yellow')
     ],
     'mu': [
         Discriminator('againstMuon3', 'againstMuon3', False, True, 'green',
                       [ DiscriminatorWP.Loose, DiscriminatorWP.Tight] ),
         Discriminator('deepTau 2017v1', 'byDeepTau2017v1VSmuraw', True, True, 'blue'),
-        Discriminator('new deepTau', 'deepId_vs_mu', True, False, 'magenta')
+        Discriminator('new deepTau', 'deepId_vs_mu', True, False, 'yellow')
     ],
     'jet': [
         Discriminator('MVA 2017v2', 'byIsolationMVArun2017v2DBoldDMwLT2017raw', True, True, 'green'),
-        Discriminator('MVA 2017v2 newDM', 'byIsolationMVArun2017v2DBoldDMwLT2017raw', True, True, 'red'),
+        Discriminator('MVA 2017v2 newDM', 'byIsolationMVArun2017v2DBnewDMwLT2017raw', True, True, 'red'),
         Discriminator('DPF 2016v0', 'byDpfTau2016v0VSallraw', True, True, 'magenta'),
         Discriminator('deepTau 2017v1', 'byDeepTau2017v1VSjetraw', True, True, 'blue'),
-        Discriminator('new deepTau', 'deepId_vs_jet', True, False, 'magenta')
+        Discriminator('new deepTau', 'deepId_vs_jet', True, False, 'yellow')
     ]
 }
 
@@ -87,7 +87,7 @@ def CreateDF(file_name):
     base_name = os.path.basename(file_name)
     df_pred = pandas.read_hdf(os.path.join(args.deep_results, base_name + '_pred.hdf5'))
     tau_vs_other = TauLosses.tau_vs_other(df_pred['deepId_tau'].values, df_pred['deepId_' + args.other_type].values)
-    print(file_name, np.amin(df_pred['deepId_jet'].values), np.amax(df_pred['deepId_jet'].values))
+    #print(file_name, np.amin(df_pred['deepId_jet'].values), np.amax(df_pred['deepId_jet'].values))
     df['deepId_vs_' + args.other_type] = pandas.Series(tau_vs_other, index=df.index)
     return df
 
@@ -117,9 +117,8 @@ for pt_index in range(len(pt_bins) - 1):
     tpr = [[None, None] for n in range(n_discr)]
 
     for n in reversed(range(n_discr)):
-        print(discriminators[n].column, df_tx['gen_tau'].min(), df_tx['gen_tau'].max())
-        print(df_tx[discriminators[n].column].min(), df_tx[discriminators[n].column].max())
-        fpr[n][0], tpr[n][0], thresholds = metrics.roc_curve(df_tx['gen_tau'], df_tx[discriminators[n].column])
+        #print(discriminators[n].column, df_tx['gen_tau'].shape, df_tx[discriminators[n].column].shape)
+        fpr[n][0], tpr[n][0], thresholds = metrics.roc_curve(df_tx['gen_tau'], df_tx[discriminators[n].column].values)
         if n != n_discr - 1:
             tpr[n][1], fpr[n][1] = create_roc_ratio(tpr[n][0], fpr[n][0], tpr[-1][0], fpr[-1][0])
 
@@ -141,9 +140,10 @@ for pt_index in range(len(pt_bins) - 1):
     ax.grid(True)
     ax_ratio.grid(True)
 
+    names = [ disc.name for disc in discriminators ]
     ax.legend(names, fontsize=14, loc='lower right')
 
     plt.subplots_adjust(hspace=0)
     #plt.show()
-    fig.savefig('tau_vs_{}_pt-{}_{}.pdf'.format(args.other_type, pt_range[0], pt_range[1]),
+    fig.savefig('tau_vs_{}_pt-{}_{}.pdf'.format(args.other_type, pt_bins[pt_index], pt_bins[pt_index + 1]),
                 bbox_inches='tight')
