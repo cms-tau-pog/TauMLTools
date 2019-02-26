@@ -5,6 +5,7 @@ import tensorflow as tf
 
 truth_branches = [ 'gen_e', 'gen_mu', 'gen_tau', 'gen_jet' ]
 weight_branches = [ 'trainingWeight' ]
+navigation_branches = [ 'innerCells_begin', 'innerCells_end', 'outerCells_begin', 'outerCells_end']
 tau_id_branches = [ 'againstElectronMVA6', 'againstElectronMVA6raw', 'againstElectronMVA62018',
                     'againstElectronMVA62018raw', 'againstMuon3', 'againstMuon3raw',
                     'byCombinedIsolationDeltaBetaCorr3Hits', 'byCombinedIsolationDeltaBetaCorr3Hitsraw',
@@ -29,11 +30,13 @@ input_tau_branches = [ 'tau_pt', 'tau_eta', 'tau_mass', 'tau_charge', 'tau_decay
                        'leadChargedCand_etaAtEcalEntrance' ]
 
 input_cell_common_branches = [ 'eta_index', 'phi_index', 'tau_pt' ]
-input_cell_pfCand_branches = [ 'pfCand_n_total', 'pfCand_max_pt', 'pfCand_sum_pt', 'pfCand_sum_pt_scalar',
-                               'pfCand_sum_E', 'pfCand_tauSignal', 'pfCand_leadChargedHadrCand', 'pfCand_tauIso',
-                               'pfCand_pvAssociationQuality', 'pfCand_fromPV', 'pfCand_puppiWeight',
-                               'pfCand_puppiWeightNoLep', 'pfCand_pdgId', 'pfCand_charge', 'pfCand_lostInnerHits',
-                               'pfCand_numberOfPixelHits', 'pfCand_vertex_x', 'pfCand_vertex_y', 'pfCand_vertex_z',
+input_cell_pfCand_branches = [ 'pfCand_n_total', 'pfCand_n_ele', 'pfCand_n_muon', 'pfCand_n_gamma',
+                               'pfCand_n_chargedHadrons', 'pfCand_n_neutralHadrons', 'pfCand_max_pt', 'pfCand_sum_pt',
+                               'pfCand_sum_pt_scalar', 'pfCand_sum_E', 'pfCand_tauSignal',
+                               'pfCand_leadChargedHadrCand', 'pfCand_tauIso', 'pfCand_pvAssociationQuality',
+                               'pfCand_fromPV', 'pfCand_puppiWeight', 'pfCand_puppiWeightNoLep', 'pfCand_pdgId',
+                               'pfCand_charge', 'pfCand_lostInnerHits', 'pfCand_numberOfPixelHits',
+                               'pfCand_vertex_x', 'pfCand_vertex_y', 'pfCand_vertex_z',
                                'pfCand_hasTrackDetails', 'pfCand_dxy', 'pfCand_dxy_error', 'pfCand_dz',
                                'pfCand_dz_error', 'pfCand_track_chi2', 'pfCand_track_ndof', 'pfCand_hcalFraction',
                                'pfCand_rawCaloFraction' ]
@@ -61,16 +64,20 @@ input_cell_muon_branches = [ 'muon_n_total', 'muon_max_pt', 'muon_sum_pt', 'muon
                              'muon_n_hits_CSC_1', 'muon_n_hits_CSC_2', 'muon_n_hits_CSC_3', 'muon_n_hits_CSC_4',
                              'muon_n_hits_RPC_1', 'muon_n_hits_RPC_2', 'muon_n_hits_RPC_3', 'muon_n_hits_RPC_4' ]
 
-df_tau_branches = truth_branches + weight_branches + input_tau_branches
+df_tau_branches = truth_branches + navigation_branches + weight_branches + input_tau_branches
 df_cell_branches = input_cell_common_branches + input_cell_pfCand_branches + input_cell_ele_branches \
                  + input_cell_muon_branches
 
 match_suffixes = [ 'e', 'mu', 'tau', 'jet' ]
 e, mu, tau, jet = 0, 1, 2, 3
-n_cells_eta, n_cells_phi = 13, 13
-n_cells = n_cells_eta * n_cells_phi
+cell_locations = ['inner', 'outer']
+n_cells_eta = { 'inner': 21, 'outer': 13 }
+n_cells_phi = { 'inner': 21, 'outer': 13 }
+n_cells = { 'inner': n_cells_eta['inner'] * n_cells_phi['inner'], 'outer': n_cells_eta['outer'] * n_cells_phi['outer'] }
+
 input_shape_tau = (len(input_tau_branches), )
-input_shape_cell = (len(df_cell_branches), n_cells, )
+input_shape_cell = { 'inner': (len(df_cell_branches), n_cells['inner'], ),
+                     'outer': (len(df_cell_branches), n_cells['outer'], ) }
 n_outputs = len(truth_branches)
 
 def ReadBranchesToDataFrame(file_name, tree_name, branches, entrystart=None, entrystop=None):
