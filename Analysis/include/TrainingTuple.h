@@ -137,6 +137,8 @@
     VAR(Float_t, tau_emFraction) /* tau->emFraction_MVA */ \
     VAR(Int_t, tau_inside_ecal_crack) /* tau is inside the ECAL crack (1.46 < |eta| < 1.558) */ \
     VAR(Float_t, leadChargedCand_etaAtEcalEntrance) /* eta at ECAL entrance of the leadChargedCand */ \
+    VAR2(Long64_t, innerCells_begin, innerCells_end) /* index of the first and of the next to the last inner cells */ \
+    VAR2(Long64_t, outerCells_begin, outerCells_end) /* index of the first and of the next to the last outer cells */ \
     /**/
 
 #define TRAINING_CELL_DATA() \
@@ -144,7 +146,9 @@
     VAR2(Int_t, eta_index, phi_index) /* eta and phi index of the cell in the grid */ \
     VAR(Float_t, tau_pt) /* pt of the tau */ \
     /* PF candidates */ \
-    CAND_VAR(Int_t, n_total) /* number of PF candidates in the cell */ \
+    CAND_VAR(Int_t, n_total) /* total number of PF candidates in the cell */ \
+    CAND_VAR3(Int_t, n_ele, n_muon, n_gamma) /* number of electron, muon and gamma PF candidates in the cell */ \
+    CAND_VAR2(Int_t, n_chargedHadrons, n_neutralHadrons) /* number of hadron PF candidates in the cell */ \
     CAND_VAR(Float_t, max_pt) /* transverse momentum of the most energetic PF candidate in the cell */ \
     CAND_VAR3(Float_t, sum_pt, sum_pt_scalar, sum_E) /* sum of the 4-momenta of the PF candidates in the cell */ \
     CAND_VAR(Int_t, jetDaughter) /* PF candidate is a jet daughter */ \

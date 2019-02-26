@@ -18,8 +18,10 @@
 struct Arguments {
     run::Argument<std::string> input{"input", "input root file with tau tuple"};
     run::Argument<std::string> output{"output", "output root file with training tuple"};
-    run::Argument<unsigned> n_cells{"n-cells", "number of cells in eta and phi", 61};
-    run::Argument<double> cell_size{"cell-size", "size of the cell in eta and phi", 0.01};
+    run::Argument<unsigned> n_inner_cells{"n-inner-cells", "number of inner cells in eta and phi", 21};
+    run::Argument<double> inner_cell_size{"inner-cell-size", "size of the inner cell in eta and phi", 0.01};
+    run::Argument<unsigned> n_outer_cells{"n-outer-cells", "number of outer cells in eta and phi", 13};
+    run::Argument<double> outer_cell_size{"outer-cell-size", "size of the outer cell in eta and phi", 0.05};
     run::Argument<unsigned> n_threads{"n-threads", "number of threads", 1};
     run::Argument<Long64_t> start_entry{"start-entry", "start entry", 0};
     run::Argument<Long64_t> end_entry{"end-entry", "end entry", std::numeric_limits<Long64_t>::max()};
@@ -67,6 +69,16 @@ public:
     Cell& at(const CellIndex& cellIndex) { return cells.at(GetFlatIndex(cellIndex)); }
     const Cell& at(const CellIndex& cellIndex) const { return cells.at(GetFlatIndex(cellIndex)); }
 
+    bool IsEmpty(const CellIndex& cellIndex) const
+    {
+        const Cell& cell = at(cellIndex);
+        for(const auto& col : cell) {
+            if(!col.second.empty())
+                return false;
+        }
+        return true;
+    }
+
 private:
     size_t GetFlatIndex(const CellIndex& cellIndex) const
     {
@@ -96,11 +108,14 @@ public:
         args(_args), inputFile(root_ext::OpenRootFile(args.input())),
         outputFile(root_ext::CreateRootFile(args.output(), ROOT::kLZ4, 4)),
         tauTuple(inputFile.get(), true), trainingTauTuple(outputFile.get(), false),
-        cellTuple(outputFile.get(), false),
-        cellGridRef(args.n_cells(), args.n_cells(), args.cell_size(), args.cell_size())
+        innerCellTuple("inner_cells", outputFile.get(), false), outerCellTuple("outer_cells", outputFile.get(), false),
+        innerCellGridRef(args.n_inner_cells(), args.n_inner_cells(), args.inner_cell_size(), args.inner_cell_size()),
+        outerCellGridRef(args.n_outer_cells(), args.n_outer_cells(), args.outer_cell_size(), args.outer_cell_size()),
+        trainingWeightFactor(tauTuple.GetEntries() / 4.f)
     {
         if(args.n_threads() > 1)
             ROOT::EnableImplicitMT(args.n_threads());
+
     }
 
     void Run()
@@ -113,33 +128,41 @@ public:
             tauTuple.GetEntry(current_entry);
             const auto& tau = tauTuple.data();
             FillTauBranches(tau);
-            auto cellGrid = CreateCellGrid(tau);
-            const int max_eta_index = cellGrid.MaxEtaIndex(), max_phi_index = cellGrid.MaxPhiIndex();
-            for(int eta_index = -max_eta_index; eta_index <= max_eta_index; ++eta_index) {
-                for(int phi_index = -max_phi_index; phi_index <= max_phi_index; ++phi_index) {
-                    const CellIndex cellIndex{eta_index, phi_index};
-                    FillCellBranches(tau, cellIndex, cellGrid.at(cellIndex));
-                }
-            }
-            if(++n_processed % 100 == 0)
+            FillCellGrid(tau, innerCellGridRef, innerCellTuple, trainingTauTuple().innerCells_begin,
+                         trainingTauTuple().innerCells_end);
+            FillCellGrid(tau, outerCellGridRef, outerCellTuple, trainingTauTuple().outerCells_begin,
+                         trainingTauTuple().outerCells_end);
+
+            trainingTauTuple.Fill();
+            if(++n_processed % 1000 == 0)
                 reporter.Report(n_processed);
         }
         reporter.Report(n_processed, true);
 
         trainingTauTuple.Write();
-        cellTuple.Write();
+        innerCellTuple.Write();
+        outerCellTuple.Write();
         std::cout << "Training tuples has been successfully stored in " << args.output() << "." << std::endl;
     }
 
 private:
     static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
     static constexpr int default_int_value = tau_tuple::DefaultFillValue<int>();
+    static constexpr float min_value = -1000, max_value = 1000;
 
-    #define CP_BR(name) trainingTauTuple().name = tau.name;
+    template<typename T>
+    static T GetValue(T value)
+    {
+        return std::is_integral<T>::value ? value : std::clamp(value, T(min_value), T(max_value));
+    }
+
+    #define CP_BR(name) trainingTauTuple().name = GetValue(tau.name);
     #define TAU_ID(name, pattern, has_raw, wp_list) CP_BR(name) CP_BR(name##raw)
     void FillTauBranches(const Tau& tau)
     {
-        CP_BRANCHES(run, lumi, evt, npv, rho, genEventWeight, trainingWeight, npu, pv_x, pv_y, pv_z, pv_chi2, pv_ndof)
+        trainingTauTuple().genEventWeight = tau.genEventWeight;
+        trainingTauTuple().trainingWeight = tau.trainingWeight * trainingWeightFactor;
+        CP_BRANCHES(run, lumi, evt, npv, rho, npu, pv_x, pv_y, pv_z, pv_chi2, pv_ndof)
         CP_BRANCHES(jet_index, jet_pt, jet_eta, jet_phi, jet_mass, jet_neutralHadronEnergyFraction,
                     jet_neutralEmEnergyFraction, jet_nConstituents, jet_chargedMultiplicity, jet_neutralMultiplicity,
                     jet_partonFlavour, jet_hadronFlavour, jet_has_gen_match, jet_gen_pt, jet_gen_eta, jet_gen_phi,
@@ -179,19 +202,28 @@ private:
             trainingTauTuple().lepton_gen_vis_phi = default_value;
             trainingTauTuple().lepton_gen_vis_mass = default_value;
         }
-
-        trainingTauTuple.Fill();
     }
     #undef TAU_ID
     #undef CP_BR
 
-    void FillCellBranches(const Tau& tau, const CellIndex& cellIndex, Cell& cell)
+    void FillCellGrid(const Tau& tau, const CellGrid& cellGridRef, TrainingCellTuple& cellTuple, Long64_t& begin,
+                      Long64_t& end)
     {
-        static boost::optional<TrainingCell> empty_training_cell;
+        begin = cellTuple.GetEntries();
+        auto cellGrid = CreateCellGrid(tau, cellGridRef);
+        const int max_eta_index = cellGrid.MaxEtaIndex(), max_phi_index = cellGrid.MaxPhiIndex();
+        for(int eta_index = -max_eta_index; eta_index <= max_eta_index; ++eta_index) {
+            for(int phi_index = -max_phi_index; phi_index <= max_phi_index; ++phi_index) {
+                const CellIndex cellIndex{eta_index, phi_index};
+                if(!cellGrid.IsEmpty(cellIndex))
+                    FillCellBranches(tau, cellIndex, cellGrid.at(cellIndex), cellTuple);
+            }
+        }
+        end = cellTuple.GetEntries();
+    }
 
-        if(empty_training_cell)
-            cellTuple() = *empty_training_cell;
-
+    void FillCellBranches(const Tau& tau, const CellIndex& cellIndex, Cell& cell, TrainingCellTuple& cellTuple)
+    {
         cellTuple().eta_index = cellIndex.eta;
         cellTuple().phi_index = cellIndex.phi;
         cellTuple().tau_pt = tau.tau_pt;
@@ -236,68 +268,78 @@ private:
 
         size_t n_pfCand, pfCand_idx;
         getBestObj(CellObjectType::PfCandidate, n_pfCand, pfCand_idx);
-        if(!empty_training_cell || n_pfCand > 0) {
-            cellTuple().pfCand_n_total = static_cast<int>(n_pfCand);
-            cellTuple().pfCand_max_pt = n_pfCand != 0 ? tau.pfCand_pt.at(pfCand_idx) : 0;
-            fillMomenta(cell.at(CellObjectType::PfCandidate), cellTuple().pfCand_sum_pt,
-                                cellTuple().pfCand_sum_pt_scalar, cellTuple().pfCand_sum_E, tau.pfCand_pt,
-                                tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_mass);
-
-            #define CP_BR(name) cellTuple().pfCand_##name = n_pfCand != 0 ? tau.pfCand_##name.at(pfCand_idx) : 0;
-            CP_BRANCHES(jetDaughter, tauSignal, leadChargedHadrCand, tauIso, pvAssociationQuality, fromPV, puppiWeight,
-                        puppiWeightNoLep, pdgId, charge, lostInnerHits, numberOfPixelHits, vertex_x, vertex_y, vertex_z,
-                        hasTrackDetails, dxy, dxy_error, dz, dz_error, track_chi2, track_ndof, hcalFraction,
-                        rawCaloFraction)
-            #undef CP_BR
+        cellTuple().pfCand_n_total = static_cast<int>(n_pfCand);
+        cellTuple().pfCand_n_ele = 0;
+        cellTuple().pfCand_n_muon = 0;
+        cellTuple().pfCand_n_gamma = 0;
+        cellTuple().pfCand_n_chargedHadrons = 0;
+        cellTuple().pfCand_n_neutralHadrons = 0;
+        for(size_t index : cell[CellObjectType::PfCandidate]) {
+            const int pdgId = std::abs(tau.pfCand_pdgId.at(index));
+            if(pdgId == 11)
+                cellTuple().pfCand_n_ele++;
+            else if(pdgId == 13)
+                cellTuple().pfCand_n_muon++;
+            else if(pdgId == 22)
+                cellTuple().pfCand_n_gamma++;
+            else if(pdgId == 130)
+                cellTuple().pfCand_n_neutralHadrons++;
+            else if(pdgId == 211)
+                cellTuple().pfCand_n_chargedHadrons++;
         }
+
+        cellTuple().pfCand_max_pt = n_pfCand != 0 ? tau.pfCand_pt.at(pfCand_idx) : 0;
+        fillMomenta(cell.at(CellObjectType::PfCandidate), cellTuple().pfCand_sum_pt,
+                            cellTuple().pfCand_sum_pt_scalar, cellTuple().pfCand_sum_E, tau.pfCand_pt,
+                            tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_mass);
+
+        #define CP_BR(name) cellTuple().pfCand_##name = n_pfCand != 0 ? GetValue(tau.pfCand_##name.at(pfCand_idx)) : 0;
+        CP_BRANCHES(jetDaughter, tauSignal, leadChargedHadrCand, tauIso, pvAssociationQuality, fromPV, puppiWeight,
+                    puppiWeightNoLep, pdgId, charge, lostInnerHits, numberOfPixelHits, vertex_x, vertex_y, vertex_z,
+                    hasTrackDetails, dxy, dxy_error, dz, dz_error, track_chi2, track_ndof, hcalFraction,
+                    rawCaloFraction)
+        #undef CP_BR
 
         size_t n_ele, ele_idx;
         getBestObj(CellObjectType::Electron, n_ele, ele_idx);
-        if(!empty_training_cell || n_ele > 0) {
-            cellTuple().ele_n_total = static_cast<int>(n_ele);
-            cellTuple().ele_max_pt = n_ele != 0 ? tau.ele_pt.at(ele_idx) : 0;
-            fillMomenta(cell.at(CellObjectType::Electron), cellTuple().ele_sum_pt, cellTuple().ele_sum_pt_scalar,
-                        cellTuple().ele_sum_E, tau.ele_pt, tau.ele_eta, tau.ele_phi, tau.ele_mass);
+        cellTuple().ele_n_total = static_cast<int>(n_ele);
+        cellTuple().ele_max_pt = n_ele != 0 ? tau.ele_pt.at(ele_idx) : 0;
+        fillMomenta(cell.at(CellObjectType::Electron), cellTuple().ele_sum_pt, cellTuple().ele_sum_pt_scalar,
+                    cellTuple().ele_sum_E, tau.ele_pt, tau.ele_eta, tau.ele_phi, tau.ele_mass);
 
-            #define CP_BR(name) cellTuple().ele_##name = n_ele != 0 ? tau.ele_##name.at(ele_idx) : 0;
-            CP_BRANCHES(cc_ele_energy, cc_gamma_energy, cc_n_gamma, trackMomentumAtVtx, trackMomentumAtCalo,
-                        trackMomentumOut, trackMomentumAtEleClus, trackMomentumAtVtxWithConstraint, ecalEnergy,
-                        ecalEnergy_error, eSuperClusterOverP, eSeedClusterOverP, eSeedClusterOverPout,
-                        eEleClusterOverPout, deltaEtaSuperClusterTrackAtVtx, deltaEtaSeedClusterTrackAtCalo,
-                        deltaEtaEleClusterTrackAtCalo, deltaPhiEleClusterTrackAtCalo, deltaPhiSuperClusterTrackAtVtx,
-                        deltaPhiSeedClusterTrackAtCalo, mvaInput_earlyBrem, mvaInput_lateBrem,
-                        mvaInput_sigmaEtaEta, mvaInput_hadEnergy, mvaInput_deltaEta, gsfTrack_normalizedChi2,
-                        gsfTrack_numberOfValidHits, gsfTrack_pt, gsfTrack_pt_error, closestCtfTrack_normalizedChi2,
-                        closestCtfTrack_numberOfValidHits)
-            #undef CP_BR
-        }
+        #define CP_BR(name) cellTuple().ele_##name = n_ele != 0 ? GetValue(tau.ele_##name.at(ele_idx)) : 0;
+        CP_BRANCHES(cc_ele_energy, cc_gamma_energy, cc_n_gamma, trackMomentumAtVtx, trackMomentumAtCalo,
+                    trackMomentumOut, trackMomentumAtEleClus, trackMomentumAtVtxWithConstraint, ecalEnergy,
+                    ecalEnergy_error, eSuperClusterOverP, eSeedClusterOverP, eSeedClusterOverPout,
+                    eEleClusterOverPout, deltaEtaSuperClusterTrackAtVtx, deltaEtaSeedClusterTrackAtCalo,
+                    deltaEtaEleClusterTrackAtCalo, deltaPhiEleClusterTrackAtCalo, deltaPhiSuperClusterTrackAtVtx,
+                    deltaPhiSeedClusterTrackAtCalo, mvaInput_earlyBrem, mvaInput_lateBrem,
+                    mvaInput_sigmaEtaEta, mvaInput_hadEnergy, mvaInput_deltaEta, gsfTrack_normalizedChi2,
+                    gsfTrack_numberOfValidHits, gsfTrack_pt, gsfTrack_pt_error, closestCtfTrack_normalizedChi2,
+                    closestCtfTrack_numberOfValidHits)
+        #undef CP_BR
 
         size_t n_muon, muon_idx;
         getBestObj(CellObjectType::Muon, n_muon, muon_idx);
-        if(!empty_training_cell || n_muon > 0) {
-            cellTuple().muon_n_total = static_cast<int>(n_muon);
-            cellTuple().muon_max_pt = n_muon != 0 ? tau.muon_pt.at(muon_idx) : 0;
-            fillMomenta(cell.at(CellObjectType::Muon), cellTuple().muon_sum_pt, cellTuple().muon_sum_pt_scalar,
-                        cellTuple().muon_sum_E, tau.muon_pt, tau.muon_eta, tau.muon_phi, tau.muon_mass);
+        cellTuple().muon_n_total = static_cast<int>(n_muon);
+        cellTuple().muon_max_pt = n_muon != 0 ? tau.muon_pt.at(muon_idx) : 0;
+        fillMomenta(cell.at(CellObjectType::Muon), cellTuple().muon_sum_pt, cellTuple().muon_sum_pt_scalar,
+                    cellTuple().muon_sum_E, tau.muon_pt, tau.muon_eta, tau.muon_phi, tau.muon_mass);
 
-            #define CP_BR(name) cellTuple().muon_##name = n_muon != 0 ? tau.muon_##name.at(muon_idx) : 0;
-            CP_BRANCHES(dxy, dxy_error, normalizedChi2, numberOfValidHits, segmentCompatibility, caloCompatibility,
-                        pfEcalEnergy, n_matches_DT_1, n_matches_DT_2, n_matches_DT_3, n_matches_DT_4,
-                        n_matches_CSC_1, n_matches_CSC_2, n_matches_CSC_3, n_matches_CSC_4,
-                        n_matches_RPC_1, n_matches_RPC_2, n_matches_RPC_3, n_matches_RPC_4,
-                        n_hits_DT_1, n_hits_DT_2, n_hits_DT_3, n_hits_DT_4,
-                        n_hits_CSC_1, n_hits_CSC_2, n_hits_CSC_3, n_hits_CSC_4,
-                        n_hits_RPC_1, n_hits_RPC_2, n_hits_RPC_3, n_hits_RPC_4)
-            #undef CP_BR
-        }
-
-        if(!empty_training_cell && !n_pfCand && !n_ele && !n_muon)
-            empty_training_cell = cellTuple();
+        #define CP_BR(name) cellTuple().muon_##name = n_muon != 0 ? GetValue(tau.muon_##name.at(muon_idx)) : 0;
+        CP_BRANCHES(dxy, dxy_error, normalizedChi2, numberOfValidHits, segmentCompatibility, caloCompatibility,
+                    pfEcalEnergy, n_matches_DT_1, n_matches_DT_2, n_matches_DT_3, n_matches_DT_4,
+                    n_matches_CSC_1, n_matches_CSC_2, n_matches_CSC_3, n_matches_CSC_4,
+                    n_matches_RPC_1, n_matches_RPC_2, n_matches_RPC_3, n_matches_RPC_4,
+                    n_hits_DT_1, n_hits_DT_2, n_hits_DT_3, n_hits_DT_4,
+                    n_hits_CSC_1, n_hits_CSC_2, n_hits_CSC_3, n_hits_CSC_4,
+                    n_hits_RPC_1, n_hits_RPC_2, n_hits_RPC_3, n_hits_RPC_4)
+        #undef CP_BR
 
         cellTuple.Fill();
     }
 
-    CellGrid CreateCellGrid(const Tau& tau) const
+    CellGrid CreateCellGrid(const Tau& tau, const CellGrid& cellGridRef) const
     {
         CellGrid grid = cellGridRef;
         const double tau_eta = tau.tau_eta, tau_phi = tau.tau_phi;
@@ -352,8 +394,9 @@ private:
     std::shared_ptr<TFile> inputFile, outputFile;
     TauTuple tauTuple;
     TrainingTauTuple trainingTauTuple;
-    TrainingCellTuple cellTuple;
-    const CellGrid cellGridRef;
+    TrainingCellTuple innerCellTuple, outerCellTuple;
+    const CellGrid innerCellGridRef, outerCellGridRef;
+    const float trainingWeightFactor;
 };
 
 } // namespace analysis
