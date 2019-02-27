@@ -1,6 +1,8 @@
 import glob
 import math
 from concurrent.futures import ThreadPoolExecutor
+from queue import Queue
+from threading import Thread
 import numpy as np
 import uproot
 from common import *
@@ -19,21 +21,22 @@ def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, 
     tau_current = tau_begin
     while tau_current < tau_end:
         entry_stop = min(tau_current + chunk_size, tau_end)
-        df_taus = tau_tree.arrays(branches=df_tau_branches, outputtype=pandas.DataFrame, namedecode='utf-8',
+        df_taus = taus_tree.arrays(branches=df_tau_branches, outputtype=pandas.DataFrame, namedecode='utf-8',
                                   entrystart=tau_current, entrystop=entry_stop, executor=executor)
 
         df_cells = {}
+        cells_begin_ref = {}
         for loc in cell_locations:
             cells_begin = df_taus[loc + 'Cells_begin'].values[0]
             cells_end = df_taus[loc + 'Cells_end'].values[-1]
             df_cells[loc] = cells_tree[loc].arrays(branches=df_cell_branches, outputtype=pandas.DataFrame,
                                                    namedecode='utf-8', entrystart=cells_begin,
                                                    entrystop=cells_end, executor=executor)
-
+            cells_begin_ref[loc] = cells_begin
         n_batches = math.ceil(chunk_size / float(batch_size))
         for batch_id in range(n_batches):
             b_tau_begin = batch_id * batch_size
-            b_tau_end = min(taus.shape[0], (batch_id + 1) * batch_size)
+            b_tau_end = min(df_taus.shape[0], (batch_id + 1) * batch_size)
             b_size = b_tau_end - b_tau_begin
 
             X_taus = np.empty((b_size, len(input_tau_branches)))
@@ -51,13 +54,12 @@ def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, 
             for loc in cell_locations:
                 b_cells_begins = df_taus[loc + 'Cells_begin'].values[b_tau_begin:b_tau_end]
                 b_cells_ends = df_taus[loc + 'Cells_end'].values[b_tau_begin:b_tau_end]
-                b_cells_begin = b_cells_begins[0]
-                b_cells_end = b_cells_ends[-1]
-
+                b_cells_begin = b_cells_begins[0] - cells_begin_ref[loc]
+                b_cells_end = b_cells_ends[-1] - cells_begin_ref[loc]
                 for cmp_branches in component_branches:
                     X_cells_comp = np.zeros((b_size, n_cells_eta[loc], n_cells_phi[loc], len(cmp_branches)))
                     FillGrid(b_cells_begins, b_cells_ends, (n_cells_eta[loc] - 1) / 2, (n_cells_phi[loc] - 1) / 2,
-                             df_cells[comp_branches].values[b_cells_begin:b_cells_end, :], X_cells_comp)
+                             df_cells[loc][cmp_branches].values[b_cells_begin:b_cells_end, :], X_cells_comp)
                     X_all.append(X_cells_comp)
 
             if return_truth and return_weights:
@@ -68,7 +70,6 @@ def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, 
                 item = (X_all, weights)
             else:
                 item = X_all
-
             queue.put(item)
 
 class DataLoader:
@@ -88,7 +89,7 @@ class DataLoader:
         self.file_size = DataLoader.GetNumberOfEntries(self.file_name, 'taus')
         self.has_validation_set = validation_size is not None
 
-        if has_validation_set:
+        if self.has_validation_set:
             if validation_size <= 0 or validation_size >= self.file_size:
                 raise RuntimeError("invalid validation_size")
             self.validation_size = validation_size
@@ -99,7 +100,7 @@ class DataLoader:
             self.data_size = self.file_size
 
         self.steps_per_epoch = math.ceil(self.data_size / self.batch_size)
-        if has_validation_set:
+        if self.has_validation_set:
             self.validation_steps = math.ceil(self.validation_size / self.batch_size)
         self.executor = ThreadPoolExecutor(8)
 

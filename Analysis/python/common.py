@@ -75,9 +75,12 @@ n_cells_eta = { 'inner': 21, 'outer': 13 }
 n_cells_phi = { 'inner': 21, 'outer': 13 }
 n_cells = { 'inner': n_cells_eta['inner'] * n_cells_phi['inner'], 'outer': n_cells_eta['outer'] * n_cells_phi['outer'] }
 
-input_shape_tau = (len(input_tau_branches), )
-input_shape_cell = { 'inner': (len(df_cell_branches), n_cells['inner'], ),
-                     'outer': (len(df_cell_branches), n_cells['outer'], ) }
+component_branches = [ input_cell_common_branches + input_cell_pfCand_branches,
+                       input_cell_common_branches + input_cell_ele_branches,
+                       input_cell_common_branches + input_cell_muon_branches ]
+
+component_names = [ 'pfCand', 'ele', 'muon' ]
+
 n_outputs = len(truth_branches)
 
 def ReadBranchesToDataFrame(file_name, tree_name, branches, entrystart=None, entrystop=None):
