@@ -8,7 +8,7 @@ parser.add_argument('--output', required=True, type=str, help="Output file")
 parser.add_argument('--model', required=True, type=str, help="Model file")
 parser.add_argument('--tree', required=False, type=str, default="taus", help="Tree name")
 parser.add_argument('--chunk-size', required=False, type=int, default=1000, help="Chunk size")
-parser.add_argument('--batch-size', required=False, type=int, default=500, help="Batch size")
+parser.add_argument('--batch-size', required=False, type=int, default=250, help="Batch size")
 parser.add_argument('--max-n-files', required=False, type=int, default=None, help="Maximum number of files to process")
 parser.add_argument('--max-n-entries-per-file', required=False, type=int, default=None,
                     help="Maximum number of entries per file")
@@ -68,6 +68,8 @@ else:
     with open(args.filelist, 'r') as f_list:
         file_list = [ f.strip() for f in f_list if len(f) != 0 ]
 
+if len(file_list) == 0:
+    raise RuntimeError("Empty input list")
 #if args.max_n_files is not None and args.max_n_files > 0:
 #    file_list = file_list[0:args.max_n_files]
 
@@ -77,7 +79,7 @@ sess = tf.Session(graph=graph)
 
 file_index = 0
 for file_name in file_list:
-    if file_index >= args.max_n_files: break
+    if args.max_n_files is not None and file_index >= args.max_n_files: break
     print("Processing '{}'".format(file_name))
     full_name = prefix + file_name
 
@@ -96,7 +98,6 @@ for file_name in file_list:
     with tqdm(total=loader.data_size, unit='taus') as pbar:
         for inputs in loader.generator(return_truth = False, return_weights = False):
             df = Predict(sess, graph, *inputs)
-            print(np.amin(df['deepId_jet'].values), np.amax(df['deepId_jet'].values))
             df.to_hdf(args.output + '/' + file_name + '_pred.hdf5', args.tree, append=True, complevel=1, complib='zlib')
             pbar.update(df.shape[0])
             del df

@@ -20,7 +20,7 @@ def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, 
         for loc in cell_locations:
             cells_tree[loc] = root_file[loc + '_cells']
 
-    expected_n_batches = math.ceil((tau_end - tau_begin) / batch_size)
+    expected_n_batches = int(math.ceil((tau_end - tau_begin) / batch_size))
     tau_current = tau_begin
     global_batch_id = 0
     while tau_current < tau_end:
@@ -34,11 +34,9 @@ def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, 
 
         df_cells = {}
         cells_begin_ref = {}
-        print("loaded tau", global_batch_id)
         for loc in cell_locations:
             cells_begin = df_taus[loc + 'Cells_begin'].values[0]
             cells_end = df_taus[loc + 'Cells_end'].values[-1]
-            print("loadeding", loc, global_batch_id, cells_begin, cells_end)
             if root_input:
                 df_cells[loc] = cells_tree[loc].arrays(branches=df_cell_branches, outputtype=pandas.DataFrame,
                                                        namedecode='utf-8', entrystart=cells_begin,
@@ -47,9 +45,8 @@ def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, 
                 df_cells[loc] = pandas.read_hdf(file_name, loc + '_cells', columns=df_cell_branches,
                                                 start=cells_begin, stop=cells_end)
             cells_begin_ref[loc] = cells_begin
-            print("loaded", loc, global_batch_id)
         current_chunk_size = entry_stop - tau_current
-        n_batches = math.ceil(current_chunk_size / float(batch_size))
+        n_batches = int(math.ceil(current_chunk_size / float(batch_size)))
         for batch_id in range(n_batches):
             if global_batch_id >= expected_n_batches:
                 raise RuntimeError("Too many batches")
@@ -88,7 +85,6 @@ def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, 
                 item = (X_all, weights)
             else:
                 item = X_all
-            print("put", global_batch_id)
             queue.put(item)
         tau_current = entry_stop
         del df_taus
@@ -105,11 +101,10 @@ class DataLoader:
                 return tree.numentries
         else:
             h5 = pandas.HDFStore(file_name, mode='r')
-            print("Number of taus:", h5.get_storer('taus').nrows)
             return h5.get_storer('taus').nrows
 
     def __init__(self, file_name, batch_size, chunk_size, validation_size = None, max_data_size = None,
-                 max_queue_size = 4, n_passes = -1):
+                 max_queue_size = 8, n_passes = -1):
         if batch_size <= 0 or chunk_size <= 0:
             raise RuntimeError("batch_size and chunk_size should be positive numbers")
         self.file_name = file_name
@@ -133,7 +128,7 @@ class DataLoader:
         if max_data_size is not None:
             self.data_size = min(self.data_size, max_data_size)
 
-        self.steps_per_epoch = math.ceil(self.data_size / self.batch_size)
+        self.steps_per_epoch = int(math.ceil(self.data_size / self.batch_size))
         if self.has_validation_set:
             self.validation_steps = math.ceil(self.validation_size / self.batch_size)
         self.executor = ThreadPoolExecutor(8)
