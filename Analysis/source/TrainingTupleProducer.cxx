@@ -151,9 +151,11 @@ private:
     static constexpr float min_value = -1000, max_value = 1000;
 
     template<typename T>
-    static T GetValue(T value)
+    static T GetValue(T value, bool clamp = true)
     {
-        return std::is_integral<T>::value ? value : std::clamp(value, T(min_value), T(max_value));
+        if(std::isnan(value))
+            return 0;
+        return std::is_integral<T>::value || !clamp ? value : std::clamp(value, T(min_value), T(max_value));
     }
 
     #define CP_BR(name) trainingTauTuple().name = GetValue(tau.name);
@@ -170,10 +172,19 @@ private:
         CP_BRANCHES(jetTauMatch, tau_index, tau_pt, tau_eta, tau_phi, tau_mass, tau_charge, lepton_gen_match,
                     lepton_gen_charge, lepton_gen_pt, lepton_gen_eta, lepton_gen_phi, lepton_gen_mass,
                     qcd_gen_match, qcd_gen_charge, qcd_gen_pt, qcd_gen_eta, qcd_gen_phi, qcd_gen_mass,
-                    tau_decayMode, tau_decayModeFinding, tau_decayModeFindingNewDMs, chargedIsoPtSum,
-                    chargedIsoPtSumdR03, footprintCorrection, footprintCorrectiondR03, neutralIsoPtSum,
-                    neutralIsoPtSumWeight, neutralIsoPtSumWeightdR03, neutralIsoPtSumdR03,
-                    photonPtSumOutsideSignalCone, photonPtSumOutsideSignalConedR03, puCorrPtSum)
+                    tau_decayMode, tau_decayModeFinding, tau_decayModeFindingNewDMs)
+        trainingTauTuple().chargedIsoPtSum = GetValue(tau.chargedIsoPtSum, false);
+        trainingTauTuple().chargedIsoPtSumdR03 = GetValue(tau.chargedIsoPtSumdR03, false);
+        trainingTauTuple().footprintCorrection = GetValue(tau.footprintCorrection, false);
+        trainingTauTuple().footprintCorrectiondR03 = GetValue(tau.footprintCorrectiondR03, false);
+        trainingTauTuple().neutralIsoPtSum = GetValue(tau.neutralIsoPtSum, false);
+        trainingTauTuple().neutralIsoPtSumWeight = GetValue(tau.neutralIsoPtSumWeight, false);
+        trainingTauTuple().neutralIsoPtSumWeightdR03 = GetValue(tau.neutralIsoPtSumWeightdR03, false);
+        trainingTauTuple().neutralIsoPtSumdR03 = GetValue(tau.neutralIsoPtSumdR03, false);
+        trainingTauTuple().photonPtSumOutsideSignalCone = GetValue(tau.photonPtSumOutsideSignalCone, false);
+        trainingTauTuple().photonPtSumOutsideSignalConedR03 = GetValue(tau.photonPtSumOutsideSignalConedR03, false);
+        trainingTauTuple().puCorrPtSum = GetValue(tau.puCorrPtSum, false);
+
 
         CP_BRANCHES(tau_dxy_pca_x, tau_dxy_pca_y, tau_dxy_pca_z, tau_dxy, tau_dxy_error, tau_ip3d, tau_ip3d_error,
                     tau_dz, tau_dz_error, tau_hasSecondaryVertex, tau_sv_x, tau_sv_y, tau_sv_z,

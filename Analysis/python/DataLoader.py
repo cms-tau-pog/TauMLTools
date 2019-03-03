@@ -5,39 +5,48 @@ from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from threading import Thread
 import numpy as np
+import pandas
 import uproot
 from common import *
 from fill_grid import FillGrid
 
 def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, tau_end, return_truth, return_weights):
-    root_file = uproot.open(file_name)
-    taus_tree = root_file['taus']
-    cells_tree = {}
-    for loc in cell_locations:
-        cells_tree[loc] = root_file[loc + '_cells']
-    component_branches = [ input_cell_common_branches + input_cell_pfCand_branches,
-                           input_cell_common_branches + input_cell_ele_branches,
-                           input_cell_common_branches + input_cell_muon_branches ]
+    root_input = file_name.endswith('.root')
+    if root_input:
+        root_file = uproot.open(file_name)
+        taus_tree = root_file['taus']
+        cells_tree = {}
 
-    expected_n_batches = math.ceil((tau_end - tau_begin) / batch_size)
+        for loc in cell_locations:
+            cells_tree[loc] = root_file[loc + '_cells']
+
+    expected_n_batches = int(math.ceil((tau_end - tau_begin) / batch_size))
     tau_current = tau_begin
     global_batch_id = 0
     while tau_current < tau_end:
         entry_stop = min(tau_current + chunk_size, tau_end)
-        df_taus = taus_tree.arrays(branches=df_tau_branches, outputtype=pandas.DataFrame, namedecode='utf-8',
-                                  entrystart=tau_current, entrystop=entry_stop, executor=executor)
+        if root_input:
+            df_taus = taus_tree.arrays(branches=df_tau_branches, outputtype=pandas.DataFrame, namedecode='utf-8',
+                                      entrystart=tau_current, entrystop=entry_stop, executor=executor)
+        else:
+            df_taus = pandas.read_hdf(file_name, 'taus', columns=df_tau_branches,
+                                      start=tau_current, stop=entry_stop)
 
         df_cells = {}
         cells_begin_ref = {}
         for loc in cell_locations:
             cells_begin = df_taus[loc + 'Cells_begin'].values[0]
             cells_end = df_taus[loc + 'Cells_end'].values[-1]
-            df_cells[loc] = cells_tree[loc].arrays(branches=df_cell_branches, outputtype=pandas.DataFrame,
-                                                   namedecode='utf-8', entrystart=cells_begin,
-                                                   entrystop=cells_end, executor=executor)
+            if root_input:
+                df_cells[loc] = cells_tree[loc].arrays(branches=df_cell_branches, outputtype=pandas.DataFrame,
+                                                       namedecode='utf-8', entrystart=cells_begin,
+                                                       entrystop=cells_end, executor=executor)
+            else:
+                df_cells[loc] = pandas.read_hdf(file_name, loc + '_cells', columns=df_cell_branches,
+                                                start=cells_begin, stop=cells_end)
             cells_begin_ref[loc] = cells_begin
         current_chunk_size = entry_stop - tau_current
-        n_batches = math.ceil(current_chunk_size / float(batch_size))
+        n_batches = int(math.ceil(current_chunk_size / float(batch_size)))
         for batch_id in range(n_batches):
             if global_batch_id >= expected_n_batches:
                 raise RuntimeError("Too many batches")
@@ -86,12 +95,16 @@ def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, 
 class DataLoader:
     @staticmethod
     def GetNumberOfEntries(file_name, tree_name):
-        with uproot.open(file_name) as file:
-            tree = file[tree_name]
-            return tree.numentries
+        if file_name.endswith('.root'):
+            with uproot.open(file_name) as file:
+                tree = file[tree_name]
+                return tree.numentries
+        else:
+            h5 = pandas.HDFStore(file_name, mode='r')
+            return h5.get_storer('taus').nrows
 
     def __init__(self, file_name, batch_size, chunk_size, validation_size = None, max_data_size = None,
-                 max_queue_size = 4, n_passes = -1):
+                 max_queue_size = 8, n_passes = -1):
         if batch_size <= 0 or chunk_size <= 0:
             raise RuntimeError("batch_size and chunk_size should be positive numbers")
         self.file_name = file_name
@@ -115,7 +128,7 @@ class DataLoader:
         if max_data_size is not None:
             self.data_size = min(self.data_size, max_data_size)
 
-        self.steps_per_epoch = math.ceil(self.data_size / self.batch_size)
+        self.steps_per_epoch = int(math.ceil(self.data_size / self.batch_size))
         if self.has_validation_set:
             self.validation_steps = math.ceil(self.validation_size / self.batch_size)
         self.executor = ThreadPoolExecutor(8)
