@@ -9,6 +9,7 @@ parser.add_argument('--model', required=True, type=str, help="Model file")
 parser.add_argument('--tree', required=False, type=str, default="taus", help="Tree name")
 parser.add_argument('--chunk-size', required=False, type=int, default=1000, help="Chunk size")
 parser.add_argument('--batch-size', required=False, type=int, default=250, help="Batch size")
+parser.add_argument('--max-queue-size', required=False, type=int, default=8, help="Maximal queue size")
 parser.add_argument('--max-n-files', required=False, type=int, default=None, help="Maximum number of files to process")
 parser.add_argument('--max-n-entries-per-file', required=False, type=int, default=None,
                     help="Maximum number of entries per file")
@@ -80,12 +81,14 @@ sess = tf.Session(graph=graph)
 file_index = 0
 for file_name in file_list:
     if args.max_n_files is not None and file_index >= args.max_n_files: break
-    print("Processing '{}'".format(file_name))
     full_name = prefix + file_name
 
-    pred_output = args.output + '/' + file_name + '_pred.hdf5'
+    pred_output = args.output + '/' + os.path.splitext(file_name)[0] + '_pred.h5'
     if os.path.isfile(pred_output):
-        os.remove(pred_output)
+        print('"{}" already present in the output directory.'.format(pred_output))
+        continue
+        #os.remove(pred_output)
+    print("Processing '{}' -> '{}'".format(file_name, os.path.basename(pred_output)))
 
 #    n_entries = GetNumberOfEntries(full_name, args.tree)
 #    if args.max_n_entries_per_file is not None:
@@ -93,12 +96,12 @@ for file_name in file_list:
 #    current_start = 0
 
     loader = DataLoader(full_name, args.batch_size, args.chunk_size, max_data_size=args.max_n_entries_per_file,
-                        n_passes = 1)
+                        max_queue_size=args.max_queue_size, n_passes = 1)
 
     with tqdm(total=loader.data_size, unit='taus') as pbar:
         for inputs in loader.generator(return_truth = False, return_weights = False):
             df = Predict(sess, graph, *inputs)
-            df.to_hdf(args.output + '/' + file_name + '_pred.hdf5', args.tree, append=True, complevel=1, complib='zlib')
+            df.to_hdf(pred_output, args.tree, append=True, complevel=1, complib='zlib')
             pbar.update(df.shape[0])
             del df
             gc.collect()

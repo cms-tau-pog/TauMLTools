@@ -85,7 +85,8 @@ all_branches = core_branches + [ disc.column for disc in discriminators if disc.
 def CreateDF(file_name):
     df = ReadBrancesToDataFrame(file_name, 'taus', all_branches)
     base_name = os.path.basename(file_name)
-    df_pred = pandas.read_hdf(os.path.join(args.deep_results, base_name + '_pred.hdf5'))
+    pred_file_name = os.path.splitext(base_name)[0] + '_pred.h5'
+    df_pred = pandas.read_hdf(os.path.join(args.deep_results, pred_file_name))
     tau_vs_other = TauLosses.tau_vs_other(df_pred['deepId_tau'].values, df_pred['deepId_' + args.other_type].values)
     #print(file_name, np.amin(df_pred['deepId_jet'].values), np.amax(df_pred['deepId_jet'].values))
     df['deepId_vs_' + args.other_type] = pandas.Series(tau_vs_other, index=df.index)

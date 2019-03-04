@@ -20,7 +20,7 @@ def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, 
         for loc in cell_locations:
             cells_tree[loc] = root_file[loc + '_cells']
 
-    expected_n_batches = int(math.ceil((tau_end - tau_begin) / batch_size))
+    expected_n_batches = int(math.ceil((tau_end - tau_begin) / float(batch_size)))
     tau_current = tau_begin
     global_batch_id = 0
     while tau_current < tau_end:
@@ -128,9 +128,9 @@ class DataLoader:
         if max_data_size is not None:
             self.data_size = min(self.data_size, max_data_size)
 
-        self.steps_per_epoch = int(math.ceil(self.data_size / self.batch_size))
+        self.steps_per_epoch = int(math.ceil(self.data_size / float(self.batch_size)))
         if self.has_validation_set:
-            self.validation_steps = math.ceil(self.validation_size / self.batch_size)
+            self.validation_steps = math.ceil(self.validation_size / float(self.batch_size))
         self.executor = ThreadPoolExecutor(8)
 
     def generator(self, primary_set = True, return_truth = True, return_weights = True):
