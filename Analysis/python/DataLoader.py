@@ -3,12 +3,21 @@ import math
 import gc
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
-from threading import Thread
+from threading import Thread, Lock
+import asyncio
 import numpy as np
 import pandas
 import uproot
 from common import *
 from fill_grid import FillGrid
+
+read_hdf_lock = Lock()
+
+def read_hdf(file_name, key, columns, start, stop):
+    read_hdf_lock.acquire()
+    df = pandas.read_hdf(file_name, key, columns=columns, start=start, stop=stop)
+    read_hdf_lock.release()
+    return df
 
 def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, tau_end, return_truth, return_weights):
     root_input = file_name.endswith('.root')
@@ -20,7 +29,7 @@ def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, 
         for loc in cell_locations:
             cells_tree[loc] = root_file[loc + '_cells']
 
-    expected_n_batches = int(math.ceil((tau_end - tau_begin) / batch_size))
+    expected_n_batches = int(math.ceil((tau_end - tau_begin) / float(batch_size)))
     tau_current = tau_begin
     global_batch_id = 0
     while tau_current < tau_end:
@@ -29,8 +38,7 @@ def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, 
             df_taus = taus_tree.arrays(branches=df_tau_branches, outputtype=pandas.DataFrame, namedecode='utf-8',
                                       entrystart=tau_current, entrystop=entry_stop, executor=executor)
         else:
-            df_taus = pandas.read_hdf(file_name, 'taus', columns=df_tau_branches,
-                                      start=tau_current, stop=entry_stop)
+            df_taus = read_hdf(file_name, 'taus', df_tau_branches, tau_current, entry_stop)
 
         df_cells = {}
         cells_begin_ref = {}
@@ -42,8 +50,7 @@ def LoaderThread(file_name, queue, executor, batch_size, chunk_size, tau_begin, 
                                                        namedecode='utf-8', entrystart=cells_begin,
                                                        entrystop=cells_end, executor=executor)
             else:
-                df_cells[loc] = pandas.read_hdf(file_name, loc + '_cells', columns=df_cell_branches,
-                                                start=cells_begin, stop=cells_end)
+                df_cells[loc] = read_hdf(file_name, loc + '_cells', df_cell_branches, cells_begin, cells_end)
             cells_begin_ref[loc] = cells_begin
         current_chunk_size = entry_stop - tau_current
         n_batches = int(math.ceil(current_chunk_size / float(batch_size)))
@@ -128,9 +135,9 @@ class DataLoader:
         if max_data_size is not None:
             self.data_size = min(self.data_size, max_data_size)
 
-        self.steps_per_epoch = int(math.ceil(self.data_size / self.batch_size))
+        self.steps_per_epoch = int(math.ceil(self.data_size / float(self.batch_size)))
         if self.has_validation_set:
-            self.validation_steps = math.ceil(self.validation_size / self.batch_size)
+            self.validation_steps = math.ceil(self.validation_size / float(self.batch_size))
         self.executor = ThreadPoolExecutor(8)
 
     def generator(self, primary_set = True, return_truth = True, return_weights = True):
