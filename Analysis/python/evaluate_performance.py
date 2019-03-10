@@ -6,6 +6,7 @@ parser.add_argument('--input-taus', required=True, type=str, help="Input file wi
 parser.add_argument('--input-other', required=True, type=str, help="Input file with non-taus")
 parser.add_argument('--other-type', required=True, type=str, help="Type of non-tau objects")
 parser.add_argument('--deep-results', required=True, type=str, help="Directory with deepId results")
+parser.add_argument('--output', required=True, type=str, help="Output pdf file")
 #parser.add_argument('--apply-loose', action="store_true", help="Submission dryrun.")
 args = parser.parse_args()
 
@@ -219,7 +220,7 @@ def create_roc_ratio(x1, y1, x2, y2):
     ratio[1, :] = x1_upd
     return ratio
 
-with PdfPages('tau_vs_{}.pdf'.format(args.other_type)) as pdf:
+with PdfPages(args.output) as pdf:
     for pt_index in range(len(pt_bins) - 1):
         df_tx = df_all[(df_all.tau_pt > pt_bins[pt_index]) & (df_all.tau_pt < pt_bins[pt_index + 1])]
         if df_tx.shape[0] == 0:

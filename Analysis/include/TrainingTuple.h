@@ -34,7 +34,7 @@
     VAR(UInt_t, run) /* run number */ \
     VAR(UInt_t, lumi) /* lumi section */ \
     VAR(ULong64_t, evt) /* event number */ \
-    VAR(Int_t, npv) /* number of primary vertices */ \
+    VAR(Float_t, npv) /* number of primary vertices */ \
     VAR(Float_t, rho) /* fixed grid energy density */ \
     VAR(Float_t, genEventWeight) /* gen event weight */ \
     VAR(Float_t, trainingWeight) /* weight that should be applied during the training */ \
@@ -62,7 +62,8 @@
     VAR(Int_t, jetTauMatch) /* match between jet and tau: NoMatch = 0, PF = 1, dR = 2 */ \
     VAR(Int_t, tau_index) /* index of the tau */ \
     VAR4(Float_t, tau_pt, tau_eta, tau_phi, tau_mass) /* 4-momentum of the tau */ \
-    VAR(Int_t, tau_charge) /* tau charge */ \
+    VAR(Float_t, tau_E_over_pt) /* energy of the tau divided by the pt of the tau */ \
+    VAR(Float_t, tau_charge) /* tau charge */ \
     VAR(Int_t, gen_e) /* tau is an electron based on gen matching */ \
     VAR(Int_t, gen_mu) /* tau is a muon based on gen matching */ \
     VAR(Int_t, gen_tau) /* tau is a hadronic tau based on gen matching */ \
@@ -81,41 +82,45 @@
     VAR(Int_t, qcd_gen_charge) /* charge of the matched gen QCD particle */ \
     VAR4(Float_t, qcd_gen_pt, qcd_gen_eta, qcd_gen_phi, qcd_gen_mass) /* 4-momentum of the matched gen QCD particle */ \
     /* Tau ID variables */ \
+    VAR2(Float_t, tau_n_charged_prongs, tau_n_neutral_prongs) /* number of charged and neutral prongs that are
+                                                                 reconstructed as the tau decay products */ \
     VAR(Int_t, tau_decayMode) /* tau decay mode */ \
     VAR(Int_t, tau_decayModeFinding) /* tau passed the old decay mode finding requirements */ \
     VAR(Int_t, tau_decayModeFindingNewDMs) /* tau passed the new decay mode finding requirements */ \
     VAR(Float_t, chargedIsoPtSum) /* sum of the transverse momentums of charged pf candidates inside
                                      the tau isolation cone with dR < 0.5 */ \
-    VAR(Float_t, chargedIsoPtSumdR03) /* sum of the transverse momentums of charged pf candidates inside
-                                         the tau isolation cone with dR < 0.3 */ \
+    VAR(Float_t, chargedIsoPtSumdR03_over_dR05) /* ratio between sum of the transverse momentums of charged pf
+                                                   candidates inside the tau isolation cone with dR < 0.3 and
+                                                   dR < 0.5 */ \
     VAR(Float_t, footprintCorrection) /* tau footprint correction inside the tau isolation cone with dR < 0.5 */ \
-    VAR(Float_t, footprintCorrectiondR03) /* tau footprint correction inside the tau isolation cone with dR < 0.3 */ \
     VAR(Float_t, neutralIsoPtSum) /* sum of the transverse momentums of neutral pf candidates inside
                                      the tau isolation cone with dR < 0.5 */ \
-    VAR(Float_t, neutralIsoPtSumWeight) /* weighted sum of the transverse momentums of neutral pf candidates inside
-                                           the tau isolation cone with dR < 0.5 */ \
-    VAR(Float_t, neutralIsoPtSumWeightdR03) /* weighted sum of the transverse momentums of neutral pf candidates inside
-                                               the tau isolation cone with dR < 0.3 */ \
-    VAR(Float_t, neutralIsoPtSumdR03) /* sum of the transverse momentums of neutral pf candidates inside
-                                         the tau isolation cone with dR < 0.3 */ \
+    VAR(Float_t, neutralIsoPtSumWeight_over_neutralIsoPtSum) /* ratio between weighted and unweighted sum of
+                                                                the transverse momentums of neutral pf candidates inside
+                                                                the tau isolation cone with dR < 0.5 */ \
+    VAR(Float_t, neutralIsoPtSumWeightdR03_over_neutralIsoPtSum) /* ratio between weighted and unweighted sum of the
+                                                                    transverse momentums of neutral pf candidates inside
+                                                                    the tau isolation cone with dR < 0.3 (0.5) */ \
+    VAR(Float_t, neutralIsoPtSumdR03_over_dR05) /* ration between sum of the transverse momentums of neutral pf
+                                                   candidates inside the tau isolation cone with dR < 0.3 and
+                                                   dR < 0.5 */ \
     VAR(Float_t, photonPtSumOutsideSignalCone) /* sum of the transverse momentums of photons
                                                   inside the tau isolation cone with dR < 0.5 */ \
-    VAR(Float_t, photonPtSumOutsideSignalConedR03) /* sum of the transverse momentums of photons inside
-                                                      the tau isolation cone with dR < 0.3 */ \
     VAR(Float_t, puCorrPtSum) /* pile-up correction for the sum of the transverse momentums */ \
     TAU_IDS() \
     /* Tau transverse impact paramters.
        See cmssw/RecoTauTag/RecoTau/plugins/PFTauTransverseImpactParameters.cc for details */ \
     VAR3(Float_t, tau_dxy_pca_x, tau_dxy_pca_y, tau_dxy_pca_z) /* The point of closest approach (PCA) of
                                                                   the leadPFChargedHadrCand to the primary vertex */ \
+    VAR(Float_t, tau_dxy_valid) /* tau_dxy and tau_dxy_sig are valid */ \
     VAR(Float_t, tau_dxy) /* tau signed transverse impact parameter wrt to the primary vertex */ \
-    VAR(Float_t, tau_dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
+    VAR(Float_t, tau_dxy_sig) /* significance of the transverse impact parameter measurement */ \
+    VAR(Float_t, tau_ip3d_valid) /* tau_ip3d and tau_ip3d_sig are valid */ \
     VAR(Float_t, tau_ip3d) /* tau signed 3D impact parameter wrt to the primary vertex */ \
-    VAR(Float_t, tau_ip3d_error) /* uncertainty of the 3D impact parameter measurement */ \
+    VAR(Float_t, tau_ip3d_sig) /* significance of the 3D impact parameter measurement */ \
     VAR(Float_t, tau_dz) /* tau dz of the leadChargedHadrCand wrt to the primary vertex */ \
-    VAR(Float_t, tau_dz_error) /* uncertainty of the tau dz measurement */ \
-    VAR(Int_t, tau_hasSecondaryVertex) /* tau has the secondary vertex */ \
-    VAR3(Float_t, tau_sv_x, tau_sv_y, tau_sv_z) /* position of the secondary vertex */ \
+    VAR(Float_t, tau_dz_sig_valid) /* tau_dz_sig is valid */ \
+    VAR(Float_t, tau_dz_sig) /* significance of the tau dz measurement */ \
     VAR3(Float_t, tau_flightLength_x, tau_flightLength_y, tau_flightLength_z) /* flight length of the tau */ \
     VAR(Float_t, tau_flightLength_sig) /* significance of the flight length measurement */ \
     /* Extended tau variables */ \
@@ -129,14 +134,17 @@
                                             for all pf photon candidates, which are inside an isolation cone
                                             but not associated to signal */ \
     VAR(Float_t, tau_leadingTrackNormChi2) /* normalized chi2 of leading track */ \
+    VAR(Float_t, tau_e_ratio_valid) /* tau_e_ratio is valid */ \
     VAR(Float_t, tau_e_ratio) /* ratio of energy in ECAL over sum of energy in ECAL and HCAL */ \
+    VAR(Float_t, tau_gj_angle_diff_valid) /* tau_gj_angle_diff is valid */ \
     VAR(Float_t, tau_gj_angle_diff) /* Gottfried-Jackson angle difference
                                        (defined olny when the secondary vertex is reconstructed) */ \
-    VAR(Int_t, tau_n_photons) /* total number of pf photon candidates with pT>500 MeV,
+    VAR(Float_t, tau_n_photons) /* total number of pf photon candidates with pT>500 MeV,
                                  which are associated to signal */ \
     VAR(Float_t, tau_emFraction) /* tau->emFraction_MVA */ \
-    VAR(Int_t, tau_inside_ecal_crack) /* tau is inside the ECAL crack (1.46 < |eta| < 1.558) */ \
-    VAR(Float_t, leadChargedCand_etaAtEcalEntrance) /* eta at ECAL entrance of the leadChargedCand */ \
+    VAR(Float_t, tau_inside_ecal_crack) /* tau is inside the ECAL crack (1.46 < |eta| < 1.558) */ \
+    VAR(Float_t, leadChargedCand_etaAtEcalEntrance_minus_tau_eta) /* eta at ECAL entrance of the leadChargedCand minus
+                                                                     tau eta */ \
     VAR2(Long64_t, innerCells_begin, innerCells_end) /* index of the first and of the next to the last inner cells */ \
     VAR2(Long64_t, outerCells_begin, outerCells_end) /* index of the first and of the next to the last outer cells */ \
     /**/
@@ -145,7 +153,134 @@
     /* Common variables */ \
     VAR2(Int_t, eta_index, phi_index) /* eta and phi index of the cell in the grid */ \
     VAR(Float_t, tau_pt) /* pt of the tau */ \
-    /* PF candidates */ \
+    /* Electron PF candidates */ \
+    CAND_VAR(Int_t, ele_n_total) /* total number of PF candidates in the cell */ \
+    CAND_VAR(Float_t, ele_valid) /* the information in pfCand_ele branches is valid */ \
+    CAND_VAR3(Float_t, ele_pt, ele_deta, ele_dphi) /* 4-momenta of the PF candidate with the highest pt */ \
+    CAND_VAR(Float_t, ele_pvAssociationQuality) /* information about how the association to the PV is obtained:
+                                                   NotReconstructedPrimary = 0, OtherDeltaZ = 1, CompatibilityBTag = 4,
+                                                   CompatibilityDz = 5, UsedInFitLoose = 6, UsedInFitTight = 7 */ \
+    CAND_VAR(Float_t, ele_puppiWeight) /* weight from full PUPPI */ \
+    CAND_VAR(Float_t, ele_charge) /* electric charge */ \
+    CAND_VAR(Float_t, ele_lostInnerHits) /* enumerator specifying the number of lost inner hits:
+                                            validHitInFirstPixelBarrelLayer = -1, noLostInnerHits = 0 (it could still
+                                            not have a hit in the first layer, e.g. if it crosses an inactive sensor),
+                                            oneLostInnerHit = 1, moreLostInnerHits = 2 */ \
+    CAND_VAR(Float_t, ele_numberOfPixelHits) /* number of valid pixel hits */ \
+    CAND_VAR(Float_t, ele_hasTrackDetails) /* has track details */ \
+    CAND_VAR(Float_t, ele_dxy) /* signed transverse impact parameter wrt to the primary vertex */ \
+    CAND_VAR(Float_t, ele_dxy_sig) /* significance of the transverse impact parameter measurement */ \
+    CAND_VAR(Float_t, ele_dz) /* dz wrt to the primary vertex */ \
+    CAND_VAR(Float_t, ele_dz_sig) /* significance of the dz measurement */ \
+    CAND_VAR(Float_t, ele_track_chi2_ndof) /* chi^2/ndof of the pseudo track made with the candidate kinematics */ \
+    CAND_VAR(Float_t, ele_track_ndof) /* number of degrees of freedom of the pseudo track
+                                         made with the candidate kinematics */ \
+    /* Muon PF candidates */ \
+    CAND_VAR(Int_t, muon_n_total) /* total number of PF candidates in the cell */ \
+    CAND_VAR(Float_t, muon_valid) /* the information in pfCand_muon branches is valid */ \
+    CAND_VAR3(Float_t, muon_pt, muon_deta, muon_dphi) /* 4-momenta of the PF candidate with the highest pt */ \
+    CAND_VAR(Int_t, pvAssociationQuality) /* information about how the association to the PV is obtained:
+                                             NotReconstructedPrimary = 0, OtherDeltaZ = 1, CompatibilityBTag = 4,
+                                             CompatibilityDz = 5, UsedInFitLoose = 6, UsedInFitTight = 7 */ \
+    CAND_VAR(Int_t, fromPV) /* the association to PV=ipv. >=PVLoose corresponds to JME definition,
+                               >=PVTight to isolation definition:
+                               NoPV = 0, PVLoose = 1, PVTight = 2, PVUsedInFit = 3 */ \
+    CAND_VAR(Float_t, puppiWeight) /* weight from full PUPPI */ \
+    CAND_VAR(Float_t, puppiWeightNoLep) /* weight from PUPPI removing leptons */ \
+    CAND_VAR(Int_t, pdgId) /* PDG identifier */ \
+    CAND_VAR(Int_t, charge) /* electric charge */ \
+    CAND_VAR(Int_t, lostInnerHits) /* enumerator specifying the number of lost inner hits:
+                                      validHitInFirstPixelBarrelLayer = -1, noLostInnerHits = 0 (it could still not
+                                      have a hit in the first layer, e.g. if it crosses an inactive sensor),
+                                      oneLostInnerHit = 1, moreLostInnerHits = 2 */ \
+    CAND_VAR(Int_t, numberOfPixelHits) /* number of valid pixel hits */ \
+    CAND_VAR3(Float_t, vertex_x, vertex_y, vertex_z) /* position of the vertex to which the candidate is associated */ \
+    CAND_VAR(Int_t, hasTrackDetails) /* has track details */ \
+    CAND_VAR(Float_t, dxy) /* signed transverse impact parameter wrt to the primary vertex */ \
+    CAND_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
+    CAND_VAR(Float_t, dz) /* dz wrt to the primary vertex */ \
+    CAND_VAR(Float_t, dz_error) /* uncertainty of the dz measurement */ \
+    CAND_VAR(Float_t, track_chi2) /* chi^2 of the pseudo track made with the candidate kinematics */ \
+    CAND_VAR(Float_t, track_ndof) /* number of degrees of freedom of the pseudo track
+                                     made with the candidate kinematics */ \
+    CAND_VAR(Float_t, hcalFraction) /* fraction of ECAL and HCAL for HF and neutral hadrons
+                                       and isolated charged hadrons */ \
+    CAND_VAR(Float_t, rawCaloFraction) /* raw ECAL+HCAL energy over candidate energy for isolated charged hadrons */ \
+    /* Charged hadron PF candidates */ \
+    CAND_VAR(Int_t, n_total) /* total number of PF candidates in the cell */ \
+    CAND_VAR3(Int_t, n_ele, n_muon, n_gamma) /* number of electron, muon and gamma PF candidates in the cell */ \
+    CAND_VAR2(Int_t, n_chargedHadrons, n_neutralHadrons) /* number of hadron PF candidates in the cell */ \
+    CAND_VAR(Float_t, max_pt) /* transverse momentum of the most energetic PF candidate in the cell */ \
+    CAND_VAR3(Float_t, sum_pt, sum_pt_scalar, sum_E) /* sum of the 4-momenta of the PF candidates in the cell */ \
+    CAND_VAR(Int_t, jetDaughter) /* PF candidate is a jet daughter */ \
+    CAND_VAR(Int_t, tauSignal) /* PF candidate is a part of the tau signal */ \
+    CAND_VAR(Int_t, leadChargedHadrCand) /* PF candidate is the leadChargedHadrCand */ \
+    CAND_VAR(Int_t, tauIso) /* PF candidate is a parto of the tau isolation */ \
+    CAND_VAR(Int_t, pvAssociationQuality) /* information about how the association to the PV is obtained:
+                                             NotReconstructedPrimary = 0, OtherDeltaZ = 1, CompatibilityBTag = 4,
+                                             CompatibilityDz = 5, UsedInFitLoose = 6, UsedInFitTight = 7 */ \
+    CAND_VAR(Int_t, fromPV) /* the association to PV=ipv. >=PVLoose corresponds to JME definition,
+                               >=PVTight to isolation definition:
+                               NoPV = 0, PVLoose = 1, PVTight = 2, PVUsedInFit = 3 */ \
+    CAND_VAR(Float_t, puppiWeight) /* weight from full PUPPI */ \
+    CAND_VAR(Float_t, puppiWeightNoLep) /* weight from PUPPI removing leptons */ \
+    CAND_VAR(Int_t, pdgId) /* PDG identifier */ \
+    CAND_VAR(Int_t, charge) /* electric charge */ \
+    CAND_VAR(Int_t, lostInnerHits) /* enumerator specifying the number of lost inner hits:
+                                      validHitInFirstPixelBarrelLayer = -1, noLostInnerHits = 0 (it could still not
+                                      have a hit in the first layer, e.g. if it crosses an inactive sensor),
+                                      oneLostInnerHit = 1, moreLostInnerHits = 2 */ \
+    CAND_VAR(Int_t, numberOfPixelHits) /* number of valid pixel hits */ \
+    CAND_VAR3(Float_t, vertex_x, vertex_y, vertex_z) /* position of the vertex to which the candidate is associated */ \
+    CAND_VAR(Int_t, hasTrackDetails) /* has track details */ \
+    CAND_VAR(Float_t, dxy) /* signed transverse impact parameter wrt to the primary vertex */ \
+    CAND_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
+    CAND_VAR(Float_t, dz) /* dz wrt to the primary vertex */ \
+    CAND_VAR(Float_t, dz_error) /* uncertainty of the dz measurement */ \
+    CAND_VAR(Float_t, track_chi2) /* chi^2 of the pseudo track made with the candidate kinematics */ \
+    CAND_VAR(Float_t, track_ndof) /* number of degrees of freedom of the pseudo track
+                                     made with the candidate kinematics */ \
+    CAND_VAR(Float_t, hcalFraction) /* fraction of ECAL and HCAL for HF and neutral hadrons
+                                       and isolated charged hadrons */ \
+    CAND_VAR(Float_t, rawCaloFraction) /* raw ECAL+HCAL energy over candidate energy for isolated charged hadrons */ \
+    /* Neutral hadron PF candidates */ \
+    CAND_VAR(Int_t, n_total) /* total number of PF candidates in the cell */ \
+    CAND_VAR3(Int_t, n_ele, n_muon, n_gamma) /* number of electron, muon and gamma PF candidates in the cell */ \
+    CAND_VAR2(Int_t, n_chargedHadrons, n_neutralHadrons) /* number of hadron PF candidates in the cell */ \
+    CAND_VAR(Float_t, max_pt) /* transverse momentum of the most energetic PF candidate in the cell */ \
+    CAND_VAR3(Float_t, sum_pt, sum_pt_scalar, sum_E) /* sum of the 4-momenta of the PF candidates in the cell */ \
+    CAND_VAR(Int_t, jetDaughter) /* PF candidate is a jet daughter */ \
+    CAND_VAR(Int_t, tauSignal) /* PF candidate is a part of the tau signal */ \
+    CAND_VAR(Int_t, leadChargedHadrCand) /* PF candidate is the leadChargedHadrCand */ \
+    CAND_VAR(Int_t, tauIso) /* PF candidate is a parto of the tau isolation */ \
+    CAND_VAR(Int_t, pvAssociationQuality) /* information about how the association to the PV is obtained:
+                                             NotReconstructedPrimary = 0, OtherDeltaZ = 1, CompatibilityBTag = 4,
+                                             CompatibilityDz = 5, UsedInFitLoose = 6, UsedInFitTight = 7 */ \
+    CAND_VAR(Int_t, fromPV) /* the association to PV=ipv. >=PVLoose corresponds to JME definition,
+                               >=PVTight to isolation definition:
+                               NoPV = 0, PVLoose = 1, PVTight = 2, PVUsedInFit = 3 */ \
+    CAND_VAR(Float_t, puppiWeight) /* weight from full PUPPI */ \
+    CAND_VAR(Float_t, puppiWeightNoLep) /* weight from PUPPI removing leptons */ \
+    CAND_VAR(Int_t, pdgId) /* PDG identifier */ \
+    CAND_VAR(Int_t, charge) /* electric charge */ \
+    CAND_VAR(Int_t, lostInnerHits) /* enumerator specifying the number of lost inner hits:
+                                      validHitInFirstPixelBarrelLayer = -1, noLostInnerHits = 0 (it could still not
+                                      have a hit in the first layer, e.g. if it crosses an inactive sensor),
+                                      oneLostInnerHit = 1, moreLostInnerHits = 2 */ \
+    CAND_VAR(Int_t, numberOfPixelHits) /* number of valid pixel hits */ \
+    CAND_VAR3(Float_t, vertex_x, vertex_y, vertex_z) /* position of the vertex to which the candidate is associated */ \
+    CAND_VAR(Int_t, hasTrackDetails) /* has track details */ \
+    CAND_VAR(Float_t, dxy) /* signed transverse impact parameter wrt to the primary vertex */ \
+    CAND_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
+    CAND_VAR(Float_t, dz) /* dz wrt to the primary vertex */ \
+    CAND_VAR(Float_t, dz_error) /* uncertainty of the dz measurement */ \
+    CAND_VAR(Float_t, track_chi2) /* chi^2 of the pseudo track made with the candidate kinematics */ \
+    CAND_VAR(Float_t, track_ndof) /* number of degrees of freedom of the pseudo track
+                                     made with the candidate kinematics */ \
+    CAND_VAR(Float_t, hcalFraction) /* fraction of ECAL and HCAL for HF and neutral hadrons
+                                       and isolated charged hadrons */ \
+    CAND_VAR(Float_t, rawCaloFraction) /* raw ECAL+HCAL energy over candidate energy for isolated charged hadrons */ \
+    /* Gamma PF candidates */ \
     CAND_VAR(Int_t, n_total) /* total number of PF candidates in the cell */ \
     CAND_VAR3(Int_t, n_ele, n_muon, n_gamma) /* number of electron, muon and gamma PF candidates in the cell */ \
     CAND_VAR2(Int_t, n_chargedHadrons, n_neutralHadrons) /* number of hadron PF candidates in the cell */ \

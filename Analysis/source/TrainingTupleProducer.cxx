@@ -3,6 +3,7 @@
 
 #include <boost/preprocessor/seq.hpp>
 #include <boost/preprocessor/variadic.hpp>
+#include <boost/math/constants/constants.hpp>
 
 #include "AnalysisTools/Run/include/program_main.h"
 #include "AnalysisTools/Core/include/AnalysisMath.h"
@@ -29,7 +30,8 @@ struct Arguments {
 
 namespace analysis {
 
-enum class CellObjectType { PfCandidate, Electron, Muon };
+enum class CellObjectType { PfCand_electron, PfCand_muon, PfCand_chargedHadron, PfCand_neutralHadron,
+                            PfCand_gamma, Electron, Muon };
 using Cell = std::map<CellObjectType, std::set<size_t>>;
 struct CellIndex { int eta, phi; };
 
@@ -146,53 +148,129 @@ public:
     }
 
 private:
-    static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
-    static constexpr int default_int_value = tau_tuple::DefaultFillValue<int>();
-    static constexpr float min_value = -1000, max_value = 1000;
+    static constexpr float pi = boost::math::constants::pi<float>();
 
     template<typename T>
-    static T GetValue(T value, bool clamp = true)
+    static float GetValue(T value)
     {
-        if(std::isnan(value))
-            return 0;
-        return std::is_integral<T>::value || !clamp ? value : std::clamp(value, T(min_value), T(max_value));
+        return std::isnormal(value) ? static_cast<float>(value) : 0.f;
     }
 
-    #define CP_BR(name) trainingTauTuple().name = GetValue(tau.name);
+    template<typename T>
+    static float GetValueLinear(T value, float min_value, float max_value, bool positive)
+    {
+        const float fixed_value = GetValue(value);
+        const float clamped_value = std::clamp(fixed_value, min_value, max_value);
+        float transformed_value = (clamped_value - min_value) / (max_value - min_value);
+        if(!positive)
+            transformed_value = transformed_value * 2 - 1;
+        return transformed_value;
+    }
+
+    template<typename T>
+    static float GetValueNorm(T value, float mean, float sigma, float n_sigmas_max = 5)
+    {
+        const float fixed_value = GetValue(value);
+        const float norm_value = (fixed_value - mean) / sigma;
+        return std::clamp(norm_value, -n_sigmas_max, n_sigmas_max);
+    }
+
+    #define CP_BR(name) trainingTauTuple().name = tau.name;
     #define TAU_ID(name, pattern, has_raw, wp_list) CP_BR(name) CP_BR(name##raw)
     void FillTauBranches(const Tau& tau)
     {
-        trainingTauTuple().genEventWeight = tau.genEventWeight;
-        trainingTauTuple().trainingWeight = tau.trainingWeight * trainingWeightFactor;
-        CP_BRANCHES(run, lumi, evt, npv, rho, npu, pv_x, pv_y, pv_z, pv_chi2, pv_ndof)
+        auto& out = trainingTauTuple();
+        out.run = tau.run;
+        out.lumi = tau.lumi;
+        out.evt = tau.evt;
+        out.npv = GetValueNorm(tau.npv, 29.51, 13.31);
+        out.rho = GetValueNorm(tau.rho, 21.49, 9.713);
+        out.genEventWeight = tau.genEventWeight;
+        out.trainingWeight = tau.trainingWeight * trainingWeightFactor;
+        out.npu = tau.npu;
+        out.pv_x = GetValueNorm(tau.pv_x, -0.0274, 0.001759);
+        out.pv_y = GetValueNorm(tau.pv_y, 0.06932, 0.001734);
+        out.pv_z = GetValueNorm(tau.pv_z, 0.8196, 3.501);
+        out.pv_chi2 = GetValueNorm(tau.pv_chi2, 95.6, 45.13);
+        out.pv_ndof = GetValueNorm(tau.pv_ndof, 125.2, 56.96);
+
         CP_BRANCHES(jet_index, jet_pt, jet_eta, jet_phi, jet_mass, jet_neutralHadronEnergyFraction,
                     jet_neutralEmEnergyFraction, jet_nConstituents, jet_chargedMultiplicity, jet_neutralMultiplicity,
                     jet_partonFlavour, jet_hadronFlavour, jet_has_gen_match, jet_gen_pt, jet_gen_eta, jet_gen_phi,
-                    jet_gen_mass, jet_gen_n_b, jet_gen_n_c)
-        CP_BRANCHES(jetTauMatch, tau_index, tau_pt, tau_eta, tau_phi, tau_mass, tau_charge, lepton_gen_match,
-                    lepton_gen_charge, lepton_gen_pt, lepton_gen_eta, lepton_gen_phi, lepton_gen_mass,
+                    jet_gen_mass, jet_gen_n_b, jet_gen_n_c, jetTauMatch)
+
+        out.tau_index = tau.tau_index;
+        out.tau_pt = GetValueLinear(tau.tau_pt, 20.f, 1000.f, true);
+        out.tau_eta = GetValueLinear(tau.tau_eta, -2.3f, 2.3f, false);
+        out.tau_phi = GetValueLinear(tau.tau_phi, -pi, pi, false);
+        out.tau_mass = GetValueNorm(tau.tau_mass, 0.6669f, 0.6553f);
+        const LorentzVectorM tau_p4(tau.tau_pt, tau.tau_eta, tau.tau_phi, tau.tau_mass);
+        out.tau_E_over_pt = GetValueLinear(tau_p4.energy() / tau.tau_pt, 1.f, 5.2f);
+        out.tau_charge = GetValue(tau.tau_charge);
+        out.tau_n_charged_prongs = GetValueLinear(tau.tau_decayMode / 5 + 1, 1, 3);
+        out.tau_n_neutral_prongs = GetValueLinear(tau.tau_decayMode % 5, 0, 2);
+        CP_BRANCHES(lepton_gen_match, lepton_gen_charge, lepton_gen_pt, lepton_gen_eta, lepton_gen_phi, lepton_gen_mass,
                     qcd_gen_match, qcd_gen_charge, qcd_gen_pt, qcd_gen_eta, qcd_gen_phi, qcd_gen_mass,
                     tau_decayMode, tau_decayModeFinding, tau_decayModeFindingNewDMs)
-        trainingTauTuple().chargedIsoPtSum = GetValue(tau.chargedIsoPtSum, false);
-        trainingTauTuple().chargedIsoPtSumdR03 = GetValue(tau.chargedIsoPtSumdR03, false);
-        trainingTauTuple().footprintCorrection = GetValue(tau.footprintCorrection, false);
-        trainingTauTuple().footprintCorrectiondR03 = GetValue(tau.footprintCorrectiondR03, false);
-        trainingTauTuple().neutralIsoPtSum = GetValue(tau.neutralIsoPtSum, false);
-        trainingTauTuple().neutralIsoPtSumWeight = GetValue(tau.neutralIsoPtSumWeight, false);
-        trainingTauTuple().neutralIsoPtSumWeightdR03 = GetValue(tau.neutralIsoPtSumWeightdR03, false);
-        trainingTauTuple().neutralIsoPtSumdR03 = GetValue(tau.neutralIsoPtSumdR03, false);
-        trainingTauTuple().photonPtSumOutsideSignalCone = GetValue(tau.photonPtSumOutsideSignalCone, false);
-        trainingTauTuple().photonPtSumOutsideSignalConedR03 = GetValue(tau.photonPtSumOutsideSignalConedR03, false);
-        trainingTauTuple().puCorrPtSum = GetValue(tau.puCorrPtSum, false);
 
 
-        CP_BRANCHES(tau_dxy_pca_x, tau_dxy_pca_y, tau_dxy_pca_z, tau_dxy, tau_dxy_error, tau_ip3d, tau_ip3d_error,
-                    tau_dz, tau_dz_error, tau_hasSecondaryVertex, tau_sv_x, tau_sv_y, tau_sv_z,
-                    tau_flightLength_x, tau_flightLength_y, tau_flightLength_z, tau_flightLength_sig)
+        out.chargedIsoPtSum = GetValueNorm(tau.chargedIsoPtSum, 47.78f, 123.5f);
+        out.chargedIsoPtSumdR03_over_dR05 = GetValue(tau.chargedIsoPtSumdR03 / tau.chargedIsoPtSum);
+        out.footprintCorrection = GetValueNorm(tau.footprintCorrection, 9.029f, 26.42f);
+        out.neutralIsoPtSum = GetValueNorm(tau.neutralIsoPtSum, 57.59f, 155.3f);
+        out.neutralIsoPtSumWeight_over_neutralIsoPtSum = GetValue(tau.neutralIsoPtSumWeight / tau.neutralIsoPtSum);
+        out.neutralIsoPtSumWeightdR03_over_neutralIsoPtSum =
+            GetValue(tau.neutralIsoPtSumWeightdR03 / tau.neutralIsoPtSum);
+        out.neutralIsoPtSumdR03_over_dR05 = GetValue(tau.neutralIsoPtSumdR03 / tau.neutralIsoPtSum);
+        out.photonPtSumOutsideSignalCone = GetValueNorm(tau.photonPtSumOutsideSignalCone, 1.731f, 6.846f);
+        out.puCorrPtSum = GetValueNorm(tau.puCorrPtSum, 22.38f, 16.34f);
 
-        CP_BRANCHES(tau_pt_weighted_deta_strip, tau_pt_weighted_dphi_strip, tau_pt_weighted_dr_signal,
-                    tau_pt_weighted_dr_iso, tau_leadingTrackNormChi2, tau_e_ratio, tau_gj_angle_diff, tau_n_photons,
-                    tau_emFraction, tau_inside_ecal_crack, leadChargedCand_etaAtEcalEntrance)
+        out.tau_dxy_pca_x = GetValueNorm(tau.tau_dxy_pca_x, -0.02409f, 0.007366f);
+        out.tau_dxy_pca_y = GetValueNorm(tau.tau_dxy_pca_y, 0.06747f, 0.01276f);
+        out.tau_dxy_pca_z = GetValueNorm(tau.tau_dxy_pca_z, 0.7973f, 3.456f);
+
+        const bool tau_dxy_valid = std::isnormal(tau.tau_dxy) && tau.tau_dxy > - 10
+                                   && std::isnormal(tau.tau_dxy_error) && tau.tau_dxy_error > 0;
+        out.tau_dxy_valid = tau_dxy_valid;
+        out.tau_dxy = tau_dxy_valid ? GetValueNorm(tau.tau_dxy, 0.001813f, 0.00853f) : 0.f;
+        out.tau_dxy_sig = tau_dxy_valid ? GetValueNorm(std::abs(tau.tau_dxy)/tau.tau_dxy_error, 2.26f, 4.191f) : 0.f;
+
+        const bool tau_ip3d_valid = std::isnormal(tau.tau_ip3d) && tau.tau_ip3d > - 10
+                                    && std::isnormal(tau.tau_ip3d_error) && tau.tau_ip3d_error > 0;
+        out.tau_ip3d_valid = tau_ip3d_valid;
+        out.tau_ip3d = tau_ip3d_valid ? GetValueNorm(tau.tau_ip3d, 0.002572f, 0.01138f) : 0.f;
+        out.tau_ip3d_sig = tau_ip3d_valid
+                         ? GetValueNorm(std::abs(tau.tau_ip3d) / tau.tau_ip3d_error, 2.928f, 4.466f) : 0.f;
+
+        out.tau_dz = GetValueNorm(tau.tau_dz, 2.512e-5f, 0.01899);
+        const bool tau_dz_sig_valid = std::isnormal(tau.tau_dz) && std::isnormal(tau.tau_dz_error)
+                                      && tau.tau_dz_error > 0;
+        out.tau_dz_sig_valid = tau_dz_sig_valid;
+        out.tau_dz_sig = GetValueNorm(std::abs(tau.tau_dz) / tau.tau_dz_error, 4.717f, 11.78f);
+
+        out.tau_flightLength_x = GetValueNorm(tau.tau_flightLength_x, -0.0002541f, 0.7362f);
+        out.tau_flightLength_y = GetValueNorm(tau.tau_flightLength_y, -0.0008614f, 0.7354f);
+        out.tau_flightLength_z = GetValueNorm(tau.tau_flightLength_z, -0.002195f, 1.993f);
+        out.tau_flightLength_sig = GetValueNorm(out.tau_flightLength_sig, -4.78f, 9.573f);
+
+        out.tau_pt_weighted_deta_strip = GetValueLinear(tau.tau_pt_weighted_deta_strip, 0, 1, true);
+        out.tau_pt_weighted_dphi_strip = GetValueLinear(tau.tau_pt_weighted_dphi_strip, 0, 1, true);
+        out.tau_pt_weighted_dr_signal = GetValueNorm(tau.tau_pt_weighted_dr_signal, 0.005201f, 0.01433f);
+        out.tau_pt_weighted_dr_iso = GetValueLinear(tau.tau_pt_weighted_dr_iso, 0, 1, true);
+
+        out.tau_leadingTrackNormChi2 = GetValueNorm(tau.tau_leadingTrackNormChi2, 1.538f, 4.401f);
+        const bool tau_e_ratio_valid = std::isnormal(tau.tau_e_ratio) && tau.tau_e_ratio > 0.f;
+        out.tau_e_ratio_valid = tau_e_ratio_valid;
+        out.tau_e_ratio = tau_e_ratio_valid ? GetValueLinear(tau.tau_e_ratio, 0, 1, true) : 0.f;
+        const bool tau_gj_angle_diff_valid = (std::isnormal(tau.tau_gj_angle_diff) || tau.tau_gj_angle_diff == 0)
+            && tau.tau_gj_angle_diff >= 0;
+        out.tau_gj_angle_diff_valid = tau_gj_angle_diff_valid;
+        out.tau_gj_angle_diff = tau_gj_angle_diff_valid ? GetValueLinear(tau.tau_gj_angle_diff_valid, 0, pi, true);
+        out.tau_n_photons = GetValueNorm(tau.tau_n_photons, 2.95f, 3.927f);
+        out.tau_emFraction = GetValueLinear(tau.tau_emFraction, -1, 1, false);
+        out.tau_inside_ecal_crack = GetValue(tau.tau_inside_ecal_crack);
+        out.leadChargedCand_etaAtEcalEntrance_minus_tau_eta =
+            GetValueNorm(tau.leadChargedCand_etaAtEcalEntrance - tau.tau_eta, 0.004058f, 0.03232f);
 
         TAU_IDS()
         const TauType tauType = GenMatchToTauType(static_cast<GenLeptonMatch>(tau.lepton_gen_match));
@@ -218,10 +296,10 @@ private:
     #undef CP_BR
 
     void FillCellGrid(const Tau& tau, const CellGrid& cellGridRef, TrainingCellTuple& cellTuple, Long64_t& begin,
-                      Long64_t& end)
+                      Long64_t& end, bool inner)
     {
         begin = cellTuple.GetEntries();
-        auto cellGrid = CreateCellGrid(tau, cellGridRef);
+        auto cellGrid = CreateCellGrid(tau, cellGridRef, inner);
         const int max_eta_index = cellGrid.MaxEtaIndex(), max_phi_index = cellGrid.MaxPhiIndex();
         for(int eta_index = -max_eta_index; eta_index <= max_eta_index; ++eta_index) {
             for(int phi_index = -max_phi_index; phi_index <= max_phi_index; ++phi_index) {
@@ -233,11 +311,13 @@ private:
         end = cellTuple.GetEntries();
     }
 
-    void FillCellBranches(const Tau& tau, const CellIndex& cellIndex, Cell& cell, TrainingCellTuple& cellTuple)
+    void FillCellBranches(const Tau& tau, const CellIndex& cellIndex, Cell& cell, TrainingCellTuple& cellTuple,
+                          bool inner)
     {
-        cellTuple().eta_index = cellIndex.eta;
-        cellTuple().phi_index = cellIndex.phi;
-        cellTuple().tau_pt = tau.tau_pt;
+        auto& out = cellTuple();
+        out.eta_index = cellIndex.eta;
+        out.phi_index = cellIndex.phi;
+        out.tau_pt = GetValueLinear(tau.tau_pt, 20.f, 1000.f, true);
 
         const auto getPt = [&](CellObjectType type, size_t index) {
             if(type == CellObjectType::PfCandidate)
@@ -277,26 +357,58 @@ private:
             }
         };
 
-        size_t n_pfCand, pfCand_idx;
-        getBestObj(CellObjectType::PfCandidate, n_pfCand, pfCand_idx);
-        cellTuple().pfCand_n_total = static_cast<int>(n_pfCand);
-        cellTuple().pfCand_n_ele = 0;
-        cellTuple().pfCand_n_muon = 0;
-        cellTuple().pfCand_n_gamma = 0;
-        cellTuple().pfCand_n_chargedHadrons = 0;
-        cellTuple().pfCand_n_neutralHadrons = 0;
-        for(size_t index : cell[CellObjectType::PfCandidate]) {
-            const int pdgId = std::abs(tau.pfCand_pdgId.at(index));
-            if(pdgId == 11)
-                cellTuple().pfCand_n_ele++;
-            else if(pdgId == 13)
-                cellTuple().pfCand_n_muon++;
-            else if(pdgId == 22)
-                cellTuple().pfCand_n_gamma++;
-            else if(pdgId == 130)
-                cellTuple().pfCand_n_neutralHadrons++;
-            else if(pdgId == 211)
-                cellTuple().pfCand_n_chargedHadrons++;
+        { // CellObjectType::PfCandidate_electron
+            size_t n_pfCand, pfCand_idx;
+            getBestObj(CellObjectType::PfCandidate_electron, n_pfCand, pfCand_idx);
+            const bool valid = n_pfCand != 0;
+            out.pfCand_ele_n_total = static_cast<int>(n_pfCand);
+            out.pfCand_ele_valid = valid;
+            if(inner) {
+                out.pfCand_ele_pt = valid ?
+                    GetValueNorm(tau.pfCand_pt.at(pfCand_idx) / tau.tau_pt, ???142.6f, ???153.9f) : 0;
+            } else {
+                out.pfCand_ele_pt = valid ? GetValueNorm(tau.pfCand_pt.at(pfCand_idx), 23.7f, 85.72f) : 0;
+            }
+            out.pfCand_ele_pt = valid ?
+                GetValueNorm(tau.pfCand_pt.at(pfCand_idx), inner ? 142.6f : 23.7f, inner ? 153.9f : 85.72f) : 0;
+            out.pfCand_ele_deta = valid ? GetValueLinear(tau.pfCand_eta.at(pfCand_idx) - tau.tau_eta,
+                inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
+            out.pfCand_ele_dphi = valid ? GetValueLinear(tau.pfCand_phi.at(pfCand_idx) - tau.tau_phi,
+                inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false);
+            out.pfCand_ele_pvAssociationQuality = valid ?
+                GetValueLinear(tau.pfCand_pvAssociationQuality.at(pfCand_idx), 0, 7, true) : 0;
+            out.pfCand_ele_puppiWeight = valid ? GetValue(tau.pfCand_puppiWeight.at(pfCand_idx)) : 0;
+            out.pfCand_ele_charge = valid ? GetValue(tau.pfCand_charge.at(pfCand_idx)) : 0;
+            out.pfCand_ele_lostInnerHits = valid ? GetValue(tau.pfCand_lostInnerHits.at(pfCand_idx)) : 0;
+            out.pfCand_ele_numberOfPixelHits = valid ?
+                GetValueLinear(tau.pfCand_numberOfPixelHits.at(pfCand_idx), 0, 10, true) : 0;
+
+            const bool hasTrackDetails = valid && tau.pfCand_hasTrackDetails.at(pfCand_idx) == 1;
+            out.pfCand_ele_hasTrackDetails = hasTrackDetails;
+            out.pfCand_ele_dxy = hasTrackDetails ? GetValueNorm(tau.pfCand_dxy.at(pfCand_idx), 2.731e-5f, 0.171f) : 0;
+            out.pfCand_ele_dxy_sig = hasTrackDetails ? GetValueNorm(std::abs(tau.pfCand_dxy.at(pfCand_idx)) /
+                tau.pfCand_dxy_error.at(pfCand_idx), 1.634f, 6.45f) : 0;
+            out.pfCand_ele_dz = hasTrackDetails ? GetValueNorm(tau.pfCand_dz.at(pfCand_idx), 0.001f, 1.02f) : 0;
+            out.pfCand_ele_dz_sig = hasTrackDetails ? GetValueNorm(std::abs(tau.pfCand_dz.at(pfCand_idx)) /
+                tau.pfCand_dz_error.at(pfCand_idx), 24.56f, 210.4f) : 0;
+            out.pfCand_ele_track_chi2_ndof = hasTrackDetails ?
+                GetValueNorm(tau.pfCand_track_chi2.at(pfCand_idx), ???30.04f, ???101.7f) : 0;
+            out.pfCand_ele_track_ndof = hasTrackDetails ?
+                GetValueNorm(tau.pfCand_track_ndof.at(pfCand_idx), 15.18f, 3.203f) : 0;
+        }
+
+        { // CellObjectType::PfCandidate_muon
+            size_t n_pfCand, pfCand_idx;
+            getBestObj(CellObjectType::PfCandidate_muon, n_pfCand, pfCand_idx);
+            const bool valid = n_pfCand != 0;
+            out.pfCand_muon_n_total = static_cast<int>(n_pfCand);
+            out.pfCand_muon_valid = valid;
+            if(inner) {
+                out.pfCand_muon_pt = valid ?
+                    GetValueNorm(tau.pfCand_pt.at(pfCand_idx) / tau.tau_pt, 0.9509f, 0.4294f) : 0;
+            } else {
+                out.pfCand_muon_pt = valid ? GetValueNorm(tau.pfCand_pt.at(pfCand_idx), ???0.9509f, ???0.4294f) : 0;
+            }
         }
 
         cellTuple().pfCand_max_pt = n_pfCand != 0 ? tau.pfCand_pt.at(pfCand_idx) : 0;
@@ -350,24 +462,60 @@ private:
         cellTuple.Fill();
     }
 
-    CellGrid CreateCellGrid(const Tau& tau, const CellGrid& cellGridRef) const
+    static double getInnerSignalConeRadius(double pt)
     {
+        static constexpr double min_pt = 30., min_radius = 0.05, cone_opening_coef = 3.;
+        // This is equivalent of the original formula (std::max(std::min(0.1, 3.0/pt), 0.05)
+        return std::max(cone_opening_coef / std::max(pt, min_pt), min_radius);
+    }
+
+    static CellObjectType GetCellObjectType(int pdgId)
+    {
+        static const std::map<int, CellObjectType> obj_types = {
+            { 11, CellObjectType::PfCand_electron },
+            { 13, CellObjectType::PfCand_muon },
+            { 22, CellObjectType::PfCand_gamma },
+            { 130, CellObjectType::PfCand_neutralHadron },
+            { 211, CellObjectType::PfCand_chargedHadron }
+        };
+
+        auto iter = obj_types.find(std::abs(pdgId));
+        if(iter == obj_types.end())
+            throw exception("Unknown object pdg id = %1%.") % pdgId;
+        return iter->second;
+    }
+
+    CellGrid CreateCellGrid(const Tau& tau, const CellGrid& cellGridRef, bool inner) const
+    {
+        static constexpr double iso_cone = 0.5;
+
         CellGrid grid = cellGridRef;
-        const double tau_eta = tau.tau_eta, tau_phi = tau.tau_phi;
+        const double tau_pt = tau.tau_pt, tau_eta = tau.tau_eta, tau_phi = tau.tau_phi;
 
         const auto fillGrid = [&](CellObjectType type, const std::vector<float>& eta_vec,
-                                  const std::vector<float>& phi_vec) {
+                                  const std::vector<float>& phi_vec, const std::vector<int>& pdgId = {}) {
             if(eta_vec.size() != phi_vec.size())
                 throw exception("Inconsistent cell inputs.");
             for(size_t n = 0; n < eta_vec.size(); ++n) {
+                if(pdgId.size() && GetCellObjectType(pdgId.at(n)) != type) continue;
                 const double eta = eta_vec.at(n), phi = phi_vec.at(n);
+                const double deta = eta - tau_eta, dphi = phi - tau_phi;
+                const double dR = std::hypot(deta, dphi);
+                const bool inside_signal_cone = dR < getInnerSignalConeRadius(tau_pt);
+                const bool inside_iso_cone = dR < iso_cone;
+                if(inner && !inside_signal_cone) continue;
+                if(!inner && (inside_signal_cone || !inside_iso_cone)) continue;
                 CellIndex cellIndex;
                 if(grid.TryGetCellIndex(eta - tau_eta, phi - tau_phi, cellIndex))
                     grid.at(cellIndex)[type].insert(n);
             }
         };
 
-        fillGrid(CellObjectType::PfCandidate, tau.pfCand_eta, tau.pfCand_phi);
+        fillGrid(CellObjectType::PfCandidate_electron, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
+        fillGrid(CellObjectType::PfCandidate_muon, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
+        fillGrid(CellObjectType::PfCandidate_chargedHadron, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
+        fillGrid(CellObjectType::PfCandidate_neutralHadron, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
+        fillGrid(CellObjectType::PfCandidate_gamma, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
         fillGrid(CellObjectType::Electron, tau.ele_eta, tau.ele_phi);
         fillGrid(CellObjectType::Muon, tau.muon_eta, tau.muon_phi);
 
