@@ -4,7 +4,6 @@ import gc
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from threading import Thread, Lock
-import asyncio
 import numpy as np
 import pandas
 import uproot
