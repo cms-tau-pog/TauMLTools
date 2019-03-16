@@ -17,6 +17,21 @@ tau_id_branches = [ 'againstElectronMVA6', 'againstElectronMVA6raw', 'againstEle
                     'byDeepTau2017v1VSe', 'byDeepTau2017v1VSeraw', 'byDeepTau2017v1VSmu', 'byDeepTau2017v1VSmuraw',
                     'byDeepTau2017v1VSjet', 'byDeepTau2017v1VSjetraw', 'byDpfTau2016v0VSall', 'byDpfTau2016v0VSallraw' ]
 global_event_branches = [ 'rho', 'pv_x', 'pv_y', 'pv_z', 'pv_chi2', 'pv_ndof' ]
+
+input_tau_signal_branches = [ 'tau_pt', 'tau_eta', 'tau_mass', 'tau_charge', 'tau_decayMode',
+                              'tau_dxy_pca_x', 'tau_dxy_pca_y', 'tau_dxy_pca_z', 'tau_dxy', 'tau_dxy_error',
+                              'tau_ip3d', 'tau_ip3d_error', 'tau_dz', 'tau_dz_error',
+                              'tau_hasSecondaryVertex', 'tau_sv_x', 'tau_sv_y', 'tau_sv_z',
+                              'tau_flightLength_x', 'tau_flightLength_y', 'tau_flightLength_z', 'tau_flightLength_sig',
+                              'tau_pt_weighted_deta_strip', 'tau_pt_weighted_dphi_strip', 'tau_pt_weighted_dr_signal',
+                              'tau_leadingTrackNormChi2', 'tau_e_ratio', 'tau_gj_angle_diff', 'tau_n_photons',
+                              'tau_emFraction', 'tau_inside_ecal_crack', 'leadChargedCand_etaAtEcalEntrance' ]
+input_tau_iso_branches = [ 'chargedIsoPtSum', 'chargedIsoPtSumdR03', 'footprintCorrection', 'footprintCorrectiondR03',
+                           'neutralIsoPtSum', 'neutralIsoPtSumWeight', 'neutralIsoPtSumWeightdR03',
+                           'neutralIsoPtSumdR03', 'photonPtSumOutsideSignalCone', 'photonPtSumOutsideSignalConedR03',
+                           'puCorrPtSum', 'tau_pt_weighted_dr_iso' ]
+# input_tau_branches = input_tau_signal_branches + input_tau_iso_branches
+
 input_tau_branches = [ 'tau_pt', 'tau_eta', 'tau_mass', 'tau_charge', 'tau_decayMode', 'chargedIsoPtSum',
                        'chargedIsoPtSumdR03', 'footprintCorrection', 'footprintCorrectiondR03', 'neutralIsoPtSum',
                        'neutralIsoPtSumWeight', 'neutralIsoPtSumWeightdR03', 'neutralIsoPtSumdR03',
