@@ -4,9 +4,11 @@ import argparse
 parser = argparse.ArgumentParser(description='Deploy keras model.')
 parser.add_argument('--input', required=True, type=str, help="Input Keras model")
 parser.add_argument('--output', required=False, type=str, default=None, help="Output Protocol Buffers file")
+parser.add_argument('--check-nans', action='store_true')
 args = parser.parse_args()
 
 import tensorflow as tf
+import numpy as np
 from tensorflow.python.framework.graph_io import write_graph
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
 from tensorflow.tools.graph_transforms import TransformGraph
@@ -32,7 +34,13 @@ print("Outputs:", output_nodes)
 #node_wrapper = tf.identity(model.outputs[0], name=output_nodes[0])
 
 with K.get_session() as sess:
-    ops = sess.graph.get_operations()
+
+    if args.check_nans:
+        for layer in model.layers:
+            for weight in layer.weights:
+                w = sess.run(tf.reshape(weight.value(), [-1]))
+                if np.any(np.isnan(w)):
+                    raise RuntimeError('Some weights in layer "{}/{}" are NaN.'.format(layer.name, weight.name))
 
     #final_graph = sess.graph.as_graph_def()
     const_graph = convert_variables_to_constants(sess, sess.graph.as_graph_def(), output_nodes)
