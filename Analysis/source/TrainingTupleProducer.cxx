@@ -315,8 +315,9 @@ private:
             for(int eta_index = -max_eta_d; eta_index <= max_eta_d; ++eta_index) {
                 const int max_phi_d = distance - std::abs(eta_index);
                 if(max_phi_d > max_phi_index) continue;
-                const std::array<int, 2> phi_d = { -max_phi_d, max_phi_d };
-                for(int phi_index : phi_d) {
+                const size_t n_max = max_phi_d ? 2 : 1;
+                for(size_t n = 0; n < n_max; ++n) {
+                    int phi_index = n ? max_phi_d : -max_phi_d;
                     const CellIndex cellIndex{eta_index, phi_index};
                     if(processed_cells.count(cellIndex))
                         throw exception("Duplicated cell index in FillCellGrid.");
@@ -326,7 +327,7 @@ private:
                 }
             }
         }
-        if(processed_cells.size() != static_cast<size_t>(max_eta_index * max_phi_index))
+        if(processed_cells.size() != static_cast<size_t>( (2 * max_eta_index + 1) * (2 * max_phi_index + 1) ))
             throw exception("Not all cell indices are processed in FillCellGrid.");
         end = cellTuple.GetEntries();
     }
