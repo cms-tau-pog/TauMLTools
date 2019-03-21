@@ -131,7 +131,7 @@ netConf_full = NetConf(True, netConf_preTau.tau_branches,
                        netConf_preInner.cell_locations + netConf_preOuter.cell_locations,
                        netConf_preInner.comp_names, netConf_preInner.comp_branches)
 
-netConf_full_cmb = NetConf(True, netConf_preTau.tau_branches,
+netConf_full_cmb = NetConf(True, input_tau_branches,
                            netConf_preInner.cell_locations + netConf_preOuter.cell_locations, ['cmb'],
                            [ input_cell_pfCand_ele_branches + input_cell_pfCand_muon_branches + \
                              input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches + \
