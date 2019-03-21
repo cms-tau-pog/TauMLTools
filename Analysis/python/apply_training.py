@@ -25,30 +25,22 @@ from tqdm import tqdm
 from common import *
 from DataLoader import DataLoader
 
-def Predict(session, graph, X_taus, X_inner_pfCand, X_inner_ele, X_inner_muon, X_outer_pfCand, X_outer_ele,
-            X_outer_muon):
-#    for op in graph.get_operations():
-#        print(op.name)
-#    raise RuntimeError("stop")
+def Predict(session, graph, X_taus, X_inner, X_outer):
+    # for op in graph.get_operations():
+    #    print(op.name)
+    # raise RuntimeError("stop")
 
     gr_name_prefix = "deepTau/input_"
     tau_gr = graph.get_tensor_by_name(gr_name_prefix + "tau:0")
-    inner_pfCand_gr = graph.get_tensor_by_name(gr_name_prefix + "inner_pfCand:0")
-    inner_ele_gr = graph.get_tensor_by_name(gr_name_prefix + "inner_ele:0")
-    inner_muon_gr = graph.get_tensor_by_name(gr_name_prefix + "inner_muon:0")
-    outer_pfCand_gr = graph.get_tensor_by_name(gr_name_prefix + "outer_pfCand:0")
-    outer_ele_gr = graph.get_tensor_by_name(gr_name_prefix + "outer_ele:0")
-    outer_muon_gr = graph.get_tensor_by_name(gr_name_prefix + "outer_muon:0")
+    inner_gr = graph.get_tensor_by_name(gr_name_prefix + "inner_cmb:0")
+    outer_gr = graph.get_tensor_by_name(gr_name_prefix + "outer_cmb:0")
 
     y_gr = graph.get_tensor_by_name("deepTau/main_output/Softmax:0")
     N = X_taus.shape[0]
     # if np.any(np.isnan(X_taus)) or np.any(np.isnan(X_cells_pfCand)) or np.any(np.isnan(X_cells_ele)) \
     #     or np.any(np.isnan(X_cells_muon)):
     #     raise RuntimeErrror("Nan in inputs")
-    pred = session.run(y_gr, feed_dict={
-        tau_gr: X_taus, inner_pfCand_gr: X_inner_pfCand, inner_ele_gr: X_inner_ele, inner_muon_gr: X_inner_muon,
-        outer_pfCand_gr: X_outer_pfCand, outer_ele_gr: X_outer_ele, outer_muon_gr: X_outer_muon,
-    })
+    pred = session.run(y_gr, feed_dict={ tau_gr: X_taus, inner_gr: X_inner, outer_gr: X_outer })
     if np.any(np.isnan(pred)):
         raise RuntimeError("NaN in predictions. Total count = {} out of {}".format(np.count_nonzero(np.isnan(pred)), pred.shape))
     if np.any(pred < 0) or np.any(pred > 1):
@@ -95,8 +87,8 @@ for file_name in file_list:
 #        n_entries = min(n_entries, args.max_n_entries_per_file)
 #    current_start = 0
 
-    loader = DataLoader(full_name, args.batch_size, args.chunk_size, max_data_size=args.max_n_entries_per_file,
-                        max_queue_size=args.max_queue_size, n_passes = 1)
+    loader = DataLoader(full_name, netConf_full_cmb, args.batch_size, args.chunk_size,
+                        max_data_size=args.max_n_entries_per_file, max_queue_size=args.max_queue_size, n_passes = 1)
 
     with tqdm(total=loader.data_size, unit='taus') as pbar:
         for inputs in loader.generator(return_truth = False, return_weights = False):

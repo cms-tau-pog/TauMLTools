@@ -97,7 +97,7 @@ def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return
                 queue.put(item)
             tau_current = entry_stop
             del df_taus
-            for loc in cell_locations:
+            for loc in net_config.cell_locations:
                 del df_cells[loc]
             gc.collect()
 
@@ -128,7 +128,6 @@ class FileEntry:
             self.size = self.tau_end - self.tau_begin
             self.steps = FileEntry.GetNumberOfSteps(self.size, batch_size)
 
-
 class DataLoader:
     @staticmethod
     def GetNumberOfEntries(file_name, tree_name):
@@ -142,8 +141,11 @@ class DataLoader:
 
     def __init__(self, file_name_pattern, net_config, batch_size, chunk_size, validation_size = None,
                  max_data_size = None, max_queue_size = 8, n_passes = -1):
-        if batch_size <= 0 or chunk_size <= 0:
-            raise RuntimeError("batch_size and chunk_size should be positive numbers")
+        if type(batch_size) != int or type(chunk_size) != int or batch_size <= 0 or chunk_size <= 0:
+            raise RuntimeError("batch_size and chunk_size should be positive integer numbers")
+        if batch_size > chunk_size or chunk_size % batch_size != 0:
+            raise RuntimeError("chunk_size should be greater or equal to batch_size, and be proportional to it")
+
 
         self.net_config = net_config
         self.batch_size = batch_size
