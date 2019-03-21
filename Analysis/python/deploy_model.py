@@ -12,7 +12,7 @@ import numpy as np
 from tensorflow.python.framework.graph_io import write_graph
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
 from tensorflow.tools.graph_transforms import TransformGraph
-from keras import backend as K
+from tensorflow.keras import backend as K
 from common import LoadModel
 
 K.set_learning_phase(0)

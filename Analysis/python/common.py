@@ -253,7 +253,7 @@ class TauLosses:
 
 
 def LoadModel(model_file, compile=True):
-    from keras.models import load_model
+    from tensorflow.keras.models import load_model
     if compile:
         return load_model(model_file, custom_objects = {
             'tau_crossentropy': TauLosses.tau_crossentropy, 'Le': TauLosses.Le, 'Lmu': TauLosses.Lmu,
