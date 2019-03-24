@@ -182,7 +182,10 @@ def CreateDF(file_name):
     df_pred = pandas.read_hdf(os.path.join(args.deep_results, pred_file_name))
     #tau_vs_other = - df_pred['deepId_' + args.other_type].values
     tau_vs_other = TauLosses.tau_vs_other(df_pred['deepId_tau'].values, df_pred['deepId_' + args.other_type].values)
+    tau_vs_other = tau_vs_other * (df_pred['deepId_tau'].values > 0.5) + \
+                   df_pred['deepId_tau'].values * (df_pred['deepId_tau'].values <= 0.5)
     df['deepId_vs_' + args.other_type] = pandas.Series(tau_vs_other, index=df.index)
+    df['tau_pt'] = pandas.Series(df.tau_pt *(1000 - 20) + 20, index=df.index)
     return df
 
 df_taus = CreateDF(args.input_taus)

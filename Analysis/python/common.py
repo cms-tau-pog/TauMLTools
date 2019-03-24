@@ -113,25 +113,29 @@ n_cells_phi = { 'inner': 11, 'outer': 11 }
 n_cells = { 'inner': n_cells_eta['inner'] * n_cells_phi['inner'], 'outer': n_cells_eta['outer'] * n_cells_phi['outer'] }
 
 class NetConf:
-    def __init__(self, final, tau_branches, cell_locations, component_names, component_branches):
+    def __init__(self, name, final, tau_branches, cell_locations, component_names, component_branches):
+        self.name = name
         self.final = final
         self.tau_branches = tau_branches
         self.cell_locations = cell_locations
         self.comp_names = component_names
         self.comp_branches = component_branches
 
-netConf_preTau = NetConf(False, input_event_branches + input_tau_branches, [], [], [])
-netConf_preInner = NetConf(False, [], ['inner'], ['egamma', 'muon', 'hadrons'], [
+netConf_preTau = NetConf("preTau", False, input_event_branches + input_tau_branches, [], [], [])
+netConf_preInner = NetConf("preInner", False, [], ['inner'], ['egamma', 'muon', 'hadrons'], [
     input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches,
     input_cell_pfCand_muon_branches + input_cell_muon_branches,
     input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches
 ])
-netConf_preOuter = NetConf(False, [], ['outer'], netConf_preInner.comp_names, netConf_preInner.comp_branches)
-netConf_full = NetConf(True, netConf_preTau.tau_branches,
+netConf_preTauInter = NetConf("preTauInter", False, netConf_preTau.tau_branches, netConf_preInner.cell_locations,
+                              netConf_preInner.comp_names, netConf_preInner.comp_branches)
+netConf_preOuter = NetConf("preOuter", False, [], ['outer'], netConf_preInner.comp_names,
+                           netConf_preInner.comp_branches)
+netConf_full = NetConf("full", True, netConf_preTau.tau_branches,
                        netConf_preInner.cell_locations + netConf_preOuter.cell_locations,
                        netConf_preInner.comp_names, netConf_preInner.comp_branches)
 
-netConf_full_cmb = NetConf(True, input_tau_branches,
+netConf_full_cmb = NetConf("full_cmb", True, input_tau_branches,
                            netConf_preInner.cell_locations + netConf_preOuter.cell_locations, ['cmb'],
                            [ input_cell_pfCand_ele_branches + input_cell_pfCand_muon_branches + \
                              input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches + \
@@ -160,7 +164,7 @@ class TauLosses:
     Lmu_sf = 1
     Ltau_sf = 1
     Ljet_sf = 1
-    epsilon = 1e-6
+    epsilon = 1e-7
     merge_thr = 0.1
 
     @staticmethod
@@ -231,33 +235,80 @@ class TauLosses:
         return TauLosses.Hbase(target, output, jet, False)
 
     @staticmethod
+    def Hcat_base(target, output, index, inverse):
+        decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
+        if inverse:
+            decay_factor = 1 - decay_factor
+        return decay_factor * TauLosses.Hbase(target, output, index, False)
+
+    @staticmethod
+    def Hcat_e(target, output):
+        return TauLosses.Hcat_base(target, output, e, False)
+
+    @staticmethod
+    def Hcat_mu(target, output):
+        return TauLosses.Hcat_base(target, output, mu, False)
+
+    @staticmethod
+    def Hcat_jet(target, output):
+        return TauLosses.Hcat_base(target, output, jet, False)
+
+    @staticmethod
+    def Hcat_eInv(target, output):
+        return TauLosses.Hcat_base(target, output, e, True)
+
+    @staticmethod
+    def Hcat_muInv(target, output):
+        return TauLosses.Hcat_base(target, output, mu, True)
+
+    @staticmethod
+    def Hcat_jetInv(target, output):
+        return TauLosses.Hcat_base(target, output, jet, True)
+
+    @staticmethod
+    def Hbin(target, output):
+        decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
+        return (1-decay_factor) * TauLosses.Hbase(target, output, tau, True)
+
+    @staticmethod
+    def HbinInv(target, output):
+        decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
+        return decay_factor * TauLosses.Hbase(target, output, tau, True)
+
+    @staticmethod
     def tau_crossentropy(target, output):
         return TauLosses.sLe(target, output) + TauLosses.sLmu(target, output) + TauLosses.sLjet(target, output)
 
     @staticmethod
     def tau_crossentropy_v2(target, output):
-        thr = tf.convert_to_tensor(TauLosses.merge_thr, output.dtype.base_dtype)
+        #tanh_sf = tf.convert_to_tensor(1. / TauLosses.merge_thr, output.dtype.base_dtype)
         sf = tf.convert_to_tensor([TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf],
                                   output.dtype.base_dtype)
-        mode = tf.dtype.cast(x[:, tau] > thr, tf.int32)
+        decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
+        return sf[tau] * TauLosses.Htau(target, output) + \
+               decay_factor * (sf[e] * TauLosses.He(target, output) + sf[mu] * TauLosses.Hmu(target, output) + \
+                               sf[jet] * TauLosses.Hjet(target, output)) + \
+               (1 - decay_factor) * (sf[e] + sf[mu] + sf[jet]) * TauLosses.Hbase(target, output, tau, True)
 
-        return - sf[tau] * TauLosses.Htau(target, output) \
-               - mode * (sf[e] * TauLosses.He(target, output) + sf[mu] * TauLosses.Hmu(target, output) \
-                         + sf[jet] * TauLosses.Hjet(target, output)) \
-               - (1 - mode) * (sf[e] + sf[mu] + sf[jet]) * TauLosses.Hbase(target, output, tau, True)
-
+# tf.where(output[:, tau] > thr, sf[e] * TauLosses.He(target, output) + \
+#                                sf[mu] * TauLosses.Hmu(target, output) + \
+#                                sf[jet] * TauLosses.Hjet(target, output),
+#                                (sf[e] + sf[mu] + sf[jet]) * TauLosses.Hbase(target, output, tau, True))
 
     @staticmethod
     def tau_vs_other(prob_tau, prob_other):
-        return prob_tau / (prob_tau + prob_other + TauLosses.epsilon)
+        return np.where(prob_tau > TauLosses.merge_thr, prob_tau / (prob_tau + prob_other), prob_tau)
+        #return prob_tau / (prob_tau + prob_other + TauLosses.epsilon)
 
 
 def LoadModel(model_file, compile=True):
-    from tensorflow.keras.models import load_model
+    from keras.models import load_model
     if compile:
         return load_model(model_file, custom_objects = {
-            'tau_crossentropy': TauLosses.tau_crossentropy, 'Le': TauLosses.Le, 'Lmu': TauLosses.Lmu,
-            'Ljet': TauLosses.Ljet, 'sLe': TauLosses.sLe, 'sLmu': TauLosses.sLmu, 'sLjet': TauLosses.sLjet
+            'tau_crossentropy': TauLosses.tau_crossentropy, 'tau_crossentropy_v2': TauLosses.tau_crossentropy_v2,
+            'Le': TauLosses.Le, 'Lmu': TauLosses.Lmu, 'Ljet': TauLosses.Ljet,
+            'sLe': TauLosses.sLe, 'sLmu': TauLosses.sLmu, 'sLjet': TauLosses.sLjet,
+            'He': TauLosses.He, 'Hmu': TauLosses.Hmu, 'Htau': TauLosses.Htau, 'Hjet': TauLosses.Hjet
         })
     else:
         return load_model(model_file, compile = False)

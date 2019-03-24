@@ -7,7 +7,7 @@ import numpy as np
 import pandas
 import uproot
 from common import *
-from fill_grid import FillGrid
+from fill_grid import FillGrid, FillSequence
 
 read_hdf_lock = Lock()
 
@@ -17,7 +17,8 @@ def read_hdf(file_name, key, columns, start, stop):
     read_hdf_lock.release()
     return df
 
-def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return_truth, return_weights):
+def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return_truth, return_weights, return_grid):
+    FillFn = FillGrid if return_grid else FillSequence
     for file_name, tau_begin, tau_end in file_entries:
         root_input = file_name.endswith('.root')
         if root_input:
@@ -80,7 +81,7 @@ def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return
                     b_cells_begin = b_cells_begins[0] - cells_begin_ref[loc]
                     b_cells_end = b_cells_ends[-1] - cells_begin_ref[loc]
                     for cmp_branches in net_config.comp_branches:
-                        X_cells_comp = FillGrid(b_cells_begins, b_cells_ends, n_cells_eta[loc], n_cells_phi[loc],
+                        X_cells_comp = FillFn(b_cells_begins, b_cells_ends, n_cells_eta[loc], n_cells_phi[loc],
                             df_cells[loc][cell_index_branches].values[b_cells_begin:b_cells_end, :],
                             df_cells[loc][cmp_branches].values[b_cells_begin:b_cells_end, :],
                             df_taus[input_cell_external_branches].values[b_tau_begin:b_tau_end, :])
@@ -140,7 +141,7 @@ class DataLoader:
                 return h5.get_storer('taus').nrows
 
     def __init__(self, file_name_pattern, net_config, batch_size, chunk_size, validation_size = None,
-                 max_data_size = None, max_queue_size = 8, n_passes = -1):
+                 max_data_size = None, max_queue_size = 8, n_passes = -1, return_grid = True):
         if type(batch_size) != int or type(chunk_size) != int or batch_size <= 0 or chunk_size <= 0:
             raise RuntimeError("batch_size and chunk_size should be positive integer numbers")
         if batch_size > chunk_size or chunk_size % batch_size != 0:
@@ -152,6 +153,7 @@ class DataLoader:
         self.chunk_size = chunk_size
         self.n_passes = n_passes
         self.max_queue_size = max_queue_size
+        self.return_grid = return_grid
         self.has_validation_set = validation_size is not None
 
         all_files = [ f.replace('\\', '/') for f in sorted(glob.glob(file_name_pattern)) ]
@@ -199,7 +201,7 @@ class DataLoader:
         while self.n_passes < 0 or current_pass < self.n_passes:
             thread = Thread(target=LoaderThread,
                      args=( file_entries, queue, self.net_config, self.batch_size, self.chunk_size,
-                            return_truth, return_weights ))
+                            return_truth, return_weights, self.return_grid ))
             thread.daemon = True
             thread.start()
             for step_id in range(steps_per_epoch):
