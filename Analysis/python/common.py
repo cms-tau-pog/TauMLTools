@@ -192,6 +192,16 @@ class TauLosses:
         return - target[:, index] * tf.log(x)
 
     @staticmethod
+    def Fbase(target, output, index, gamma):
+        decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
+        if gamma <= 0:
+            raise RuntimeError("Focal Loss requires gamma > 0.")
+        epsilon = tf.convert_to_tensor(TauLosses.epsilon, output.dtype.base_dtype)
+        gamma_t = tf.convert_to_tensor(gamma, output.dtype.base_dtype)
+        x = tf.clip_by_value(output[:, index], epsilon, 1 - epsilon)
+        return - decay_factor * target[:, index] * tf.pow(1-x, gamma_t) * tf.log(x)
+
+    @staticmethod
     def Le(target, output):
         return TauLosses.Lbase(target, output, tau, e)
 
@@ -267,13 +277,25 @@ class TauLosses:
 
     @staticmethod
     def Hbin(target, output):
-        decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
-        return (1-decay_factor) * TauLosses.Hbase(target, output, tau, True)
+        #decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
+        return TauLosses.Hbase(target, output, tau, True)
+
+    # @staticmethod
+    # def HbinInv(target, output):
+    #     decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
+    #     return decay_factor * TauLosses.Hbase(target, output, tau, True)
 
     @staticmethod
-    def HbinInv(target, output):
-        decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
-        return decay_factor * TauLosses.Hbase(target, output, tau, True)
+    def Fe(target, output):
+        return TauLosses.Fbase(target, output, e, 10)
+
+    @staticmethod
+    def Fmu(target, output):
+        return TauLosses.Fbase(target, output, mu, 20)
+
+    @staticmethod
+    def Fjet(target, output):
+        return TauLosses.Fbase(target, output, jet, 10)
 
     @staticmethod
     def tau_crossentropy(target, output):
@@ -282,13 +304,19 @@ class TauLosses:
     @staticmethod
     def tau_crossentropy_v2(target, output):
         #tanh_sf = tf.convert_to_tensor(1. / TauLosses.merge_thr, output.dtype.base_dtype)
-        sf = tf.convert_to_tensor([TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf],
-                                  output.dtype.base_dtype)
-        decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
+        F_factor = tf.constant(10, dtype=output.dtype.base_dtype)
+        sf = tf.constant([TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf],
+                         dtype=output.dtype.base_dtype)
+        #decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
+        # return sf[tau] * TauLosses.Htau(target, output) + \
+        #        decay_factor * (sf[e] * TauLosses.Fe(target, output) + sf[mu] * TauLosses.Fmu(target, output) + \
+        #                        sf[jet] * TauLosses.Fjet(target, output)) + \
+        #        (1 - decay_factor) * (sf[e] + sf[mu] + sf[jet]) * TauLosses.Hbase(target, output, tau, True)
         return sf[tau] * TauLosses.Htau(target, output) + \
-               decay_factor * (sf[e] * TauLosses.He(target, output) + sf[mu] * TauLosses.Hmu(target, output) + \
-                               sf[jet] * TauLosses.Hjet(target, output)) + \
-               (1 - decay_factor) * (sf[e] + sf[mu] + sf[jet]) * TauLosses.Hbase(target, output, tau, True)
+               F_factor * (sf[e] * TauLosses.Fe(target, output) + \
+                           sf[mu] * TauLosses.Fmu(target, output) + \
+                           sf[jet] * TauLosses.Fjet(target, output)) + \
+               (sf[e] + sf[mu] + sf[jet]) * TauLosses.Hbase(target, output, tau, True)
 
 # tf.where(output[:, tau] > thr, sf[e] * TauLosses.He(target, output) + \
 #                                sf[mu] * TauLosses.Hmu(target, output) + \
@@ -308,7 +336,11 @@ def LoadModel(model_file, compile=True):
             'tau_crossentropy': TauLosses.tau_crossentropy, 'tau_crossentropy_v2': TauLosses.tau_crossentropy_v2,
             'Le': TauLosses.Le, 'Lmu': TauLosses.Lmu, 'Ljet': TauLosses.Ljet,
             'sLe': TauLosses.sLe, 'sLmu': TauLosses.sLmu, 'sLjet': TauLosses.sLjet,
-            'He': TauLosses.He, 'Hmu': TauLosses.Hmu, 'Htau': TauLosses.Htau, 'Hjet': TauLosses.Hjet
+            'He': TauLosses.He, 'Hmu': TauLosses.Hmu, 'Htau': TauLosses.Htau, 'Hjet': TauLosses.Hjet,
+            'Hcat_e': TauLosses.Hcat_e, 'Hcat_mu': TauLosses.Hcat_mu, 'Hcat_jet': TauLosses.Hcat_jet,
+            'Hcat_eInv': TauLosses.Hcat_eInv, 'Hcat_muInv': TauLosses.Hcat_muInv, 'Hcat_jetInv': TauLosses.Hcat_jetInv,
+            'Hbin': TauLosses.Hbin, 'HbinInv': TauLosses.Hbin,
+            'Fe': TauLosses.Fe, 'Fmu': TauLosses.Fmu, 'Fjet': TauLosses.Fjet,
         })
     else:
         return load_model(model_file, compile = False)
