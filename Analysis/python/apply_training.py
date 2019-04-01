@@ -26,12 +26,12 @@ from common import *
 from DataLoader import DataLoader, read_hdf_lock
 
 class Predictor:
-    def __init__(graph, net_conf):
+    def __init__(self, graph, net_config):
         gr_name_prefix = "deepTau/input_"
         self.x_graphs = []
         if len(net_config.tau_branches):
             self.x_graphs.append(graph.get_tensor_by_name(gr_name_prefix + "tau:0"))
-        for loc in net_conf.cell_locations:
+        for loc in net_config.cell_locations:
             for comp_name in net_config.comp_names:
                 gr_name = '{}{}_{}:0'.format(gr_name_prefix, loc, comp_name)
                 self.x_graphs.append(graph.get_tensor_by_name(gr_name))
