@@ -283,8 +283,8 @@ class TauLosses:
 
     @staticmethod
     def Fe(target, output):
-        F_factor = tf.constant(3.64253, dtype=output.dtype.base_dtype)
-        return F_factor * TauLosses.Fbase(target, output, e, 10, True, False)
+        F_factor = tf.constant(1.63636, dtype=output.dtype.base_dtype)
+        return F_factor * TauLosses.Fbase(target, output, e, 2, True, False)
 
     @staticmethod
     def Fmu(target, output):
@@ -293,8 +293,8 @@ class TauLosses:
 
     @staticmethod
     def Fjet(target, output):
-        F_factor = tf.constant(3.64253, dtype=output.dtype.base_dtype)
-        return F_factor * TauLosses.Fbase(target, output, jet, 10, True, False)
+        F_factor = tf.constant(1.63636, dtype=output.dtype.base_dtype)
+        return F_factor * TauLosses.Fbase(target, output, jet, 2, True, False)
 
     @staticmethod
     def Fcmb(target, output):
