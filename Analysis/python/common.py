@@ -177,7 +177,7 @@ class TauLosses:
 
     @staticmethod
     def Lbase(target, output, genuine_index, fake_index):
-        epsilon = tf.convert_to_tensor(TauLosses.epsilon, output.dtype.base_dtype)
+        epsilon = tf.constant(TauLosses.epsilon, output.dtype.base_dtype)
         genuine_vs_fake = output[:, genuine_index] / (output[:, genuine_index] + output[:, fake_index] + epsilon)
         genuine_vs_fake = tf.clip_by_value(genuine_vs_fake, epsilon, 1 - epsilon)
         loss = -target[:, genuine_index] * tf.log(genuine_vs_fake) - target[:, fake_index] * tf.log(1 - genuine_vs_fake)
@@ -185,20 +185,22 @@ class TauLosses:
 
     @staticmethod
     def Hbase(target, output, index, inverse):
-        epsilon = tf.convert_to_tensor(TauLosses.epsilon, output.dtype.base_dtype)
+        epsilon = tf.constant(TauLosses.epsilon, output.dtype.base_dtype)
         x = tf.clip_by_value(output[:, index], epsilon, 1 - epsilon)
         if inverse:
             return - (1 - target[:, index]) * tf.log(1 - x)
         return - target[:, index] * tf.log(x)
 
     @staticmethod
-    def Fbase(target, output, index, gamma):
-        decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
+    def Fbase(target, output, index, gamma, apply_decay, inverse):
+        decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.1)) + 1) / 2 if apply_decay else 1
         if gamma <= 0:
             raise RuntimeError("Focal Loss requires gamma > 0.")
-        epsilon = tf.convert_to_tensor(TauLosses.epsilon, output.dtype.base_dtype)
-        gamma_t = tf.convert_to_tensor(gamma, output.dtype.base_dtype)
+        epsilon = tf.constant(TauLosses.epsilon, output.dtype.base_dtype)
+        gamma_t = tf.constant(gamma, output.dtype.base_dtype)
         x = tf.clip_by_value(output[:, index], epsilon, 1 - epsilon)
+        if inverse:
+            return - decay_factor * (1 - target[:, index]) * tf.pow(x, gamma_t) * tf.log(1 - x)
         return - decay_factor * target[:, index] * tf.pow(1-x, gamma_t) * tf.log(x)
 
     @staticmethod
@@ -215,17 +217,17 @@ class TauLosses:
 
     @staticmethod
     def sLe(target, output):
-        sf = tf.convert_to_tensor(TauLosses.Le_sf, output.dtype.base_dtype)
+        sf = tf.constant(TauLosses.Le_sf, output.dtype.base_dtype)
         return sf * TauLosses.Le(target, output)
 
     @staticmethod
     def sLmu(target, output):
-        sf = tf.convert_to_tensor(TauLosses.Lmu_sf, output.dtype.base_dtype)
+        sf = tf.constant(TauLosses.Lmu_sf, output.dtype.base_dtype)
         return sf * TauLosses.Lmu(target, output)
 
     @staticmethod
     def sLjet(target, output):
-        sf = tf.convert_to_tensor(TauLosses.Ljet_sf, output.dtype.base_dtype)
+        sf = tf.constant(TauLosses.Ljet_sf, output.dtype.base_dtype)
         return sf * TauLosses.Ljet(target, output)
 
     @staticmethod
@@ -246,7 +248,7 @@ class TauLosses:
 
     @staticmethod
     def Hcat_base(target, output, index, inverse):
-        decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
+        decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.1)) + 1) / 2
         if inverse:
             decay_factor = 1 - decay_factor
         return decay_factor * TauLosses.Hbase(target, output, index, False)
@@ -277,25 +279,27 @@ class TauLosses:
 
     @staticmethod
     def Hbin(target, output):
-        #decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
         return TauLosses.Hbase(target, output, tau, True)
-
-    # @staticmethod
-    # def HbinInv(target, output):
-    #     decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
-    #     return decay_factor * TauLosses.Hbase(target, output, tau, True)
 
     @staticmethod
     def Fe(target, output):
-        return TauLosses.Fbase(target, output, e, 10)
+        F_factor = tf.constant(1.63636, dtype=output.dtype.base_dtype)
+        return F_factor * TauLosses.Fbase(target, output, e, 2, True, False)
 
     @staticmethod
     def Fmu(target, output):
-        return TauLosses.Fbase(target, output, mu, 20)
+        F_factor = tf.constant(1.63636, dtype=output.dtype.base_dtype)
+        return F_factor * TauLosses.Fbase(target, output, mu, 2, True, False)
 
     @staticmethod
     def Fjet(target, output):
-        return TauLosses.Fbase(target, output, jet, 10)
+        F_factor = tf.constant(1.63636, dtype=output.dtype.base_dtype)
+        return F_factor * TauLosses.Fbase(target, output, jet, 2, True, False)
+
+    @staticmethod
+    def Fcmb(target, output):
+        F_factor = tf.constant(1.17153, dtype=output.dtype.base_dtype)
+        return F_factor * TauLosses.Fbase(target, output, tau, 0.5, False, True)
 
     @staticmethod
     def tau_crossentropy(target, output):
@@ -303,25 +307,12 @@ class TauLosses:
 
     @staticmethod
     def tau_crossentropy_v2(target, output):
-        #tanh_sf = tf.convert_to_tensor(1. / TauLosses.merge_thr, output.dtype.base_dtype)
-        F_factor = tf.constant(10, dtype=output.dtype.base_dtype)
+        F_factor = tf.constant(5, dtype=output.dtype.base_dtype)
         sf = tf.constant([TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf],
                          dtype=output.dtype.base_dtype)
-        #decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.12)) + 1) / 2
-        # return sf[tau] * TauLosses.Htau(target, output) + \
-        #        decay_factor * (sf[e] * TauLosses.Fe(target, output) + sf[mu] * TauLosses.Fmu(target, output) + \
-        #                        sf[jet] * TauLosses.Fjet(target, output)) + \
-        #        (1 - decay_factor) * (sf[e] + sf[mu] + sf[jet]) * TauLosses.Hbase(target, output, tau, True)
-        return sf[tau] * TauLosses.Htau(target, output) + \
-               F_factor * (sf[e] * TauLosses.Fe(target, output) + \
-                           sf[mu] * TauLosses.Fmu(target, output) + \
-                           sf[jet] * TauLosses.Fjet(target, output)) + \
-               (sf[e] + sf[mu] + sf[jet]) * TauLosses.Hbase(target, output, tau, True)
-
-# tf.where(output[:, tau] > thr, sf[e] * TauLosses.He(target, output) + \
-#                                sf[mu] * TauLosses.Hmu(target, output) + \
-#                                sf[jet] * TauLosses.Hjet(target, output),
-#                                (sf[e] + sf[mu] + sf[jet]) * TauLosses.Hbase(target, output, tau, True))
+        return sf[tau] * TauLosses.Htau(target, output) + (sf[e] + sf[mu] + sf[jet]) * TauLosses.Fcmb(target, output) \
+               + F_factor * (sf[e] * TauLosses.Fe(target, output) + sf[mu] * TauLosses.Fmu(target, output) \
+                             + sf[jet] * TauLosses.Fjet(target, output))
 
     @staticmethod
     def tau_vs_other(prob_tau, prob_other):
@@ -341,7 +332,7 @@ def LoadModel(model_file, compile=True):
             'Hcat_e': TauLosses.Hcat_e, 'Hcat_mu': TauLosses.Hcat_mu, 'Hcat_jet': TauLosses.Hcat_jet,
             'Hcat_eInv': TauLosses.Hcat_eInv, 'Hcat_muInv': TauLosses.Hcat_muInv, 'Hcat_jetInv': TauLosses.Hcat_jetInv,
             'Hbin': TauLosses.Hbin, 'HbinInv': TauLosses.Hbin,
-            'Fe': TauLosses.Fe, 'Fmu': TauLosses.Fmu, 'Fjet': TauLosses.Fjet,
+            'Fe': TauLosses.Fe, 'Fmu': TauLosses.Fmu, 'Fjet': TauLosses.Fjet, 'Fcmb': TauLosses.Fcmb
         })
     else:
         return load_model(model_file, compile = False)

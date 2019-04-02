@@ -15,6 +15,14 @@ from tensorflow.tools.graph_transforms import TransformGraph
 from keras import backend as K
 from common import LoadModel
 
+config = tf.ConfigProto(intra_op_parallelism_threads=2,
+                        inter_op_parallelism_threads=2,
+                        allow_soft_placement=True,
+                        device_count = {'CPU' : 1, 'GPU' : 0})
+
+session = tf.Session(config=config)
+K.set_session(session)
+
 K.set_learning_phase(0)
 model = LoadModel(args.input, False)
 print("Model loaded")
