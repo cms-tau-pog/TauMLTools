@@ -8,3 +8,4 @@ __init__.py
 /Analysis/python/sf_calc.c*
 /Analysis/python/fill_grid.c*
 .ipynb_checkpoints
+.DS_Store
