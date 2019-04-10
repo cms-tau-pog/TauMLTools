@@ -30,6 +30,7 @@ struct Arguments {
     run::Argument<std::string> eta_bins{"eta-bins", "eta bins"};
     run::Argument<analysis::MergeMode> mode{"mode", "merging mode: MergeAll or MergePerEntry"};
     run::Argument<bool> calc_weights{"calc-weights", "calculate training weights"};
+    run::Argument<bool> ensure_uniformity{"ensure-uniformity", "stop the merge if at least one of the bins is empty"};
     run::Argument<size_t> max_bin_occupancy{"max-bin-occupancy", "maximal occupancy of a bin",
                                             std::numeric_limits<size_t>::max()};
     run::Argument<unsigned> n_threads{"n-threads", "number of threads", 1};
@@ -372,20 +373,24 @@ public:
 
     size_t GetNumberOfRemainingEvents() const { return n_remaining_events; }
     bool HasNextTau() const { return n_remaining_events > 0; }
-    const Tau& GetNextTau(double& weight)
+    const Tau& GetNextTau(double& weight, bool& last_tau_in_bin)
     {
         if(!HasNextTau())
             throw analysis::exception("No taus are available.");
 
-        Uniform distr(0, n_remaining_events - 1);
-
-        size_t n = 0;
-        for(size_t index = distr(*gen); index >= n_remaining_events_per_bin.at(n);
-            index -= n_remaining_events_per_bin.at(n++));
+        size_t n;
+        do {
+            n = 0;
+            for(size_t index = distr(*gen); index >= n_original_events_per_bin.at(n);
+                index -= n_original_events_per_bin.at(n++));
+        } while(!n_remaining_events_per_bin.at(n));
 
         --n_remaining_events_per_bin.at(n);
         --n_remaining_events;
         auto& bin = bins.at(n);
+        last_tau_in_bin = !n_remaining_events_per_bin.at(n);
+        if(last_tau_in_bin)
+            std::cout << "Bin " << bin.GetName() << " is empty." << std::endl;
         weight = bin.GetBinWeight();
         return bin.GetNextTau();
     }
@@ -457,16 +462,18 @@ private:
             std::cout << "done." << std::endl;
     }
 
-    void CalcWeigts(double total_area)
+    void CalcWeigts(double /*total_area*/)
     {
         double min_weight = std::numeric_limits<double>::infinity();
         double max_weight = 0;
+        double n_bins = bins.size();
         for(auto& bin : bins) {
             const size_t n_events_bin = bin.GetEffectiveNumberOfEvents();
             if(!n_events_bin)
                 throw analysis::exception("Empty bin %1%.") % bin.GetName();
-            const double bin_area = bin.GetBinSize();
-            const double weight = bin_area / total_area / n_events_bin;
+            // const double bin_area = bin.GetBinSize();
+            // const double weight = bin_area / total_area / n_events_bin;
+            const double weight = 1 / n_bins / n_events_bin;
             bin.SetBinWeight(weight);
             min_weight = std::min(min_weight, weight);
             max_weight = std::max(max_weight, weight);
@@ -488,6 +495,9 @@ private:
             n_remaining_events_per_bin.push_back(n_events_bin);
             n_remaining_events += n_events_bin;
         }
+        n_original_events_per_bin = n_remaining_events_per_bin;
+        n_original_events = n_remaining_events;
+        distr = Uniform(0, n_original_events - 1);
     }
 
     static std::map<std::string, double> CalculateBinSizes(const std::vector<double>& pt_bins,
@@ -518,8 +528,9 @@ private:
 private:
     Generator* gen;
     std::vector<EventBin> bins;
-    std::vector<size_t> n_remaining_events_per_bin;
-    size_t n_remaining_events;
+    std::vector<size_t> n_remaining_events_per_bin, n_original_events_per_bin;
+    size_t n_remaining_events, n_original_events;
+    Uniform distr;
 };
 } // anonymous namespace
 
@@ -574,9 +585,12 @@ public:
             tools::ProgressReporter reporter(10, std::cout, "Sampling taus...");
             reporter.SetTotalNumberOfEvents(bin_map.GetNumberOfRemainingEvents());
             size_t n_processed = 0;
-            while(bin_map.HasNextTau()) {
+            bool has_empty_bins = false;
+            while(bin_map.HasNextTau() && (!args.ensure_uniformity() || !has_empty_bins)) {
                 double weight;
-                const auto& tau = bin_map.GetNextTau(weight);
+                bool last_tau_in_bin;
+                const auto& tau = bin_map.GetNextTau(weight, last_tau_in_bin);
+                has_empty_bins = has_empty_bins || last_tau_in_bin;
                 (*output_tuple)() = tau;
                 if(args.calc_weights())
                     (*output_tuple)().trainingWeight = static_cast<float>(weight);

@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
 
+TRAINING_IN="/data/tau-ml/tuples-v2-training-v2/testing"
+TRAINING_OUT_ROOT="output/tuples-v2-training-v2-t1-root/testing"
+TRAINING_OUT_HDF="output/tuples-v2-training-v2-t1/testing"
+
 set -x
-for file in $(ls output/training_preparation/testing/*.root) ; do
-   ./run.sh TrainingTupleProducer --input $file \
-       --output output/tuples-v2-t3-root/testing/$(basename $file) \
-       &> output/tuples-v2-t3-root/testing/$(basename $file).log &
+mkdir -p $TRAINING_OUT_ROOT
+for file in $(ls $TRAINING_IN/*.root) ; do
+    f_name_ext=${file##*/}
+    f_name=${f_name_ext%.*}
+   ./run.sh TrainingTupleProducer --input $file --output $TRAINING_OUT_ROOT/$f_name_ext \
+       &> $TRAINING_OUT_ROOT/${f_name}.log &
 done
 wait
 
-for file in $(ls output/tuples-v2-t3-root/testing/*.root) ; do
+mkdir -p $TRAINING_OUT_HDF
+for file in $(ls $TRAINING_OUT_ROOT/*.root) ; do
     f_name_ext=${file##*/}
     f_name=${f_name_ext%.*}
     python ./TauML/Analysis/python/root_to_hdf.py --input $file \
-           --output output/tuples-v2-t3/testing/$f_name.h5 --trees taus,inner_cells,outer_cells \
-           &> output/tuples-v2-t3-root/testing/${f_name}_hdf.log &
+            --output $TRAINING_OUT_HDF/$f_name.h5 --trees taus,inner_cells,outer_cells \
+            &> $TRAINING_OUT_ROOT/${f_name}_hdf.log &
 done
 wait

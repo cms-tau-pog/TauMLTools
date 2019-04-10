@@ -1,5 +1,6 @@
 __init__.py
 *.pyc
+*.so
 /CMakeLists.txt.user
 /tuples
 /results

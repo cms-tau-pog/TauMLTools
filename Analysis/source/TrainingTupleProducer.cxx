@@ -21,8 +21,8 @@ struct Arguments {
     run::Argument<std::string> output{"output", "output root file with training tuple"};
     run::Argument<unsigned> n_inner_cells{"n-inner-cells", "number of inner cells in eta and phi", 11};
     run::Argument<double> inner_cell_size{"inner-cell-size", "size of the inner cell in eta and phi", 0.02};
-    run::Argument<unsigned> n_outer_cells{"n-outer-cells", "number of outer cells in eta and phi", 11};
-    run::Argument<double> outer_cell_size{"outer-cell-size", "size of the outer cell in eta and phi", 0.1};
+    run::Argument<unsigned> n_outer_cells{"n-outer-cells", "number of outer cells in eta and phi", 21};
+    run::Argument<double> outer_cell_size{"outer-cell-size", "size of the outer cell in eta and phi", 0.05};
     run::Argument<unsigned> n_threads{"n-threads", "number of threads", 1};
     run::Argument<Long64_t> start_entry{"start-entry", "start entry", 0};
     run::Argument<Long64_t> end_entry{"end-entry", "end entry", std::numeric_limits<Long64_t>::max()};
@@ -769,7 +769,8 @@ private:
                 const bool inside_signal_cone = dR < getInnerSignalConeRadius(tau_pt);
                 const bool inside_iso_cone = dR < iso_cone;
                 if(inner && !inside_signal_cone) continue;
-                if(!inner && (inside_signal_cone || !inside_iso_cone)) continue;
+                // if(!inner && (inside_signal_cone || !inside_iso_cone)) continue;
+                if(!inner && !inside_iso_cone) continue;
                 CellIndex cellIndex;
                 if(grid.TryGetCellIndex(eta - tau_eta, phi - tau_phi, cellIndex))
                     grid.at(cellIndex)[type].insert(n);
