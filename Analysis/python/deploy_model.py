@@ -24,8 +24,8 @@ session = tf.Session(config=config)
 K.set_session(session)
 
 K.set_learning_phase(0)
-model = LoadModel(args.input)
-
+model = LoadModel(args.input, False)
+print("Model loaded")
 def node_names(nodes):
     return [ node.name.split(':')[0] for node in nodes ]
 #print(model.inputs[0].name)
