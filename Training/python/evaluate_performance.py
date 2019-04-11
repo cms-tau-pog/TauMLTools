@@ -202,7 +202,7 @@ def CreateDF(file_name):
             tau_vs_other = TauLosses.tau_vs_other(df_pred['deepId_tau'].values, df_pred['deepId_' + out].values)
             df['deepId_vs_' + out] = pandas.Series(tau_vs_other, index=df.index)
         df['deepId_' + out] = pandas.Series(df_pred['deepId_' + out].values, index=df.index)
-    #df['tau_pt'] = pandas.Series(df.tau_pt *(1000 - 20) + 20, index=df.index)
+    df['tau_pt'] = pandas.Series(df.tau_pt *(1000 - 20) + 20, index=df.index)
     return df
 
 df_taus = CreateDF(args.input_taus)
