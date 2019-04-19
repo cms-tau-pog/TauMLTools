@@ -157,6 +157,18 @@ public:
 private:
     static constexpr float pi = boost::math::constants::pi<float>();
 
+    template<typename Scalar>
+    static Scalar DeltaPhi(Scalar phi1, Scalar phi2)
+    {
+        static constexpr Scalar pi = boost::math::constants::pi<Scalar>();
+        Scalar dphi = phi1 - phi2;
+        if(dphi > pi)
+            dphi -= 2*pi;
+        else if(dphi <= -pi)
+            dphi += 2*pi;
+        return dphi;
+    }
+
     template<typename T>
     static float GetValue(T value)
     {
@@ -373,7 +385,7 @@ private:
                 inner ? 0.9792f : 0.304f, inner ? 0.5383f : 1.845f) : 0;
             out.pfCand_ele_deta = valid ? GetValueLinear(tau.pfCand_eta.at(pfCand_idx) - tau.tau_eta,
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
-            out.pfCand_ele_dphi = valid ? GetValueLinear(tau.pfCand_phi.at(pfCand_idx) - tau.tau_phi,
+            out.pfCand_ele_dphi = valid ? GetValueLinear(DeltaPhi(tau.pfCand_phi.at(pfCand_idx), tau.tau_phi),
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
             out.pfCand_ele_tauSignal = valid ? GetValue(tau.pfCand_tauSignal.at(pfCand_idx)) : 0;
             out.pfCand_ele_tauIso = valid ? GetValue(tau.pfCand_tauIso.at(pfCand_idx)) : 0;
@@ -423,7 +435,7 @@ private:
                 inner ? 0.9509f : 0.0861f, inner ? 0.4294f : 0.4065f) : 0;
             out.pfCand_muon_deta = valid ? GetValueLinear(tau.pfCand_eta.at(pfCand_idx) - tau.tau_eta,
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
-            out.pfCand_muon_dphi = valid ? GetValueLinear(tau.pfCand_phi.at(pfCand_idx) - tau.tau_phi,
+            out.pfCand_muon_dphi = valid ? GetValueLinear(DeltaPhi(tau.pfCand_phi.at(pfCand_idx), tau.tau_phi),
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
             out.pfCand_muon_tauSignal = valid ? GetValue(tau.pfCand_tauSignal.at(pfCand_idx)) : 0;
             out.pfCand_muon_tauIso = valid ? GetValue(tau.pfCand_tauIso.at(pfCand_idx)) : 0;
@@ -475,7 +487,7 @@ private:
                 inner ? 0.2564f : 0.0194f, inner ? 0.8607f : 0.1865f) : 0;
             out.pfCand_chHad_deta = valid ? GetValueLinear(tau.pfCand_eta.at(pfCand_idx) - tau.tau_eta,
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
-            out.pfCand_chHad_dphi = valid ? GetValueLinear(tau.pfCand_phi.at(pfCand_idx) - tau.tau_phi,
+            out.pfCand_chHad_dphi = valid ? GetValueLinear(DeltaPhi(tau.pfCand_phi.at(pfCand_idx), tau.tau_phi),
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
             out.pfCand_chHad_tauSignal = valid ? GetValue(tau.pfCand_tauSignal.at(pfCand_idx)) : 0;
             out.pfCand_chHad_leadChargedHadrCand = valid ? GetValue(tau.pfCand_leadChargedHadrCand.at(pfCand_idx)) : 0;
@@ -534,7 +546,7 @@ private:
                 inner ? 0.3163f : 0.0502f, inner ? 0.2769f : 0.4266f) : 0;
             out.pfCand_nHad_deta = valid ? GetValueLinear(tau.pfCand_eta.at(pfCand_idx) - tau.tau_eta,
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
-            out.pfCand_nHad_dphi = valid ? GetValueLinear(tau.pfCand_phi.at(pfCand_idx) - tau.tau_phi,
+            out.pfCand_nHad_dphi = valid ? GetValueLinear(DeltaPhi(tau.pfCand_phi.at(pfCand_idx), tau.tau_phi),
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
             out.pfCand_nHad_tauSignal = valid ? GetValue(tau.pfCand_tauSignal.at(pfCand_idx)) : 0;
             out.pfCand_nHad_tauIso = valid ? GetValue(tau.pfCand_tauIso.at(pfCand_idx)) : 0;
@@ -554,7 +566,7 @@ private:
                 inner ? 0.6048f : 0.02576f, inner ? 1.669f : 0.3833f) : 0;
             out.pfCand_gamma_deta = valid ? GetValueLinear(tau.pfCand_eta.at(pfCand_idx) - tau.tau_eta,
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
-            out.pfCand_gamma_dphi = valid ? GetValueLinear(tau.pfCand_phi.at(pfCand_idx) - tau.tau_phi,
+            out.pfCand_gamma_dphi = valid ? GetValueLinear(DeltaPhi(tau.pfCand_phi.at(pfCand_idx), tau.tau_phi),
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
             out.pfCand_gamma_tauSignal = valid ? GetValue(tau.pfCand_tauSignal.at(pfCand_idx)) : 0;
             out.pfCand_gamma_tauIso = valid ? GetValue(tau.pfCand_tauIso.at(pfCand_idx)) : 0;
@@ -607,7 +619,7 @@ private:
                 inner ? 1.067f : 0.5111f, inner ? 1.521f : 2.765f) : 0;
             out.ele_deta = valid ? GetValueLinear(tau.ele_eta.at(idx) - tau.tau_eta,
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
-            out.ele_dphi = valid ? GetValueLinear(tau.ele_phi.at(idx) - tau.tau_phi,
+            out.ele_dphi = valid ? GetValueLinear(DeltaPhi(tau.ele_phi.at(idx), tau.tau_phi),
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
 
             const bool cc_valid = valid && tau.ele_cc_ele_energy.at(idx) >= 0;
@@ -680,7 +692,7 @@ private:
                 inner ? 0.7966f : 0.2678f, inner ? 3.402f : 3.592f) : 0;
             out.muon_deta = valid ? GetValueLinear(tau.muon_eta.at(idx) - tau.tau_eta,
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
-            out.muon_dphi = valid ? GetValueLinear(tau.muon_phi.at(idx) - tau.tau_phi,
+            out.muon_dphi = valid ? GetValueLinear(DeltaPhi(tau.muon_phi.at(idx), tau.tau_phi),
                 inner ? -0.1f : -0.5f, inner ? 0.1f : 0.5f, false) : 0;
 
             out.muon_dxy = valid ? GetValueNorm(tau.muon_dxy.at(idx), 0.0019f, 1.039f) : 0;
@@ -764,7 +776,7 @@ private:
             for(size_t n = 0; n < eta_vec.size(); ++n) {
                 if(pdgId.size() && GetCellObjectType(pdgId.at(n)) != type) continue;
                 const double eta = eta_vec.at(n), phi = phi_vec.at(n);
-                const double deta = eta - tau_eta, dphi = phi - tau_phi;
+                const double deta = eta - tau_eta, dphi = DeltaPhi(phi, tau_phi);
                 const double dR = std::hypot(deta, dphi);
                 const bool inside_signal_cone = dR < getInnerSignalConeRadius(tau_pt);
                 const bool inside_iso_cone = dR < iso_cone;
@@ -772,7 +784,7 @@ private:
                 // if(!inner && (inside_signal_cone || !inside_iso_cone)) continue;
                 if(!inner && !inside_iso_cone) continue;
                 CellIndex cellIndex;
-                if(grid.TryGetCellIndex(eta - tau_eta, phi - tau_phi, cellIndex))
+                if(grid.TryGetCellIndex(deta, dphi, cellIndex))
                     grid.at(cellIndex)[type].insert(n);
             }
         };
