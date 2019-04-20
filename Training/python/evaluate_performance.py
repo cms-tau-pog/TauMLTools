@@ -15,11 +15,13 @@ import pandas
 import numpy as np
 import uproot
 from sklearn import metrics
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from statsmodels.stats.proportion import proportion_confint
 from scipy import interpolate
 from common import *
+matplotlib.use('Agg')
 
 class DiscriminatorWP:
     VVVLoose = 0
@@ -84,7 +86,7 @@ class PlotSetup:
 
             ax_ratio.set_yscale(self.ratio_yscale)
             ax_ratio.set_xlabel('Tau ID efficiency', fontsize=16)
-            ax_ratio.set_ylabel('id/new id', fontsize=14)
+            ax_ratio.set_ylabel('id/deepTau v2', fontsize=14, labelpad=20)
             ax_ratio.tick_params(labelsize=10)
 
             ax_ratio.grid(True, which='both')
@@ -137,6 +139,8 @@ class Discriminator:
                     roc.pr_err[kind, 0, n_wp - n - 1] = eff - ci_low
         if ref_roc is not None:
             roc.ratio = create_roc_ratio(roc.pr[1], roc.pr[0], ref_roc.pr[1], ref_roc.pr[0])
+        elif roc.pr[1].shape[0] > 0:
+            roc.ratio = np.array([ [1, 1], [ roc.pr[1][0], roc.pr[1][-1] ] ])
 
         return roc
 
@@ -254,9 +258,9 @@ plot_setups = {
                     ratio_ylim=[ [0.5, 10], [0.5, 10], [0.5, 10], [0.5, 10], [0.5, 10],
                                  [0.5, 20], [0.5, 20], [0.5, 50], [0.5, 50], [0.5, 50] ] ),
     'jet': PlotSetup(ylabel='Jet mis-id probability', xlim=[0.2, 1],
-                     ylim=[ [2e-4, 1], [2e-4, 1], [8e-5, 1], [2e-5, 1], [2e-5, 1],
+                     ylim=[ [2e-4, 1], [8e-5, 1], [8e-5, 1], [2e-5, 1], [2e-5, 1],
                             [5e-6, 1], [5e-6, 1], [5e-6, 1], [5e-6, 1], [2e-6, 1] ],
-                     ratio_ylim=[ [0.5, 1.5], [0.5, 1.5], [0.5, 2], [0.5, 2.5], [0.5, 2.5],
+                     ratio_ylim=[ [0.5, 2], [0.5, 2], [0.5, 2.5], [0.5, 2.5], [0.5, 2.5],
                                   [0.5, 3.5], [0.5, 3.5], [0.5, 3.5], [0.5, 3.5], [0.5, 5] ] )
 }
 
