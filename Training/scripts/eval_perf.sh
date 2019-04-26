@@ -1,12 +1,11 @@
 #!/bin/bash
 
-EPOCH=$1
-TUPLES_DIR="/data/tau-ml/tuples-v2-training-v2-t1/testing"
-PRED_DIR_PREFIX="output/predictions/2017v2p6/step1_e"
-EVAL_DIR_PREFIX="output/eval_plots/2017v2p6/step1_e"
+NETWORK=$1
+EPOCH=$2
 
-PRED_DIR="$PRED_DIR_PREFIX$EPOCH"
-EVAL_DIR="$EVAL_DIR_PREFIX$EPOCH"
+TUPLES_DIR="/data/tau-ml/tuples-v2-training-v2-t1/testing"
+PRED_DIR="output/predictions/$NETWORK/step1_e$EPOCH"
+EVAL_DIR="output/eval_plots/$NETWORK/step1_e$EPOCH"
 
 if ! [ -d "$PRED_DIR" ]; then
     echo "ERROR: directory with predictions '$PRED_DIR' not found."
