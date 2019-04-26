@@ -1,11 +1,12 @@
 __init__.py
 *.pyc
+*.so
 /CMakeLists.txt.user
 /tuples
 /results
 /*.pb
-/Analysis/python/build
-/Analysis/python/sf_calc.c*
-/Analysis/python/fill_grid.c*
+/Training/python/build
+/Training/python/sf_calc.c*
+/Training/python/fill_grid.c*
 .ipynb_checkpoints
 .DS_Store

@@ -108,8 +108,8 @@ df_cell_branches = cell_index_branches + input_cell_pfCand_ele_branches + input_
 match_suffixes = [ 'e', 'mu', 'tau', 'jet' ]
 e, mu, tau, jet = 0, 1, 2, 3
 #cell_locations = ['inner', 'outer']
-n_cells_eta = { 'inner': 11, 'outer': 11 }
-n_cells_phi = { 'inner': 11, 'outer': 11 }
+n_cells_eta = { 'inner': 11, 'outer': 21 }
+n_cells_phi = { 'inner': 11, 'outer': 21 }
 n_cells = { 'inner': n_cells_eta['inner'] * n_cells_phi['inner'], 'outer': n_cells_eta['outer'] * n_cells_phi['outer'] }
 
 class NetConf:

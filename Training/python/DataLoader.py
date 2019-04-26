@@ -129,6 +129,11 @@ class FileEntry:
             self.size = self.tau_end - self.tau_begin
             self.steps = FileEntry.GetNumberOfSteps(self.size, batch_size)
 
+    def __repr__(self):
+        return str(self)
+    def __str__(self):
+        return '{}: size = {}, val_size = {}'.format(self.file_name, self.size, self.val_size)
+
 class DataLoader:
     @staticmethod
     def GetNumberOfEntries(file_name, tree_name):
