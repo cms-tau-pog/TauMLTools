@@ -166,20 +166,20 @@ all_discriminators = {
                       [ DiscriminatorWP.VLoose, DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight,
                         DiscriminatorWP.VTight ] ),
         Discriminator('deepTau 2017v1', 'byDeepTau2017v1VSeraw', True, True, 'blue'),
-        Discriminator('deepTau pre-2017v2', 'deepId_vs_e', True, False, 'orange')
+        Discriminator('deepTau 2017v2', 'deepId_vs_e', True, False, 'orange')
     ],
     'mu': [
         Discriminator('againstMuon3', 'againstMuon3', False, True, 'green',
                       [ DiscriminatorWP.Loose, DiscriminatorWP.Tight] ),
         Discriminator('deepTau 2017v1', 'byDeepTau2017v1VSmuraw', True, True, 'blue'),
-        Discriminator('deepTau pre-2017v2', 'deepId_vs_mu', True, False, 'orange')
+        Discriminator('deepTau 2017v2', 'deepId_vs_mu', True, False, 'orange')
     ],
     'jet': [
         Discriminator('MVA 2017v2', 'byIsolationMVArun2017v2DBoldDMwLT2017raw', True, True, 'green'),
         Discriminator('MVA 2017v2 newDM', 'byIsolationMVArun2017v2DBnewDMwLT2017raw', True, True, 'red'),
         Discriminator('DPF 2016v0', 'byDpfTau2016v0VSallraw', True, True, 'magenta'),
         Discriminator('deepTau 2017v1', 'byDeepTau2017v1VSjetraw', True, True, 'blue'),
-        Discriminator('deepTau pre-2017v2', 'deepId_vs_jet', True, False, 'orange')
+        Discriminator('deepTau 2017v2', 'deepId_vs_jet', True, False, 'orange')
     ]
 }
 
@@ -255,13 +255,13 @@ plot_setups = {
     'e': PlotSetup(ylabel='Electron mis-id probability', xlim=[0.4, 1], ratio_yscale='log',
                    ylim=[2e-5, 1], ratio_ylim=[0.4, 20]),
     'mu': PlotSetup(ylabel='Muon mis-id probability', xlim=[0.8, 1], ratio_yscale='log',
-                    ratio_ylim=[ [0.5, 10], [0.5, 10], [0.5, 10], [0.5, 10], [0.5, 10],
+                    ratio_ylim=[ [0.5, 20], [0.5, 20], [0.5, 20], [0.5, 20], [0.5, 20],
                                  [0.5, 20], [0.5, 20], [0.5, 50], [0.5, 50], [0.5, 50] ] ),
     'jet': PlotSetup(ylabel='Jet mis-id probability', xlim=[0.2, 1],
                      ylim=[ [2e-4, 1], [8e-5, 1], [8e-5, 1], [2e-5, 1], [2e-5, 1],
                             [5e-6, 1], [5e-6, 1], [5e-6, 1], [5e-6, 1], [2e-6, 1] ],
-                     ratio_ylim=[ [0.5, 2], [0.5, 2], [0.5, 2.5], [0.5, 2.5], [0.5, 2.5],
-                                  [0.5, 3.5], [0.5, 3.5], [0.5, 3.5], [0.5, 3.5], [0.5, 5] ] )
+                     ratio_ylim=[ [0.5, 2], [0.5, 2.5], [0.5, 2.5], [0.5, 2.5], [0.5, 2.5],
+                                  [0.5, 3.5], [0.5, 3.5], [0.5, 3.5], [0.5, 10], [0.5, 10] ] )
 }
 
 def create_roc_ratio(x1, y1, x2, y2):
