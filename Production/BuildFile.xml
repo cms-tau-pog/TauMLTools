@@ -1,4 +1,5 @@
 <use name="DataFormats/PatCandidates"/>
+<use name="RecoTauTag/RecoTau"/>
 
 <export>
     <lib name="1"/>
