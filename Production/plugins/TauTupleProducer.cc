@@ -321,7 +321,7 @@ private:
                     tauTuple().tau_leadingTrackNormChi2 = has_tau ? tau->leadingTrackNormChi2() : default_value;
                     tauTuple().tau_e_ratio = has_tau ? reco::tau::eratio(*tau) : default_value;
                     tauTuple().tau_gj_angle_diff = has_tau ? CalculateGottfriedJacksonAngleDifference(*tau) : default_value;
-                    tauTuple().tau_n_photons = has_tau ? reco::tau::n_photons_total(*tau) : default_value;
+                    tauTuple().tau_n_photons = has_tau ? static_cast<int>(reco::tau::n_photons_total(*tau)) : default_int_value;
 
             tauTuple().tau_emFraction = has_tau ? tau->emFraction_MVA() : default_value;
             tauTuple().tau_inside_ecal_crack = has_tau ? IsInEcalCrack(tau->p4().Eta()) : default_value;
