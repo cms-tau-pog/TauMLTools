@@ -310,18 +310,18 @@ private:
             tauTuple().tau_dz_error = leadChargedHadrCand && leadChargedHadrCand->hasTrackDetails()
                     ? leadChargedHadrCand->dzError() : default_value;
 
-                    tauTuple().tau_pt_weighted_deta_strip =
-                            has_tau ? reco::tau::pt_weighted_deta_strip(*tau, tau->decayMode()) : default_value;
-                    tauTuple().tau_pt_weighted_dphi_strip =
-                            has_tau ? reco::tau::pt_weighted_dphi_strip(*tau, tau->decayMode()) : default_value;
-                    tauTuple().tau_pt_weighted_dr_signal =
-                            has_tau ? reco::tau::pt_weighted_dr_signal(*tau, tau->decayMode()) : default_value;
-                    tauTuple().tau_pt_weighted_dr_iso =
-                            has_tau ? reco::tau::pt_weighted_dr_iso(*tau, tau->decayMode()) : default_value;
-                    tauTuple().tau_leadingTrackNormChi2 = has_tau ? tau->leadingTrackNormChi2() : default_value;
-                    tauTuple().tau_e_ratio = has_tau ? reco::tau::eratio(*tau) : default_value;
-                    tauTuple().tau_gj_angle_diff = has_tau ? CalculateGottfriedJacksonAngleDifference(*tau) : default_value;
-                    tauTuple().tau_n_photons = has_tau ? static_cast<int>(reco::tau::n_photons_total(*tau)) : default_int_value;
+            tauTuple().tau_pt_weighted_deta_strip =
+                    has_tau ? reco::tau::pt_weighted_deta_strip(*tau, tau->decayMode()) : default_value;
+            tauTuple().tau_pt_weighted_dphi_strip =
+                    has_tau ? reco::tau::pt_weighted_dphi_strip(*tau, tau->decayMode()) : default_value;
+            tauTuple().tau_pt_weighted_dr_signal =
+                    has_tau ? reco::tau::pt_weighted_dr_signal(*tau, tau->decayMode()) : default_value;
+            tauTuple().tau_pt_weighted_dr_iso =
+                    has_tau ? reco::tau::pt_weighted_dr_iso(*tau, tau->decayMode()) : default_value;
+            tauTuple().tau_leadingTrackNormChi2 = has_tau ? tau->leadingTrackNormChi2() : default_value;
+            tauTuple().tau_e_ratio = has_tau ? reco::tau::eratio(*tau) : default_value;
+            tauTuple().tau_gj_angle_diff = has_tau ? CalculateGottfriedJacksonAngleDifference(*tau) : default_value;
+            tauTuple().tau_n_photons = has_tau ? static_cast<int>(reco::tau::n_photons_total(*tau)) : default_int_value;
 
             tauTuple().tau_emFraction = has_tau ? tau->emFraction_MVA() : default_value;
             tauTuple().tau_inside_ecal_crack = has_tau ? IsInEcalCrack(tau->p4().Eta()) : default_value;

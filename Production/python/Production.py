@@ -76,7 +76,7 @@ if period == 'Run2017':
     tauIdEmbedder = tauIdConfig.TauIDEmbedder(
         process, cms, debug = False, updatedTauName = updatedTauName,
         toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "2016v1", "newDM2016v1",
-                   "deepTau2017v2", "DPFTau_2016_v0", "DPFTau_2016_v0", "againstEle2018",  ]
+                   "deepTau2017v2", "deepTau2017v2", "DPFTau_2016_v0", "DPFTau_2016_v0", "againstEle2018",  ]
     )
     tauIdEmbedder.runTauID()
     tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
