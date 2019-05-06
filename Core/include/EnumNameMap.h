@@ -104,7 +104,7 @@ private:
     template<typename Collection>
     void Initialize(Collection&& pairs)
     {
-        for(const EnumStringPair& entry : pairs) {
+        for(const auto& entry : pairs) {
             if(enum_to_string_map.count(entry.first) || string_to_enum_map.count(entry.second))
                 throw exception("Duplicated enum entry for the enum '%1%'.") % enum_name;
             enum_to_string_map[entry.first] = entry.second;
