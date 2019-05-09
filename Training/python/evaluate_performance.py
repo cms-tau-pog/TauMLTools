@@ -8,6 +8,10 @@ parser.add_argument('--other-type', required=True, type=str, help="Type of non-t
 parser.add_argument('--deep-results', required=True, type=str, help="Directory with deepId results")
 parser.add_argument('--prev-deep-results', required=False, default=None, type=str,
                     help="Directory with previous deepId results")
+parser.add_argument('--deep-results-label', required=False, default='', type=str,
+                    help="Label for deepId results")
+parser.add_argument('--prev-deep-results-label', required=False, default='', type=str,
+                    help="Label for deepId results")
 parser.add_argument('--output', required=True, type=str, help="Output pdf file")
 #parser.add_argument('--apply-loose', action="store_true", help="Submission dryrun.")
 args = parser.parse_args()
@@ -253,8 +257,8 @@ all_discriminators = {
                         DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight, DiscriminatorWP.VTight,
                         DiscriminatorWP.VVTight ],
                       'byDeepTau2017v1VSe'),
-        Discriminator('deepTau 2017v2 e2', 'deepIde2_vs_e', True, False, 'black'),
-        Discriminator('deepTau 2017v2 e6', 'deepId_vs_e', True, False, 'orange',
+        Discriminator('deepTau 2017v2 ' + args.prev_deep_results_label, 'deepIde2_vs_e', True, False, 'black'),
+        Discriminator('deepTau 2017v2 ' + args.deep_results_label, 'deepId_vs_e', True, False, 'orange',
                       [ DiscriminatorWP.VVVLoose, DiscriminatorWP.VVLoose, DiscriminatorWP.VLoose,
                         DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight, DiscriminatorWP.VTight,
                         DiscriminatorWP.VVTight ], working_points_thrs = deep_wp_thrs['e'])
@@ -267,8 +271,8 @@ all_discriminators = {
                         DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight, DiscriminatorWP.VTight,
                         DiscriminatorWP.VVTight ],
                       'byDeepTau2017v1VSmu'),
-        Discriminator('deepTau 2017v2 e2', 'deepIde2_vs_mu', True, False, 'black'),
-        Discriminator('deepTau 2017v2 e6', 'deepId_vs_mu', True, False, 'orange',
+        Discriminator('deepTau 2017v2 ' + args.prev_deep_results_label, 'deepIde2_vs_mu', True, False, 'black'),
+        Discriminator('deepTau 2017v2 ' + args.deep_results_label, 'deepId_vs_mu', True, False, 'orange',
                       [ DiscriminatorWP.VLoose, DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight ],
                       working_points_thrs = deep_wp_thrs['mu'])
     ],
@@ -288,8 +292,8 @@ all_discriminators = {
                         DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight, DiscriminatorWP.VTight,
                         DiscriminatorWP.VVTight ],
                       'byDeepTau2017v1VSjet'),
-        Discriminator('deepTau 2017v2 e2', 'deepIde2_vs_jet', True, False, 'black'),
-        Discriminator('deepTau 2017v2 e6', 'deepId_vs_jet', True, False, 'orange',
+        Discriminator('deepTau 2017v2 ' + args.prev_deep_results_label, 'deepIde2_vs_jet', True, False, 'black'),
+        Discriminator('deepTau 2017v2 ' + args.deep_results_label, 'deepId_vs_jet', True, False, 'orange',
                       [ DiscriminatorWP.VVVLoose, DiscriminatorWP.VVLoose, DiscriminatorWP.VLoose,
                         DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight, DiscriminatorWP.VTight,
                         DiscriminatorWP.VVTight ], working_points_thrs = deep_wp_thrs['jet'])
