@@ -67,7 +67,7 @@ public:
         static auto getCellIndex = [](double x, double maxX, double size, int& index) {
             const double absX = std::abs(x);
             if(absX > maxX) return false;
-            const double absIndex = std::floor(std::abs(absX / size - 0.5));
+            const double absIndex = std::floor(absX / size + 0.5);
             index = static_cast<int>(std::copysign(absIndex, x));
             return true;
         };
@@ -270,7 +270,7 @@ private:
         out.tau_flightLength_x = GetValueNorm(tau.tau_flightLength_x, -0.0003f, 0.7362f);
         out.tau_flightLength_y = GetValueNorm(tau.tau_flightLength_y, -0.0009f, 0.7354f);
         out.tau_flightLength_z = GetValueNorm(tau.tau_flightLength_z, -0.0022f, 1.993f);
-        out.tau_flightLength_sig = GetValueNorm(out.tau_flightLength_sig, -4.78f, 9.573f);
+        out.tau_flightLength_sig = GetValueNorm(tau.tau_flightLength_sig, -4.78f, 9.573f);
 
         out.tau_pt_weighted_deta_strip = GetValueLinear(tau.tau_pt_weighted_deta_strip, 0, 1, true);
         out.tau_pt_weighted_dphi_strip = GetValueLinear(tau.tau_pt_weighted_dphi_strip, 0, 1, true);
