@@ -10,3 +10,4 @@ __init__.py
 /Training/python/fill_grid.c*
 .ipynb_checkpoints
 .DS_Store
+*.svg

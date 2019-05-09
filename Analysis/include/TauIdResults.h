@@ -65,6 +65,12 @@ private:
     TAU_ID(byDeepTau2017v1VSjet, "by{wp}DeepTau2017v1VSjet{raw}", true, \
            "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
     TAU_ID(byDpfTau2016v0VSall, "by{wp}DpfTau2016v0VSall{raw}", true, "Tight") \
+    TAU_ID(byDeepTau2017v2VSe, "by{wp}DeepTau2017v2VSe{raw}", true, \
+       "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byDeepTau2017v2VSmu, "by{wp}DeepTau2017v2VSmu{raw}", true, \
+       "VLoose Loose Medium Tight") \
+    TAU_ID(byDeepTau2017v2VSjet, "by{wp}DeepTau2017v2VSjet{raw}", true, \
+       "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
     /**/
 
 
