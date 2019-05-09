@@ -43,7 +43,8 @@ if ! [ -f "$NET_DIR/${NET_FILE}.pb" ] ; then
     cd "$WORK_DIR"
 fi
 
-TUPLES_DIR="/data/tau-ml/tuples-v2-training-v2-t1/testing-short"
+#TUPLES_DIR="/data/tau-ml/tuples-v2-training-v2-t1/testing-short"
+TUPLES_DIR="/data/tau-ml/tuples-v2-training-v2-t1/testing"
 PRED_DIR="output/predictions/$NETWORK/step1_e$EPOCH"
 
 mkdir -p "$PRED_DIR"
