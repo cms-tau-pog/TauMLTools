@@ -265,7 +265,7 @@ private:
         const bool tau_dz_sig_valid = std::isnormal(tau.tau_dz) && std::isnormal(tau.tau_dz_error)
                                       && tau.tau_dz_error > 0;
         out.tau_dz_sig_valid = tau_dz_sig_valid;
-        out.tau_dz_sig = GetValueNorm(std::abs(tau.tau_dz) / tau.tau_dz_error, 4.717f, 11.78f);
+        out.tau_dz_sig = tau_dz_sig_valid ? GetValueNorm(std::abs(tau.tau_dz) / tau.tau_dz_error, 4.717f, 11.78f) : 0.f;
 
         out.tau_flightLength_x = GetValueNorm(tau.tau_flightLength_x, -0.0003f, 0.7362f);
         out.tau_flightLength_y = GetValueNorm(tau.tau_flightLength_y, -0.0009f, 0.7354f);
@@ -418,9 +418,10 @@ private:
             out.pfCand_ele_dz = hasTrackDetails ? GetValueNorm(tau.pfCand_dz.at(pfCand_idx), 0.001f, 1.02f) : 0;
             out.pfCand_ele_dz_sig = hasTrackDetails ? GetValueNorm(std::abs(tau.pfCand_dz.at(pfCand_idx)) /
                 tau.pfCand_dz_error.at(pfCand_idx), 24.56f, 210.4f) : 0;
-            out.pfCand_ele_track_chi2_ndof = hasTrackDetails ? GetValueNorm(tau.pfCand_track_chi2.at(pfCand_idx) /
-                tau.pfCand_track_ndof.at(pfCand_idx), 2.272f, 8.439f) : 0;
-            out.pfCand_ele_track_ndof = hasTrackDetails ?
+            out.pfCand_ele_track_chi2_ndof = hasTrackDetails && tau.pfCand_track_ndof.at(pfCand_idx) > 0 ?
+                GetValueNorm(tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx),
+                2.272f, 8.439f) : 0;
+            out.pfCand_ele_track_ndof = hasTrackDetails && tau.pfCand_track_ndof.at(pfCand_idx) > 0 ?
                 GetValueNorm(tau.pfCand_track_ndof.at(pfCand_idx), 15.18f, 3.203f) : 0;
         }
 
@@ -470,9 +471,10 @@ private:
             out.pfCand_muon_dz = hasTrackDetails ? GetValueNorm(tau.pfCand_dz.at(pfCand_idx), -0.0117f, 4.097f) : 0;
             out.pfCand_muon_dz_sig = hasTrackDetails ? GetValueNorm(std::abs(tau.pfCand_dz.at(pfCand_idx)) /
                 tau.pfCand_dz_error.at(pfCand_idx), 80.37f, 343.3f) : 0;
-            out.pfCand_muon_track_chi2_ndof = hasTrackDetails ? GetValueNorm(tau.pfCand_track_chi2.at(pfCand_idx) /
-                tau.pfCand_track_ndof.at(pfCand_idx), 0.69f, 1.711f) : 0;
-            out.pfCand_muon_track_ndof = hasTrackDetails ?
+            out.pfCand_muon_track_chi2_ndof = hasTrackDetails && tau.pfCand_track_ndof.at(pfCand_idx) > 0 ?
+                GetValueNorm(tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx),
+                0.69f, 1.711f) : 0;
+            out.pfCand_muon_track_ndof = hasTrackDetails && tau.pfCand_track_ndof.at(pfCand_idx) > 0 ?
                 GetValueNorm(tau.pfCand_track_ndof.at(pfCand_idx), 17.5f, 5.11f) : 0;
         }
 

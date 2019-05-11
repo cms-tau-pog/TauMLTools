@@ -182,6 +182,10 @@ public:
             }
             n_non_assigned_events -= n_newly_assigned_events;
         }
+
+        n_original_events = n_remaining_events;
+        n_original_events_per_source = n_remaining_events_per_source;
+        distr = Uniform(0, n_original_events - 1);
     }
 
     const std::string& GetName() const { return bin_name; }
@@ -200,10 +204,12 @@ public:
         if(n_remaining_events_per_source.empty())
             throw analysis::exception("CreateBalancedInputs should be called before the first GetNextTau call.");
 
-        Uniform distr(0, n_remaining_events - 1);
-        size_t n = 0;
-        for(size_t index = distr(*gen); index >= n_remaining_events_per_source.at(n);
-            index -= n_remaining_events_per_source.at(n++));
+        size_t n;
+        do {
+            n = 0;
+            for(size_t index = distr(*gen); index >= n_original_events_per_source.at(n);
+                index -= n_original_events_per_source.at(n++));
+        } while(!n_remaining_events_per_source.at(n));
 
         --n_remaining_events_per_source.at(n);
         --n_remaining_events;
@@ -231,9 +237,10 @@ private:
     size_t n_events, n_processed;
     double bin_weight;
     Generator* gen;
+    Uniform distr;
     std::vector<std::shared_ptr<SourceDesc>> sources;
-    std::vector<size_t> n_remaining_events_per_source;
-    size_t n_remaining_events;
+    std::vector<size_t> n_remaining_events_per_source, n_original_events_per_source;
+    size_t n_remaining_events, n_original_events;
 };
 
 struct BinFiles {
