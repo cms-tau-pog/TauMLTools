@@ -284,7 +284,9 @@ struct BranchValueGetter<unsigned long long> {
     {
         OutputType value;
         if(branch.TryGetValue<UInt_t, OutputType>(value)) return value;
+        if(branch.TryGetValue<Int_t, OutputType>(value)) return value;
         if(branch.TryGetValue<ULong64_t, OutputType>(value)) return value;
+        if(branch.TryGetValue<Long64_t, OutputType>(value)) return value;
         throw analysis::exception("Can't read value of branch '%1%' as 'unsigned long long'.") % branch->GetName();
     }
 };
