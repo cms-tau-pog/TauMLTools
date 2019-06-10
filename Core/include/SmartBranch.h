@@ -212,7 +212,7 @@ public:
     {
         auto typed_entry = dynamic_cast<detail::SmartBranchEntry<OriginalType>*>(entry.get());
         if(!typed_entry) return false;
-        value = *typed_entry->value;
+        value = static_cast<OutputType>(*typed_entry->value);
         return true;
     }
 
