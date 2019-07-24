@@ -1,3 +1,4 @@
+<use name="AnalysisTools/Core"/>
 <use name="DataFormats/PatCandidates"/>
 <use name="RecoTauTag/RecoTau"/>
 

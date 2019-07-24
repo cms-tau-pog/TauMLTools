@@ -30,6 +30,47 @@
 #include "TauML/Production/include/MuonHitMatch.h"
 #include "TauML/Production/include/TauJet.h"
 
+// workaround for PFRecoTauClusterVariables
+#define USE_WORKAROUND_FOR_TAU_CLUSTER_VARS 1
+#ifdef USE_WORKAROUND_FOR_TAU_CLUSTER_VARS
+namespace reco { namespace tau {
+    float pt_weighted_deta_strip(const pat::Tau& tau, int dm)
+    {
+        static TauIdMVAAuxiliaries clusterVariables;
+        return clusterVariables.tau_pt_weighted_deta_strip(tau, dm);
+    }
+
+    float pt_weighted_dphi_strip(const pat::Tau& tau, int dm)
+    {
+        static TauIdMVAAuxiliaries clusterVariables;
+        return clusterVariables.tau_pt_weighted_dphi_strip(tau, dm);
+    }
+
+    float pt_weighted_dr_signal(const pat::Tau& tau, int dm)
+    {
+        static TauIdMVAAuxiliaries clusterVariables;
+        return clusterVariables.tau_pt_weighted_dr_signal(tau, dm);
+    }
+
+    float pt_weighted_dr_iso(const pat::Tau& tau, int dm)
+    {
+        static TauIdMVAAuxiliaries clusterVariables;
+        return clusterVariables.tau_pt_weighted_dr_iso(tau, dm);
+    }
+
+    float eratio(const pat::Tau& tau)
+    {
+        static TauIdMVAAuxiliaries clusterVariables;
+        return clusterVariables.tau_Eratio(tau);
+    }
+
+    unsigned int n_photons_total(const pat::Tau& tau)
+    {
+        static TauIdMVAAuxiliaries clusterVariables;
+        return clusterVariables.tau_n_photons_total(tau);
+    }
+}} // namespace reco::tau
+#endif
 
 namespace tau_analysis {
 
@@ -321,7 +362,8 @@ private:
             tauTuple().tau_leadingTrackNormChi2 = has_tau ? tau->leadingTrackNormChi2() : default_value;
             tauTuple().tau_e_ratio = has_tau ? reco::tau::eratio(*tau) : default_value;
             tauTuple().tau_gj_angle_diff = has_tau ? CalculateGottfriedJacksonAngleDifference(*tau) : default_value;
-            tauTuple().tau_n_photons = has_tau ? static_cast<int>(reco::tau::n_photons_total(*tau)) : default_int_value;
+            tauTuple().tau_n_photons =
+                    has_tau ? static_cast<int>(reco::tau::n_photons_total(*tau)) : default_int_value;
 
             tauTuple().tau_emFraction = has_tau ? tau->emFraction_MVA() : default_value;
             tauTuple().tau_inside_ecal_crack = has_tau ? IsInEcalCrack(tau->p4().Eta()) : default_value;
