@@ -50,17 +50,33 @@ ENUM_NAMES(GenQcdMatch) = {
     { GenQcdMatch::Gluon, "gen_gluon" }
 };
 
-enum class TauType { e = 0, mu = 1, tau = 2, jet = 3 };
+enum class TauType { e = 0, mu = 1, tau = 2, jet = 3, emb = 4, data = 5 };
 ENUM_NAMES(TauType) = {
-    { TauType::e, "e" }, { TauType::mu, "mu" }, { TauType::tau, "tau" }, { TauType::jet, "jet" }
+    { TauType::e, "e" }, { TauType::mu, "mu" }, { TauType::tau, "tau" }, { TauType::jet, "jet" },
+    { TauType::emb, "emb" }, { TauType::data, "data" }
 };
 
-inline constexpr TauType GenMatchToTauType(GenLeptonMatch gen_match)
+enum class SampleType { Data = 0, MC = 1, Embedded = 2 };
+ENUM_NAMES(SampleType) = {
+    { SampleType::Data, "Data" }, { SampleType::MC, "MC" }, { SampleType::Embedded, "Embedded" }
+};
+
+inline constexpr TauType GenMatchToTauType(GenLeptonMatch gen_match, SampleType sample_type)
 {
-    if(gen_match == GenLeptonMatch::Electron || gen_match == GenLeptonMatch::TauElectron) return TauType::e;
-    if(gen_match == GenLeptonMatch::Muon || gen_match == GenLeptonMatch::TauMuon) return TauType::mu;
-    if(gen_match == GenLeptonMatch::Tau) return TauType::tau;
-    return TauType::jet;
+    if(sample_type == SampleType::MC && (gen_match == GenLeptonMatch::Electron
+            || gen_match == GenLeptonMatch::TauElectron)) {
+        return TauType::e;
+    } else if(sample_type == SampleType::MC && (gen_match == GenLeptonMatch::Muon
+            || gen_match == GenLeptonMatch::TauMuon)) {
+        return TauType::mu;
+    } else if(gen_match == GenLeptonMatch::Tau) {
+        if(sample_type == SampleType::MC) return TauType::tau;
+        if(sample_type == SampleType::Embedded) return TauType::emb;
+    } else if(gen_match == GenLeptonMatch::NoMatch) {
+        if(sample_type == SampleType::MC) return TauType::jet;
+        if(sample_type == SampleType::Data) return TauType::data;
+    }
+    throw exception("Incompatible gen_lepton_match = %1% and sample_type = %2%.") % gen_match % sample_type;
 }
 
 } // namespace analysis

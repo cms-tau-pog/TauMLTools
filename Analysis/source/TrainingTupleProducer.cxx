@@ -26,6 +26,9 @@ struct Arguments {
     run::Argument<unsigned> n_threads{"n-threads", "number of threads", 1};
     run::Argument<Long64_t> start_entry{"start-entry", "start entry", 0};
     run::Argument<Long64_t> end_entry{"end-entry", "end entry", std::numeric_limits<Long64_t>::max()};
+    run::Argument<float> training_weight_factor{"training-weight-factor",
+        "additional factor to the normalization of the training weights", 4.f};
+    run::Argument<int> parity{"parity", "take odd (parity=1), even (parity=0) or all (parity=-1) events", -1};
 };
 
 namespace analysis {
@@ -121,7 +124,7 @@ public:
         innerCellTuple("inner_cells", outputFile.get(), false), outerCellTuple("outer_cells", outputFile.get(), false),
         innerCellGridRef(args.n_inner_cells(), args.n_inner_cells(), args.inner_cell_size(), args.inner_cell_size()),
         outerCellGridRef(args.n_outer_cells(), args.n_outer_cells(), args.outer_cell_size(), args.outer_cell_size()),
-        trainingWeightFactor(tauTuple.GetEntries() / 4.f)
+        trainingWeightFactor(tauTuple.GetEntries() / args.training_weight_factor())
     {
         if(args.n_threads() > 1)
             ROOT::EnableImplicitMT(args.n_threads());
@@ -136,13 +139,15 @@ public:
         for(Long64_t current_entry = args.start_entry(); current_entry < end_entry; ++current_entry) {
             tauTuple.GetEntry(current_entry);
             const auto& tau = tauTuple.data();
-            FillTauBranches(tau);
-            FillCellGrid(tau, innerCellGridRef, innerCellTuple, trainingTauTuple().innerCells_begin,
-                         trainingTauTuple().innerCells_end, true);
-            FillCellGrid(tau, outerCellGridRef, outerCellTuple, trainingTauTuple().outerCells_begin,
-                         trainingTauTuple().outerCells_end, false);
+            if(args.parity() == -1 || tau.evt % 2 == args.parity()) {
+                FillTauBranches(tau);
+                FillCellGrid(tau, innerCellGridRef, innerCellTuple, trainingTauTuple().innerCells_begin,
+                             trainingTauTuple().innerCells_end, true);
+                FillCellGrid(tau, outerCellGridRef, outerCellTuple, trainingTauTuple().outerCells_begin,
+                             trainingTauTuple().outerCells_end, false);
 
-            trainingTauTuple.Fill();
+                trainingTauTuple.Fill();
+            }
             if(++n_processed % 1000 == 0)
                 reporter.Report(n_processed);
         }
@@ -292,12 +297,15 @@ private:
             GetValueNorm(tau.leadChargedCand_etaAtEcalEntrance - tau.tau_eta, 0.0042f, 0.0323f);
 
         TAU_IDS()
-        const TauType tauType = GenMatchToTauType(static_cast<GenLeptonMatch>(tau.lepton_gen_match));
+        const TauType tauType = GenMatchToTauType(static_cast<GenLeptonMatch>(tau.lepton_gen_match),
+                                                  static_cast<SampleType>(tau.sampleType));
         trainingTauTuple().gen_e = tauType == TauType::e;
         trainingTauTuple().gen_mu = tauType == TauType::mu;
         trainingTauTuple().gen_tau = tauType == TauType::tau;
         trainingTauTuple().gen_jet = tauType == TauType::jet;
-        if(tauType != TauType::jet) {
+        trainingTauTuple().gen_emb = tauType == TauType::emb;
+        trainingTauTuple().gen_data = tauType == TauType::data;
+        if(tauType != TauType::jet && tauType != TauType::data) {
             const auto gen_vis_sum = SumP4(tau.lepton_gen_vis_pt, tau.lepton_gen_vis_eta, tau.lepton_gen_vis_phi,
                                            tau.lepton_gen_vis_mass);
             trainingTauTuple().lepton_gen_vis_pt = static_cast<float>(gen_vis_sum.first.pt());

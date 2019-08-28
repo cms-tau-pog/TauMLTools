@@ -44,11 +44,12 @@ namespace {
 struct SourceDesc {
     using Tau = tau_tuple::Tau;
     using TauTuple = tau_tuple::TauTuple;
+    using SampleType = analysis::SampleType;
 
     SourceDesc(const std::string& _name, const std::vector<std::string>& _file_names, size_t _total_n_events,
-               double _weight, const std::set<std::string>& _disabled_branches) :
+               double _weight, const std::set<std::string>& _disabled_branches, SampleType _sample_type) :
         name(_name), file_names(_file_names), disabled_branches(_disabled_branches), weight(_weight),
-        current_n_processed(0), total_n_processed(0), total_n_events(_total_n_events)
+        sample_type(_sample_type), current_n_processed(0), total_n_processed(0), total_n_events(_total_n_events)
     {
         if(file_names.empty())
             throw analysis::exception("Empty list of files for the source '%1%'.") % name;
@@ -83,6 +84,7 @@ struct SourceDesc {
         }
         ++total_n_processed;
         current_tuple->GetEntry(current_n_processed++);
+        (*current_tuple)().sampleType = static_cast<int>(sample_type);
         return current_tuple->data();
     }
 
@@ -98,6 +100,7 @@ private:
     const std::vector<std::string> file_names;
     const std::set<std::string> disabled_branches;
     const double weight;
+    const SampleType sample_type;
     std::string bin_name;
     boost::optional<size_t> current_file_index;
     std::shared_ptr<TFile> current_file;
@@ -263,11 +266,13 @@ struct BinFiles {
 
 struct EntryDesc {
     using TauType = analysis::TauType;
+    using SampleType = analysis::SampleType;
 
     std::string name;
     std::map<std::string, std::vector<std::string>> bin_files;
     std::set<TauType> tau_types;
     double weight;
+    SampleType sample_type;
 
     EntryDesc(const analysis::PropertyConfigReader::Item& item, const std::string& base_dir_name)
     {
@@ -282,6 +287,7 @@ struct EntryDesc {
         const std::string dir_pattern_str = item.Get<std::string>("dir");
         const std::string file_pattern_str = item.Get<std::string>("file");
         weight = item.Has("weight") ? item.Get<double>("weight") : 1;
+        sample_type = item.Get<SampleType>("sample_type");
 
         const path base_dir_path(base_dir_name);
         if(!is_directory(base_dir_name))
@@ -306,7 +312,7 @@ struct EntryDesc {
                 bin_files[bin_name].push_back(file_name);
             }
             if(!has_file_match)
-                throw analysis::exception("No files are found for entry '%1%' sample '%2' with pattern '%3%'")
+                throw analysis::exception("No files are found for entry '%1%' sample %2% with pattern '%3%'")
                       % name % sample_dir_entry % file_pattern_str;
         }
 
@@ -437,8 +443,10 @@ private:
                 const std::string& bin_name = bin_entry.first;
                 const auto& file_names = bin_entry.second;
 
-                if(!bins_map.count(bin_name))
-                    throw analysis::exception("Unknown bin name '%1%'.") % bin_name;
+                if(!bins_map.count(bin_name)) {
+                    continue;
+                    //throw analysis::exception("Unknown bin name '%1%'.") % bin_name;
+                }
 
                 size_t n_events_bin = 0;
                 for(const auto& file_name : file_names) {
@@ -449,7 +457,7 @@ private:
                 }
 
                 auto source = std::make_shared<SourceDesc>(entry.name, file_names, n_events_bin, entry.weight,
-                                                           disabled_branches);
+                                                           disabled_branches, entry.sample_type);
                 bins_map.at(bin_name).AddSource(source);
             }
         }

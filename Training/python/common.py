@@ -3,7 +3,12 @@ import pandas
 import numpy as np
 import tensorflow as tf
 
-truth_branches = [ 'gen_e', 'gen_mu', 'gen_tau', 'gen_jet' ]
+trainMode = 'emb'
+
+if trainMode == 'emb':
+    truth_branches = [ 'gen_tau' ]
+else:
+    truth_branches = [ 'gen_e', 'gen_mu', 'gen_tau', 'gen_jet' ]
 weight_branches = [ 'trainingWeight' ]
 navigation_branches = [ 'innerCells_begin', 'innerCells_end', 'outerCells_begin', 'outerCells_end' ]
 tau_id_branches = [ 'againstElectronMVA6', 'againstElectronMVA6raw', 'againstElectronMVA62018',
@@ -17,18 +22,32 @@ tau_id_branches = [ 'againstElectronMVA6', 'againstElectronMVA6raw', 'againstEle
                     'byDeepTau2017v1VSe', 'byDeepTau2017v1VSeraw', 'byDeepTau2017v1VSmu', 'byDeepTau2017v1VSmuraw',
                     'byDeepTau2017v1VSjet', 'byDeepTau2017v1VSjetraw', 'byDpfTau2016v0VSall', 'byDpfTau2016v0VSallraw' ]
 input_event_branches = [ 'rho' ]
+# input_tau_branches = [ 'tau_pt', 'tau_eta', 'tau_phi', 'tau_mass', 'tau_E_over_pt', 'tau_charge',
+#                        'tau_n_charged_prongs', 'tau_n_neutral_prongs', 'chargedIsoPtSum',
+#                        'chargedIsoPtSumdR03_over_dR05', 'footprintCorrection', 'neutralIsoPtSum',
+#                        'neutralIsoPtSumWeight_over_neutralIsoPtSum', 'neutralIsoPtSumWeightdR03_over_neutralIsoPtSum',
+#                        'neutralIsoPtSumdR03_over_dR05', 'photonPtSumOutsideSignalCone', 'puCorrPtSum',
+#                        'tau_dxy_pca_x', 'tau_dxy_pca_y', 'tau_dxy_pca_z', 'tau_dxy_valid', 'tau_dxy', 'tau_dxy_sig',
+#                        'tau_ip3d_valid', 'tau_ip3d', 'tau_ip3d_sig', 'tau_dz', 'tau_dz_sig_valid', 'tau_dz_sig',
+#                        'tau_flightLength_x', 'tau_flightLength_y', 'tau_flightLength_z', 'tau_flightLength_sig',
+#                        'tau_pt_weighted_deta_strip', 'tau_pt_weighted_dphi_strip', 'tau_pt_weighted_dr_signal',
+#                        'tau_pt_weighted_dr_iso', 'tau_leadingTrackNormChi2', 'tau_e_ratio_valid', 'tau_e_ratio',
+#                        'tau_gj_angle_diff_valid', 'tau_gj_angle_diff', 'tau_n_photons', 'tau_emFraction',
+#                        'tau_inside_ecal_crack', 'leadChargedCand_etaAtEcalEntrance_minus_tau_eta' ]
+
 input_tau_branches = [ 'tau_pt', 'tau_eta', 'tau_phi', 'tau_mass', 'tau_E_over_pt', 'tau_charge',
                        'tau_n_charged_prongs', 'tau_n_neutral_prongs', 'chargedIsoPtSum',
                        'chargedIsoPtSumdR03_over_dR05', 'footprintCorrection', 'neutralIsoPtSum',
                        'neutralIsoPtSumWeight_over_neutralIsoPtSum', 'neutralIsoPtSumWeightdR03_over_neutralIsoPtSum',
                        'neutralIsoPtSumdR03_over_dR05', 'photonPtSumOutsideSignalCone', 'puCorrPtSum',
-                       'tau_dxy_pca_x', 'tau_dxy_pca_y', 'tau_dxy_pca_z', 'tau_dxy_valid', 'tau_dxy', 'tau_dxy_sig',
+                       'tau_dxy_valid', 'tau_dxy', 'tau_dxy_sig',
                        'tau_ip3d_valid', 'tau_ip3d', 'tau_ip3d_sig', 'tau_dz', 'tau_dz_sig_valid', 'tau_dz_sig',
                        'tau_flightLength_x', 'tau_flightLength_y', 'tau_flightLength_z', 'tau_flightLength_sig',
                        'tau_pt_weighted_deta_strip', 'tau_pt_weighted_dphi_strip', 'tau_pt_weighted_dr_signal',
                        'tau_pt_weighted_dr_iso', 'tau_leadingTrackNormChi2', 'tau_e_ratio_valid', 'tau_e_ratio',
                        'tau_gj_angle_diff_valid', 'tau_gj_angle_diff', 'tau_n_photons', 'tau_emFraction',
                        'tau_inside_ecal_crack', 'leadChargedCand_etaAtEcalEntrance_minus_tau_eta' ]
+
 
 input_cell_external_branches = [ 'rho', 'tau_pt', 'tau_eta', 'tau_inside_ecal_crack' ]
 
@@ -121,7 +140,7 @@ class NetConf:
         self.comp_names = component_names
         self.comp_branches = component_branches
 
-netConf_preTau = NetConf("preTau", False, input_event_branches + input_tau_branches, [], [], [])
+netConf_preTau = NetConf("preTau", False, input_tau_branches, [], [], [])
 netConf_preInner = NetConf("preInner", False, [], ['inner'], ['egamma', 'muon', 'hadrons'], [
     input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches,
     input_cell_pfCand_muon_branches + input_cell_muon_branches,
@@ -320,6 +339,27 @@ class TauLosses:
         #return np.where(prob_tau > TauLosses.merge_thr, prob_tau / np.exp(prob_other), prob_tau)
         return np.where(prob_tau > 0, prob_tau / (prob_tau + prob_other), np.zeros(prob_tau.shape))
         #return prob_tau / (prob_tau + prob_other + TauLosses.epsilon)
+
+    @staticmethod
+    def binary(target, output, weights, selected):
+        if selected == 1:
+            cmp_target = target > 0.5
+            cmp_output = output > 0.5
+        else:
+            cmp_target = target < 0.5
+            cmp_output = output < 0.5
+        shape = tf.shape(target)
+        w_all = tf.where(cmp_target, weights, tf.zeros(shape))
+        w_correct = tf.where(tf.math.logical_and(cmp_target, cmp_output), weights, tf.zeros(shape))
+        return tf.reduce_sum(w_correct) / tf.reduce_sum(w_all)
+        #return tf.where(tf.math.logical_and(target == 1, output > 0.5), tf.ones(shape), tf.zeros(shape))
+        #return tf.where(target > 0.5, tf.ones(shape), tf.zeros(shape))
+
+    @staticmethod
+    def binary_negative(target, output):
+        zero = tf.constant(0, dtype=target.dtype.base_dtype)
+        shape = tf.shape(target)
+        return tf.where(target < 0.5, tf.ones(shape), tf.zeros(shape))
 
 
 def LoadModel(model_file, compile=True):

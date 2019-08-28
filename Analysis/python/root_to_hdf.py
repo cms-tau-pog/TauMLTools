@@ -5,7 +5,7 @@ parser = argparse.ArgumentParser(description='Convert ROOT TTree to hdf5 contain
 parser.add_argument('--input', required=True, type=str, help="Input ROOT file")
 parser.add_argument('--output', required=True, type=str, help="Output HDF5 file")
 parser.add_argument('--trees', required=True, type=str, help="List of tree names to ")
-parser.add_argument('--chunk-size', required=False, type=int, default=10000, help="Number of entries per iteration")
+parser.add_argument('--chunk-size', required=False, type=int, default=100000, help="Number of entries per iteration")
 args = parser.parse_args()
 
 import os

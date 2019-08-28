@@ -68,6 +68,8 @@
     VAR(Int_t, gen_mu) /* tau is a muon based on gen matching */ \
     VAR(Int_t, gen_tau) /* tau is a hadronic tau based on gen matching */ \
     VAR(Int_t, gen_jet) /* tau is a jet based on gen matching */ \
+    VAR(Int_t, gen_emb) /* tau is a hadronic tau from embedded sample */ \
+    VAR(Int_t, gen_data) /* tau is originated from data event */ \
     VAR(Int_t, lepton_gen_match) /* matching with leptons on the generator level (see Htautau Twiki for details):
                                     Electron = 1, Muon = 2, TauElectron = 3, TauMuon = 4, Tau = 5, NoMatch = 6 */ \
     VAR(Int_t, lepton_gen_charge) /* charge of the matched gen lepton */ \

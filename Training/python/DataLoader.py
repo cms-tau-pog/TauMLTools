@@ -10,12 +10,23 @@ from common import *
 from fill_grid import FillGrid, FillSequence
 
 read_hdf_lock = Lock()
-
 def read_hdf(file_name, key, columns, start, stop):
     read_hdf_lock.acquire()
     df = pandas.read_hdf(file_name, key, columns=columns, start=start, stop=stop)
     read_hdf_lock.release()
     return df
+
+read_root_lock = Lock()
+uproot_cache = None
+def read_root(tree, branches, start, stop):
+    global uproot_cache
+    read_root_lock.acquire()
+    if uproot_cache is None:
+        uproot_cache = uproot.ArrayCache("2 GB")
+    data = tree.arrays(branches=branches, outputtype=pandas.DataFrame, namedecode='utf-8',
+                       entrystart=start, entrystop=stop, cache=uproot_cache)
+    read_root_lock.release()
+    return data
 
 def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return_truth, return_weights, return_grid):
     FillFn = FillGrid if return_grid else FillSequence
@@ -24,10 +35,12 @@ def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return
         if root_input:
             root_file = uproot.open(file_name)
             taus_tree = root_file['taus']
+            taus_tree._recover()
             cells_tree = {}
 
-            for loc in net_conf.cell_locations:
+            for loc in net_config.cell_locations:
                 cells_tree[loc] = root_file[loc + '_cells']
+                cells_tree[loc]._recover()
 
         expected_n_batches = int(math.ceil((tau_end - tau_begin) / float(batch_size)))
         tau_current = tau_begin
@@ -35,8 +48,7 @@ def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return
         while tau_current < tau_end:
             entry_stop = min(tau_current + chunk_size, tau_end)
             if root_input:
-                df_taus = taus_tree.arrays(branches=df_tau_branches, outputtype=pandas.DataFrame, namedecode='utf-8',
-                                          entrystart=tau_current, entrystop=entry_stop)
+                df_taus = read_root(taus_tree, df_tau_branches, tau_current, entry_stop)
             else:
                 df_taus = read_hdf(file_name, 'taus', df_tau_branches, tau_current, entry_stop)
 
@@ -46,9 +58,7 @@ def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return
                 cells_begin = df_taus[loc + 'Cells_begin'].values[0]
                 cells_end = df_taus[loc + 'Cells_end'].values[-1]
                 if root_input:
-                    df_cells[loc] = cells_tree[loc].arrays(branches=df_cell_branches, outputtype=pandas.DataFrame,
-                                                           namedecode='utf-8', entrystart=cells_begin,
-                                                           entrystop=cells_end, executor=executor)
+                    df_cells[loc] = read_root(cells_tree[loc], df_cell_branches, cells_begin, cells_end)
                 else:
                     df_cells[loc] = read_hdf(file_name, loc + '_cells', df_cell_branches, cells_begin, cells_end)
                 cells_begin_ref[loc] = cells_begin
@@ -71,10 +81,6 @@ def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return
                 Y = np.empty((b_size, n_outputs), dtype=np.int)
                 Y[:, :] = df_taus[truth_branches].values[b_tau_begin:b_tau_end, :]
 
-                if return_weights:
-                    weights = np.empty(b_size, dtype=np.float32)
-                    weights[:] = df_taus[weight_branches[0]].values[b_tau_begin:b_tau_end]
-
                 for loc in net_config.cell_locations:
                     b_cells_begins = df_taus[loc + 'Cells_begin'].values[b_tau_begin:b_tau_end]
                     b_cells_ends = df_taus[loc + 'Cells_end'].values[b_tau_begin:b_tau_end]
@@ -86,6 +92,11 @@ def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return
                             df_cells[loc][cmp_branches].values[b_cells_begin:b_cells_end, :],
                             df_taus[input_cell_external_branches].values[b_tau_begin:b_tau_end, :])
                         X_all.append(X_cells_comp)
+
+                if return_weights:
+                    weights = np.empty(b_size, dtype=np.float32)
+                    weights[:] = df_taus[weight_branches[0]].values[b_tau_begin:b_tau_end]
+                    X_all.append(weights)
 
                 if return_truth and return_weights:
                     item = (X_all, Y, weights)

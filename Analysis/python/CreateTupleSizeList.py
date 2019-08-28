@@ -35,13 +35,16 @@ for root_dir, dir_names, file_names in os.walk(args.input):
 all_file_names = sorted(all_file_names)
 
 for full_file_name in all_file_names:
-    rel_file_name = full_file_name[len(args.input) + 1:]
+    rel_file_name = os.path.relpath(full_file_name, args.input)
     if rel_file_name in prev_results:
         n_events = prev_results[rel_file_name]
     else:
         with uproot.open(full_file_name) as file:
-            keys = [ key[:key.rindex(b';')] for key in file.keys() ]
+            keys = [ key[:key.rindex(b';')].decode('utf-8') for key in file.keys() ]
             if 'taus' in keys:
                 tree = file['taus']
                 n_events = tree.numentries
+            else:
+                raise RuntimeError('TTree with name "taus" is not found in "{}". Available keys: {}' \
+                      .format(full_file_name, file.keys()))
     print("{} {}".format(rel_file_name, n_events))
