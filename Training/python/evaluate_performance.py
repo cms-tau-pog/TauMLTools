@@ -256,12 +256,7 @@ all_discriminators = {
                       [ DiscriminatorWP.VVVLoose, DiscriminatorWP.VVLoose, DiscriminatorWP.VLoose,
                         DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight, DiscriminatorWP.VTight,
                         DiscriminatorWP.VVTight ],
-                      'byDeepTau2017v1VSe'),
-        Discriminator('deepTau 2017v2 ' + args.prev_deep_results_label, 'deepIde2_vs_e', True, False, 'black'),
-        Discriminator('deepTau 2017v2 ' + args.deep_results_label, 'deepId_vs_e', True, False, 'orange',
-                      [ DiscriminatorWP.VVVLoose, DiscriminatorWP.VVLoose, DiscriminatorWP.VLoose,
-                        DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight, DiscriminatorWP.VTight,
-                        DiscriminatorWP.VVTight ], working_points_thrs = deep_wp_thrs['e'])
+                      'byDeepTau2017v1VSe')
     ],
     'mu': [
         Discriminator('againstMuon3', 'againstMuon3', False, True, 'green',
@@ -270,11 +265,7 @@ all_discriminators = {
                       [ DiscriminatorWP.VVVLoose, DiscriminatorWP.VVLoose, DiscriminatorWP.VLoose,
                         DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight, DiscriminatorWP.VTight,
                         DiscriminatorWP.VVTight ],
-                      'byDeepTau2017v1VSmu'),
-        Discriminator('deepTau 2017v2 ' + args.prev_deep_results_label, 'deepIde2_vs_mu', True, False, 'black'),
-        Discriminator('deepTau 2017v2 ' + args.deep_results_label, 'deepId_vs_mu', True, False, 'orange',
-                      [ DiscriminatorWP.VLoose, DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight ],
-                      working_points_thrs = deep_wp_thrs['mu'])
+                      'byDeepTau2017v1VSmu')
     ],
     'jet': [
         Discriminator('MVA 2017v2', 'byIsolationMVArun2017v2DBoldDMwLT2017raw', True, True, 'green',
@@ -291,14 +282,33 @@ all_discriminators = {
                       [ DiscriminatorWP.VVVLoose, DiscriminatorWP.VVLoose, DiscriminatorWP.VLoose,
                         DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight, DiscriminatorWP.VTight,
                         DiscriminatorWP.VVTight ],
-                      'byDeepTau2017v1VSjet'),
-        Discriminator('deepTau 2017v2 ' + args.prev_deep_results_label, 'deepIde2_vs_jet', True, False, 'black'),
-        Discriminator('deepTau 2017v2 ' + args.deep_results_label, 'deepId_vs_jet', True, False, 'orange',
-                      [ DiscriminatorWP.VVVLoose, DiscriminatorWP.VVLoose, DiscriminatorWP.VLoose,
-                        DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight, DiscriminatorWP.VTight,
-                        DiscriminatorWP.VVTight ], working_points_thrs = deep_wp_thrs['jet'])
+                      'byDeepTau2017v1VSjet')
     ]
 }
+
+has_prev_results = len(args.prev_deep_results_label) > 0 and 'None' not in args.prev_deep_results_label
+deep_results_label = 'deepTau 2017v2'
+if has_prev_results:
+    prev_deep_results_label = deep_results_label + ' ' + args.prev_deep_results_label
+    deep_results_label += ' ' + args.deep_results_label
+    all_discriminators['e'].append(Discriminator(prev_deep_results_label,
+                                   'deepId{}_vs_e'.format(args.prev_deep_results_label), True, False, 'black'))
+    all_discriminators['mu'].append(Discriminator(prev_deep_results_label,
+                                    'deepId{}_vs_mu'.format(args.prev_deep_results_label), True, False, 'black'))
+    all_discriminators['jet'].append(Discriminator(prev_deep_results_label,
+                                     'deepId{}_vs_jet'.format(args.prev_deep_results_label), True, False, 'black'))
+
+all_discriminators['e'].append(Discriminator(deep_results_label, 'deepId_vs_e', True, False, 'orange',
+    [ DiscriminatorWP.VVVLoose, DiscriminatorWP.VVLoose, DiscriminatorWP.VLoose, DiscriminatorWP.Loose,
+      DiscriminatorWP.Medium, DiscriminatorWP.Tight, DiscriminatorWP.VTight, DiscriminatorWP.VVTight ],
+    working_points_thrs = deep_wp_thrs['e']))
+all_discriminators['mu'].append(Discriminator(deep_results_label, 'deepId_vs_mu', True, False, 'orange',
+    [ DiscriminatorWP.VLoose, DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight ],
+    working_points_thrs = deep_wp_thrs['mu']))
+all_discriminators['jet'].append(Discriminator(deep_results_label, 'deepId_vs_jet', True, False, 'orange',
+    [ DiscriminatorWP.VVVLoose, DiscriminatorWP.VVLoose, DiscriminatorWP.VLoose, DiscriminatorWP.Loose,
+      DiscriminatorWP.Medium, DiscriminatorWP.Tight, DiscriminatorWP.VTight, DiscriminatorWP.VVTight ],
+    working_points_thrs = deep_wp_thrs['jet']))
 
 if args.other_type not in all_discriminators:
     raise RuntimeError("Unknown other_type")
@@ -326,8 +336,9 @@ def CreateDF(file_name):
     base_name = os.path.basename(file_name)
     pred_file_name = os.path.splitext(base_name)[0] + '_pred.h5'
     AddPredictionsToDataFrame(df, os.path.join(args.deep_results, pred_file_name))
-    if args.prev_deep_results is not None:
-        AddPredictionsToDataFrame(df, os.path.join(args.prev_deep_results, pred_file_name), 'e2')
+    if has_prev_results:
+        AddPredictionsToDataFrame(df, os.path.join(args.prev_deep_results, pred_file_name),
+                                  args.prev_deep_results_label)
     df['tau_pt'] = pandas.Series(df.tau_pt *(1000 - 20) + 20, index=df.index)
     return df
 
@@ -364,8 +375,8 @@ elif apply_deep_cuts:
             & (df_all['deepId_vs_mu'] > deep_wp_thrs['mu']['VLoose'])]
 
 
-pt_bins = [ 20, 30, 40, 50, 70, 100, 150, 200, 300, 500, 1000 ]
-#pt_bins = [ 20, 30 ]
+#pt_bins = [ 20, 30, 40, 50, 70, 100, 150, 200, 300, 500, 1000 ]
+pt_bins = [ 20, 100 ]
 
 plot_setups = {
     'e': PlotSetup(ylabel='Electron mis-id probability', xlim=[0.4, 1], ratio_yscale='log',
@@ -424,7 +435,11 @@ with PdfPages(args.output) as pdf:
 
         plot_setups[args.other_type].Apply(names, pt_index, ax, ax_ratio)
 
-        ax.set_title('tau vs {}. pt range ({}, {}) GeV'.format(args.other_type, pt_bins[pt_index],
-                     pt_bins[pt_index + 1]), fontsize=18, y=1.04)
+        if len(pt_bins) == 2 and pt_bins[-1] == 1000:
+            title_str = 'tau vs {}. pt > {} GeV'.format(args.other_type, pt_bins[pt_index])
+        else:
+            title_str = 'tau vs {}. pt range ({}, {}) GeV'.format(args.other_type, pt_bins[pt_index],
+                                                                  pt_bins[pt_index + 1])
+        ax.set_title(title_str, fontsize=18, y=1.04)
         plt.subplots_adjust(hspace=0)
         pdf.savefig(fig, bbox_inches='tight')
