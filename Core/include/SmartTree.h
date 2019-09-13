@@ -256,8 +256,10 @@ public:
     void Write()
     {
         std::lock_guard<Mutex> lock(mutex);
-        if(directory)
+        if(directory) {
+            tree->FlushBaskets();
             directory->WriteTObject(tree, tree->GetName(), "Overwrite");
+        }
     }
 
     Mutex& GetMutex() { return mutex; }
