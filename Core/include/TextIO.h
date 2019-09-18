@@ -93,6 +93,17 @@ std::vector<std::string> SplitValueList(const std::string& values_str, bool allo
                                         const std::string& separators = " \t",
                                         bool enable_token_compress = true);
 
+template<typename T, typename Collection=std::vector<T>>
+Collection SplitValueListT(const std::string& values_str, bool allow_duplicates = true,
+                                        const std::string& separators = " \t",
+                                        bool enable_token_compress = true)
+{
+    std::vector<std::string> list = SplitValueList(values_str,allow_duplicates,separators,enable_token_compress);
+    Collection collection;
+    std::transform(list.begin(), list.end(), std::inserter(collection, collection.end()), [](const std::string& str) { return Parse<T>(str);});
+    return collection;
+}
+
 std::vector<std::string> ReadValueList(std::istream& stream, size_t number_of_items,
                                        bool allow_duplicates = true,
                                        const std::string& separators = " \t",
