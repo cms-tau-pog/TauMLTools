@@ -131,14 +131,14 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
     using HistPtrMap = std::unordered_map<std::string, HistPtr>;
     using RootContainer = typename Hist::RootContainer;
 
-    AnalyzerDataEntry(const std::string& _name, AnalyzerData* data) :
-        AnalyzerDataEntryBase(_name, data)
+    AnalyzerDataEntry(const std::string& _name, AnalyzerData* _data) :
+        AnalyzerDataEntryBase(_name, _data)
     {
     }
 
     template<typename... Args>
-    AnalyzerDataEntry(const std::string& _name, AnalyzerData* data, Args&&... args) :
-        AnalyzerDataEntryBase(_name, data)
+    AnalyzerDataEntry(const std::string& _name, AnalyzerData* _data, Args&&... args) :
+        AnalyzerDataEntryBase(_name, _data)
     {
         SetMasterHist(std::forward<Args>(args)...);
     }

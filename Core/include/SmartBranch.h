@@ -101,6 +101,33 @@ struct SmartBranchEntry<std::vector<ValueType>, false> : BaseSmartBranchEntry {
     static BaseSmartBranchEntry* Make() { return new SmartBranchEntry(); }
 };
 
+template<>
+struct SmartBranchEntry<std::vector<bool>, false> : BaseSmartBranchEntry {
+    using DataType = std::vector<bool>;
+    DataType* value;
+    SmartBranchEntry() : value(new DataType()) {}
+    virtual ~SmartBranchEntry() override { delete value; }
+
+    virtual void SetBranchAddress(TBranch& branch) override
+    {
+        branch.GetTree()->SetBranchAddress(branch.GetName(), &value);
+    }
+
+    virtual bool IsCollection() const override { return true; }
+    std::string ToString() const override
+    {
+        std::ostringstream ss;
+        ss << "size = " << value->size() << std::endl;
+        for(size_t n = 0; n < value->size(); ++n) {
+            const std::string v_str = value->at(n) ? "true" : "false";
+            ss << boost::format("\t%1%: %2%\n") % n % v_str;
+        }
+        return ss.str();
+    }
+
+    static BaseSmartBranchEntry* Make() { return new SmartBranchEntry(); }
+};
+
 #define BRANCH_ENTRY(type) { #type, &SmartBranchEntry<type>::Make }
 
 struct BranchEntryFactory {
@@ -130,18 +157,28 @@ struct BranchEntryFactory {
             BRANCH_ENTRY(ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> >),
             BRANCH_ENTRY(ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<Double32_t> >),
             BRANCH_ENTRY(vector<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<double> > >),
+            BRANCH_ENTRY(vector<bool>),
             BRANCH_ENTRY(vector<float>),
             BRANCH_ENTRY(vector<double>),
+            BRANCH_ENTRY(vector<short>),
+            BRANCH_ENTRY(vector<unsigned short>),
             BRANCH_ENTRY(vector<int>),
             BRANCH_ENTRY(vector<unsigned int>),
+            BRANCH_ENTRY(vector<long>),
             BRANCH_ENTRY(vector<unsigned long>),
+            BRANCH_ENTRY(vector<ULong64_t>),
             BRANCH_ENTRY(vector<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > >),
             BRANCH_ENTRY(ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<float> >),
             BRANCH_ENTRY(vector<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<float> > >),
             BRANCH_ENTRY(vector<ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<float> > >),
             { "map<string,float>",  &SmartBranchEntry<map<string,float>>::Make },
             { "ROOT::Math::SMatrix<double,2,2,ROOT::Math::MatRepSym<double,2> >",
-              &SmartBranchEntry<ROOT::Math::SMatrix<double,2,2,ROOT::Math::MatRepSym<double,2> >>::Make },
+              &SmartBranchEntry<ROOT::Math::SMatrix<double,2,2,ROOT::Math::MatRepSym<double,2> >, true>::Make },
+            { "ROOT::Math::SMatrix<double,2,2,ROOT::Math::MatRepStd<double,2,2> >",
+              &SmartBranchEntry<ROOT::Math::SMatrix<double,2,2,ROOT::Math::MatRepStd<double,2,2> >, true>::Make },
+            { "vector<ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<float>,ROOT::Math::DefaultCoordinateSystemTag> >",
+              &SmartBranchEntry<vector<ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<float>,ROOT::Math::DefaultCoordinateSystemTag> >>::Make },
+
         };
 
         TClass *branch_class;
