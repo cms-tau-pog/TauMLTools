@@ -223,12 +223,15 @@ public:
         else delete tree;
     }
 
-    void Fill()
+    Int_t Fill()
     {
         std::lock_guard<Mutex> lock(mutex);
-        tree->Fill();
+        Int_t n_bytes = tree->Fill();
+        if(n_bytes < 0)
+            throw std::runtime_error("SmartTree: a write error occured during Fill.");
         for(auto& entry : entries)
             entry.second->clear();
+        return n_bytes;
     }
 
     Long64_t GetEntries() const { return tree->GetEntries(); }
@@ -253,13 +256,17 @@ public:
         tree->SetAutoFlush(autof);
     }
 
-    void Write()
+    Int_t Write()
     {
         std::lock_guard<Mutex> lock(mutex);
+        Int_t n_bytes = 0;
         if(directory) {
             tree->FlushBaskets();
-            directory->WriteTObject(tree, tree->GetName(), "Overwrite");
+            n_bytes = directory->WriteTObject(tree, tree->GetName(), "Overwrite");
+            if(!n_bytes)
+                throw std::runtime_error("SmartTree: the object cannot be written.");
         }
+        return n_bytes;
     }
 
     Mutex& GetMutex() { return mutex; }
