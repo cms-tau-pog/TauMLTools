@@ -21,13 +21,15 @@ struct StringIOImpl {
         return ss.str();
     }
 
-    static bool TryParse(const std::basic_string<CharT>& str, T& t)
+    static bool TryParse(const std::basic_string<CharT>& str, T& t, std::string& error_msg)
     {
         try {
             std::basic_istringstream<CharT> ss(str);
             ss >> std::boolalpha >> t;
             return !ss.fail();
-        } catch(std::exception&) {}
+        } catch(std::exception& e){
+            error_msg = e.what();
+        }
         return false;
     }
 };
@@ -35,7 +37,11 @@ struct StringIOImpl {
 template<typename CharT>
 struct StringIOImpl<std::basic_string<CharT>, CharT> {
     static std::basic_string<CharT> ToString(const std::basic_string<CharT>& str) { return str; }
-    static bool TryParse(const std::basic_string<CharT>& str, std::basic_string<CharT>& t) { t = str; return true; }
+    static bool TryParse(const std::basic_string<CharT>& str, std::basic_string<CharT>& t, std::string&)
+    {
+        t = str;
+        return true;
+    }
 };
 
 template<typename CharT, int N>
@@ -52,17 +58,31 @@ std::basic_string<CharT> ToString(T&& t)
 }
 
 template<typename T, typename CharT>
+bool TryParse(const std::basic_string<CharT>& str, T& t, std::string& error_msg)
+{
+    return detail::StringIOImpl<typename std::remove_reference<T>::type, CharT>::TryParse(str, t, error_msg);
+}
+
+template<typename T, typename CharT>
 bool TryParse(const std::basic_string<CharT>& str, T& t)
 {
-    return detail::StringIOImpl<typename std::remove_reference<T>::type, CharT>::TryParse(str, t);
+    std::string error_msg;
+    return TryParse<T, CharT>(str, t, error_msg);
 }
 
 template<typename T, typename CharT>
 T Parse(const std::basic_string<CharT>& str)
 {
     T t;
-    if(!TryParse(str, t))
-        throw exception("Parse of string '%1%' to %2% is failed.") % str % typeid(T).name();
+    std::string error_msg;
+    if(!TryParse(str, t, error_msg)) {
+        std::ostringstream ss;
+        ss << "Parse of string \"" << str << "\" to " << typeid(T).name() << " is failed.";
+        if(!error_msg.empty())
+            ss << " " << error_msg;
+        throw exception(ss.str());
+    }
+
     return t;
 }
 
