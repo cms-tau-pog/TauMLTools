@@ -18,7 +18,6 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <TMatrixD.h>
 #include <TLorentzVector.h>
 #include "Math/GenVector/Cartesian3D.h"
-
 #include "PhysicalValue.h"
 
 extern template class TMatrixT<double>;
@@ -155,6 +154,22 @@ double Calculate_dR_boosted(const LVector1& particle_1, const LVector2& particle
     const auto boosted_2 = ROOT::Math::VectorUtil::boost(particle_2, h.BoostToCM());
     return ROOT::Math::VectorUtil::DeltaR(boosted_1, boosted_2);
 }
+
+template<typename LVector>
+double Calculate_min_dR_lj(const LVector& t1, const LVector& t2, const LVector& b1, const LVector& b2)
+{
+    const std::vector<LVector> taus = {t1, t2};
+    const std::vector<LVector> jets = {b1, b2};
+    std::vector<double> dR;
+
+    for(size_t jet_index = 0; jet_index < taus.size(); ++jet_index) {
+        for(size_t lep_index = 0; lep_index < jets.size(); ++lep_index)
+            dR.push_back(ROOT::Math::VectorUtil::DeltaR(taus.at(lep_index), jets.at(jet_index)));
+    }
+    auto min_dR = *std::min_element(dR.begin(), dR.end());
+    return min_dR;
+}
+
 
 //angle between the decay planes of the four final state elements expressed in the hh rest frame
 template<typename LVector1, typename LVector2, typename LVector3, typename LVector4, typename LVector5,  typename LVector6>
