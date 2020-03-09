@@ -150,4 +150,13 @@ struct StVariable {
     std::string ToLatexString() const;
 };
 
+template<typename LVector>
+std::string LorentzVectorToString(const LVector& p4)
+{
+    std::ostringstream ss;
+    ss << "(pt, eta, phi, m, E) = (" << p4.pt() << ", " << p4.eta() << ", " << p4.phi() << ", " << p4.mass()
+       << ", " << p4.E() << ")";
+    return ss.str();
+}
+
 } // namespace analysis
