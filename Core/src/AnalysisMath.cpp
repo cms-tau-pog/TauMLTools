@@ -19,9 +19,63 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <boost/math/constants/constants.hpp>
 #include <boost/math/special_functions/erf.hpp>
 
-
-
 namespace analysis {
+
+StVariable::StVariable() : value(0), error_up(0), error_low(0) {}
+StVariable::StVariable(double _value, double _error_up) :
+    value(_value), error_up(_error_up), error_low(_error_up) {}
+StVariable::StVariable(double _value, double _error_up, double _error_low) :
+    value(_value), error_up(_error_up), error_low(_error_low) {}
+
+double StVariable::error(int scale) const
+{
+    const double err = scale > 0 ? error_up : error_low;
+    return err * std::abs(scale);
+}
+
+int StVariable::precision_up() const
+{
+    return error_up != 0.
+            ? static_cast<int>(std::floor(std::log10(error_up)) - number_of_significant_digits_in_error + 1)
+            : max_precision;
+}
+
+int StVariable::precision_low() const
+{
+    return error_low != 0.
+            ? static_cast<int>(std::floor(std::log10(error_low)) - number_of_significant_digits_in_error + 1)
+            : max_precision;
+}
+
+int StVariable::precision() const { return std::max(precision_up(), precision_low()); }
+
+int StVariable::decimals_to_print_low() const { return std::max(0, -precision_low()); }
+int StVariable::decimals_to_print_up() const { return std::max(0, -precision_up()); }
+int StVariable::decimals_to_print() const { return std::min(decimals_to_print_low(), decimals_to_print_up()); }
+
+std::string StVariable::ToLatexString() const
+{
+    const ValueType ten_pow_p = std::pow(10.0, precision());
+    const ValueType value_rounded = std::round(value / ten_pow_p) * ten_pow_p;
+    const ValueType error_up_rounded = std::ceil(error_up / ten_pow_p) * ten_pow_p;
+    const ValueType error_low_rounded = std::ceil(error_low / ten_pow_p) * ten_pow_p;
+
+    std::ostringstream ss;
+    ss << std::setprecision(decimals_to_print()) << std::fixed;
+    if(error_up == 0 && error_low == 0)
+        ss << value_rounded<< "^{+0}_{-0}";
+    else if(!std::isnan(error_low))
+        ss << value_rounded<< "^{+" << error_up_rounded << "}_{-" << error_low_rounded << "}";
+    else if(std::isnan(error_low)) {
+        ss << value_rounded << " \\pm ";
+        if(error_up == 0)
+            ss << "0";
+        else
+            ss << error_up_rounded;
+   }
+
+   return ss.str();
+}
 
 bool EllipseParameters::IsInside(double x, double y) const
 {

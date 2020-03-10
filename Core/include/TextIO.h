@@ -129,27 +129,6 @@ std::vector<std::string> ReadValueList(std::istream& stream, size_t number_of_it
                                        const std::string& separators = " \t",
                                        bool enable_token_compress = true);
 
-struct StVariable {
-    using ValueType = double;
-    static constexpr int max_precision = -std::numeric_limits<ValueType>::digits10;
-    static constexpr int number_of_significant_digits_in_error = 2;
-
-    ValueType value, error_up, error_low;
-
-    StVariable();
-    StVariable(double _value, double _error_up, double _error_low = std::numeric_limits<double>::quiet_NaN());
-
-    int precision_up() const;
-    int precision_low() const;
-    int precision() const;
-
-    int decimals_to_print_low() const;
-    int decimals_to_print_up() const;
-    int decimals_to_print() const;
-
-    std::string ToLatexString() const;
-};
-
 template<typename LVector>
 std::string LorentzVectorToString(const LVector& p4)
 {

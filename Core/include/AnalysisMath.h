@@ -38,6 +38,29 @@ using Point3D_Float = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<float
 template<unsigned n>
 using SquareMatrix = ROOT::Math::SMatrix<double, n, n, ROOT::Math::MatRepStd<double, n>>;
 
+struct StVariable {
+    using ValueType = double;
+    static constexpr int max_precision = -std::numeric_limits<ValueType>::digits10;
+    static constexpr int number_of_significant_digits_in_error = 2;
+
+    ValueType value, error_up, error_low;
+
+    StVariable();
+    StVariable(double _value, double _error_up);
+    StVariable(double _value, double _error_up, double _error_low);
+
+    double error(int scale = 1) const;
+    int precision_up() const;
+    int precision_low() const;
+    int precision() const;
+
+    int decimals_to_print_low() const;
+    int decimals_to_print_up() const;
+    int decimals_to_print() const;
+
+    std::string ToLatexString() const;
+};
+
 template<unsigned n>
 TMatrixD ConvertMatrix(const SquareMatrix<n>& m)
 {
