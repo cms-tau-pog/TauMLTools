@@ -129,13 +129,19 @@ std::vector<std::string> ReadValueList(std::istream& stream, size_t number_of_it
                                        const std::string& separators = " \t",
                                        bool enable_token_compress = true);
 
+enum class LVectorRepr { PtEtaPhiM, PtEtaPhiE, PtEtaPhiME, PxPyPzE, PtPhi, PxPyPtPhi };
+
+namespace detail {
+    std::string LorentzVectorToString(double px, double py, double pz, double E, double mass, double pt, double eta,
+                                      double phi, LVectorRepr repr, bool print_prefix);
+}
+
 template<typename LVector>
-std::string LorentzVectorToString(const LVector& p4)
+std::string LorentzVectorToString(const LVector& p4, LVectorRepr repr = LVectorRepr::PtEtaPhiME,
+                                  bool print_prefix = true)
 {
-    std::ostringstream ss;
-    ss << "(pt, eta, phi, m, E) = (" << p4.pt() << ", " << p4.eta() << ", " << p4.phi() << ", " << p4.mass()
-       << ", " << p4.E() << ")";
-    return ss.str();
+    return detail::LorentzVectorToString(p4.px(), p4.py(), p4.pz(), p4.E(), p4.mass(), p4.pt(), p4.eta(), p4.phi(),
+                                         repr, print_prefix);
 }
 
 } // namespace analysis

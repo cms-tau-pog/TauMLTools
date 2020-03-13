@@ -5,6 +5,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 #include <cmath>
 #include <iomanip>
+#include <map>
 #include <unordered_set>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -89,5 +90,43 @@ std::vector<std::string> ReadValueList(std::istream& stream, size_t number_of_it
         throw;
     }
 }
+
+namespace detail {
+std::string LorentzVectorToString(double px, double py, double pz, double E, double mass, double pt, double eta,
+                                  double phi, LVectorRepr repr, bool print_prefix)
+{
+    static const std::map<LVectorRepr, std::string> prefix = {
+        { LVectorRepr::PtEtaPhiM, "pt, eta, phi, m" },
+        { LVectorRepr::PtEtaPhiE, "pt, eta, phi, E" },
+        { LVectorRepr::PtEtaPhiME, "pt, eta, phi, m, E" },
+        { LVectorRepr::PxPyPzE, "px, py, pz, E" },
+        { LVectorRepr::PtPhi, "pt, phi" },
+        { LVectorRepr::PxPyPtPhi, "px, py, pt, phi" },
+    };
+    const auto iter = prefix.find(repr);
+    if(iter == prefix.end())
+        throw exception("LorentzVectorToString: representation is not supported.");
+    std::ostringstream ss;
+    if(print_prefix)
+        ss << "(" << iter->second << ") = ";
+    ss << "(";
+    if(repr == LVectorRepr::PtEtaPhiM || repr == LVectorRepr::PtEtaPhiE || repr == LVectorRepr::PtEtaPhiME) {
+        ss << pt << ", " << eta << ", " << phi;
+        if(repr == LVectorRepr::PtEtaPhiM || repr == LVectorRepr::PtEtaPhiME)
+            ss << ", " << mass;
+        if(repr == LVectorRepr::PtEtaPhiE || repr == LVectorRepr::PtEtaPhiME)
+            ss << ", " << E;
+    } else if(repr == LVectorRepr::PxPyPzE) {
+        ss << px << ", " << py << ", " << pz << ", " << E;
+    } else if(repr == LVectorRepr::PtPhi || repr == LVectorRepr::PxPyPtPhi) {
+        if(repr == LVectorRepr::PxPyPtPhi)
+            ss << px << ", " << py << ", ";
+        ss << pt << ", " << phi;
+    }
+    ss << ")";
+    return ss.str();
+}
+
+} // namespace detail
 
 } // namespace analysis
