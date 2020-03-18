@@ -63,9 +63,9 @@ void RootFilesMerger::HistDescriptor::Merge()
     hists.resize(1);
 }
 
-size_t& RootFilesMerger::TreeDescriptor::NumberOfFiles()
+std::atomic<size_t>& RootFilesMerger::TreeDescriptor::NumberOfFiles()
 {
-    static size_t n_files = 1;
+    static std::atomic<size_t> n_files = 1;
     return n_files;
 }
 

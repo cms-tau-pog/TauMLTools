@@ -24,16 +24,17 @@ const std::vector<std::string>& EventIdentifier::Names()
 
 const std::string& EventIdentifier::LegendString(size_t n)
 {
-    static std::map<size_t, std::string> legends;
-    if(!legends.count(n)) {
+    static const auto init_legends = []() {
+        std::map<size_t, std::string> map;
         std::ostringstream ss;
-        for(size_t k = 0; k < n; ++k)
-            ss << Names().at(k) << separator;
-        std::string str = ss.str();
-        if(str.size())
-            str.erase(str.size() - 1);
-        legends[n] = str;
-    }
+        for(size_t k = 0; k < Names().size(); ++k) {
+            ss << Names().at(k);
+            map[k] = ss.str();
+            ss << separator;
+        }
+        return map;
+    };
+    static const std::map<size_t, std::string> legends = init_legends();
     return legends.at(n);
 }
 

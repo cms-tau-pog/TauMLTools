@@ -68,10 +68,6 @@ TDirectory* GetDirectory(TDirectory& root_dir, const std::string& name, bool cre
 
 ClassInheritance FindClassInheritance(const std::string& class_name)
 {
-    static std::map<std::string, ClassInheritance> classes;
-    auto iter = classes.find(class_name);
-    if(iter != classes.end())
-        return iter->second;
     TClass *cl = gROOT->GetClass(class_name.c_str());
     if(!cl)
         throw analysis::exception("Unable to get TClass for class named '%1%'.") % class_name;
@@ -85,7 +81,7 @@ ClassInheritance FindClassInheritance(const std::string& class_name)
         inheritance = ClassInheritance::TDirectory;
     else
         throw analysis::exception("Unknown class inheritance for class named '%1%'.") % class_name;
-    classes[class_name] = inheritance;
+
     return inheritance;
 }
 } // namespace root_ext

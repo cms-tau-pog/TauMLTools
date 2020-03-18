@@ -512,8 +512,8 @@ private:
 
     static HistogramParametersMap& ParametersMap_RW()
     {
-        static HistogramParametersMap parameters;
-        return parameters;
+        static const auto parameters = std::make_unique<HistogramParametersMap>();
+        return *parameters;
     }
 
     static const HistogramParametersMap& ParametersMap()
@@ -523,8 +523,8 @@ private:
 
     static std::string& ConfigName()
     {
-        static std::string configName = "histograms.cfg";
-        return configName;
+        static const auto configName = std::make_unique<std::string>("histograms.cfg");
+        return *configName;
     }
 
     static const HistogramParameters& GetParameters(const std::string& name, const std::string& selection_label = "")

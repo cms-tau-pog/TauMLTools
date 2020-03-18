@@ -114,9 +114,9 @@ private:
         }
     }
 
-    static EnumNameMap<Enum>*& GetDefault(bool null_check)
+    static std::atomic<EnumNameMap<Enum>*>& GetDefault(bool null_check)
     {
-        static EnumNameMap<Enum>* m = nullptr;
+        static std::atomic<EnumNameMap<Enum>*> m = nullptr;
         if(null_check && !m)
             throw exception("Names for the enum '%1%' are not defined.") % typeid(Enum).name();
         return m;

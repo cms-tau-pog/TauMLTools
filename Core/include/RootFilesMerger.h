@@ -31,7 +31,7 @@ public:
 
     struct TreeDescriptor {
         using ChainPtr = std::unique_ptr<TChain>;
-        static size_t& NumberOfFiles();
+        static std::atomic<size_t>& NumberOfFiles();
         std::vector<std::string> file_names;
         TreeDescriptor();
         void AddFile(const std::string& file_name);

@@ -22,11 +22,11 @@ public:
     exception& operator % (const T& t) noexcept
     {
         try {
-            if(!msg_valid && f_msg)
+            if(!*msg_valid && f_msg)
                 *f_msg % t;
         } catch(boost::io::too_many_args&) {
-            msg = "too many arguments are provided to the error message = '" + f_str + "'.";
-            msg_valid = true;
+            *msg = "too many arguments are provided to the error message = '" + f_str + "'.";
+            *msg_valid = true;
         } catch(std::exception& e) {
             process_unexpected_exception(e);
         }
@@ -37,8 +37,8 @@ private:
     void process_unexpected_exception(const std::exception& e) const;
 
 private:
-    mutable std::string msg;
-    mutable bool msg_valid;
+    std::unique_ptr<std::string> msg;
+    std::unique_ptr<bool> msg_valid;
     std::unique_ptr<boost::format> f_msg;
     std::string f_str;
 };
