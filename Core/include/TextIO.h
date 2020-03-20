@@ -140,7 +140,7 @@ template<typename LVector>
 std::string LorentzVectorToString(const LVector& p4, LVectorRepr repr = LVectorRepr::PtEtaPhiME,
                                   bool print_prefix = true)
 {
-    return detail::LorentzVectorToString(p4.px(), p4.py(), p4.pz(), p4.E(), p4.mass(), p4.pt(), p4.eta(), p4.phi(),
+    return detail::LorentzVectorToString(p4.Px(), p4.Py(), p4.Pz(), p4.E(), p4.M(), p4.Pt(), p4.Eta(), p4.Phi(),
                                          repr, print_prefix);
 }
 
