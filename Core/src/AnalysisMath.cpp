@@ -77,6 +77,63 @@ std::string StVariable::ToLatexString() const
    return ss.str();
 }
 
+bool Cut1D_Bound::operator() (double x) const
+{
+    if(std::isnan(value))
+        throw exception("Cut1D: cut value is not set.");
+    const double y = abs ? std::abs(x) : x;
+    if(is_lower_bound)
+        return equals_pass ? y >= value : y > value;
+    return equals_pass ? y <= value : y < value;
+}
+
+Cut1D_Bound Cut1D_Bound::L(double lower, bool equals_pass)
+{
+    Cut1D_Bound cut;
+    cut.value = lower;
+    cut.abs = false;
+    cut.is_lower_bound = true;
+    cut.equals_pass = equals_pass;
+    return cut;
+}
+
+Cut1D_Bound Cut1D_Bound::U(double upper, bool equals_pass)
+{
+    Cut1D_Bound cut;
+    cut.value = upper;
+    cut.abs = false;
+    cut.is_lower_bound = false;
+    cut.equals_pass = equals_pass;
+    return cut;
+}
+
+Cut1D_Bound Cut1D_Bound::AbsL(double lower, bool equals_pass)
+{
+    Cut1D_Bound cut = L(lower, equals_pass);
+    cut.abs = true;
+    return cut;
+}
+
+Cut1D_Bound Cut1D_Bound::AbsU(double upper, bool equals_pass)
+{
+    Cut1D_Bound cut = U(upper, equals_pass);
+    cut.abs = true;
+    return cut;
+}
+
+Cut1D_Interval::Cut1D_Interval(const Cut1D_Bound& _lower, const Cut1D_Bound& _upper, bool _inverse)
+        : lower(_lower), upper(_upper), inverse(_inverse)
+{
+}
+
+bool Cut1D_Interval::operator() (ValueType x) const
+{
+    bool result = lower(x) && upper(x);
+    if(inverse)
+        result = !result;
+    return result;
+}
+
 bool EllipseParameters::IsInside(double x, double y) const
 {
     const double ellipse_cut = std::pow(x-x0, 2)/std::pow(r_x, 2)

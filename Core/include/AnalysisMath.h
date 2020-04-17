@@ -61,6 +61,32 @@ struct StVariable {
     std::string ToLatexString() const;
 };
 
+struct Cut1D {
+    using ValueType = double;
+    Cut1D() = default;
+    Cut1D(Cut1D&&) = default;
+    Cut1D(const Cut1D&) = default;
+    virtual bool operator() (ValueType x) const = 0;
+    virtual ~Cut1D(){}
+};
+
+struct Cut1D_Bound : Cut1D {
+    ValueType value{std::numeric_limits<ValueType>::quiet_NaN()};
+    bool abs{false}, is_lower_bound{false}, equals_pass{false};
+    bool operator() (ValueType x) const override;
+    static Cut1D_Bound L(ValueType lower, bool equals_pass = false);
+    static Cut1D_Bound U(ValueType upper, bool equals_pass = false);
+    static Cut1D_Bound AbsL(ValueType lower, bool equals_pass = false);
+    static Cut1D_Bound AbsU(ValueType upper, bool equals_pass = false);
+};
+
+struct Cut1D_Interval  : Cut1D {
+    Cut1D_Bound lower, upper;
+    bool inverse;
+    Cut1D_Interval(const Cut1D_Bound& _lower, const Cut1D_Bound& _upper, bool _inverse = false);
+    bool operator() (ValueType x) const;
+};
+
 template<unsigned n>
 TMatrixD ConvertMatrix(const SquareMatrix<n>& m)
 {
