@@ -17,6 +17,7 @@ public:
     virtual ~exception() noexcept override {}
     virtual const char* what() const noexcept override;
     const std::string& message() const noexcept;
+    const std::string& stacktrace() const noexcept;
 
     template<typename T>
     exception& operator % (const T& t) noexcept
@@ -41,6 +42,7 @@ private:
     std::unique_ptr<bool> msg_valid;
     std::unique_ptr<boost::format> f_msg;
     std::string f_str;
+    std::string stack_trace;
 };
 
 } // namespace analysis

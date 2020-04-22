@@ -2,13 +2,22 @@
 This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 
 #include "AnalysisTools/Core/include/exception.h"
+#include <sstream>
+#ifndef PROJECT_VERSION
+    #define BOOST_STACKTRACE_LINK
+    #define BOOST_STACKTRACE_USE_ADDR2LINE
+#endif
+#include <boost/stacktrace.hpp>
 
 namespace analysis {
 
-exception::exception(const std::string& message) noexcept
-    : msg(std::make_unique<std::string>()), msg_valid(std::make_unique<bool>(false)), f_str(message)
+exception::exception(const std::string& message) noexcept :
+        msg(std::make_unique<std::string>()), msg_valid(std::make_unique<bool>(false)), f_str(message)
 {
     try {
+        std::ostringstream ss;
+        ss << boost::stacktrace::stacktrace();
+        stack_trace = ss.str();
         f_msg = std::make_unique<boost::format>(f_str);
         f_msg->exceptions(boost::io::all_error_bits);
     } catch(boost::io::bad_format_string&) {
@@ -17,15 +26,17 @@ exception::exception(const std::string& message) noexcept
     }
 }
 
-exception::exception(const exception& e) noexcept
-    : msg(std::make_unique<std::string>(*e.msg)), msg_valid(std::make_unique<bool>(*e.msg_valid)), f_str(e.f_str)
+exception::exception(const exception& e) noexcept :
+        msg(std::make_unique<std::string>(*e.msg)), msg_valid(std::make_unique<bool>(*e.msg_valid)), f_str(e.f_str),
+        stack_trace(e.stack_trace)
 {
     if(e.f_msg)
         f_msg = std::make_unique<boost::format>(*e.f_msg);
 }
 
 exception::exception(exception&& e) noexcept :
-    msg(std::move(e.msg)), msg_valid(std::move(e.msg_valid)), f_msg(std::move(e.f_msg)), f_str(e.f_str) {}
+        msg(std::move(e.msg)), msg_valid(std::move(e.msg_valid)), f_msg(std::move(e.f_msg)), f_str(e.f_str),
+        stack_trace(e.stack_trace) {}
 const char* exception::what() const noexcept { return message().c_str(); }
 
 const std::string& exception::message() const noexcept
@@ -42,6 +53,8 @@ const std::string& exception::message() const noexcept
     }
     return *msg;
 }
+
+const std::string& exception::stacktrace() const noexcept { return stack_trace; }
 
 void exception::process_unexpected_exception(const std::exception& e) const
 {

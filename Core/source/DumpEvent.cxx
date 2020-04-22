@@ -13,6 +13,9 @@ struct Arguments {
     REQ_ARG(std::string, fileName);
     REQ_ARG(std::string, treeName);
     REQ_ARG(std::string, eventId);
+    OPT_ARG(Long64_t, firstEntry, 0);
+    OPT_ARG(Long64_t, lastEntry, std::numeric_limits<Long64_t>::max());
+    OPT_ARG(size_t, maxMatches, std::numeric_limits<size_t>::max());
     OPT_ARG(std::string, eventIdBranches, "run:lumi:evt");
 };
 
@@ -22,7 +25,8 @@ public:
     using EventIdentifier = analysis::EventIdentifier;
     using SmartBranch = root_ext::SmartBranch;
 
-    DumpEvent(const Arguments& args) :
+    DumpEvent(const Arguments& _args) :
+        args(_args),
         file(root_ext::OpenRootFile(args.fileName())),
         tree(root_ext::ReadObject<TTree>(*file, args.treeName())),
         selectedEventId(args.eventId())
@@ -62,19 +66,23 @@ private:
     std::vector<Long64_t> FindEntries() const
     {
         std::vector<Long64_t> entries;
-        for(Long64_t n = 0; n < tree->GetEntries(); ++n) {
+        const Long64_t n_max = std::min(tree->GetEntries(), args.lastEntry());
+        for(Long64_t n = args.firstEntry(); n < n_max; ++n) {
 
             tree->GetEntry(n);
             const EventIdentifier currentEventId(idBranches.at(0).GetValue<EventIdentifier::IdType>(),
                                                  idBranches.at(1).GetValue<EventIdentifier::IdType>(),
                                                  idBranches.at(2).GetValue<EventIdentifier::IdType>());
-            if(currentEventId == selectedEventId)
+            if(currentEventId == selectedEventId) {
                 entries.push_back(n);
+                if(entries.size() >= args.maxMatches()) break;
+            }
         }
         return entries;
     }
 
 private:
+    Arguments args;
     std::shared_ptr<TFile> file;
     std::shared_ptr<TTree> tree;
     std::vector<SmartBranch> idBranches;
