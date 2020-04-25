@@ -241,7 +241,17 @@ public:
     Int_t GetEntry(Long64_t entry)
     {
         std::lock_guard<Mutex> lock(mutex);
-        return tree->GetEntry(entry);
+        const Int_t result = tree->GetEntry(entry);
+        if(result <= 0) {
+            std::ostringstream ss;
+            ss << "SmartTree: ";
+            if(result == 0)
+                ss << "entry " << entry << " does not exists.";
+            else
+                ss << "an I/O error occured while reading entry = " << entry << ".";
+            throw std::runtime_error(ss.str());
+        }
+        return result;
     }
 
     void SetMaxVirtualSize(Long64_t size)
