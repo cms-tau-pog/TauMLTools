@@ -48,11 +48,15 @@ namespace root_ext {
 class AnalyzerData;
 
 struct AnalyzerDataEntryBase {
+    using Mutex = std::recursive_mutex;
+
     AnalyzerDataEntryBase(const std::string& _name, AnalyzerData* _data);
     virtual ~AnalyzerDataEntryBase() {}
     const std::string& Name() const;
+    Mutex& GetMutex();
 private:
     std::string name;
+    Mutex mutex;
 protected:
     AnalyzerData* data;
 };
@@ -62,6 +66,7 @@ struct AnalyzerDataEntry;
 
 class AnalyzerData {
 public:
+    using Mutex = std::recursive_mutex;
     using Hist = AbstractHistogram;
     using HistPtr = std::shared_ptr<Hist>;
     using HistContainer = std::unordered_map<std::string, HistPtr>;
@@ -81,6 +86,7 @@ public:
     TDirectory* GetOutputDirectory() const;
     std::shared_ptr<TFile> GetOutputFile() const;
     bool ReadMode() const;
+    Mutex& GetMutex() const;
 
     void AddHistogram(HistPtr hist);
     const HistContainer& GetHistograms() const;
@@ -88,6 +94,7 @@ public:
     template<typename Histogram>
     std::map<std::string, std::shared_ptr<SmartHistogram<Histogram>>> GetHistogramsEx() const
     {
+        std::lock_guard<Mutex> lock(*mutex);
         std::map<std::string, std::shared_ptr<SmartHistogram<Histogram>>> result;
         for(const auto& hist_entry : histograms) {
             auto smart_hist = std::dynamic_pointer_cast<SmartHistogram<Histogram>>(hist_entry.second);
@@ -100,6 +107,7 @@ public:
     template<typename Histogram>
     std::shared_ptr<SmartHistogram<Histogram>> TryGetHistogramEx(const std::string& name) const
     {
+        std::lock_guard<Mutex> lock(*mutex);
         if(!histograms.count(name))
             return std::shared_ptr<SmartHistogram<Histogram>>();
         const auto& hist = histograms.at(name);
@@ -120,6 +128,7 @@ private:
     bool readMode;
     EntryContainer entries;
     HistContainer histograms;
+    std::unique_ptr<Mutex> mutex;
 };
 
 
@@ -145,6 +154,7 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
 
     Hist& operator()()
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         if(!default_hist) {
             default_hist = std::make_shared<Hist>(GetMasterHist());
             histograms[""] = default_hist;
@@ -156,6 +166,7 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
     template<typename ...KeySuffix>
     Hist& operator()(KeySuffix&&... suffix)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         const auto key = SuffixToKey(std::forward<KeySuffix>(suffix)...);
         if(key == "")
             return (*this)();
@@ -172,6 +183,7 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
     template<typename KeySuffix, typename... Args>
     void Emplace(KeySuffix&& suffix, Args&&... args)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         const auto key = SuffixToKey(std::forward<KeySuffix>(suffix));
         auto iter = histograms.find(key);
         if(iter != histograms.end())
@@ -184,6 +196,7 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
     template<typename KeySuffix>
     void Set(KeySuffix&& suffix, HistPtr hist)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         const auto key = SuffixToKey(std::forward<KeySuffix>(suffix));
         auto iter = histograms.find(key);
         if(iter != histograms.end())
@@ -196,6 +209,7 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
 
     const Hist& GetMasterHist()
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         if(!master_hist)
             throw analysis::exception("Master histogram for '%1%' is not initialized.") % Name();
         return *master_hist;
@@ -204,6 +218,7 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
     template<typename... Args>
     void SetMasterHist(Args&&... args)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         master_hist = std::make_shared<Hist>(Name(), std::forward<Args>(args)...);
         master_hist->SetOutputDirectory(nullptr);
     }
@@ -230,6 +245,7 @@ struct AnalyzerDataEntry : AnalyzerDataEntryBase  {
 private:
     Hist& ReadFromDirectory(Hist& hist)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         auto dir = data->GetOutputDirectory();
         auto original_hist = TryReadObject<RootContainer>(*dir, hist.Name());
         if(original_hist) {
@@ -247,6 +263,7 @@ private:
 template<typename Histogram>
 std::map<std::string, AnalyzerDataEntry<Histogram>*> AnalyzerData::GetEntriesEx() const
 {
+    std::lock_guard<Mutex> lock(*mutex);
     std::map<std::string, AnalyzerDataEntry<Histogram>*> result;
     for(const auto& entry : entries) {
         auto entry_ptr = dynamic_cast<AnalyzerDataEntry<Histogram>*>(entry.second);
@@ -259,6 +276,7 @@ std::map<std::string, AnalyzerDataEntry<Histogram>*> AnalyzerData::GetEntriesEx(
 template<typename Histogram>
 AnalyzerDataEntry<Histogram>& AnalyzerData::GetEntryEx(const std::string& name) const
 {
+    std::lock_guard<Mutex> lock(*mutex);
     auto iter = entries.find(name);
     if(iter == entries.end())
         throw analysis::exception("Entry with name '%1%' not found.") % name;
