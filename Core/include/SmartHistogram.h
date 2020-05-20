@@ -26,6 +26,8 @@ namespace root_ext {
 
 class AbstractHistogram {
 public:
+    using Mutex = std::recursive_mutex;
+
     AbstractHistogram(const std::string& _name)
         : name(_name), outputDirectory(nullptr) {}
     AbstractHistogram(const AbstractHistogram& other) : name(other.name), outputDirectory(other.outputDirectory) {}
@@ -38,9 +40,12 @@ public:
     const std::string& Name() const { return name; }
     virtual void SetName(const std::string& _name) { name = _name; }
 
+    Mutex& GetMutex() { return mutex; }
+
 private:
     std::string name;
     TDirectory* outputDirectory;
+    Mutex mutex;
 };
 
 namespace detail {
@@ -60,11 +65,13 @@ public:
 
     void Fill(const ValueType& value)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         data.push_back(value);
     }
 
     virtual void WriteRootObject()
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         if(!GetOutputDirectory()) return;
         std::unique_ptr<TTree> rootTree(new TTree(Name().c_str(), Name().c_str()));
         rootTree->SetDirectory(GetOutputDirectory());
@@ -79,6 +86,7 @@ public:
 
     void CopyContent(TTree& rootTree)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         data.clear();
         ValueType branch_value;
         TBranch* branch;
@@ -116,11 +124,13 @@ public:
 
     void Fill(const NumberType& x, const NumberType& y)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         data.push_back(Value(x, y));
     }
 
     virtual void WriteRootObject()
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         if(!GetOutputDirectory()) return;
         std::unique_ptr<TTree> rootTree(new TTree(Name().c_str(), Name().c_str()));
         rootTree->SetDirectory(GetOutputDirectory());
@@ -137,6 +147,7 @@ public:
 
     void CopyContent(TTree& rootTree)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         data.clear();
         NumberType branch_value_x, branch_value_y;
         TBranch *branch_x, *branch_y;
@@ -299,24 +310,28 @@ public:
 
     virtual void SetName(const char* _name) override
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         TH1D::SetName(_name);
         AbstractHistogram::SetName(_name);
     }
 
     virtual void SetName(const std::string& _name) override
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         TH1D::SetName(_name.c_str());
         AbstractHistogram::SetName(_name);
     }
 
     virtual void WriteRootObject() override
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         if(store && GetOutputDirectory())
             root_ext::WriteObject(*this);
     }
 
     virtual void SetOutputDirectory(TDirectory* directory) override
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         TDirectory* dir = store ? directory : nullptr;
         AbstractHistogram::SetOutputDirectory(dir);
         SetDirectory(dir);
@@ -329,9 +344,14 @@ public:
     std::string GetXTitle() const { return GetXaxis()->GetTitle(); }
     std::string GetYTitle() const { return GetYaxis()->GetTitle(); }
     bool NeedToDivideByBinWidth() const { return divide_by_bin_width; }
-    void SetLegendTitle(const std::string _legend_title) { legend_title = _legend_title; }
     const std::string& GetLegendTitle() const { return legend_title; }
     const MultiRange GetBlindRanges() const { return blind_ranges; }
+
+    void SetLegendTitle(const std::string& _legend_title)
+    {
+        std::lock_guard<Mutex> lock(GetMutex());
+        legend_title = _legend_title;
+    }
 
     bool TryGetMinY(double& _y_min) const
     {
@@ -343,10 +363,15 @@ public:
     double GetSystematicUncertainty() const { return syst_unc; }
     void SetSystematicUncertainty(double _syst_unc) { syst_unc = _syst_unc; }
     double GetPostfitScaleFactor() const { return postfit_sf; }
-    void SetPostfitScaleFactor(double _postfit_sf) { postfit_sf = _postfit_sf; }
+    void SetPostfitScaleFactor(double _postfit_sf)
+    {
+        std::lock_guard<Mutex> lock(GetMutex());
+        postfit_sf = _postfit_sf;
+    }
 
     void CopyContent(const TH1& other)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         if(other.GetNbinsX() != GetNbinsX())
             throw analysis::exception("Unable to copy histogram content: source and destination have different number"
                                       " of bins.");
@@ -364,6 +389,7 @@ public:
 
     void AddHistogram(const SmartHistogram<TH1D>& other)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         const double integral = Integral(), other_integral = other.Integral(), tot_integral = integral + other_integral;
         const double post_integral = postfit_sf * integral, other_post_integral = other.postfit_sf * other_integral,
                      tot_post_integral = post_integral + other_post_integral;
@@ -413,24 +439,28 @@ public:
 
     virtual void WriteRootObject() override
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         if(store && GetOutputDirectory())
             root_ext::WriteObject(*this);
     }
 
     virtual void SetName(const char* _name) override
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         TH2D::SetName(_name);
         AbstractHistogram::SetName(_name);
     }
 
     virtual void SetName(const std::string& _name) override
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         TH2D::SetName(_name.c_str());
         AbstractHistogram::SetName(_name);
     }
 
     virtual void SetOutputDirectory(TDirectory* directory) override
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         TDirectory* dir = store ? directory : nullptr;
         AbstractHistogram::SetOutputDirectory(dir);
         SetDirectory(dir);
@@ -443,6 +473,7 @@ public:
 
     void CopyContent(const TH2D& other)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         if(other.GetNbinsX() != GetNbinsX() || other.GetNbinsY() != GetNbinsY())
             throw analysis::exception("Unable to copy histogram content: source and destination have different number"
                                       " of bins.");
@@ -473,9 +504,9 @@ public:
     using RootContainer = TGraph;
     using AbstractHistogram::AbstractHistogram;
 
-
     void AddPoint(double x, double y)
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         x_vector.push_back(x);
         y_vector.push_back(y);
     }
@@ -485,6 +516,7 @@ public:
 
     virtual void WriteRootObject() override
     {
+        std::lock_guard<Mutex> lock(GetMutex());
         std::unique_ptr<TGraph> graph(new TGraph(static_cast<int>(x_vector.size()), x_vector.data(), y_vector.data()));
         if(GetOutputDirectory())
             root_ext::WriteObject(*graph, GetOutputDirectory(), Name());

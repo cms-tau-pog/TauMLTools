@@ -18,16 +18,18 @@ AnalyzerDataEntryBase::AnalyzerDataEntryBase(const std::string& _name, AnalyzerD
     data->AddEntry(*this);
 }
 const std::string& AnalyzerDataEntryBase::Name() const { return name; }
+AnalyzerDataEntryBase::Mutex& AnalyzerDataEntryBase::GetMutex() { return mutex; }
 
 
-AnalyzerData::AnalyzerData() : directory(nullptr), readMode(false) {}
+AnalyzerData::AnalyzerData() : directory(nullptr), readMode(false), mutex(std::make_unique<Mutex>()) {}
 
 AnalyzerData::AnalyzerData(const std::string& outputFileName) :
-    outputFile(CreateRootFile(outputFileName)), directory(outputFile.get()), readMode(false) {}
+    outputFile(CreateRootFile(outputFileName)), directory(outputFile.get()), readMode(false),
+    mutex(std::make_unique<Mutex>()) {}
 
 AnalyzerData::AnalyzerData(std::shared_ptr<TFile> _outputFile, const std::string& directoryName,
                            bool _readMode) :
-    outputFile(_outputFile), readMode(_readMode)
+    outputFile(_outputFile), readMode(_readMode), mutex(std::make_unique<Mutex>())
 {
     if(!outputFile)
         throw analysis::exception("Output file is nullptr.");
@@ -35,7 +37,7 @@ AnalyzerData::AnalyzerData(std::shared_ptr<TFile> _outputFile, const std::string
 }
 
 AnalyzerData::AnalyzerData(TDirectory* _directory, const std::string& subDirectoryName, bool _readMode) :
-    readMode(_readMode)
+    readMode(_readMode), mutex(std::make_unique<Mutex>())
 {
     if(!_directory)
         throw analysis::exception("Output directory is nullptr.");
@@ -53,9 +55,11 @@ AnalyzerData::~AnalyzerData()
 TDirectory* AnalyzerData::GetOutputDirectory() const { return directory; }
 std::shared_ptr<TFile> AnalyzerData::GetOutputFile() const { return outputFile; }
 bool AnalyzerData::ReadMode() const { return readMode; }
+AnalyzerData::Mutex& AnalyzerData::GetMutex() const { return *mutex; }
 
 void AnalyzerData::AddHistogram(HistPtr hist)
 {
+    std::lock_guard<Mutex> lock(*mutex);
     if(!hist)
         throw analysis::exception("Can't add nullptr histogram into AnalyzerData");
     if(histograms.count(hist->Name()))
@@ -66,9 +70,9 @@ void AnalyzerData::AddHistogram(HistPtr hist)
 }
 const AnalyzerData::HistContainer& AnalyzerData::GetHistograms() const { return histograms; }
 
-
 void AnalyzerData::AddEntry(Entry& entry)
 {
+    std::lock_guard<Mutex> lock(*mutex);
     if(entries.count(entry.Name()))
         throw analysis::exception("Entry '%1%' already exists in this AnalyzerData.") % entry.Name();
     entries[entry.Name()] = &entry;
