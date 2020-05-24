@@ -6,8 +6,9 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #ifndef PROJECT_VERSION
     #define BOOST_STACKTRACE_LINK
     #define BOOST_STACKTRACE_USE_ADDR2LINE
+    #include <boost/stacktrace.hpp>
 #endif
-#include <boost/stacktrace.hpp>
+
 
 namespace analysis {
 
@@ -16,7 +17,9 @@ exception::exception(const std::string& message) noexcept :
 {
     try {
         std::ostringstream ss;
+        #ifndef PROJECT_VERSION
         ss << boost::stacktrace::stacktrace();
+        #endif
         stack_trace = ss.str();
         f_msg = std::make_unique<boost::format>(f_str);
         f_msg->exceptions(boost::io::all_error_bits);
