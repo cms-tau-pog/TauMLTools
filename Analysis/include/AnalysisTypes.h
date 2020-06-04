@@ -61,7 +61,7 @@ ENUM_NAMES(SampleType) = {
     { SampleType::Data, "Data" }, { SampleType::MC, "MC" }, { SampleType::Embedded, "Embedded" }
 };
 
-inline constexpr TauType GenMatchToTauType(GenLeptonMatch gen_match, SampleType sample_type)
+inline TauType GenMatchToTauType(GenLeptonMatch gen_match, SampleType sample_type)
 {
     if(sample_type == SampleType::MC && (gen_match == GenLeptonMatch::Electron
             || gen_match == GenLeptonMatch::TauElectron)) {

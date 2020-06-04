@@ -6,10 +6,8 @@ import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 
 options = VarParsing('analysis')
-options.register('globalTag', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
-                 "Global Tag to use.")
 options.register('sampleType', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
-                 "Indicates the sample type: Summer16MC, Run2016, ...")
+                 "Indicates the sample type: MC_18, Run2018ABC, ...")
 options.register('fileList', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "List of root files to process.")
 options.register('fileNamePrefix', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
@@ -50,14 +48,18 @@ process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.Geometry.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 
-process.GlobalTag.globaltag = options.globalTag
+process.GlobalTag.globaltag = sampleConfig.GetGlobalTag(options.sampleType)
 process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring())
 process.TFileService = cms.Service('TFileService', fileName = cms.string(options.tupleOutput) )
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(0) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
+from AnalysisTools.Run.readFileList import *
 if len(options.fileList) > 0:
-    from AnalysisTools.Run.readFileList import *
     readFileList(process.source.fileNames, options.fileList, options.fileNamePrefix)
+elif len(options.inputFiles) > 0:
+    addFilesToList(process.source.fileNames, options.inputFiles, options.fileNamePrefix)
+
+if options.maxEvents > 0:
     process.maxEvents.input = options.maxEvents
 
 if len(options.lumiFile) > 0:
@@ -67,19 +69,14 @@ if len(options.lumiFile) > 0:
 if options.eventList != '':
     process.source.eventsToProcess = cms.untracked.VEventRange(re.split(',', options.eventList))
 
-if period == 'Run2016':
-    tauSrc_InputTag = cms.InputTag('slimmedTaus')
-
-if period == 'Run2017':
-    import RecoTauTag.RecoTau.tools.runTauIdMVA as tauIdConfig
-    updatedTauName = "slimmedTausNewID"
-    tauIdEmbedder = tauIdConfig.TauIDEmbedder(
-        process, cms, debug = False, updatedTauName = updatedTauName,
-        toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "2016v1", "newDM2016v1",
-                   "deepTau2017v2", "deepTau2017v2", "DPFTau_2016_v0", "DPFTau_2016_v0", "againstEle2018",  ]
-    )
-    tauIdEmbedder.runTauID()
-    tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
+import RecoTauTag.RecoTau.tools.runTauIdMVA as tauIdConfig
+updatedTauName = "slimmedTausNewID"
+tauIdEmbedder = tauIdConfig.TauIDEmbedder(
+    process, cms, debug = False, updatedTauName = updatedTauName,
+    toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1", "deepTau2017v2p1", "againstEle2018",  ]
+)
+tauIdEmbedder.runTauID()
+tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
 
 tauJetdR = 0.2
 objectdR = 0.5
@@ -110,18 +107,11 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
 
 process.tupleProductionSequence = cms.Sequence(process.tauTupleProducer)
 
-if period == 'Run2016':
-    process.p = cms.Path(
-        process.topGenSequence *
-        process.tupleProductionSequence
-    )
-
-if period == 'Run2017':
-    process.p = cms.Path(
-        process.rerunMvaIsolationSequence *
-        getattr(process, updatedTauName) *
-        process.tupleProductionSequence
-    )
+process.p = cms.Path(
+    process.rerunMvaIsolationSequence *
+    getattr(process, updatedTauName) *
+    process.tupleProductionSequence
+)
 
 if options.dumpPython:
     print process.dumpPython()
