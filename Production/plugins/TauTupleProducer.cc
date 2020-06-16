@@ -361,21 +361,55 @@ private:
     {
         const bool has_lepton = leptonMatch.match != GenLeptonMatch::NoMatch;
         tauTuple().lepton_gen_match = static_cast<int>(leptonMatch.match);
-        tauTuple().lepton_gen_charge = has_lepton ? leptonMatch.gen_particle->charge() : default_int_value;
-        tauTuple().lepton_gen_pt = has_lepton ? static_cast<float>(leptonMatch.gen_particle->polarP4().pt())
+        tauTuple().lepton_gen_charge = has_lepton ? leptonMatch.gen_particle_lastCopy->charge() : default_int_value;
+        tauTuple().lepton_gen_pt = has_lepton ? static_cast<float>(leptonMatch.gen_particle_lastCopy->polarP4().pt())
                                               : default_value;
-        tauTuple().lepton_gen_eta = has_lepton ? static_cast<float>(leptonMatch.gen_particle->polarP4().eta())
+        tauTuple().lepton_gen_eta = has_lepton ? static_cast<float>(leptonMatch.gen_particle_lastCopy->polarP4().eta())
                                                : default_value;
-        tauTuple().lepton_gen_phi = has_lepton ? static_cast<float>(leptonMatch.gen_particle->polarP4().phi())
+        tauTuple().lepton_gen_phi = has_lepton ? static_cast<float>(leptonMatch.gen_particle_lastCopy->polarP4().phi())
                                                : default_value;
-        tauTuple().lepton_gen_mass = has_lepton ? static_cast<float>(leptonMatch.gen_particle->polarP4().mass())
+        tauTuple().lepton_gen_mass = has_lepton ? static_cast<float>(leptonMatch.gen_particle_lastCopy->polarP4().mass())
                                                 : default_value;
+
+        tauTuple().lepton_gen_firstCopy_charge = has_lepton ? leptonMatch.gen_particle_firstCopy->charge() : default_int_value;
+        tauTuple().lepton_gen_firstCopy_pt = has_lepton ? static_cast<float>(leptonMatch.gen_particle_firstCopy->polarP4().pt())
+                                              : default_value;
+        tauTuple().lepton_gen_firstCopy_eta = has_lepton ? static_cast<float>(leptonMatch.gen_particle_firstCopy->polarP4().eta())
+                                               : default_value;
+        tauTuple().lepton_gen_firstCopy_phi = has_lepton ? static_cast<float>(leptonMatch.gen_particle_firstCopy->polarP4().phi())
+                                               : default_value;
+        tauTuple().lepton_gen_firstCopy_mass = has_lepton ? static_cast<float>(leptonMatch.gen_particle_firstCopy->polarP4().mass())
+                                                : default_value;
+
+        tauTuple().lepMatch_visible_pt   = has_lepton ? static_cast<float>(leptonMatch.visible_p4.pt()  ) : default_value;
+        tauTuple().lepMatch_visible_eta  = has_lepton ? static_cast<float>(leptonMatch.visible_p4.eta() ) : default_value;
+        tauTuple().lepMatch_visible_phi  = has_lepton ? static_cast<float>(leptonMatch.visible_p4.phi() ) : default_value;
+        tauTuple().lepMatch_visible_mass = has_lepton ? static_cast<float>(leptonMatch.visible_p4.mass()) : default_value;
+
+        tauTuple().lepMatch_visible_rad_pt   = has_lepton ? static_cast<float>(leptonMatch.visible_rad_p4.pt())   : default_value;
+        tauTuple().lepMatch_visible_rad_eta  = has_lepton ? static_cast<float>(leptonMatch.visible_rad_p4.eta())  : default_value;
+        tauTuple().lepMatch_visible_rad_phi  = has_lepton ? static_cast<float>(leptonMatch.visible_rad_p4.phi())  : default_value;
+        tauTuple().lepMatch_visible_rad_mass = has_lepton ? static_cast<float>(leptonMatch.visible_rad_p4.mass()) : default_value;
+
+        tauTuple().n_charged_hadrons = has_lepton ? static_cast<int> (leptonMatch.n_charged_hadrons) : default_int_value;
+        tauTuple().n_neutral_hadrons = has_lepton ? static_cast<int> (leptonMatch.n_neutral_hadrons) : default_int_value;
+        tauTuple().n_gammas          = has_lepton ? static_cast<int> (leptonMatch.n_gammas)          : default_int_value;
+        tauTuple().n_gammas_rad      = has_lepton ? static_cast<int> (leptonMatch.n_gammas_rad)      : default_int_value;
+
         for(auto daughter : leptonMatch.visible_daughters) {
             tauTuple().lepton_gen_vis_pdg.push_back(daughter->pdgId());
             tauTuple().lepton_gen_vis_pt.push_back(static_cast<float>(daughter->polarP4().pt()));
             tauTuple().lepton_gen_vis_eta.push_back(static_cast<float>(daughter->polarP4().eta()));
             tauTuple().lepton_gen_vis_phi.push_back(static_cast<float>(daughter->polarP4().phi()));
             tauTuple().lepton_gen_vis_mass.push_back(static_cast<float>(daughter->polarP4().mass()));
+        }
+
+        for(auto rad : leptonMatch.visible_rad) {
+            tauTuple().lepton_gen_vis_rad_pdg.push_back(rad->pdgId());
+            tauTuple().lepton_gen_vis_rad_pt.push_back(static_cast<float>(rad->polarP4().pt()));
+            tauTuple().lepton_gen_vis_rad_eta.push_back(static_cast<float>(rad->polarP4().eta()));
+            tauTuple().lepton_gen_vis_rad_phi.push_back(static_cast<float>(rad->polarP4().phi()));
+            tauTuple().lepton_gen_vis_rad_mass.push_back(static_cast<float>(rad->polarP4().mass()));
         }
 
         const bool has_qcd = qcdMatch.match != GenQcdMatch::NoMatch;
