@@ -1,7 +1,6 @@
 __init__.py
 *.pyc
 *.so
-/CMakeLists.txt.user
 /tuples
 /results
 /*.pb
@@ -11,3 +10,4 @@ __init__.py
 .ipynb_checkpoints
 .DS_Store
 *.svg
+*.swp
