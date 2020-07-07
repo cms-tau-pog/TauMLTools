@@ -1,7 +1,7 @@
 /*! Common CERN ROOT extensions.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/RootExt.h"
+#include "TauMLTools/Core/interface/RootExt.h"
 
 #include <memory>
 #include <map>
@@ -13,7 +13,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <TFile.h>
 #include <Compression.h>
 
-#include "AnalysisTools/Core/include/exception.h"
+#include "TauMLTools/Core/interface/exception.h"
 
 namespace root_ext {
 

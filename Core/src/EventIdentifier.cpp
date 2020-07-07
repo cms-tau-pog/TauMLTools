@@ -1,12 +1,12 @@
 /*! Definition of CMS event identifier.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/EventIdentifier.h"
+#include "TauMLTools/Core/interface/EventIdentifier.h"
 
 #include <sstream>
 #include <map>
 #include <boost/algorithm/string.hpp>
-#include "AnalysisTools/Core/include/exception.h"
+#include "TauMLTools/Core/interface/exception.h"
 
 namespace analysis {
 

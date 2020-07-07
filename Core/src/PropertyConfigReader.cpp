@@ -1,15 +1,15 @@
 /*! Parse configuration file that contains list of properties.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/PropertyConfigReader.h"
+#include "TauMLTools/Core/interface/PropertyConfigReader.h"
 
 #include <fstream>
 #include <vector>
 #include <map>
 #include <boost/algorithm/string.hpp>
 
-#include "AnalysisTools/Core/include/exception.h"
-#include "AnalysisTools/Core/include/TextIO.h"
+#include "TauMLTools/Core/interface/exception.h"
+#include "TauMLTools/Core/interface/TextIO.h"
 
 
 namespace analysis {

@@ -1,5 +1,5 @@
 /*! Definition of the map class that keeps a trace of the insertion order.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 #pragma once
 

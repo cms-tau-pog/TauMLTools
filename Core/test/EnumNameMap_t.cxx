@@ -1,8 +1,8 @@
 /*! Test EnumNameMap class.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/EnumNameMap.h"
-#include "AnalysisTools/Run/include/program_main.h"
+#include "TauMLTools/Core/interface/EnumNameMap.h"
+#include "TauMLTools/Core/interface/program_main.h"
 
 namespace analysis {
     enum E1 { A, B, C };

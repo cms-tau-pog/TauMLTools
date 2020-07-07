@@ -5,9 +5,9 @@ This file is part of https://github.com/hh-italian-group/h-tautau. */
 
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
-#include "AnalysisTools/Core/include/AnalysisMath.h"
-#include "AnalysisTools/Core/include/Tools.h"
-#include "TauML/Analysis/include/AnalysisTypes.h"
+#include "TauMLTools/Core/interface/AnalysisMath.h"
+#include "TauMLTools/Core/interface/Tools.h"
+#include "TauMLTools/Analysis/interface/AnalysisTypes.h"
 #include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
 
 namespace tau_analysis {

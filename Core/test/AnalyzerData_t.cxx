@@ -1,9 +1,9 @@
 /*! Test AnalyzerData class.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/AnalyzerData.h"
-#include "AnalysisTools/Core/include/RootExt.h"
-#include "AnalysisTools/Run/include/program_main.h"
+#include "TauMLTools/Core/interface/AnalyzerData.h"
+#include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Core/interface/program_main.h"
 
 struct MyAnaData : public root_ext::AnalyzerData {
 //    using AnalyzerData::AnalyzerData;

@@ -1,13 +1,13 @@
 /*! Dump all variables in the event.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 #include <iostream>
 
 #include <TTree.h>
-#include "RootExt.h"
-#include "AnalysisTools/Run/include/program_main.h"
-#include "AnalysisTools/Core/include/EventIdentifier.h"
-#include "AnalysisTools/Core/include/SmartBranch.h"
+#include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Core/interface/program_main.h"
+#include "TauMLTools/Core/interface/EventIdentifier.h"
+#include "TauMLTools/Core/interface/SmartBranch.h"
 
 struct Arguments {
     REQ_ARG(std::string, fileName);

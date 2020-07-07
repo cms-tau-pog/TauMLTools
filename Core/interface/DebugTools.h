@@ -1,5 +1,5 @@
 /*! Common tools and definitions suitable for debug purposes.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 #pragma once
 

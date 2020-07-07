@@ -1,7 +1,7 @@
 /*! Definition of primitives for a text based input/output.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/TextIO.h"
+#include "TauMLTools/Core/interface/TextIO.h"
 
 #include <cmath>
 #include <iomanip>
@@ -9,7 +9,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <unordered_set>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include "AnalysisTools/Core/include/exception.h"
+#include "TauMLTools/Core/interface/exception.h"
 
 namespace analysis {
 

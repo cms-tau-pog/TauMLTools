@@ -1,10 +1,10 @@
 /*! Merge several files into one filtering duplicated entries.
 */
 
-#include "AnalysisTools/Run/include/program_main.h"
-#include "TauML/Analysis/include/TauTuple.h"
-#include "TauML/Analysis/include/SummaryTuple.h"
-#include "AnalysisTools/Core/include/RootFilesMerger.h"
+#include "TauMLTools/Core/interface/program_main.h"
+#include "TauMLTools/Analysis/interface/TauTuple.h"
+#include "TauMLTools/Analysis/interface/SummaryTuple.h"
+#include "TauMLTools/Core/interface/RootFilesMerger.h"
 
 struct Arguments {
     run::Argument<std::string> output{"output", "output root file"};

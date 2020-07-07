@@ -1,11 +1,11 @@
 /*! Create tuples splitted by the tau type and pt/eta bins.
 */
 
-#include "AnalysisTools/Run/include/program_main.h"
-#include "TauML/Analysis/include/TauTuple.h"
-#include "TauML/Analysis/include/SummaryTuple.h"
-#include "AnalysisTools/Core/include/RootFilesMerger.h"
-#include "AnalysisTools/Core/include/NumericPrimitives.h"
+#include "TauMLTools/Core/interface/program_main.h"
+#include "TauMLTools/Analysis/interface/TauTuple.h"
+#include "TauMLTools/Analysis/interface/SummaryTuple.h"
+#include "TauMLTools/Core/interface/RootFilesMerger.h"
+#include "TauMLTools/Core/interface/NumericPrimitives.h"
 
 struct Arguments {
     run::Argument<std::string> output{"output", "output directory"};
@@ -112,7 +112,8 @@ public:
     {
         if(PassSelection(tau)) {
             const auto gen_match = static_cast<analysis::GenLeptonMatch>(tau.lepton_gen_match);
-            const TauType tau_type = analysis::GenMatchToTauType(gen_match);
+            const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
+            const TauType tau_type = analysis::GenMatchToTauType(gen_match, sample_type);
             const size_t type_bin = static_cast<size_t>(tau_type);
             const size_t pt_bin = FindBin(pt_range, tau.tau_pt);
             const size_t eta_bin = FindBin(eta_range, std::abs(tau.tau_eta));

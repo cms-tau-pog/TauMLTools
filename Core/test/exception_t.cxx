@@ -1,8 +1,8 @@
 /*! Test exception class.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 #include <iostream>
-#include "AnalysisTools/Core/include/exception.h"
+#include "TauMLTools/Core/interface/exception.h"
 
 #define BOOST_TEST_MODULE exception_t
 #define BOOST_TEST_DYN_LINK

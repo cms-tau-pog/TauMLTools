@@ -1,7 +1,7 @@
 /*! Tools for working with MC generator truth.
 This file is part of https://github.com/hh-italian-group/h-tautau. */
 
-#include "TauML/Production/include/GenTruthTools.h"
+#include "TauMLTools/Production/interface/GenTruthTools.h"
 
 namespace tau_analysis {
 namespace gen_truth {

@@ -1,7 +1,7 @@
 /* Tau jet candidate.
 */
 
-#include "TauML/Production/include/TauJet.h"
+#include "TauMLTools/Production/interface/TauJet.h"
 
 namespace {
 

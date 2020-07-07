@@ -1,5 +1,5 @@
 /*! Definition of pre-processor directives to generate ROOT dictionaries.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 #pragma once
 

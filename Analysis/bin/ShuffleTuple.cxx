@@ -2,9 +2,9 @@
 */
 
 #include <random>
-#include "AnalysisTools/Run/include/program_main.h"
-#include "AnalysisTools/Core/include/RootExt.h"
-#include "TauML/Analysis/include/TauTuple.h"
+#include "TauMLTools/Core/interface/program_main.h"
+#include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Analysis/interface/TauTuple.h"
 
 struct Arguments {
     REQ_ARG(std::string, output);

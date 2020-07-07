@@ -1,5 +1,5 @@
 /*! Definition of the I/O operators for enum <-> string conversion.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 #pragma once
 

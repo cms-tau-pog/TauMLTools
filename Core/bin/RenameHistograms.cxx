@@ -1,11 +1,11 @@
 /*! Rename and merge histograms.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 #include <fstream>
 #include <boost/algorithm/string.hpp>
-#include "RootExt.h"
-#include "TextIO.h"
-#include "AnalysisTools/Run/include/program_main.h"
+#include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Core/interface/TextIO.h"
+#include "TauMLTools/Core/interface/program_main.h"
 
 namespace {
 struct Arguments {

@@ -1,7 +1,7 @@
 /*! Definition of the base exception class for the analysis namespace.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/exception.h"
+#include "TauMLTools/Core/interface/exception.h"
 #include <sstream>
 #ifndef PROJECT_VERSION
     #define BOOST_STACKTRACE_LINK

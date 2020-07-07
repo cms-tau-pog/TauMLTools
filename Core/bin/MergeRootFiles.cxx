@@ -1,8 +1,8 @@
 /*! Merge multiple root files into a single file.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/RootFilesMerger.h"
-#include "AnalysisTools/Run/include/program_main.h"
+#include "TauMLTools/Core/interface/RootFilesMerger.h"
+#include "TauMLTools/Core/interface/program_main.h"
 
 struct Arguments {
     run::Argument<std::string> output{"output", "output root file"};

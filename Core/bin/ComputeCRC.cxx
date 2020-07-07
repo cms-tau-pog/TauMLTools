@@ -1,8 +1,8 @@
 /*! Compute CRC32 for an input string.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 #include <boost/crc.hpp>
-#include "AnalysisTools/Run/include/program_main.h"
+#include "TauMLTools/Core/interface/program_main.h"
 
 struct Arguments {
     REQ_ARG(std::vector<std::string>, inputStrings);

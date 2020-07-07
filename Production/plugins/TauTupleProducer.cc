@@ -20,57 +20,15 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "RecoTauTag/RecoTau/interface/PFRecoTauClusterVariables.h"
 
-#include "AnalysisTools/Core/include/Tools.h"
-#include "AnalysisTools/Core/include/TextIO.h"
-#include "TauML/Analysis/include/TauTuple.h"
-#include "TauML/Analysis/include/SummaryTuple.h"
-#include "TauML/Analysis/include/TauIdResults.h"
-#include "TauML/Production/include/GenTruthTools.h"
-#include "TauML/Production/include/TauAnalysis.h"
-#include "TauML/Production/include/MuonHitMatch.h"
-#include "TauML/Production/include/TauJet.h"
-
-// workaround for PFRecoTauClusterVariables
-#define USE_WORKAROUND_FOR_TAU_CLUSTER_VARS 1
-#ifdef USE_WORKAROUND_FOR_TAU_CLUSTER_VARS
-namespace reco { namespace tau {
-    float pt_weighted_deta_strip(const pat::Tau& tau, int dm)
-    {
-        static TauIdMVAAuxiliaries clusterVariables;
-        return clusterVariables.tau_pt_weighted_deta_strip(tau, dm);
-    }
-
-    float pt_weighted_dphi_strip(const pat::Tau& tau, int dm)
-    {
-        static TauIdMVAAuxiliaries clusterVariables;
-        return clusterVariables.tau_pt_weighted_dphi_strip(tau, dm);
-    }
-
-    float pt_weighted_dr_signal(const pat::Tau& tau, int dm)
-    {
-        static TauIdMVAAuxiliaries clusterVariables;
-        return clusterVariables.tau_pt_weighted_dr_signal(tau, dm);
-    }
-
-    float pt_weighted_dr_iso(const pat::Tau& tau, int dm)
-    {
-        static TauIdMVAAuxiliaries clusterVariables;
-        return clusterVariables.tau_pt_weighted_dr_iso(tau, dm);
-    }
-
-    float eratio(const pat::Tau& tau)
-    {
-        static TauIdMVAAuxiliaries clusterVariables;
-        return clusterVariables.tau_Eratio(tau);
-    }
-
-    unsigned int n_photons_total(const pat::Tau& tau)
-    {
-        static TauIdMVAAuxiliaries clusterVariables;
-        return clusterVariables.tau_n_photons_total(tau);
-    }
-}} // namespace reco::tau
-#endif
+#include "TauMLTools/Core/interface/Tools.h"
+#include "TauMLTools/Core/interface/TextIO.h"
+#include "TauMLTools/Analysis/interface/TauTuple.h"
+#include "TauMLTools/Analysis/interface/SummaryTuple.h"
+#include "TauMLTools/Analysis/interface/TauIdResults.h"
+#include "TauMLTools/Production/interface/GenTruthTools.h"
+#include "TauMLTools/Production/interface/TauAnalysis.h"
+#include "TauMLTools/Production/interface/MuonHitMatch.h"
+#include "TauMLTools/Production/interface/TauJet.h"
 
 namespace tau_analysis {
 

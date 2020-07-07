@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "AnalysisTools/Core/include/SmartTree.h"
+#include "TauMLTools/Core/interface/SmartTree.h"
 
 #define TAU_ID_DATA() \
     VAR(UInt_t, run) /* run */ \

@@ -13,9 +13,9 @@
 #include "DataFormats/PatCandidates/interface/Tau.h"
 
 
-#include "TauML/Production/include/GenTruthTools.h"
-#include "TauML/Analysis/include/TauIdResultTuple.h"
-#include "TauML/Analysis/include/TauTuple.h"
+#include "TauMLTools/Production/interface/GenTruthTools.h"
+#include "TauMLTools/Analysis/interface/TauIdResultTuple.h"
+#include "TauMLTools/Analysis/interface/TauTuple.h"
 
 
 namespace tau_analysis {

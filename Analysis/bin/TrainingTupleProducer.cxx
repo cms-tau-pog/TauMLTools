@@ -5,12 +5,12 @@
 #include <boost/preprocessor/variadic.hpp>
 #include <boost/math/constants/constants.hpp>
 
-#include "AnalysisTools/Run/include/program_main.h"
-#include "AnalysisTools/Core/include/AnalysisMath.h"
-#include "AnalysisTools/Core/include/RootExt.h"
-#include "TauML/Analysis/include/TauTuple.h"
-#include "TauML/Analysis/include/TrainingTuple.h"
-#include "AnalysisTools/Core/include/ProgressReporter.h"
+#include "TauMLTools/Core/interface/program_main.h"
+#include "TauMLTools/Core/interface/AnalysisMath.h"
+#include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Analysis/interface/TauTuple.h"
+#include "TauMLTools/Analysis/interface/TrainingTuple.h"
+#include "TauMLTools/Core/interface/ProgressReporter.h"
 
 #define CP_BR_EX(r, placeholder, name) CP_BR(name)
 #define CP_BRANCHES(...) \
@@ -139,7 +139,7 @@ public:
         for(Long64_t current_entry = args.start_entry(); current_entry < end_entry; ++current_entry) {
             tauTuple.GetEntry(current_entry);
             const auto& tau = tauTuple.data();
-            if(args.parity() == -1 || tau.evt % 2 == args.parity()) {
+            if(args.parity() == -1 || tau.evt % 2 == static_cast<unsigned>(args.parity())) {
                 FillTauBranches(tau);
                 FillCellGrid(tau, innerCellGridRef, innerCellTuple, trainingTauTuple().innerCells_begin,
                              trainingTauTuple().innerCells_end, true);

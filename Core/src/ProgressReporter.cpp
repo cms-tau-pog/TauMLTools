@@ -1,7 +1,7 @@
 /*! Definition of the class to report current execution progress.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/ProgressReporter.h"
+#include "TauMLTools/Core/interface/ProgressReporter.h"
 
 namespace analysis {
 namespace tools {

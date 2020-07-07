@@ -1,8 +1,8 @@
 /*! Match hits in the muon system.
 */
 
-#include "TauML/Production/include/MuonHitMatch.h"
-#include "TauML/Production/include/TauAnalysis.h"
+#include "TauMLTools/Production/interface/MuonHitMatch.h"
+#include "TauMLTools/Production/interface/TauAnalysis.h"
 
 namespace tau_analysis {
 

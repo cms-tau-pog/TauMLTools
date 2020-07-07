@@ -1,5 +1,5 @@
 /*! Parse configuration file that contains list of properties.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 #pragma once
 

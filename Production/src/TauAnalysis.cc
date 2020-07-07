@@ -1,7 +1,7 @@
 /* Common methods used in tau analysis.
 */
 
-#include "TauML/Production/include/TauAnalysis.h"
+#include "TauMLTools/Production/interface/TauAnalysis.h"
 
 namespace tau_analysis {
 

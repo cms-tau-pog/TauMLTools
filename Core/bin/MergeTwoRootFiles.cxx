@@ -1,6 +1,6 @@
 /*! Code to merge two root files taking first file as a reference and adding missing info from the second.
 Some parts of the code are taken from copyFile.C written by Rene Brun.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 #include <iostream>
 
@@ -9,8 +9,8 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <TSystem.h>
 #include <TTree.h>
 #include <memory>
-#include "RootExt.h"
-#include "AnalysisTools/Run/include/program_main.h"
+#include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Core/interface/program_main.h"
 
 struct Arguments {
     REQ_ARG(std::string, originalFileName);

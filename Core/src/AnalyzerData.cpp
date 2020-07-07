@@ -1,14 +1,14 @@
 /*! Base class for Analyzer data containers.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/AnalyzerData.h"
+#include "TauMLTools/Core/interface/AnalyzerData.h"
 
 #include <vector>
 #include <unordered_map>
 #include <utility>
-#include "AnalysisTools/Core/include/RootExt.h"
-#include "AnalysisTools/Core/include/TextIO.h"
-#include "AnalysisTools/Core/include/SmartHistogram.h"
+#include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Core/interface/TextIO.h"
+#include "TauMLTools/Core/interface/SmartHistogram.h"
 
 namespace root_ext {
 

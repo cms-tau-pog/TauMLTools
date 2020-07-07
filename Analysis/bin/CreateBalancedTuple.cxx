@@ -2,11 +2,11 @@
 */
 
 #include <fstream>
-#include "AnalysisTools/Run/include/program_main.h"
-#include "AnalysisTools/Core/include/RootExt.h"
-#include "AnalysisTools/Core/include/NumericPrimitives.h"
-#include "TauML/Analysis/include/AnalysisTypes.h"
-#include "TauML/Analysis/include/TauTuple.h"
+#include "TauMLTools/Core/interface/program_main.h"
+#include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Core/interface/NumericPrimitives.h"
+#include "TauMLTools/Analysis/interface/AnalysisTypes.h"
+#include "TauMLTools/Analysis/interface/TauTuple.h"
 
 namespace analysis {
 
@@ -231,7 +231,8 @@ private:
                 if(args.take_only_even_event_ids() && tau.evt % 2 != 0) continue;
                 if(args.use_tau_p4() && tau.tau_index < 0) continue;
                 const GenLeptonMatch gen_match = static_cast<GenLeptonMatch>(tau.lepton_gen_match);
-                const TauType tau_type = GenMatchToTauType(gen_match);
+                const SampleType sample_type = static_cast<SampleType>(tau.sampleType);
+                const TauType tau_type = GenMatchToTauType(gen_match, sample_type);
                 if(!output_tuples.count(tau_type)) continue;
                 const float pt = args.use_tau_p4() ? tau.tau_pt : tau.jet_pt;
                 const float eta = args.use_tau_p4() ? tau.tau_eta : tau.jet_eta;

@@ -1,8 +1,8 @@
 /*! Common tools and definitions suitable for general purposes.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/Tools.h"
-#include "AnalysisTools/Core/include/TextIO.h"
+#include "TauMLTools/Core/interface/Tools.h"
+#include "TauMLTools/Core/interface/TextIO.h"
 #include <boost/regex.hpp>
 #include <boost/crc.hpp>
 #include <boost/filesystem.hpp>

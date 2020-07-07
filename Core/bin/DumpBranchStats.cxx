@@ -1,13 +1,13 @@
 /*! Dump branch statistics.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 #include <iostream>
 
 #include <TTree.h>
-#include "RootExt.h"
-#include "AnalysisTools/Run/include/program_main.h"
-#include "AnalysisTools/Core/include/SmartBranch.h"
-#include "AnalysisTools/Core/include/EnumNameMap.h"
+#include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Core/interface/program_main.h"
+#include "TauMLTools/Core/interface/SmartBranch.h"
+#include "TauMLTools/Core/interface/EnumNameMap.h"
 
 struct Arguments {
     REQ_ARG(std::string, fileName);

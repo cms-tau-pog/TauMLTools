@@ -6,11 +6,11 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
 
-#include "AnalysisTools/Run/include/program_main.h"
-#include "AnalysisTools/Core/include/RootExt.h"
-#include "AnalysisTools/Core/include/PropertyConfigReader.h"
-#include "AnalysisTools/Core/include/ProgressReporter.h"
-#include "TauML/Analysis/include/TauTuple.h"
+#include "TauMLTools/Core/interface/program_main.h"
+#include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Core/interface/PropertyConfigReader.h"
+#include "TauMLTools/Core/interface/ProgressReporter.h"
+#include "TauMLTools/Analysis/interface/TauTuple.h"
 
 namespace analysis {
 

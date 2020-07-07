@@ -1,7 +1,7 @@
 /*! Base class to merge multiple root files into a single file.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/RootFilesMerger.h"
+#include "TauMLTools/Core/interface/RootFilesMerger.h"
 
 #include <iostream>
 #include <unordered_map>
@@ -14,8 +14,8 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <TChain.h>
 #include <TH1.h>
 #include <memory>
-#include "AnalysisTools/Core/include/RootExt.h"
-#include "AnalysisTools/Core/include/TextIO.h"
+#include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Core/interface/TextIO.h"
 
 namespace {
 void CollectInputFiles(const boost::filesystem::path& dir, std::vector<std::string>& files,

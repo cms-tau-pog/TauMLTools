@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "AnalysisTools/Core/include/SmartTree.h"
-#include "TauML/Analysis/include/TauIdResults.h"
+#include "TauMLTools/Core/interface/SmartTree.h"
+#include "TauMLTools/Analysis/interface/TauIdResults.h"
 #include <Math/VectorUtil.h>
 
 #define TAU_ID(name, pattern, has_raw, wp_list) VAR(uint16_t, name) VAR(Float_t, name##raw)

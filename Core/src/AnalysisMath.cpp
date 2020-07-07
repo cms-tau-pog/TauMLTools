@@ -1,7 +1,7 @@
 /*! Common math functions and definitions suitable for analysis purposes.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
-#include "AnalysisTools/Core/include/AnalysisMath.h"
+#include "TauMLTools/Core/interface/AnalysisMath.h"
 
 #include <iostream>
 #include <cmath>

@@ -5,7 +5,7 @@ This file is part of https://github.com/hh-italian-group/h-tautau. */
 
 #include <bitset>
 #include "AnalysisTypes.h"
-#include "AnalysisTools/Core/include/TextIO.h"
+#include "TauMLTools/Core/interface/TextIO.h"
 
 namespace analysis {
 

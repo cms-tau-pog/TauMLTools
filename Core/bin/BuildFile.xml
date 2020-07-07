@@ -1,0 +1,26 @@
+<bin name="ComputeCRC" file="ComputeCRC.cxx">
+    <use name="boost_program_options"/>
+    <use name="TauMLTools/Core"/>
+</bin>
+<bin name="DumpBranchStats" file="DumpBranchStats.cxx">
+    <use name="boost_program_options"/>
+    <use name="rootmath"/>    
+    <use name="TauMLTools/Core"/>
+</bin>
+<bin name="DumpEvent" file="DumpEvent.cxx">
+    <use name="boost_program_options"/>
+    <use name="rootmath"/>
+    <use name="TauMLTools/Core"/>
+</bin>
+<bin name="MergeRootFiles" file="MergeRootFiles.cxx">
+    <use name="boost_program_options"/>
+    <use name="TauMLTools/Core"/>
+</bin>
+<bin name="MergeTwoRootFiles" file="MergeTwoRootFiles.cxx">
+    <use name="boost_program_options"/>
+    <use name="TauMLTools/Core"/>
+</bin>
+<bin name="RenameHistograms" file="RenameHistograms.cxx">
+    <use name="boost_program_options"/>
+    <use name="TauMLTools/Core"/>
+</bin>
