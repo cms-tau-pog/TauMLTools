@@ -4,6 +4,9 @@ import re
 import importlib
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
+import RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD as tauAtMiniTools
+from Configuration.Eras.Era_Run2_2018_cff import Run2_2018
+
 
 options = VarParsing('analysis')
 options.register('sampleType', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
@@ -26,6 +29,8 @@ options.register('storeJetsWithoutTau', False, VarParsing.multiplicity.singleton
                  "Store jets that don't match to any pat::Tau.")
 options.register('requireGenMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Store only taus/jets that have GenLeptonMatch or GenQcdMatch.")
+options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                " If 'reclusterJets' set true a new collection of uncorrected ak4PFJets is built to seed taus (as at RECO), otherwise standard slimmedJets are used")
 
 options.parseArguments()
 
@@ -34,7 +39,7 @@ isData = sampleConfig.IsData(options.sampleType)
 period = sampleConfig.GetPeriod(options.sampleType)
 
 processName = 'tupleProduction'
-process = cms.Process(processName)
+process = cms.Process(processName, Run2_2018)
 process.options = cms.untracked.PSet()
 process.options.wantSummary = cms.untracked.bool(False)
 process.options.allowUnscheduled = cms.untracked.bool(True)
@@ -69,16 +74,22 @@ if len(options.lumiFile) > 0:
 if options.eventList != '':
     process.source.eventsToProcess = cms.untracked.VEventRange(re.split(',', options.eventList))
 
+tauAtMiniTools.addTauReReco(process)
+tauAtMiniTools.adaptTauToMiniAODReReco(process, options.reclusterJets)
+
+process.combinatoricRecoTaus.builders[0].signalConeSize = cms.string('max(min(0.2, 4.528/(pt()^0.8982)), 0.03)') ## change to quantile 0.95
+process.selectedPatTaus.cut = cms.string('pt > 18.')   ## remove DMFinding filter (was pt > 18. && tauID(\'decayModeFindingNewDMs\')> 0.5)
+
 import RecoTauTag.RecoTau.tools.runTauIdMVA as tauIdConfig
 updatedTauName = "slimmedTausNewID"
 tauIdEmbedder = tauIdConfig.TauIDEmbedder(
     process, cms, debug = False, updatedTauName = updatedTauName,
-    toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1", "deepTau2017v2p1", "againstEle2018",  ]
+    toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1"]
 )
-tauIdEmbedder.runTauID()
+tauIdEmbedder.runTauID(tau_collection = 'selectedPatTaus')
 tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
 
-tauJetdR = 0.2
+tauJetdR = 0.8
 objectdR = 0.5
 
 process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
