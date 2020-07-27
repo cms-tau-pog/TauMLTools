@@ -11,6 +11,7 @@
 #define CAND_VAR(type, name) VAR(std::vector<type>, pfCand_##name)
 #define ELE_VAR(type, name) VAR(std::vector<type>, ele_##name)
 #define MUON_VAR(type, name) VAR(std::vector<type>, muon_##name)
+#define TRACK_VAR(type, name) VAR(std::vector<type>, track_##name)
 
 #define VAR2(type, name1, name2) VAR(type, name1) VAR(type, name2)
 #define VAR3(type, name1, name2, name3) VAR2(type, name1, name2) VAR(type, name3)
@@ -27,6 +28,10 @@
 #define MUON_VAR2(type, name1, name2) MUON_VAR(type, name1) MUON_VAR(type, name2)
 #define MUON_VAR3(type, name1, name2, name3) MUON_VAR2(type, name1, name2) MUON_VAR(type, name3)
 #define MUON_VAR4(type, name1, name2, name3, name4) MUON_VAR3(type, name1, name2, name3) MUON_VAR(type, name4)
+
+#define TRACK_VAR2(type, name1, name2) TRACK_VAR(type, name1) TRACK_VAR(type, name2)
+#define TRACK_VAR3(type, name1, name2, name3) TRACK_VAR2(type, name1, name2) TRACK_VAR(type, name3)
+#define TRACK_VAR4(type, name1, name2, name3, name4) TRACK_VAR3(type, name1, name2, name3) TRACK_VAR(type, name4)
 
 #define TAU_DATA() \
     /* Event Variables */ \
@@ -237,6 +242,32 @@
                      n_hits_CSC_4) /* number of valid and bad hits for the CSC subdetector stations */ \
     MUON_VAR4(Int_t, n_hits_RPC_1, n_hits_RPC_2, n_hits_RPC_3, \
                      n_hits_RPC_4) /* number of valid and bad hits for the RPC subdetector stations */ \
+    /* PAT IsolatedTrack*/ \
+    TRACK_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the PF candidate */ \
+    TRACK_VAR4(Int_t, pfIsoCH, \
+                      pfIsoNH, \
+                      pfIsoPh, \
+                      pfIsoPu) /* 4 components of isolation (charged hadron, neutral hadron, photon, pileup) */ \
+    TRACK_VAR(Int_t, fromPV) /* the association to PV=ipv. >=PVLoose corresponds to JME definition,
+                               >=PVTight to isolation definition:
+                               NoPV = 0, PVLoose = 1, PVTight = 2, PVUsedInFit = 3 */ \
+    TRACK_VAR(Int_t, pdgId) /* PDG identifier */ \
+    TRACK_VAR(Int_t, charge) /* electric charge */ \
+    TRACK_VAR(Float_t, dxy) /* signed transverse impact parameter wrt to the primary vertex */ \
+    TRACK_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
+    TRACK_VAR(Float_t, dz) /* dz wrt to the primary vertex */ \
+    TRACK_VAR(Float_t, dz_error) /* uncertainty of the dz measurement */ \
+    TRACK_VAR(Float_t, matchedCaloJetEmEnergy) /* EM energies of the nearest calo-jet within dR=0.3*/ \
+    TRACK_VAR(Float_t, matchedCaloJetHadEnergy) /* Hadronic energies of the nearest calo-jet within dR=0.3*/ \
+    TRACK_VAR3(Int_t, isHighPurityTrack, isTightTrack, isLooseTrack) /* track Quality */ \
+    TRACK_VAR(Float_t, dEdxStrip) /* estimated dE/dx values in the strips */ \
+    TRACK_VAR(Float_t, dEdxPixel) /*  estimated dE/dx values in the pixels */ \
+    TRACK_VAR(Float_t, deltaEta) /**/ \
+    TRACK_VAR(Float_t, deltaPhi) /* the difference in eta/phi between the initial track trajectory and
+                                    the point of intersection with the Ecal.  Can be used to identify
+                                    roughly the calorimeter cells the track should hit.*/ \
+    TRACK_VAR(Int_t, n_ValidHits) /* number Of Valid Hits */ \
+    TRACK_VAR(Int_t, n_InactiveHits) /* number Of Inactive Hits */ \
     /**/
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
@@ -262,6 +293,10 @@ INITIALIZE_TREE(tau_tuple, TauTuple, TAU_DATA)
 #undef MUON_VAR2
 #undef MUON_VAR3
 #undef MUON_VAR4
+#undef TRACK_VAR
+#undef TRACK_VAR2
+#undef TRACK_VAR3
+#undef TRACK_VAR4
 #undef TAU_ID
 
 namespace tau_tuple {

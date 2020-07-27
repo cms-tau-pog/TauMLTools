@@ -14,6 +14,7 @@
 #include "DataFormats/PatCandidates/interface/Tau.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/PatCandidates/interface/PackedCandidate.h"
+#include "DataFormats/PatCandidates/interface/IsolatedTrack.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 #include "AnalysisDataFormats/TopObjects/interface/TtGenEvent.h"
@@ -131,6 +132,7 @@ public:
         taus_token(consumes<pat::TauCollection>(cfg.getParameter<edm::InputTag>("taus"))),
         jets_token(consumes<pat::JetCollection>(cfg.getParameter<edm::InputTag>("jets"))),
         cands_token(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("pfCandidates"))),
+        tracks_token(consumes<pat::IsolatedTrackCollection>(cfg.getParameter<edm::InputTag>("tracks"))),
         data(TauTupleProducerData::RequestGlobalData()),
         tauTuple(data->tauTuple),
         summaryTuple(data->summaryTuple)
@@ -198,13 +200,16 @@ private:
         edm::Handle<pat::PackedCandidateCollection> cands;
         event.getByToken(cands_token, cands);
 
+        edm::Handle<pat::IsolatedTrackCollection> tracks;
+        event.getByToken(tracks_token, tracks);
+
         edm::Handle<std::vector<reco::GenParticle>> hGenParticles;
         if(isMC)
             event.getByToken(genParticles_token, hGenParticles);
 
         auto genParticles = hGenParticles.isValid() ? hGenParticles.product() : nullptr;
 
-        TauJetBuilder builder(builderSetup, *jets, *taus, *cands, *electrons, *muons, genParticles);
+        TauJetBuilder builder(builderSetup, *jets, *taus, *cands, *electrons, *muons, *tracks, genParticles);
         const auto tauJets = builder.Build();
 
         for(const TauJet& tauJet : tauJets) {
@@ -331,6 +336,7 @@ private:
             FillPFCandidates(tauJet.cands);
             FillElectrons(tauJet.electrons);
             FillMuons(tauJet.muons);
+            FillTracks(tauJet.tracks); // no matching
 
             tauTuple.Fill();
         }
@@ -520,6 +526,47 @@ private:
         }
     }
 
+    void FillTracks(const std::vector<const pat::IsolatedTrack*>& tracks)
+    {
+        for(const pat::IsolatedTrack* track: tracks) {
+
+          tauTuple().track_pt.push_back(static_cast<float>(track->polarP4().pt()));
+          tauTuple().track_eta.push_back(static_cast<float>(track->polarP4().eta()));
+          tauTuple().track_phi.push_back(static_cast<float>(track->polarP4().phi()));
+          tauTuple().track_mass.push_back(static_cast<float>(track->polarP4().mass()));
+
+          const auto& PFisolation = track->pfIsolationDR03();
+          tauTuple().track_pfIsoCH.push_back(static_cast<float>(PFisolation.chargedHadronIso()));
+          tauTuple().track_pfIsoNH.push_back(static_cast<float>(PFisolation.neutralHadronIso()));
+          tauTuple().track_pfIsoPh.push_back(static_cast<float>(PFisolation.photonIso()));
+          tauTuple().track_pfIsoPu.push_back(static_cast<float>(PFisolation.puChargedHadronIso()));
+
+          tauTuple().track_fromPV.push_back(track->fromPV());
+          tauTuple().track_pdgId.push_back(track->pdgId());
+          tauTuple().track_charge.push_back(track->charge());
+
+          tauTuple().track_dxy.push_back(track->dxy());
+          tauTuple().track_dxy_error.push_back(track->dxyError());
+          tauTuple().track_dz.push_back(track->dz());
+          tauTuple().track_dz_error.push_back(track->dzError());
+
+          tauTuple().track_matchedCaloJetEmEnergy.push_back(track->matchedCaloJetEmEnergy());
+          tauTuple().track_matchedCaloJetHadEnergy.push_back(track->matchedCaloJetHadEnergy());
+          tauTuple().track_isHighPurityTrack.push_back(track->isHighPurityTrack());
+          tauTuple().track_isTightTrack.push_back(track->isTightTrack());
+          tauTuple().track_isLooseTrack.push_back(track->isLooseTrack());
+          tauTuple().track_dEdxStrip.push_back(track->dEdxStrip());
+          tauTuple().track_dEdxPixel.push_back(track->dEdxPixel());
+          tauTuple().track_deltaEta.push_back(track->deltaEta());
+          tauTuple().track_deltaPhi.push_back(track->deltaPhi());
+
+          const auto& hitPattern = track->hitPattern();
+          tauTuple().track_n_ValidHits.push_back(hitPattern.numberOfValidHits());
+          tauTuple().track_n_InactiveHits.push_back(hitPattern.numberOfInactiveHits());
+
+        }
+    }
+
     static float CalculateGottfriedJacksonAngleDifference(const pat::Tau& tau)
     {
         double gj_diff;
@@ -565,6 +612,7 @@ private:
     edm::EDGetTokenT<pat::TauCollection> taus_token;
     edm::EDGetTokenT<pat::JetCollection> jets_token;
     edm::EDGetTokenT<pat::PackedCandidateCollection> cands_token;
+    edm::EDGetTokenT<pat::IsolatedTrackCollection> tracks_token;
 
     TauTupleProducerData* data;
     tau_tuple::TauTuple& tauTuple;

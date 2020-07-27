@@ -29,7 +29,7 @@ options.register('requireGenMatch', True, VarParsing.multiplicity.singleton, Var
 
 options.parseArguments()
 
-sampleConfig = importlib.import_module('TauML.Production.sampleConfig')
+sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
 isData = sampleConfig.IsData(options.sampleType)
 period = sampleConfig.GetPeriod(options.sampleType)
 
@@ -103,6 +103,7 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     taus            = tauSrc_InputTag,
     jets            = cms.InputTag('slimmedJets'),
     pfCandidates    = cms.InputTag('packedPFCandidates'),
+    tracks          = cms.InputTag('isolatedTracks'),
 )
 
 process.tupleProductionSequence = cms.Sequence(process.tauTupleProducer)
