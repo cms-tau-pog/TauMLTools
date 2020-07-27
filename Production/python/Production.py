@@ -34,7 +34,7 @@ options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarPa
 
 options.parseArguments()
 
-sampleConfig = importlib.import_module('TauML.Production.sampleConfig')
+sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
 isData = sampleConfig.IsData(options.sampleType)
 period = sampleConfig.GetPeriod(options.sampleType)
 
