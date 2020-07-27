@@ -80,7 +80,7 @@ tauAtMiniTools.adaptTauToMiniAODReReco(process, options.reclusterJets)
 process.combinatoricRecoTaus.builders[0].signalConeSize = cms.string('max(min(0.2, 4.528/(pt()^0.8982)), 0.03)') ## change to quantile 0.95
 process.selectedPatTaus.cut = cms.string('pt > 18.')   ## remove DMFinding filter (was pt > 18. && tauID(\'decayModeFindingNewDMs\')> 0.5)
 
-import RecoTauTag.RecoTau.tools.runTauIdMVA as tauIdConfig
+tauIdConfig = importlib.import_module('TauMLTools.Production.runTauIdMVA')
 updatedTauName = "slimmedTausNewID"
 tauIdEmbedder = tauIdConfig.TauIDEmbedder(
     process, cms, debug = False, updatedTauName = updatedTauName,
