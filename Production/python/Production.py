@@ -30,7 +30,8 @@ options.register('requireGenMatch', True, VarParsing.multiplicity.singleton, Var
                  "Store only taus/jets that have GenLeptonMatch or GenQcdMatch.")
 options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                 " If 'reclusterJets' set true a new collection of uncorrected ak4PFJets is built to seed taus (as at RECO), otherwise standard slimmedJets are used")
-
+options.register('rerunTauReco', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                "If true, tau reconstruction is re-run on MINIAOD with a larger signal cone and no DM finding filter")
 options.parseArguments()
 
 sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
@@ -74,11 +75,15 @@ if len(options.lumiFile) > 0:
 if options.eventList != '':
     process.source.eventsToProcess = cms.untracked.VEventRange(re.split(',', options.eventList))
 
-tauAtMiniTools.addTauReReco(process)
-tauAtMiniTools.adaptTauToMiniAODReReco(process, options.reclusterJets)
+tau_collection = 'slimmedTaus'
+if options.rerunTauReco:
+    tau_collection = 'selectedPatTaus'
 
-process.combinatoricRecoTaus.builders[0].signalConeSize = cms.string('max(min(0.2, 4.528/(pt()^0.8982)), 0.03)') ## change to quantile 0.95
-process.selectedPatTaus.cut = cms.string('pt > 18.')   ## remove DMFinding filter (was pt > 18. && tauID(\'decayModeFindingNewDMs\')> 0.5)
+    tauAtMiniTools.addTauReReco(process)
+    tauAtMiniTools.adaptTauToMiniAODReReco(process, options.reclusterJets)
+
+    process.combinatoricRecoTaus.builders[0].signalConeSize = cms.string('max(min(0.2, 4.528/(pt()^0.8982)), 0.03)') ## change to quantile 0.95
+    process.selectedPatTaus.cut = cms.string('pt > 18.')   ## remove DMFinding filter (was pt > 18. && tauID(\'decayModeFindingNewDMs\')> 0.5)
 
 tauIdConfig = importlib.import_module('TauMLTools.Production.runTauIdMVA')
 updatedTauName = "slimmedTausNewID"
@@ -86,7 +91,7 @@ tauIdEmbedder = tauIdConfig.TauIDEmbedder(
     process, cms, debug = False, updatedTauName = updatedTauName,
     toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1"]
 )
-tauIdEmbedder.runTauID(tau_collection = 'selectedPatTaus')
+tauIdEmbedder.runTauID(tau_collection = tau_collection)
 tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
 
 tauJetdR = 0.3
