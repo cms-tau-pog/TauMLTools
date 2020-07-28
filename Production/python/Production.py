@@ -89,7 +89,7 @@ tauIdEmbedder = tauIdConfig.TauIDEmbedder(
 tauIdEmbedder.runTauID(tau_collection = 'selectedPatTaus')
 tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
 
-tauJetdR = 0.8
+tauJetdR = 0.3
 objectdR = 0.5
 
 process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
