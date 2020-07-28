@@ -5,7 +5,6 @@ import importlib
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 import RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD as tauAtMiniTools
-from Configuration.Eras.Era_Run2_2018_cff import Run2_2018
 
 
 options = VarParsing('analysis')
@@ -37,9 +36,10 @@ options.parseArguments()
 sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
 isData = sampleConfig.IsData(options.sampleType)
 period = sampleConfig.GetPeriod(options.sampleType)
+period_cfg = sampleConfig.GetPeriodCfg(options.sampleType)
 
 processName = 'tupleProduction'
-process = cms.Process(processName, Run2_2018)
+process = cms.Process(processName, period_cfg)
 process.options = cms.untracked.PSet()
 process.options.wantSummary = cms.untracked.bool(False)
 process.options.allowUnscheduled = cms.untracked.bool(True)
