@@ -110,10 +110,6 @@
     VAR(Int_t, n_neutral_hadrons) \
     VAR(Int_t, n_gammas) \
     VAR(Int_t, n_gammas_rad) \
-    VAR4(Float_t, lepMatch_visible_pt , lepMatch_visible_eta, \
-                  lepMatch_visible_phi, lepMatch_visible_mass) \
-    VAR4(Float_t, lepMatch_visible_rad_pt , lepMatch_visible_rad_eta, \
-                  lepMatch_visible_rad_phi, lepMatch_visible_rad_mass) \
     TAU_IDS() \
     /* Tau transverse impact paramters.
        See cmssw/RecoTauTag/RecoTau/plugins/PFTauTransverseImpactParameters.cc for details */ \

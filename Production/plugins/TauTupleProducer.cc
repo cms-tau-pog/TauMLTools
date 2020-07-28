@@ -381,16 +381,6 @@ private:
         tauTuple().lepton_gen_firstCopy_mass = has_lepton ? static_cast<float>(leptonMatch.gen_particle_firstCopy->polarP4().mass())
                                                 : default_value;
 
-        tauTuple().lepMatch_visible_pt   = has_lepton ? static_cast<float>(leptonMatch.visible_p4.pt()  ) : default_value;
-        tauTuple().lepMatch_visible_eta  = has_lepton ? static_cast<float>(leptonMatch.visible_p4.eta() ) : default_value;
-        tauTuple().lepMatch_visible_phi  = has_lepton ? static_cast<float>(leptonMatch.visible_p4.phi() ) : default_value;
-        tauTuple().lepMatch_visible_mass = has_lepton ? static_cast<float>(leptonMatch.visible_p4.mass()) : default_value;
-
-        tauTuple().lepMatch_visible_rad_pt   = has_lepton ? static_cast<float>(leptonMatch.visible_rad_p4.pt())   : default_value;
-        tauTuple().lepMatch_visible_rad_eta  = has_lepton ? static_cast<float>(leptonMatch.visible_rad_p4.eta())  : default_value;
-        tauTuple().lepMatch_visible_rad_phi  = has_lepton ? static_cast<float>(leptonMatch.visible_rad_p4.phi())  : default_value;
-        tauTuple().lepMatch_visible_rad_mass = has_lepton ? static_cast<float>(leptonMatch.visible_rad_p4.mass()) : default_value;
-
         tauTuple().n_charged_hadrons = has_lepton ? static_cast<int> (leptonMatch.n_charged_hadrons) : default_int_value;
         tauTuple().n_neutral_hadrons = has_lepton ? static_cast<int> (leptonMatch.n_neutral_hadrons) : default_int_value;
         tauTuple().n_gammas          = has_lepton ? static_cast<int> (leptonMatch.n_gammas)          : default_int_value;
