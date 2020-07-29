@@ -42,9 +42,9 @@ TauJet::TauJet(const pat::Jet* _jet, const pat::Tau* _tau, JetTauMatch _jetTauMa
 TauJetBuilder::TauJetBuilder(const TauJetBuilderSetup& setup, const pat::JetCollection& jets,
                              const pat::TauCollection& taus, const pat::PackedCandidateCollection& cands,
                              const pat::ElectronCollection& electrons, const pat::MuonCollection& muons,
-                             const reco::GenParticleCollection* genParticles) :
+                             const pat::IsolatedTrackCollection& tracks, const reco::GenParticleCollection* genParticles) :
     setup_(setup), jets_(jets), taus_(taus), cands_(cands), electrons_(electrons), muons_(muons),
-    genParticles_(genParticles)
+    tracks_(tracks), genParticles_(genParticles)
 {
 }
 
@@ -95,6 +95,7 @@ std::vector<TauJet> TauJetBuilder::Build()
         tauJet.cands = FindMatchedPFCandidates(tauJet.jet, tauJet.tau);
         tauJet.electrons = FindMatchedElectrons(tauJet.jet, tauJet.tau);
         tauJet.muons = FindMatchedMuons(tauJet.jet, tauJet.tau);
+        tauJet.tracks = FindMatchedTracks(tauJet.jet, tauJet.tau);
         if(genParticles_) {
             if(tauJet.jet) {
                 tauJet.jetGenLeptonMatchResult = gen_truth::LeptonGenMatch(tauJet.jet->polarP4(), *genParticles_);
@@ -255,6 +256,21 @@ std::vector<const pat::Muon*> TauJetBuilder::FindMatchedMuons(const pat::Jet* je
         }
     }
     return matched_muons;
+}
+
+std::vector<const pat::IsolatedTrack*> TauJetBuilder::FindMatchedTracks(const pat::Jet* jet, const pat::Tau* tau) const
+{
+    PolarLorentzVector ref_p4;
+    double deltaR2;
+    const bool has_ref = GetMatchReferences(jet, tau, ref_p4, deltaR2);
+    std::vector<const pat::IsolatedTrack*> matched_tracks;
+    if(has_ref) {
+        for(const auto& track : tracks_) {
+            if(ROOT::Math::VectorUtil::DeltaR2(ref_p4, track.polarP4()) >= deltaR2) continue;
+            matched_tracks.push_back(&track);
+        }
+    }
+    return matched_tracks;
 }
 
 } // namespace tau_analysis
