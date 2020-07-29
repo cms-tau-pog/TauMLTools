@@ -51,6 +51,12 @@ private:
        "VLoose Loose Medium Tight") \
     TAU_ID(byDeepTau2017v2p1VSjet, "by{wp}DeepTau2017v2p1VSjet{raw}", true, \
        "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2017v2DBoldDMwLT2017, "by{wp}IsolationMVArun2017v2DBoldDMwLT{raw}2017", true, \
+        "VVLoose VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2017v2DBnewDMwLT2017, "by{wp}IsolationMVArun2017v2DBnewDMwLT{raw}2017", true, \
+        "VVLoose VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2017v2DBoldDMdR0p3wLT2017, "by{wp}IsolationMVArun2017v2DBoldDMdR0p3wLT{raw}2017", true, \
+        "VVLoose VLoose Loose Medium Tight VTight VVTight") \
     /**/
 
 #define TAU_ID(name, pattern, has_raw, wp_list) name,
