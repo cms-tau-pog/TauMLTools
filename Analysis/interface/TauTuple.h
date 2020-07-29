@@ -243,22 +243,15 @@
     MUON_VAR4(Int_t, n_hits_RPC_1, n_hits_RPC_2, n_hits_RPC_3, \
                      n_hits_RPC_4) /* number of valid and bad hits for the RPC subdetector stations */ \
     /* PAT IsolatedTrack*/ \
-    TRACK_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the PF candidate */ \
-    TRACK_VAR4(Int_t, pfIsoCH, \
-                      pfIsoNH, \
-                      pfIsoPh, \
-                      pfIsoPu) /* 4 components of isolation (charged hadron, neutral hadron, photon, pileup) */ \
+    TRACK_VAR3(Float_t, pt, eta, phi) /* track kinematics */ \
     TRACK_VAR(Int_t, fromPV) /* the association to PV=ipv. >=PVLoose corresponds to JME definition,
                                >=PVTight to isolation definition:
                                NoPV = 0, PVLoose = 1, PVTight = 2, PVUsedInFit = 3 */ \
-    TRACK_VAR(Int_t, pdgId) /* PDG identifier */ \
     TRACK_VAR(Int_t, charge) /* electric charge */ \
     TRACK_VAR(Float_t, dxy) /* signed transverse impact parameter wrt to the primary vertex */ \
     TRACK_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
     TRACK_VAR(Float_t, dz) /* dz wrt to the primary vertex */ \
     TRACK_VAR(Float_t, dz_error) /* uncertainty of the dz measurement */ \
-    TRACK_VAR(Float_t, matchedCaloJetEmEnergy) /* EM energies of the nearest calo-jet within dR=0.3*/ \
-    TRACK_VAR(Float_t, matchedCaloJetHadEnergy) /* Hadronic energies of the nearest calo-jet within dR=0.3*/ \
     TRACK_VAR3(Int_t, isHighPurityTrack, isTightTrack, isLooseTrack) /* track Quality */ \
     TRACK_VAR(Float_t, dEdxStrip) /* estimated dE/dx values in the strips */ \
     TRACK_VAR(Float_t, dEdxPixel) /*  estimated dE/dx values in the pixels */ \
@@ -268,6 +261,26 @@
                                     roughly the calorimeter cells the track should hit.*/ \
     TRACK_VAR(Int_t, n_ValidHits) /* number Of Valid Hits */ \
     TRACK_VAR(Int_t, n_InactiveHits) /* number Of Inactive Hits */ \
+    TRACK_VAR3(Int_t, n_LostHits_0, \
+                      n_LostHits_1, \
+                      n_LostHits_2) /* number Of Lost Hits
+                                       0 -> TRACK_HITS,
+                                       1 -> MISSING_INNER_HITS,
+                                       2 -> MISSING_OUTER_HITS*/ \
+    TRACK_VAR(Int_t, n_ValidPixelHits) /* number Of Valid Pixel Hits */ \
+    TRACK_VAR(Int_t, n_ValidStripHits) /* number Of Valid Strip Hits */ \
+    TRACK_VAR3(Int_t, n_LostPixelHits_0, \
+                      n_LostPixelHits_1, \
+                      n_LostPixelHits_2) /* number Of Lost Pixe Hits
+                                           0 -> TRACK_HITS,
+                                           1 -> MISSING_INNER_HITS,
+                                           2 -> MISSING_OUTER_HITS */ \
+    TRACK_VAR3(Int_t, n_LostStripHits_0, \
+                      n_LostStripHits_1, \
+                      n_LostStripHits_2) /* number Of Lost Strip Hits
+                                          0 -> TRACK_HITS,
+                                          1 -> MISSING_INNER_HITS,
+                                          2 -> MISSING_OUTER_HITS */ \
     /**/
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)

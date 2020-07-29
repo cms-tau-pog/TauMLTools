@@ -15,6 +15,7 @@
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/PatCandidates/interface/PackedCandidate.h"
 #include "DataFormats/PatCandidates/interface/IsolatedTrack.h"
+#include "DataFormats/TrackReco/interface/HitPattern.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 #include "AnalysisDataFormats/TopObjects/interface/TtGenEvent.h"
@@ -336,7 +337,7 @@ private:
             FillPFCandidates(tauJet.cands);
             FillElectrons(tauJet.electrons);
             FillMuons(tauJet.muons);
-            FillTracks(tauJet.tracks); // no matching
+            FillTracks(tauJet.tracks);
 
             tauTuple.Fill();
         }
@@ -533,25 +534,12 @@ private:
           tauTuple().track_pt.push_back(static_cast<float>(track->polarP4().pt()));
           tauTuple().track_eta.push_back(static_cast<float>(track->polarP4().eta()));
           tauTuple().track_phi.push_back(static_cast<float>(track->polarP4().phi()));
-          tauTuple().track_mass.push_back(static_cast<float>(track->polarP4().mass()));
-
-          const auto& PFisolation = track->pfIsolationDR03();
-          tauTuple().track_pfIsoCH.push_back(static_cast<float>(PFisolation.chargedHadronIso()));
-          tauTuple().track_pfIsoNH.push_back(static_cast<float>(PFisolation.neutralHadronIso()));
-          tauTuple().track_pfIsoPh.push_back(static_cast<float>(PFisolation.photonIso()));
-          tauTuple().track_pfIsoPu.push_back(static_cast<float>(PFisolation.puChargedHadronIso()));
-
           tauTuple().track_fromPV.push_back(track->fromPV());
-          tauTuple().track_pdgId.push_back(track->pdgId());
           tauTuple().track_charge.push_back(track->charge());
-
           tauTuple().track_dxy.push_back(track->dxy());
           tauTuple().track_dxy_error.push_back(track->dxyError());
           tauTuple().track_dz.push_back(track->dz());
           tauTuple().track_dz_error.push_back(track->dzError());
-
-          tauTuple().track_matchedCaloJetEmEnergy.push_back(track->matchedCaloJetEmEnergy());
-          tauTuple().track_matchedCaloJetHadEnergy.push_back(track->matchedCaloJetHadEnergy());
           tauTuple().track_isHighPurityTrack.push_back(track->isHighPurityTrack());
           tauTuple().track_isTightTrack.push_back(track->isTightTrack());
           tauTuple().track_isLooseTrack.push_back(track->isLooseTrack());
@@ -563,6 +551,18 @@ private:
           const auto& hitPattern = track->hitPattern();
           tauTuple().track_n_ValidHits.push_back(hitPattern.numberOfValidHits());
           tauTuple().track_n_InactiveHits.push_back(hitPattern.numberOfInactiveHits());
+          tauTuple().track_n_ValidPixelHits.push_back(hitPattern.numberOfValidPixelHits());
+          tauTuple().track_n_ValidStripHits.push_back(hitPattern.numberOfValidStripHits());
+          using ctgr = reco::HitPattern;
+          tauTuple().track_n_LostHits_0.push_back(hitPattern.numberOfLostHits(ctgr::TRACK_HITS));
+          tauTuple().track_n_LostHits_1.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_INNER_HITS));
+          tauTuple().track_n_LostHits_2.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_OUTER_HITS));
+          tauTuple().track_n_LostPixelHits_0.push_back(hitPattern.numberOfLostPixelHits(ctgr::TRACK_HITS));
+          tauTuple().track_n_LostPixelHits_1.push_back(hitPattern.numberOfLostPixelHits(ctgr::MISSING_INNER_HITS));
+          tauTuple().track_n_LostPixelHits_2.push_back(hitPattern.numberOfLostPixelHits(ctgr::MISSING_OUTER_HITS));
+          tauTuple().track_n_LostStripHits_0.push_back(hitPattern.numberOfLostStripHits(ctgr::TRACK_HITS));
+          tauTuple().track_n_LostStripHits_1.push_back(hitPattern.numberOfLostStripHits(ctgr::MISSING_INNER_HITS));
+          tauTuple().track_n_LostStripHits_2.push_back(hitPattern.numberOfLostStripHits(ctgr::MISSING_OUTER_HITS));
 
         }
     }
