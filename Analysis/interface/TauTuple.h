@@ -68,7 +68,6 @@
     VAR(Int_t, lepton_gen_charge) /* charge of the matched gen lepton (last copy)*/ \
     VAR4(Float_t, lepton_gen_pt, lepton_gen_eta, \
                   lepton_gen_phi, lepton_gen_mass) /* 4-momentum of the matched gen lepton (last copy)*/ \
-    VAR(Int_t, lepton_gen_firstCopy_charge)    /* charge of the matched gen lepton (first copy) */ \
     VAR4(Float_t, lepton_gen_firstCopy_pt , lepton_gen_firstCopy_eta, \
                   lepton_gen_firstCopy_phi, lepton_gen_firstCopy_mass) /* 4-momentum of the matched gen lepton 
                                                                           (first copy) */ \
@@ -108,10 +107,6 @@
     VAR(Float_t, photonPtSumOutsideSignalConedR03) /* sum of the transverse momentums of photons inside
                                                       the tau isolation cone with dR < 0.3 */ \
     VAR(Float_t, puCorrPtSum) /* pile-up correction for the sum of the transverse momentums */ \
-    VAR(Int_t, n_charged_hadrons) /* number of charged hadrons in the final state */ \
-    VAR(Int_t, n_neutral_hadrons) /* number of neutral hadrons in the final state */ \
-    VAR(Int_t, n_gammas) /* number of photons in the final state */ \
-    VAR(Int_t, n_gammas_rad) /* number of photons from the final state radiation */ \
     TAU_IDS() \
     /* Tau transverse impact paramters.
        See cmssw/RecoTauTag/RecoTau/plugins/PFTauTransverseImpactParameters.cc for details */ \

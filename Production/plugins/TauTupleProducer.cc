@@ -371,7 +371,6 @@ private:
         tauTuple().lepton_gen_mass = has_lepton ? static_cast<float>(leptonMatch.gen_particle_lastCopy->polarP4().mass())
                                                 : default_value;
 
-        tauTuple().lepton_gen_firstCopy_charge = has_lepton ? leptonMatch.gen_particle_firstCopy->charge() : default_int_value;
         tauTuple().lepton_gen_firstCopy_pt = has_lepton ? static_cast<float>(leptonMatch.gen_particle_firstCopy->polarP4().pt())
                                               : default_value;
         tauTuple().lepton_gen_firstCopy_eta = has_lepton ? static_cast<float>(leptonMatch.gen_particle_firstCopy->polarP4().eta())
@@ -380,11 +379,6 @@ private:
                                                : default_value;
         tauTuple().lepton_gen_firstCopy_mass = has_lepton ? static_cast<float>(leptonMatch.gen_particle_firstCopy->polarP4().mass())
                                                 : default_value;
-
-        tauTuple().n_charged_hadrons = has_lepton ? static_cast<int> (leptonMatch.n_charged_hadrons) : default_int_value;
-        tauTuple().n_neutral_hadrons = has_lepton ? static_cast<int> (leptonMatch.n_neutral_hadrons) : default_int_value;
-        tauTuple().n_gammas          = has_lepton ? static_cast<int> (leptonMatch.n_gammas)          : default_int_value;
-        tauTuple().n_gammas_rad      = has_lepton ? static_cast<int> (leptonMatch.n_gammas_rad)      : default_int_value;
 
         for(auto daughter : leptonMatch.visible_daughters) {
             tauTuple().lepton_gen_vis_pdg.push_back(daughter->pdgId());
