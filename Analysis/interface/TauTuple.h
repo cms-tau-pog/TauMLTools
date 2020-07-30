@@ -65,19 +65,21 @@
     VAR(Int_t, tau_charge) /* tau charge */ \
     VAR(Int_t, lepton_gen_match) /* matching with leptons on the generator level (see Htautau Twiki for details):
                                     Electron = 1, Muon = 2, TauElectron = 3, TauMuon = 4, Tau = 5, NoMatch = 6 */\
-    VAR(Int_t, lepton_gen_charge) /* charge of the matched gen lepton */ \
+    VAR(Int_t, lepton_gen_charge) /* charge of the matched gen lepton (last copy)*/ \
     VAR4(Float_t, lepton_gen_pt, lepton_gen_eta, \
-                  lepton_gen_phi, lepton_gen_mass) /* 4-momentum of the matched gen lepton */ \
-    VAR(Int_t, lepton_gen_firstCopy_charge) \
+                  lepton_gen_phi, lepton_gen_mass) /* 4-momentum of the matched gen lepton (last copy)*/ \
+    VAR(Int_t, lepton_gen_firstCopy_charge)    /* charge of the matched gen lepton (first copy) */ \
     VAR4(Float_t, lepton_gen_firstCopy_pt , lepton_gen_firstCopy_eta, \
-                  lepton_gen_firstCopy_phi, lepton_gen_firstCopy_mass) /* 4-momentum of the matched gen lepton */ \
+                  lepton_gen_firstCopy_phi, lepton_gen_firstCopy_mass) /* 4-momentum of the matched gen lepton 
+                                                                          (first copy) */ \
     VAR(std::vector<Int_t>, lepton_gen_vis_pdg) /* PDG of the matched lepton */ \
     VAR4(std::vector<Float_t>, lepton_gen_vis_pt, lepton_gen_vis_eta, \
                                lepton_gen_vis_phi, lepton_gen_vis_mass) /* 4-momenta of the visible products
                                                                            of the matched gen lepton */ \
-    VAR(std::vector<Int_t>, lepton_gen_vis_rad_pdg) \
+    VAR(std::vector<Int_t>, lepton_gen_vis_rad_pdg) /* pdg id of the final state radiation */ \
     VAR4(std::vector<Float_t>, lepton_gen_vis_rad_pt, lepton_gen_vis_rad_eta, \
-                               lepton_gen_vis_rad_phi, lepton_gen_vis_rad_mass) \
+                               lepton_gen_vis_rad_phi, lepton_gen_vis_rad_mass) /* 4-momenta of the
+                                                                                final state radiation */ \
     VAR(Int_t, qcd_gen_match) /* matching with QCD particles on the generator level:
                                  NoMatch = 0, Down = 1, Up = 2, Strange = 3, Charm = 4, Bottom = 5, Top = 6,
                                  Gluon = 21 */ \
@@ -106,10 +108,10 @@
     VAR(Float_t, photonPtSumOutsideSignalConedR03) /* sum of the transverse momentums of photons inside
                                                       the tau isolation cone with dR < 0.3 */ \
     VAR(Float_t, puCorrPtSum) /* pile-up correction for the sum of the transverse momentums */ \
-    VAR(Int_t, n_charged_hadrons) \
-    VAR(Int_t, n_neutral_hadrons) \
-    VAR(Int_t, n_gammas) \
-    VAR(Int_t, n_gammas_rad) \
+    VAR(Int_t, n_charged_hadrons) /* number of charged hadrons in the final state */ \
+    VAR(Int_t, n_neutral_hadrons) /* number of neutral hadrons in the final state */ \
+    VAR(Int_t, n_gammas) /* number of photons in the final state */ \
+    VAR(Int_t, n_gammas_rad) /* number of photons from the final state radiation */ \
     TAU_IDS() \
     /* Tau transverse impact paramters.
        See cmssw/RecoTauTag/RecoTau/plugins/PFTauTransverseImpactParameters.cc for details */ \
