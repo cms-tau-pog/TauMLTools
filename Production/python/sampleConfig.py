@@ -67,4 +67,4 @@ def GetPeriodCfg(sampleType):
     if period not in periodCfgMap:
         print "ERROR: unknown sample type = '{}'".format(sampleType)
         sys.exit(1)
-    return periodCfgMap[GetPeriod(sampleType)]
+    return periodCfgMap[period]
