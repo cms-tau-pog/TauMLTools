@@ -30,6 +30,8 @@
 #include "TauMLTools/Production/interface/MuonHitMatch.h"
 #include "TauMLTools/Production/interface/TauJet.h"
 
+#include <set>
+
 namespace tau_analysis {
 
 struct TauTupleProducerData {
@@ -114,6 +116,32 @@ private:
         return data;
     }
 };
+
+namespace
+{
+  float getTauID(bool has_tau, const pat::Tau* tau, const std::string& tauID, float default_value)
+  {
+    static std::set<std::string> isFirstWarning;
+    float retVal = default_value;
+    if ( has_tau )
+    {
+      if ( tau->isTauIDAvailable(tauID) )
+      {
+        retVal = tau->tauID(tauID);
+      }
+      else
+      {
+        if ( isFirstWarning.find(tauID) == isFirstWarning.end() )
+        {
+          std::cout << "Warning in <getTauID>: No tauID '" << tauID << "' available in pat::Tau given as function argument."
+                    << " Using default_value = " << default_value << " instead." << std::endl;
+          isFirstWarning.insert(tauID);
+        }
+      }
+    }
+    return retVal;
+  }
+}
 
 class TauTupleProducer : public edm::EDAnalyzer {
 public:
@@ -246,7 +274,6 @@ private:
             tauTuple().jet_gen_n_c = genJet != nullptr
                     ? static_cast<int>(tauJet.jet->jetFlavourInfo().getcHadrons().size()) : default_int_value;
 
-
             const pat::Tau* tau = tauJet.tau;
             if(has_tau) {
                 static const bool id_names_printed = PrintTauIdNames(*tau);
@@ -263,23 +290,20 @@ private:
 
             FillGenMatchResult(leptonGenMatch, qcdGenMatch);
 
-            tauTuple().tau_decayMode = has_tau ? tau->decayMode() : default_int_value;
-            tauTuple().tau_decayModeFinding = has_tau ? tau->tauID("decayModeFinding") > 0.5f : default_int_value;
-            tauTuple().tau_decayModeFindingNewDMs = has_tau ? tau->tauID("decayModeFindingNewDMs") > 0.5f
-                                                            : default_int_value;
-            tauTuple().chargedIsoPtSum = has_tau ? tau->tauID("chargedIsoPtSum") : default_value;
-            tauTuple().chargedIsoPtSumdR03 = has_tau ? tau->tauID("chargedIsoPtSumdR03") : default_value;
-            tauTuple().footprintCorrection = has_tau ? tau->tauID("footprintCorrection") : default_value;
-            tauTuple().footprintCorrectiondR03 = has_tau ? tau->tauID("footprintCorrectiondR03") : default_value;
-            tauTuple().neutralIsoPtSum = has_tau ? tau->tauID("neutralIsoPtSum") : default_value;
-            tauTuple().neutralIsoPtSumWeight = has_tau ? tau->tauID("neutralIsoPtSumWeight") : default_value;
-            tauTuple().neutralIsoPtSumWeightdR03 = has_tau ? tau->tauID("neutralIsoPtSumWeightdR03") : default_value;
-            tauTuple().neutralIsoPtSumdR03 = has_tau ? tau->tauID("neutralIsoPtSumdR03") : default_value;
-            tauTuple().photonPtSumOutsideSignalCone = has_tau ? tau->tauID("photonPtSumOutsideSignalCone")
-                                                              : default_value;
-            tauTuple().photonPtSumOutsideSignalConedR03 = has_tau ? tau->tauID("photonPtSumOutsideSignalConedR03")
-                                                                  : default_value;
-            tauTuple().puCorrPtSum = has_tau ? tau->tauID("puCorrPtSum") : default_value;
+            tauTuple().tau_decayMode = has_tau ? tau->decayMode() : default_int_value; 
+            tauTuple().tau_decayModeFinding = has_tau ? getTauID(has_tau, tau, "decayModeFinding", -1.) > 0.5f : default_int_value;
+            tauTuple().tau_decayModeFindingNewDMs = has_tau ? getTauID(has_tau, tau, "decayModeFindingNewDMs", -1.) > 0.5f : default_int_value;
+            tauTuple().chargedIsoPtSum = getTauID(has_tau, tau, "chargedIsoPtSum", default_value);
+            tauTuple().chargedIsoPtSumdR03 = getTauID(has_tau, tau, "chargedIsoPtSumdR03", default_value);
+            tauTuple().footprintCorrection = getTauID(has_tau, tau, "footprintCorrection", default_value);
+            tauTuple().footprintCorrectiondR03 = getTauID(has_tau, tau, "footprintCorrectiondR03", default_value);
+            tauTuple().neutralIsoPtSum = getTauID(has_tau, tau, "neutralIsoPtSum", default_value);
+            tauTuple().neutralIsoPtSumWeight = getTauID(has_tau, tau, "neutralIsoPtSumWeight", default_value);
+            tauTuple().neutralIsoPtSumWeightdR03 = getTauID(has_tau, tau, "neutralIsoPtSumWeightdR03", default_value);
+            tauTuple().neutralIsoPtSumdR03 = getTauID(has_tau, tau, "neutralIsoPtSumdR03", default_value);
+            tauTuple().photonPtSumOutsideSignalCone = getTauID(has_tau, tau, "photonPtSumOutsideSignalCone", default_value);
+            tauTuple().photonPtSumOutsideSignalConedR03 = getTauID(has_tau, tau, "photonPtSumOutsideSignalConedR03", default_value);
+            tauTuple().puCorrPtSum = getTauID(has_tau, tau, "puCorrPtSum", default_value);
 
             for(const auto& tau_id_entry : analysis::tau_id::GetTauIdDescriptors()) {
                 const auto& desc = tau_id_entry.second;
