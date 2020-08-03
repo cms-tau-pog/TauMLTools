@@ -42,6 +42,7 @@ private:
     BitsContainer results;
 };
 
+/*
 #define TAU_IDS() \
     TAU_ID(againstElectronMVA6, "againstElectron{wp}MVA6{Raw}", true, "VLoose Loose Medium Tight VTight") \
     TAU_ID(againstElectronMVA62018, "againstElectron{wp}MVA6{Raw}2018", true, "VLoose Loose Medium Tight VTight") \
@@ -60,6 +61,10 @@ private:
        "VLoose Loose Medium Tight") \
     TAU_ID(byDeepTau2017v2p1VSjet, "by{wp}DeepTau2017v2p1VSjet{raw}", true, \
        "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
+ */
+#define TAU_IDS() \
+    TAU_ID(byCombinedIsolationDeltaBetaCorr3Hits, "byCombinedIsolationDeltaBetaCorr{Raw}3Hits", true, \
+           "") \
     /**/
 
 #define TAU_ID(name, pattern, has_raw, wp_list) name,
