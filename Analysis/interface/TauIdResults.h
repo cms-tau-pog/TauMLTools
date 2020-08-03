@@ -44,28 +44,24 @@ private:
 
 /*
 #define TAU_IDS() \
-    TAU_ID(againstElectronMVA6, "againstElectron{wp}MVA6{Raw}", true, "VLoose Loose Medium Tight VTight") \
-    TAU_ID(againstElectronMVA62018, "againstElectron{wp}MVA6{Raw}2018", true, "VLoose Loose Medium Tight VTight") \
-    TAU_ID(againstMuon3, "againstMuon{wp}3", false, "Loose Tight") \
     TAU_ID(byCombinedIsolationDeltaBetaCorr3Hits, "by{wp}CombinedIsolationDeltaBetaCorr{Raw}3Hits", true, \
            "Loose Medium Tight") \
-    TAU_ID(byIsolationMVArun2017v2DBoldDMwLT2017, "by{wp}IsolationMVArun2017v2DBoldDMwLT{raw}2017", true, \
-           "VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byIsolationMVArun2017v2DBoldDMdR0p3wLT2017, "by{wp}IsolationMVArun2017v2DBoldDMdR0p3wLT{raw}2017", true, \
-           "VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byIsolationMVArun2017v2DBnewDMwLT2017, "by{wp}IsolationMVArun2017v2DBnewDMwLT{raw}2017", true, \
-           "VVLoose VLoose Loose Medium Tight VTight VVTight") \
     TAU_ID(byDeepTau2017v2p1VSe, "by{wp}DeepTau2017v2p1VSe{raw}", true, \
        "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
     TAU_ID(byDeepTau2017v2p1VSmu, "by{wp}DeepTau2017v2p1VSmu{raw}", true, \
        "VLoose Loose Medium Tight") \
     TAU_ID(byDeepTau2017v2p1VSjet, "by{wp}DeepTau2017v2p1VSjet{raw}", true, \
        "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2017v2DBoldDMwLT2017, "by{wp}IsolationMVArun2017v2DBoldDMwLT{raw}2017", true, \
+        "VVLoose VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2017v2DBnewDMwLT2017, "by{wp}IsolationMVArun2017v2DBnewDMwLT{raw}2017", true, \
+        "VVLoose VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVArun2017v2DBoldDMdR0p3wLT2017, "by{wp}IsolationMVArun2017v2DBoldDMdR0p3wLT{raw}2017", true, \
+        "VVLoose VLoose Loose Medium Tight VTight VVTight") \
  */
 #define TAU_IDS() \
     TAU_ID(byCombinedIsolationDeltaBetaCorr3Hits, "byCombinedIsolationDeltaBetaCorr{Raw}3Hits", true, \
            "") \
-    /**/
 
 #define TAU_ID(name, pattern, has_raw, wp_list) name,
 enum class TauIdDiscriminator { TAU_IDS() };

@@ -8,6 +8,7 @@
 #include "DataFormats/PatCandidates/interface/Tau.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
 #include "DataFormats/PatCandidates/interface/PackedCandidate.h"
+#include "DataFormats/PatCandidates/interface/IsolatedTrack.h"
 
 #include "GenTruthTools.h"
 
@@ -29,6 +30,7 @@ struct TauJet {
     std::vector<PFCandDesc> cands;
     std::vector<const pat::Electron*> electrons;
     std::vector<const pat::Muon*> muons;
+    std::vector<const pat::IsolatedTrack*> tracks;
     gen_truth::LeptonMatchResult jetGenLeptonMatchResult, tauGenLeptonMatchResult;
     gen_truth::QcdMatchResult jetGenQcdMatchResult, tauGenQcdMatchResult;
 
@@ -53,7 +55,8 @@ public:
 
     TauJetBuilder(const TauJetBuilderSetup& setup, const pat::JetCollection& jets, const pat::TauCollection& taus,
                   const pat::PackedCandidateCollection& cands, const pat::ElectronCollection& electrons,
-                  const pat::MuonCollection& muons, const reco::GenParticleCollection* genParticles);
+                  const pat::MuonCollection& muons, const pat::IsolatedTrackCollection& tracks,
+                  const reco::GenParticleCollection* genParticles);
 
     TauJetBuilder(const TauJetBuilder&) = delete;
     TauJetBuilder& operator=(const TauJetBuilder&) = delete;
@@ -73,6 +76,7 @@ private:
     std::vector<PFCandDesc> FindMatchedPFCandidates(const pat::Jet* jet, const pat::Tau* tau) const;
     std::vector<const pat::Electron*> FindMatchedElectrons(const pat::Jet* jet, const pat::Tau* tau) const;
     std::vector<const pat::Muon*> FindMatchedMuons(const pat::Jet* jet, const pat::Tau* tau) const;
+    std::vector<const pat::IsolatedTrack*> FindMatchedTracks(const pat::Jet* jet, const pat::Tau* tau) const;
 
 private:
     const TauJetBuilderSetup setup_;
@@ -81,6 +85,7 @@ private:
     const pat::PackedCandidateCollection& cands_;
     const pat::ElectronCollection& electrons_;
     const pat::MuonCollection& muons_;
+    const pat::IsolatedTrackCollection& tracks_;
     const reco::GenParticleCollection* genParticles_;
 
     IndexSet availableJets_, processedJets_;

@@ -4,6 +4,8 @@ import re
 import importlib
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
+import RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD as tauAtMiniTools
+
 
 options = VarParsing('analysis')
 options.register('sampleType', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
@@ -26,15 +28,19 @@ options.register('storeJetsWithoutTau', False, VarParsing.multiplicity.singleton
                  "Store jets that don't match to any pat::Tau.")
 options.register('requireGenMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Store only taus/jets that have GenLeptonMatch or GenQcdMatch.")
-
+options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                " If 'reclusterJets' set true a new collection of uncorrected ak4PFJets is built to seed taus (as at RECO), otherwise standard slimmedJets are used")
+options.register('rerunTauReco', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                "If true, tau reconstruction is re-run on MINIAOD with a larger signal cone and no DM finding filter")
 options.parseArguments()
 
-sampleConfig = importlib.import_module('TauML.Production.sampleConfig')
+sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
 isData = sampleConfig.IsData(options.sampleType)
 period = sampleConfig.GetPeriod(options.sampleType)
+period_cfg = sampleConfig.GetPeriodCfg(options.sampleType)
 
 processName = 'tupleProduction'
-process = cms.Process(processName)
+process = cms.Process(processName, period_cfg)
 process.options = cms.untracked.PSet()
 process.options.wantSummary = cms.untracked.bool(False)
 process.options.allowUnscheduled = cms.untracked.bool(True)
@@ -53,7 +59,7 @@ process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring())
 process.TFileService = cms.Service('TFileService', fileName = cms.string(options.tupleOutput) )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
-from AnalysisTools.Run.readFileList import *
+from TauMLTools.Production.readFileList import *
 if len(options.fileList) > 0:
     readFileList(process.source.fileNames, options.fileList, options.fileNamePrefix)
 elif len(options.inputFiles) > 0:
@@ -69,16 +75,26 @@ if len(options.lumiFile) > 0:
 if options.eventList != '':
     process.source.eventsToProcess = cms.untracked.VEventRange(re.split(',', options.eventList))
 
-import RecoTauTag.RecoTau.tools.runTauIdMVA as tauIdConfig
+tau_collection = 'slimmedTaus'
+if options.rerunTauReco:
+    tau_collection = 'selectedPatTaus'
+
+    tauAtMiniTools.addTauReReco(process)
+    tauAtMiniTools.adaptTauToMiniAODReReco(process, options.reclusterJets)
+
+    process.combinatoricRecoTaus.builders[0].signalConeSize = cms.string('max(min(0.2, 4.528/(pt()^0.8982)), 0.03)') ## change to quantile 0.95
+    process.selectedPatTaus.cut = cms.string('pt > 18.')   ## remove DMFinding filter (was pt > 18. && tauID(\'decayModeFindingNewDMs\')> 0.5)
+
+tauIdConfig = importlib.import_module('TauMLTools.Production.runTauIdMVA')
 updatedTauName = "slimmedTausNewID"
 tauIdEmbedder = tauIdConfig.TauIDEmbedder(
     process, cms, debug = False, updatedTauName = updatedTauName,
-    toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1", "deepTau2017v2p1", "againstEle2018",  ]
+    toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1"]
 )
-tauIdEmbedder.runTauID()
+tauIdEmbedder.runTauID(tau_collection = tau_collection)
 tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
 
-tauJetdR = 0.2
+tauJetdR = 0.3
 objectdR = 0.5
 
 process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
@@ -103,6 +119,7 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     taus            = tauSrc_InputTag,
     jets            = cms.InputTag('slimmedJets'),
     pfCandidates    = cms.InputTag('packedPFCandidates'),
+    tracks          = cms.InputTag('isolatedTracks'),
 )
 
 process.tupleProductionSequence = cms.Sequence(process.tauTupleProducer)

@@ -4,6 +4,10 @@ import sys
 from sets import Set
 import FWCore.ParameterSet.Config as cms
 
+from Configuration.Eras.Era_Run2_2016_cff import Run2_2016
+from Configuration.Eras.Era_Run2_2017_cff import Run2_2017
+from Configuration.Eras.Era_Run2_2018_cff import Run2_2018
+
 mcSampleTypes = Set([ 'MC_16', 'MC_17', 'MC_18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D' ])
 dataSampleTypes = Set([ 'Run2016' , 'Run2017', 'Run2018ABC', 'Run2018D' ])
 
@@ -19,6 +23,11 @@ periodDict = { 'MC_16' : 'Run2016',
                'Emb_18ABC' : 'Run2018',
                'Emb_18D' : 'Run2018'
              }
+
+periodCfgMap = {'Run2016': Run2_2016,
+                'Run2017': Run2_2017,
+                'Run2018': Run2_2018,
+            }
 
 globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
                  'Run2016' : '102X_dataRun2_v12',
@@ -52,3 +61,10 @@ def GetGlobalTag(sampleType):
         print "ERROR: unknown sample type = '{}'".format(sampleType)
         sys.exit(1)
     return globalTagMap[sampleType]
+
+def GetPeriodCfg(sampleType):
+    period = GetPeriod(sampleType)
+    if period not in periodCfgMap:
+        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        sys.exit(1)
+    return periodCfgMap[period]
