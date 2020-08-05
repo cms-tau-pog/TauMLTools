@@ -72,7 +72,7 @@ mv size_list_new.txt /data/tau-ml/tuples-v2/size_list.txt
 ```
 
 Each split root file represents a signle bin.
-The file naming convention is the following: *tauType*_pt_*minPtValue*_eta_*minEtaValue*.root, where *tauType* is { e, mu, tau, jet }, *minPtValue* and *minEtaValue* are lower pt and eta edges of the bin.
+The file naming convention is the following: *tauType*\_pt\_*minPtValue*\_eta\_*minEtaValue*.root, where *tauType* is { e, mu, tau, jet }, *minPtValue* and *minEtaValue* are lower pt and eta edges of the bin.
 Please, note that the implementation of the following steps requires that this naming convention is respected, and the code will not function properly otherwise.
 
 ### Shuffle and merge
