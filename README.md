@@ -131,7 +131,7 @@ The script to that performs conversion is defined in [TauMLTools/Analysis/script
                                                     --trees taus,inner_cells,outer_cells
    ```
    
-## Training
+## Training NN
 
 1. The code to read the input grids from the file is implemented in cython in order to provide acceptable I/O performance.
    Cython code should be compiled before starting the training. To do that, you should go to `TauMLTools/Training/python/` directory and run
@@ -147,9 +147,9 @@ The script to that performs conversion is defined in [TauMLTools/Analysis/script
    python3 TauMLTools/Analysis/python/deploy_model.py --input MODEL_FILE.hdf5
    ```
 
-## Testing
+## Testing NN performance
 
-1. Apply training for all training dataset using [TauMLTools/Training/python/apply_training.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/apply_training.py):
+1. Apply training for all testing dataset using [TauMLTools/Training/python/apply_training.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/apply_training.py):
    ```sh
    python3 TauMLTools/Training/python/apply_training.py --input "TUPLES_DIR" --output "PRED_DIR" \
            --model "MODEL_FILE.pb" --chunk-size 1000 --batch-size 100 --max-queue-size 20
