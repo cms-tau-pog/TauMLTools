@@ -1,0 +1,4 @@
+period=Run2018 isMC=True runDeepTau=True
+
+ttHToTauTau_M125 /ttHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
+GluGluHToTauTau_M125 /GluGluHToTauTau_M125_13TeV_powheg_pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v2/MINIAODSIM

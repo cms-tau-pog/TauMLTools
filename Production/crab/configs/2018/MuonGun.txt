@@ -1,0 +1,4 @@
+period=Run2018 isMC=True runDeepTau=True
+
+Muminus_Pt1000-gun_ext1 /Muminus_Pt1000-gun/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15_ext1-v1/MINIAODSIM
+Muplus_Pt1000-gun_ext1 /Muplus_Pt1000-gun/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15_ext1-v1/MINIAODSIM
