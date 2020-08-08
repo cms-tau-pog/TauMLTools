@@ -1,0 +1,6 @@
+period=Run2018 isMC=True runDeepTau=True
+
+Embedded_MuTau_Run2018A /EmbeddingRun2018A/MuTauFinalState-inputDoubleMu_102X_miniAOD-v1/USER
+Embedded_MuTau_Run2018B	/EmbeddingRun2018B/MuTauFinalState-inputDoubleMu_102X_miniAOD-v1/USER
+Embedded_MuTau_Run2018C	/EmbeddingRun2018C/MuTauFinalState-inputDoubleMu_102X_miniAOD-v1/USER
+Embedded_MuTau_Run2018D	/EmbeddingRun2018D/MuTauFinalState-inputDoubleMu_102X_miniAOD-v1/USER
