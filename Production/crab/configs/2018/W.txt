@@ -1,4 +1,4 @@
-period=Run2018 isMC=True runDeepTau=True
+sampleType=MC_18
 
 W2JetsToLNu                 /W2JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v2/MINIAODSIM
 W3JetsToLNu                 /W3JetsToLNu_TuneCP5_13TeV-madgraphMLM-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v2/MINIAODSIM

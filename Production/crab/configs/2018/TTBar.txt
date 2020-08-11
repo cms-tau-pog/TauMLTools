@@ -1,4 +1,4 @@
-period=Run2018 isMC=True runDeepTau=True
+sampleType=MC_18
 
 # ext1 <- ?
 TTJets_ext1 /TTJets_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15_ext1-v2/MINIAODSIM
