@@ -76,8 +76,8 @@ try:
         job_collection = JobCollection(job_file, job_names, args.lumiMask, args.jobNameSuffix)
         print job_file
         print job_collection
-    	print "Splitting: {} with {} units per job".format(args.splitting, args.unitsPerJob)
-	job_collection.submit(config, args.splitting, args.unitsPerJob ,args.dryrun)
+        print "Splitting: {} with {} units per job".format(args.splitting, args.unitsPerJob)
+        job_collection.submit(config, args.splitting, args.unitsPerJob ,args.dryrun)
 
 except RuntimeError as err:
     print >> sys.stderr, "ERROR:", str(err)

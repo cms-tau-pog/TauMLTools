@@ -18,7 +18,7 @@ def submit(config, dryrunBool):
 
 class Job:
     def __init__(self, line, jobNameSuffix = ''):
-	items = filter(lambda s: len(s) != 0, re.split(" |\t", line))
+        items = filter(lambda s: len(s) != 0, re.split(" |\t", line))
         n_items = len(items)
         if n_items < 2 or n_items > 3:
             raise RuntimeError("invalid job description = '{}'.".format(line))
@@ -91,8 +91,8 @@ class JobCollection:
         return result
 
     def submit(self, config, splitting, unitsPerJob, dryrunBool):
-    	config.JobType.pyCfgParams = self.pyCfgParams
-    	config.Data.unitsPerJob = unitsPerJob
+        config.JobType.pyCfgParams = self.pyCfgParams
+        config.Data.unitsPerJob = unitsPerJob
         config.Data.splitting = splitting
 
         for job in self.jobs:
