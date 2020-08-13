@@ -36,6 +36,8 @@ all_file_names = sorted(all_file_names)
 
 for full_file_name in all_file_names:
     rel_file_name = os.path.relpath(full_file_name, args.input)
+    if os.path.basename(rel_file_name) in [ "summary.root" ]:
+        continue
     if rel_file_name in prev_results:
         n_events = prev_results[rel_file_name]
     else:
