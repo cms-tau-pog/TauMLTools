@@ -22,8 +22,8 @@ import tensorflow as tf
 import numpy as np
 from tqdm import tqdm
 
-from common import *
-from DataLoader import DataLoader, read_hdf_lock
+from TauMLTools.Training.common import *
+from TauMLTools.Training.DataLoader import DataLoader, read_hdf_lock
 
 class Predictor:
     def __init__(self, graph, net_config):
