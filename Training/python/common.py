@@ -3,7 +3,7 @@ import pandas
 import numpy as np
 import tensorflow as tf
 
-trainMode = 'emb'
+trainMode = 'MC'
 
 if trainMode == 'emb':
     truth_branches = [ 'gen_tau' ]
@@ -11,16 +11,18 @@ else:
     truth_branches = [ 'gen_e', 'gen_mu', 'gen_tau', 'gen_jet' ]
 weight_branches = [ 'trainingWeight' ]
 navigation_branches = [ 'innerCells_begin', 'innerCells_end', 'outerCells_begin', 'outerCells_end' ]
-tau_id_branches = [ 'againstElectronMVA6', 'againstElectronMVA6raw', 'againstElectronMVA62018',
-                    'againstElectronMVA62018raw', 'againstMuon3', 'againstMuon3raw',
-                    'byCombinedIsolationDeltaBetaCorr3Hits', 'byCombinedIsolationDeltaBetaCorr3Hitsraw',
-                    'byIsolationMVArun2v1DBoldDMwLT2016', 'byIsolationMVArun2v1DBoldDMwLT2016raw',
-                    'byIsolationMVArun2v1DBnewDMwLT2016', 'byIsolationMVArun2v1DBnewDMwLT2016raw',
-                    'byIsolationMVArun2017v2DBoldDMwLT2017', 'byIsolationMVArun2017v2DBoldDMwLT2017raw',
-                    'byIsolationMVArun2017v2DBoldDMdR0p3wLT2017', 'byIsolationMVArun2017v2DBoldDMdR0p3wLT2017raw',
-                    'byIsolationMVArun2017v2DBnewDMwLT2017', 'byIsolationMVArun2017v2DBnewDMwLT2017raw',
-                    'byDeepTau2017v1VSe', 'byDeepTau2017v1VSeraw', 'byDeepTau2017v1VSmu', 'byDeepTau2017v1VSmuraw',
-                    'byDeepTau2017v1VSjet', 'byDeepTau2017v1VSjetraw', 'byDpfTau2016v0VSall', 'byDpfTau2016v0VSallraw' ]
+##tau_id_branches = [ 'againstElectronMVA6', 'againstElectronMVA6raw', 'againstElectronMVA62018',
+##                    'againstElectronMVA62018raw', 'againstMuon3', 'againstMuon3raw',
+##                    'byCombinedIsolationDeltaBetaCorr3Hits', 'byCombinedIsolationDeltaBetaCorr3Hitsraw',
+##                    'byIsolationMVArun2v1DBoldDMwLT2016', 'byIsolationMVArun2v1DBoldDMwLT2016raw',
+##                    'byIsolationMVArun2v1DBnewDMwLT2016', 'byIsolationMVArun2v1DBnewDMwLT2016raw',
+##                    'byIsolationMVArun2017v2DBoldDMwLT2017', 'byIsolationMVArun2017v2DBoldDMwLT2017raw',
+##                    'byIsolationMVArun2017v2DBoldDMdR0p3wLT2017', 'byIsolationMVArun2017v2DBoldDMdR0p3wLT2017raw',
+##                    'byIsolationMVArun2017v2DBnewDMwLT2017', 'byIsolationMVArun2017v2DBnewDMwLT2017raw',
+##                    'byDeepTau2017v1VSe', 'byDeepTau2017v1VSeraw', 'byDeepTau2017v1VSmu', 'byDeepTau2017v1VSmuraw',
+##                    'byDeepTau2017v1VSjet', 'byDeepTau2017v1VSjetraw', 'byDpfTau2016v0VSall', 'byDpfTau2016v0VSallraw' ]
+tau_id_branches = [ 'byCombinedIsolationDeltaBetaCorr3Hits', 'byCombinedIsolationDeltaBetaCorr3Hitsraw' ]
+
 input_event_branches = [ 'rho' ]
 # input_tau_branches = [ 'tau_pt', 'tau_eta', 'tau_phi', 'tau_mass', 'tau_E_over_pt', 'tau_charge',
 #                        'tau_n_charged_prongs', 'tau_n_neutral_prongs', 'chargedIsoPtSum',
@@ -140,7 +142,7 @@ class NetConf:
         self.comp_names = component_names
         self.comp_branches = component_branches
 
-netConf_preTau = NetConf("preTau", False, input_tau_branches, [], [], [])
+netConf_preTau = NetConf("preTau", False, input_event_branches + input_tau_branches, [], [], [])
 netConf_preInner = NetConf("preInner", False, [], ['inner'], ['egamma', 'muon', 'hadrons'], [
     input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches,
     input_cell_pfCand_muon_branches + input_cell_muon_branches,
