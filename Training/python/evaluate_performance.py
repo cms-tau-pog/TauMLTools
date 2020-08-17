@@ -27,17 +27,16 @@ parser.add_argument('--public-plots', action="store_true", help="Apply public pl
 args = parser.parse_args()
 
 import os
-import importlib.util
+import sys
 import pandas
 import numpy as np
 import json
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import eval_tools
 import common
-matplotlib.use('Agg')
-
 
 def AddPredictionsToDataFrame(df, file_name, label = ''):
     df_pred = pandas.read_hdf(file_name)
@@ -81,9 +80,14 @@ def CreateDF(file_name, tau_types, setup_provider):
         df = df[sel]
     return df
 
-spec = importlib.util.spec_from_file_location('setup_provider', args.setup)
-setup_provider = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(setup_provider)
+if sys.version_info.major > 2:
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('setup_provider', args.setup)
+    setup_provider = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(setup_provider)
+else:
+    import imp
+    setup_provider = imp.load_source('setup_provider', args.setup)
 
 setup_args = {}
 setup_args_list = [ s.strip() for s in args.setup_args.split(',') if len(s.strip()) > 0 ]
