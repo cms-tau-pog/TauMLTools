@@ -27,10 +27,18 @@ from TauMLTools.Training.DataLoader import DataLoader, read_hdf_lock
 
 class Predictor:
     def Predict(self, X):
-        if len(X) != 1:
+        if len(X[0][0]) != 2:
             raise RuntimeError("Inconsistent size of the inputs.")
-
-        pred = np.array([ 0.5*(1.0 + math.tanh(-3.*chargedIsoPtSum)) for chargedIsoPtSum in X[0] ])
+       
+        pred = []
+        numRows = len(X[0])
+        for idxRow in range(numRows):
+            tau_pt = X[0][idxRow][0]
+            chargedIsoPtSum = X[0][idxRow][1]
+            score = 0.5*(1.0 + math.tanh(-0.01*chargedIsoPtSum/max(1.e-9, tau_pt)))
+            ##print("row #%i: pT = %1.3f, I_ch = %1.3f --> score = %1.3f" % (idxRow, tau_pt, chargedIsoPtSum, score))
+            pred.append(score)
+        pred = np.array(pred)
         if np.any(np.isnan(pred)):
             raise RuntimeError("NaN in predictions. Total count = {} out of {}".format(
                                np.count_nonzero(np.isnan(pred)), pred.shape))
@@ -58,7 +66,7 @@ if len(file_list) == 0:
 #    file_list = file_list[0:args.max_n_files]
 
 predictor = Predictor()
-net_conf = NetConf("dummyTau", False, [ "chargedIsoPtSum" ], [], [], [])
+net_conf = NetConf("dummyTau", False, [ "tau_pt", "chargedIsoPtSum" ], [], [], [])
 
 file_index = 0
 for file_name in file_list:
