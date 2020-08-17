@@ -1,9 +1,6 @@
 Automatic
 globalTag=110X_mcRun4_realistic_v3 sampleType=MC_Phase2_110X
 
-Muminus_Pt10-gun_NoPU    1000 /Muminus_Pt10-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
-Muminus_Pt10-gun_PU140   1000 /Muminus_Pt10-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
-Muminus_Pt10-gun_PU200   1000 /Muminus_Pt10-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
 Muminus_Pt100-gun_NoPU   1000 /Muminus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
 Muminus_Pt100-gun_PU140  1000 /Muminus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
 Muminus_Pt100-gun_PU200  1000 /Muminus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
@@ -16,9 +13,6 @@ Muminus_Pt50-gun_PU200   1000 /Muminus_Pt50-gun/Phase2HLTTDRWinter20RECOMiniAOD-
 Muminus_Pt500-gun_NoPU   1000 /Muminus_Pt500-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
 Muminus_Pt500-gun_PU140  1000 /Muminus_Pt500-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
 Muminus_Pt500-gun_PU200  1000 /Muminus_Pt500-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
-Muplus_Pt10-gun_NoPU     1000 /Muplus_Pt10-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
-Muplus_Pt10-gun_PU140    1000 /Muplus_Pt10-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v1/MINIAODSIM
-Muplus_Pt10-gun_PU200    1000 /Muplus_Pt10-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
 Muplus_Pt100-gun_NoPU    1000 /Muplus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
 Muplus_Pt100-gun_PU140   1000 /Muplus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
 Muplus_Pt100-gun_PU200   1000 /Muplus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
