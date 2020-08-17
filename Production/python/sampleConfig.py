@@ -3,11 +3,16 @@
 import sys
 from sets import Set
 import FWCore.ParameterSet.Config as cms
+import os
 
 from Configuration.Eras.Era_Run2_2016_cff import Run2_2016
 from Configuration.Eras.Era_Run2_2017_cff import Run2_2017
 from Configuration.Eras.Era_Run2_2018_cff import Run2_2018
-from Configuration.Eras.Era_Phase2C9_cff import Phase2C9
+
+# include Phase2 specific configuration only after 11_1_X
+cmssw_release_numbers = os.environ.get('CMSSW_VERSION').replace('CMSSW_','').split("_")
+if int(cmssw_release_numbers[0]) >= 11 and int(cmssw_release_numbers[1]) >= 1:
+    from Configuration.Eras.Era_Phase2C9_cff import Phase2C9
 
 mcSampleTypes = Set([ 'MC_16', 'MC_17', 'MC_18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D', 'MC_Phase2_111X', 'MC_Phase2_110X'])
 dataSampleTypes = Set([ 'Run2016' , 'Run2017', 'Run2018ABC', 'Run2018D' ])
@@ -30,8 +35,11 @@ periodDict = { 'MC_16' : 'Run2016',
 periodCfgMap = {'Run2016': Run2_2016,
                 'Run2017': Run2_2017,
                 'Run2018': Run2_2018,
-                'Phase2': Phase2C9,
             }
+
+# include Phase2 specific configuration only after 11_1_X
+if int(cmssw_release_numbers[0]) >= 11 and int(cmssw_release_numbers[1]) >= 1:
+    periodCfgMap['Phase2'] = Phase2C9
 
 globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
                  'Run2016' : '102X_dataRun2_v12',
