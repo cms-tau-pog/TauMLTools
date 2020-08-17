@@ -85,13 +85,21 @@ if options.rerunTauReco:
     process.combinatoricRecoTaus.builders[0].signalConeSize = cms.string('max(min(0.2, 4.528/(pt()^0.8982)), 0.03)') ## change to quantile 0.95
     process.selectedPatTaus.cut = cms.string('pt > 18.')   ## remove DMFinding filter (was pt > 18. && tauID(\'decayModeFindingNewDMs\')> 0.5)
 
-tauIdConfig = importlib.import_module('TauMLTools.Production.runTauIdMVA')
+tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
 updatedTauName = "slimmedTausNewID"
 tauIdEmbedder = tauIdConfig.TauIDEmbedder(
-    process, cms, debug = False, updatedTauName = updatedTauName,
     toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1"]
+    process, cms, updatedTauName = updatedTauName,
 )
-tauIdEmbedder.runTauID(tau_collection = tau_collection)
+tauIdEmbedder.runTauID()
+
+for objname in dir(process):
+    obj = getattr(process, objname)
+    if hasattr(obj, "PATTauProducer"):
+        setattr(obj,"PATTauProducer", cms.InputTag(tau_collection))
+    elif hasattr(obj, "taus"):
+        setattr(obj,"taus", cms.InputTag(tau_collection))
+
 tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
 
 tauJetdR = 0.3
