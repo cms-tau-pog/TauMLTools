@@ -88,8 +88,8 @@ if options.rerunTauReco:
 tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
 updatedTauName = "slimmedTausNewID"
 tauIdEmbedder = tauIdConfig.TauIDEmbedder(
-    toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1"]
     process, cms, updatedTauName = updatedTauName,
+    toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1", "newDMPhase2v1"]
 )
 tauIdEmbedder.runTauID()
 
