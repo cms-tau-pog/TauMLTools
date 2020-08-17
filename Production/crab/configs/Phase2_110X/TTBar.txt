@@ -1,0 +1,12 @@
+Automatic
+globalTag=110X_mcRun4_realistic_v3 sampleType=MC_Phase2_110X
+
+TTTo2L2Nu_NoPU       1000 /TTTo2L2Nu_TuneCP5_14TeV-powheg-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+TTTo2L2Nu_PU140      1000 /TTTo2L2Nu_TuneCP5_14TeV-powheg-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+TTTo2L2Nu_PU200      1000 /TTTo2L2Nu_TuneCP5_14TeV-powheg-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+TTToSemiLepton_NoPU  1000 /TTToSemiLepton_TuneCP5_14TeV-powheg-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+TTToSemiLepton_PU140 1000 /TTToSemiLepton_TuneCP5_14TeV-powheg-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+TTToSemiLepton_PU200 1000 /TTToSemiLepton_TuneCP5_14TeV-powheg-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+TT_NoPU              1000 /TT_TuneCP5_14TeV-powheg-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+TT_PU140             1000 /TT_TuneCP5_14TeV-powheg-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+TT_PU200             1000 /TT_TuneCP5_14TeV-powheg-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
