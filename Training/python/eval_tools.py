@@ -2,8 +2,12 @@ import numpy as np
 import pandas
 import uproot
 from sklearn import metrics
-from statsmodels.stats.proportion import proportion_confint
 from scipy import interpolate
+
+import sys
+
+if sys.version_info.major > 2:
+    from statsmodels.stats.proportion import proportion_confint
 
 class DiscriminatorWP:
     VVVLoose = 0
@@ -183,7 +187,11 @@ class Discriminator:
                     eff = float(n_passed) / n_total
                     wp_roc.pr[kind, n_wp - n - 1] = eff
                     if not self.raw:
-                        ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
+                        if sys.version_info.major > 2:
+                            ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
+                        else:
+                            err = math.sqrt(eff * (1 - eff) / n_total)
+                            ci_low, ci_upp = eff - err, eff + err
                         wp_roc.pr_err[kind, 1, n_wp - n - 1] = ci_upp - eff
                         wp_roc.pr_err[kind, 0, n_wp - n - 1] = eff - ci_low
         if not self.raw:
