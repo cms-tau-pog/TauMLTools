@@ -56,7 +56,7 @@ process.load('FWCore.MessageLogger.MessageLogger_cfi')
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
 process.load('Configuration.StandardSequences.MagneticField_cff')
-# include Phase2 specific configuration only after 11_1_X
+# include Phase2 specific configuration only after 11_0_X
 if isPhase2:
     process.load('Configuration.Geometry.GeometryExtended2026D49Reco_cff')
 else:
@@ -94,7 +94,7 @@ if options.rerunTauReco:
     process.combinatoricRecoTaus.builders[0].signalConeSize = cms.string('max(min(0.2, 4.528/(pt()^0.8982)), 0.03)') ## change to quantile 0.95
     process.selectedPatTaus.cut = cms.string('pt > 18.')   ## remove DMFinding filter (was pt > 18. && tauID(\'decayModeFindingNewDMs\')> 0.5)
 
-# include Phase2 specific configuration only after 11_1_X
+# include Phase2 specific configuration only after 11_0_X
 if isPhase2:
     tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
     updatedTauName = "slimmedTausNewID"
