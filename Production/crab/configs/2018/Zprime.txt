@@ -10,20 +10,8 @@ ZprimeToTauTau_M-4000  /ZprimeToTauTau_M-4000_TuneCP5_13TeV-pythia8-tauola/RunII
 ZprimeToEE_M-1000      /ZprimeToEE_M-1000_TuneCP5_13TeV-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
 ZprimeToEE_M-1500      /ZprimeToEE_M-1500_TuneCP5_13TeV-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
 ZprimeToEE_M-2000      /ZprimeToEE_M-2000_TuneCP5_13TeV-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
+ZprimeToEE_M-2500      /ZprimeToEE_M-2500_TuneCP5_13TeV-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
 ZprimeToEE_M-3000      /ZprimeToEE_M-3000_TuneCP5_13TeV-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
 ZprimeToEE_M-3500      /ZprimeToEE_M-3500_TuneCP5_13TeV-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
 ZprimeToEE_M-4000      /ZprimeToEE_M-4000_TuneCP5_13TeV-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
 ZprimeToMuMu_M-5000_ext1            /ZprimeToMuMu_M-5000_TuneCP5_13TeV-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15_ext1-v1/MINIAODSIM
-# ZprimeToWWToWlepWhad sets are not found
-# ZprimeToWWToWlepWhad_narrow_M-600
-# ZprimeToWWToWlepWhad_narrow_M-800
-# ZprimeToWWToWlepWhad_narrow_M-1200
-# ZprimeToWWToWlepWhad_narrow_M-1400
-# ZprimeToWWToWlepWhad_narrow_M-1600
-# ZprimeToWWToWlepWhad_narrow_M-1800
-# ZprimeToWWToWlepWhad_narrow_M-2000
-# ZprimeToWWToWlepWhad_narrow_M-2500
-# ZprimeToWWToWlepWhad_narrow_M-3000
-# ZprimeToWWToWlepWhad_narrow_M-3500
-# ZprimeToWWToWlepWhad_narrow_M-4000
-# ZprimeToWWToWlepWhad_narrow_M-4500

@@ -1,8 +1,0 @@
-sampleType=MC_18
-
-GluGluHToTauTau_M125	/GluGluHToTauTau_M125_13TeV_powheg_pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v2/MINIAODSIM
-
-ZprimeToEE_M-2500      /ZprimeToEE_M-2500_TuneCP5_13TeV-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
-
-# Should it be the same dataset as for training? it seems strange but I follow 2017 example
-QCD_Pt-15to7000_TuneCUETP8M1_Flat  /QCD_Pt-15to7000_TuneCUETP8M1_Flat_13TeV_pythia8/RunIIAutumn18MiniAOD-FlatPU0to70_102X_upgrade2018_realistic_v15_ext4-v1/MINIAODSIM
