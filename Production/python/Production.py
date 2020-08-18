@@ -9,6 +9,7 @@ import os
 
 # include Phase2 specific configuration only after 11_1_X
 cmssw_release_numbers = os.environ.get('CMSSW_VERSION').replace('CMSSW_','').split("_")
+isPhase2 = int(cmssw_release_numbers[0]) >= 11 and int(cmssw_release_numbers[1]) >= 1
 
 
 options = VarParsing('analysis')
@@ -56,7 +57,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
 process.load('Configuration.StandardSequences.MagneticField_cff')
 # include Phase2 specific configuration only after 11_1_X
-if int(cmssw_release_numbers[0]) >= 11 and int(cmssw_release_numbers[1]) >= 1:
+if isPhase2:
     process.load('Configuration.Geometry.GeometryExtended2026D49Reco_cff')
 else:
     process.load('Configuration.Geometry.GeometryRecoDB_cff')
@@ -94,7 +95,7 @@ if options.rerunTauReco:
     process.selectedPatTaus.cut = cms.string('pt > 18.')   ## remove DMFinding filter (was pt > 18. && tauID(\'decayModeFindingNewDMs\')> 0.5)
 
 # include Phase2 specific configuration only after 11_1_X
-if int(cmssw_release_numbers[0]) >= 11 and int(cmssw_release_numbers[1]) >= 1:
+if isPhase2:
     tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
     updatedTauName = "slimmedTausNewID"
     tauIdEmbedder = tauIdConfig.TauIDEmbedder(
