@@ -7,9 +7,9 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 import RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD as tauAtMiniTools
 import os
 
-# include Phase2 specific configuration only after 11_1_X
+# include Phase2 specific configuration only after 11_0_X
 cmssw_release_numbers = os.environ.get('CMSSW_VERSION').replace('CMSSW_','').split("_")
-isPhase2 = int(cmssw_release_numbers[0]) >= 11 and int(cmssw_release_numbers[1]) >= 1
+isPhase2 = int(cmssw_release_numbers[0]) >= 11
 
 
 options = VarParsing('analysis')
