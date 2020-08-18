@@ -117,6 +117,14 @@ tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
 tauJetdR = 0.3
 objectdR = 0.5
 
+if isPhase2:
+    process.slimmedElectronsMerged = cms.EDProducer("SlimmedElectronMerger",
+    src = cms.VInputTag("slimmedElectrons","slimmedElectronsFromMultiCl")
+    )
+    electronSrc_InputTag = cms.InputTag('slimmedElectronsMerged')
+else:
+    electronSrc_InputTag = cms.InputTag('slimmedElectrons')
+
 process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     isMC                            = cms.bool(not isData),
     minJetPt                        = cms.double(10.),
@@ -134,7 +142,7 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     puInfo          = cms.InputTag('slimmedAddPileupInfo'),
     vertices        = cms.InputTag('offlineSlimmedPrimaryVertices'),
     rho             = cms.InputTag('fixedGridRhoAll'),
-    electrons       = cms.InputTag('slimmedElectrons'),
+    electrons       = electronSrc_InputTag,
     muons           = cms.InputTag('slimmedMuons'),
     taus            = tauSrc_InputTag,
     jets            = cms.InputTag('slimmedJets'),
@@ -149,6 +157,9 @@ process.p = cms.Path(
     getattr(process, updatedTauName) *
     process.tupleProductionSequence
 )
+
+if isPhase2:
+    process.p.insert(0,process.slimmedElectronsMerged)
 
 if options.dumpPython:
     print process.dumpPython()
