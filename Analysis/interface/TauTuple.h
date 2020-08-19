@@ -44,7 +44,7 @@
     VAR(Float_t, trainingWeight) /* training weight */ \
     VAR(Int_t, sampleType) /* type of the sample (MC, Embedded or Data) */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
-    VAR3(Float_t, pv_x, pv_y, pv_z) /* position of the primary vertex (PV) */ \
+    VAR4(Float_t, pv_x, pv_y, pv_z, pv_t) /* position and time of the primary vertex (PV) */ \
     VAR(Float_t, pv_chi2) /* chi^2 of the primary vertex (PV) */ \
     VAR(Float_t, pv_ndof) /* number of degrees of freedom of the primary vertex (PV) */ \
     /* Jet variables */ \
