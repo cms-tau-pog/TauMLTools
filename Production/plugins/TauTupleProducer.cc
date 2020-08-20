@@ -498,20 +498,14 @@ private:
             tauTuple().ele_mvaInput_hadEnergy.push_back(ele->mvaInput().hadEnergy);
             tauTuple().ele_mvaInput_deltaEta.push_back(ele->mvaInput().deltaEta);
 
-            if(!ele->isEB())
-            {
-                tauTuple().ele_hgcal_sigmauu.push_back(ele->hasUserFloat("hgcElectronID:sigmaUU") ? ele->userFloat("hgcElectronID:sigmaUU") : default_value);
-                tauTuple().ele_hgcal_sigmavv.push_back(ele->hasUserFloat("hgcElectronID:sigmaVV") ? ele->userFloat("hgcElectronID:sigmaVV") : default_value);
-                tauTuple().ele_hgcal_sigmaee.push_back(ele->hasUserFloat("hgcElectronID:sigmaEE") ? ele->userFloat("hgcElectronID:sigmaEE") : default_value);
-                tauTuple().ele_hgcal_sigmapp.push_back(ele->hasUserFloat("hgcElectronID:sigmaPP") ? ele->userFloat("hgcElectronID:sigmaPP") : default_value);
-            }
-            else
-            {
-                tauTuple().ele_hgcal_sigmauu.push_back(default_value);
-                tauTuple().ele_hgcal_sigmavv.push_back(default_value);
-                tauTuple().ele_hgcal_sigmaee.push_back(default_value);
-                tauTuple().ele_hgcal_sigmapp.push_back(default_value);
-            }
+            // Only phase2 electrons with with !ele->isEB() obtain a value != default_value via hasUserFloat() decision
+            tauTuple().ele_hgcal_sigmaUU.push_back(ele->hasUserFloat("hgcElectronID:sigmaUU") ? ele->userFloat("hgcElectronID:sigmaUU") : default_value);
+            tauTuple().ele_hgcal_sigmaVV.push_back(ele->hasUserFloat("hgcElectronID:sigmaVV") ? ele->userFloat("hgcElectronID:sigmaVV") : default_value);
+            tauTuple().ele_hgcal_sigmaEE.push_back(ele->hasUserFloat("hgcElectronID:sigmaEE") ? ele->userFloat("hgcElectronID:sigmaEE") : default_value);
+            tauTuple().ele_hgcal_sigmaPP.push_back(ele->hasUserFloat("hgcElectronID:sigmaPP") ? ele->userFloat("hgcElectronID:sigmaPP") : default_value);
+            tauTuple().ele_hgcal_nLayers.push_back(ele->hasUserFloat("hgcElectronID:nLayers") ? ele->userFloat("hgcElectronID:nLayers") : default_value);
+            tauTuple().ele_hgcal_firstLayer.push_back(ele->hasUserFloat("hgcElectronID:firstLayer") ? ele->userFloat("hgcElectronID:firstLayer") : default_value);
+            tauTuple().ele_hgcal_lastLayer.push_back(ele->hasUserFloat("hgcElectronID:lastLayer") ? ele->userFloat("hgcElectronID:lastLayer") : default_value);
 
             const auto& gsfTrack = ele->gsfTrack();
             tauTuple().ele_gsfTrack_normalizedChi2.push_back(
