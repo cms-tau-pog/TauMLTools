@@ -6,12 +6,38 @@ Tools to perform machine learning studies for tau lepton reconstruction and iden
 
 ## How to install
 
+### Setup for pre-processing
+Root-tuples production steps (both big-tuple and training tuple) require CMSSW environment
 ```sh
 cmsrel CMSSW_10_6_13
 cd CMSSW_10_6_13/src
 cmsenv
 git clone -o cms-tau-pog git@github.com:cms-tau-pog/TauMLTools.git
 scram b -j8
+```
+
+### Setup for training and testing
+The following steps (training, testing, etc.) should be run using LCG or conda-based environment setup.
+
+#### LCG environment
+On sites where LCG software distribution is available (e.g. lxplus) it is enough to source `setup.sh`:
+```sh
+source /cvmfs/sft.cern.ch/lcg/views/LCG_97apython3/x86_64-centos7-clang10-opt/setup.sh
+```
+Currently supported LCG distribution version is LCG_97apython3.
+
+#### conda environment
+In cases when LCG software is not available, we recommend to setup a dedicated conda environment:
+```sh
+conda create --name tau-ml python=3.7
+conda install tensorflow==1.14 pandas scikit-learn matplotlib statsmodels scipy pytables root==6.20.6 uproot lz4 xxhash cython
+```
+
+To activate it use `conda activate tau-ml`.
+
+N.B. All of the packages are available through the conda-forge channel, which should be added to conda configuration before creating the environment:
+```sh
+conda config --add channels conda-forge
 ```
 
 ## How to produce inputs
@@ -62,12 +88,12 @@ Once all datasets are split, the raw files are no longer needed and can be remov
 
 In the root directory (e.g. `tuples-v2`) txt file with number of tau candidates in each bin should be created:
 ```sh
-python3 -u TauMLTools/Analysis/python/CreateTupleSizeList.py --input /data/tau-ml/tuples-v2/ > /data/tau-ml/tuples-v2/size_list.txt
+python -u TauMLTools/Analysis/python/CreateTupleSizeList.py --input /data/tau-ml/tuples-v2/ > /data/tau-ml/tuples-v2/size_list.txt
 ```
 
 In case you need to update `size_list.txt` (for example you added new dataset), you can specify `--prev-output` to retrieve bin statistics from the previous run of `CreateTupleSizeList.py`:
 ```sh
-python3 -u TauMLTools/Analysis/python/CreateTupleSizeList.py --input /data/tau-ml/tuples-v2/ --prev-output /data/tau-ml/tuples-v2/size_list.txt > size_list_new.txt
+python -u TauMLTools/Analysis/python/CreateTupleSizeList.py --input /data/tau-ml/tuples-v2/ --prev-output /data/tau-ml/tuples-v2/size_list.txt > size_list_new.txt
 mv size_list_new.txt /data/tau-ml/tuples-v2/size_list.txt
 ```
 
@@ -96,7 +122,7 @@ Due to considerable number of bins (and therefore input files) merging is split 
                 --max-bin-occupancy 500000 --n-threads 12  --disabled-branches "trainingWeight"
    ```
    Once finished, use `CreateTupleSizeList.py` to create `size_list.txt` in `output/training_preparation`.
-1. Merge all 4 tau types together. 
+1. Merge all 4 tau types together.
    ```sh
    ShuffleMerge --cfg TauMLTools/Analysis/config/training_inputs_step2.cfg --input output/training_preparation \
                 --output output/training_preparation/training_tauTuple.root --pt-bins "20, 1000" --eta-bins "0., 2.3" --mode MergeAll \
@@ -114,7 +140,7 @@ ShuffleMerge --cfg TauML/Analysis/config/testing_inputs.cfg --input tuples-v2 --
              --n-threads 12 --disabled-branches "trainingWeight"
 ```
 
-### Production of flat inputs 
+### Production of flat inputs
 
 In this stage, `TauTuple`s are transformed into flat [TrainingTuples](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/interface/TrainingTuple.h) that are suitable as an input for the training.
 
@@ -130,36 +156,48 @@ The script to that performs conversion is defined in [TauMLTools/Analysis/script
                                                     --output output/tuples-v2-training-v2-t1-root/training/part_0.h5 \
                                                     --trees taus,inner_cells,outer_cells
    ```
-   
+
 ## Training NN
 
 1. The code to read the input grids from the file is implemented in cython in order to provide acceptable I/O performance.
    Cython code should be compiled before starting the training. To do that, you should go to `TauMLTools/Training/python/` directory and run
    ```sh
-   python3 _fill_grid_setup.py build
+   python _fill_grid_setup.py build
    ```
 1. DeepTau v2 training is defined in [TauMLTools/Training/python/2017v2/Training_p6.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/2017v2/Training_p6.py). You should modify input path, number of epoch and other parameters according to your needs in [L286](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/2017v2/Training_p6.py#L286) and then run the training in `TauMLTools/Training/python/2017v2` directory:
    ```sh
-   python3 Training_p6.py
+   python Training_p6.py
    ```
 1. Once training is finished, the model can be converted to the constant graph suitable for inference:
    ```sh
-   python3 TauMLTools/Analysis/python/deploy_model.py --input MODEL_FILE.hdf5
+   python TauMLTools/Analysis/python/deploy_model.py --input MODEL_FILE.hdf5
    ```
 
 ## Testing NN performance
 
 1. Apply training for all testing dataset using [TauMLTools/Training/python/apply_training.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/apply_training.py):
    ```sh
-   python3 TauMLTools/Training/python/apply_training.py --input "TUPLES_DIR" --output "PRED_DIR" \
+   python TauMLTools/Training/python/apply_training.py --input "TUPLES_DIR" --output "PRED_DIR" \
            --model "MODEL_FILE.pb" --chunk-size 1000 --batch-size 100 --max-queue-size 20
    ```
 1. Run [TauMLTools/Training/python/evaluate_performance.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/evaluate_performance.py) to produce ROC curves for each testing dataset and tau type:
    ```sh
-   python3 TauMLTools/Training/python/evaluate_performance.py --input-taus "INPUT_TRUE_TAUS.h5" \
+   python TauMLTools/Training/python/evaluate_performance.py --input-taus "INPUT_TRUE_TAUS.h5" \
            --input-other "INPUT_FAKE_TAUS.h5" --other-type FAKE_TAUS_TYPE \
            --deep-results "PRED_DIR" --deep-results-label "RESULTS_LABEL" \
            --prev-deep-results "PREV_PRED_DIR" --prev-deep-results-label "PREV_LABEL" \
            --output "OUTPUT.pdf"
    ```
    Or modify [TauMLTools/Training/scripts/eval_perf.sh](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/scripts/eval_perf.sh) according to your needs to produce plots for multiple datasets.
+
+#### Examples
+
+Evaluate performance for Run 2:
+```sh
+python TauMLTools/Training/python/evaluate_performance.py --input-taus /eos/cms/store/group/phys_tau/TauML/DeepTau_v2/tuples-v2-training-v2-t1/testing/tau_HTT.h5 --input-other /eos/cms/store/group/phys_tau/TauML/DeepTau_v2/tuples-v2-training-v2-t1/testing/jet_TT.h5 --other-type jet --deep-results /eos/cms/store/group/phys_tau/TauML/DeepTau_v2/predictions/2017v2p6/step1_e6_noPCA --output output/tau_vs_jet_TT.pdf --draw-wp --setup TauMLTools/Training/python/plot_setups/run2.py
+```
+
+Evaluate performance for Phase 2 HLT:
+```sh
+python TauMLTools/Training/python/evaluate_performance.py --input-taus DeepTauTraining/training-hdf5/even-events/even_pt_20_eta_0.000.h5 --other-type jet --deep-results DeepTauTraining/training-hdf5/even-events-classified-by-DeepTau_odd --output output/tau_vs_jet_Phase2.pdf --setup TauMLTools/Training/python/plot_setups/phase2_hlt.py
+```
