@@ -498,7 +498,7 @@ private:
             tauTuple().ele_mvaInput_hadEnergy.push_back(ele->mvaInput().hadEnergy);
             tauTuple().ele_mvaInput_deltaEta.push_back(ele->mvaInput().deltaEta);
 
-            // Only phase2 electrons with with !ele->isEB() obtain a value != default_{int_,}value via hasUserFloat() decision
+            // Only phase2 electrons with !ele->isEB() obtain a value != default_{int_,}value via hasUserFloat() decision
             tauTuple().ele_hgcal_sigmaUU.push_back(ele->hasUserFloat("hgcElectronID:sigmaUU") ? ele->userFloat("hgcElectronID:sigmaUU") : default_value);
             tauTuple().ele_hgcal_sigmaVV.push_back(ele->hasUserFloat("hgcElectronID:sigmaVV") ? ele->userFloat("hgcElectronID:sigmaVV") : default_value);
             tauTuple().ele_hgcal_sigmaEE.push_back(ele->hasUserFloat("hgcElectronID:sigmaEE") ? ele->userFloat("hgcElectronID:sigmaEE") : default_value);
