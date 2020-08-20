@@ -24,6 +24,7 @@
 #define ELE_VAR2(type, name1, name2) ELE_VAR(type, name1) ELE_VAR(type, name2)
 #define ELE_VAR3(type, name1, name2, name3) ELE_VAR2(type, name1, name2) ELE_VAR(type, name3)
 #define ELE_VAR4(type, name1, name2, name3, name4) ELE_VAR3(type, name1, name2, name3) ELE_VAR(type, name4)
+#define ELE_VAR5(type, name1, name2, name3, name4, name5) ELE_VAR4(type, name1, name2, name3, name4) ELE_VAR(type, name5)
 
 #define MUON_VAR2(type, name1, name2) MUON_VAR(type, name1) MUON_VAR(type, name2)
 #define MUON_VAR3(type, name1, name2, name3) MUON_VAR2(type, name1, name2) MUON_VAR(type, name3)
@@ -229,8 +230,19 @@
                                                         of the closest CTF track */ \
     ELE_VAR(Int_t, closestCtfTrack_numberOfValidHits) /* number of valid hits on the closest CTF track */ \
     ELE_VAR4(Float_t, hgcal_sigmaUU, hgcal_sigmaVV, hgcal_sigmaEE, hgcal_sigmaPP) /* HGCal cluster spread */ \
-    ELE_VAR(Float_t, hgcal_nLayers) /* number of layers of HGCal cluster */ \
-    ELE_VAR2(Float_t, hgcal_firstLayer, hgcal_lastLayer) /* first/last layer of HGCal cluster */ \
+    ELE_VAR(Int_t, hgcal_nLayers) /* number of layers of HGCal cluster */ \
+    ELE_VAR2(Int_t, hgcal_firstLayer, hgcal_lastLayer) /* first/last layer of HGCal cluster */ \
+    ELE_VAR2(Float_t, hgcal_layerEfrac10, hgcal_layerEfrac90) /* layers with energy fraction of HGCal cluster */ \
+    ELE_VAR(Float_t, hgcal_e4oEtot) /* e4 energy over total energy of the HGCal cluster (?) */ \
+    ELE_VAR4(Float_t, hgcal_ecEnergy, hgcal_ecEnergyEE, hgcal_ecEnergyFH, hgcal_ecEnergyBH) /* energy in a cylinder around electron in HGCal */ \
+    ELE_VAR(Float_t, hgcal_ecEt) /* transverse energy in a cylinder around electron shower axis in HGCal */ \
+    ELE_VAR2(Float_t, hgcal_ecOrigEnergy, hgcal_ecOrigEt) /* original energy (including transverse) in a cylinder around electron shower axis in HGCal */ \
+    ELE_VAR5(Float_t, hgcal_caloIsoRing0, hgcal_caloIsoRing1, hgcal_caloIsoRing2, hgcal_caloIsoRing3, hgcal_caloIsoRing4) /* Isolation sum rings around electron in HGCal */ \
+    ELE_VAR4(Float_t, hgcal_depthCompatibility, hgcal_expectedDepth, hgcal_expectedSigma, hgcal_measuredDepth) /* shower depth variables for electron in HGCal */ \
+    ELE_VAR3(Float_t, hgcal_pcaAxisX, hgcal_pcaAxisY, hgcal_pcaAxisZ) /* pca on axis X,Y,Z (?) */ \
+    ELE_VAR3(Float_t, hgcal_pcaPositionX, hgcal_pcaPositionY, hgcal_pcaPositionZ) /* pca position in X,Y,Z (?) */ \
+    ELE_VAR3(Float_t, hgcal_pcaEig1, hgcal_pcaEig2, hgcal_pcaEig3) /* pca eigenvalues (?) */ \
+    ELE_VAR3(Float_t, hgcal_pcaSig1, hgcal_pcaSig2, hgcal_pcaSig3) /* pca significances (?) */ \
     /* PAT muons */ \
     MUON_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the muon */ \
     MUON_VAR(Float_t, dxy) /* signed transverse impact parameter of the inner track wrt to the primary vertex */ \
