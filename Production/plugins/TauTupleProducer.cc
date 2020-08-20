@@ -506,8 +506,8 @@ private:
             tauTuple().ele_hgcal_nLayers.push_back(ele->hasUserFloat("hgcElectronID:nLayers") ? int(ele->userFloat("hgcElectronID:nLayers")) : default_int_value);
             tauTuple().ele_hgcal_firstLayer.push_back(ele->hasUserFloat("hgcElectronID:firstLayer") ? int(ele->userFloat("hgcElectronID:firstLayer")) : default_int_value);
             tauTuple().ele_hgcal_lastLayer.push_back(ele->hasUserFloat("hgcElectronID:lastLayer") ? int(ele->userFloat("hgcElectronID:lastLayer")) : default_int_value);
-            tauTuple().ele_hgcal_layerEfrac10.push_back(ele->hasUserFloat("hgcElectronID:layerEfrac10") ? ele->userFloat("hgcElectronID:layerEfrac10") : default_value);
-            tauTuple().ele_hgcal_layerEfrac90.push_back(ele->hasUserFloat("hgcElectronID:layerEfrac90") ? ele->userFloat("hgcElectronID:layerEfrac90") : default_value);
+            tauTuple().ele_hgcal_layerEfrac10.push_back(ele->hasUserFloat("hgcElectronID:layerEfrac10") ? int(ele->userFloat("hgcElectronID:layerEfrac10")) : default_int_value);
+            tauTuple().ele_hgcal_layerEfrac90.push_back(ele->hasUserFloat("hgcElectronID:layerEfrac90") ? int(ele->userFloat("hgcElectronID:layerEfrac90")) : default_int_value);
             tauTuple().ele_hgcal_e4oEtot.push_back(ele->hasUserFloat("hgcElectronID:e4oEtot") ? ele->userFloat("hgcElectronID:e4oEtot") : default_value);
             tauTuple().ele_hgcal_ecEnergy.push_back(ele->hasUserFloat("hgcElectronID:ecEnergy") ? ele->userFloat("hgcElectronID:ecEnergy") : default_value);
             tauTuple().ele_hgcal_ecEnergyEE.push_back(ele->hasUserFloat("hgcElectronID:ecEnergyEE") ? ele->userFloat("hgcElectronID:ecEnergyEE") : default_value);

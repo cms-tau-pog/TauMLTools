@@ -232,7 +232,7 @@
     ELE_VAR4(Float_t, hgcal_sigmaUU, hgcal_sigmaVV, hgcal_sigmaEE, hgcal_sigmaPP) /* HGCal cluster spread */ \
     ELE_VAR(Int_t, hgcal_nLayers) /* number of layers of HGCal cluster */ \
     ELE_VAR2(Int_t, hgcal_firstLayer, hgcal_lastLayer) /* first/last layer of HGCal cluster */ \
-    ELE_VAR2(Float_t, hgcal_layerEfrac10, hgcal_layerEfrac90) /* layers with energy fraction of HGCal cluster */ \
+    ELE_VAR2(Int_t, hgcal_layerEfrac10, hgcal_layerEfrac90) /* layers with energy fraction of HGCal cluster */ \
     ELE_VAR(Float_t, hgcal_e4oEtot) /* e4 energy over total energy of the HGCal cluster (?) */ \
     ELE_VAR4(Float_t, hgcal_ecEnergy, hgcal_ecEnergyEE, hgcal_ecEnergyFH, hgcal_ecEnergyBH) /* energy in a cylinder around electron in HGCal */ \
     ELE_VAR(Float_t, hgcal_ecEt) /* transverse energy in a cylinder around electron shower axis in HGCal */ \
