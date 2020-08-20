@@ -184,6 +184,10 @@ private:
         tauTuple().pv_y = static_cast<float>(PV.position().y());
         tauTuple().pv_z = static_cast<float>(PV.position().z());
         tauTuple().pv_t = static_cast<float>(PV.t());
+        tauTuple().pv_xE = static_cast<float>(PV.xError());
+        tauTuple().pv_yE = static_cast<float>(PV.yError());
+        tauTuple().pv_zE = static_cast<float>(PV.zError());
+        tauTuple().pv_tE = static_cast<float>(PV.tError());
         tauTuple().pv_chi2 = static_cast<float>(PV.chi2());
         tauTuple().pv_ndof = static_cast<float>(PV.ndof());
 
