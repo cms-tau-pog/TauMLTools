@@ -228,6 +228,7 @@
     ELE_VAR(Float_t, closestCtfTrack_normalizedChi2) /* chi^2 divided by number of degrees of freedom
                                                         of the closest CTF track */ \
     ELE_VAR(Int_t, closestCtfTrack_numberOfValidHits) /* number of valid hits on the closest CTF track */ \
+    ELE_VAR4(Float_t, hgcal_sigmauu, hgcal_sigmavv, hgcal_sigmaee, hgcal_sigmapp) /* HGCal cluster spread */ \
     /* PAT muons */ \
     MUON_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the muon */ \
     MUON_VAR(Float_t, dxy) /* signed transverse impact parameter of the inner track wrt to the primary vertex */ \

@@ -498,6 +498,21 @@ private:
             tauTuple().ele_mvaInput_hadEnergy.push_back(ele->mvaInput().hadEnergy);
             tauTuple().ele_mvaInput_deltaEta.push_back(ele->mvaInput().deltaEta);
 
+            if(!ele->isEB())
+            {
+                tauTuple().ele_hgcal_sigmauu.push_back(ele->hasUserFloat("hgcElectronID:sigmaUU") ? ele->userFloat("hgcElectronID:sigmaUU") : default_value);
+                tauTuple().ele_hgcal_sigmavv.push_back(ele->hasUserFloat("hgcElectronID:sigmaVV") ? ele->userFloat("hgcElectronID:sigmaVV") : default_value);
+                tauTuple().ele_hgcal_sigmaee.push_back(ele->hasUserFloat("hgcElectronID:sigmaEE") ? ele->userFloat("hgcElectronID:sigmaEE") : default_value);
+                tauTuple().ele_hgcal_sigmapp.push_back(ele->hasUserFloat("hgcElectronID:sigmaPP") ? ele->userFloat("hgcElectronID:sigmaPP") : default_value);
+            }
+            else
+            {
+                tauTuple().ele_hgcal_sigmauu.push_back(default_value);
+                tauTuple().ele_hgcal_sigmavv.push_back(default_value);
+                tauTuple().ele_hgcal_sigmaee.push_back(default_value);
+                tauTuple().ele_hgcal_sigmapp.push_back(default_value);
+            }
+
             const auto& gsfTrack = ele->gsfTrack();
             tauTuple().ele_gsfTrack_normalizedChi2.push_back(
                         gsfTrack.isNonnull() ? static_cast<float>(gsfTrack->normalizedChi2()) : default_value);
