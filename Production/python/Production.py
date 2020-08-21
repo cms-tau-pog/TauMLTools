@@ -5,6 +5,11 @@ import importlib
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 import RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD as tauAtMiniTools
+import os
+
+# include Phase2 specific configuration only after 11_0_X
+cmssw_release_numbers = os.environ.get('CMSSW_VERSION').replace('CMSSW_','').split("_")
+isPhase2 = int(cmssw_release_numbers[0]) >= 11
 
 
 options = VarParsing('analysis')
@@ -51,7 +56,11 @@ process.load('FWCore.MessageLogger.MessageLogger_cfi')
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
 process.load('Configuration.StandardSequences.MagneticField_cff')
-process.load('Configuration.Geometry.GeometryRecoDB_cff')
+# include Phase2 specific configuration only after 11_0_X
+if isPhase2:
+    process.load('Configuration.Geometry.GeometryExtended2026D49Reco_cff')
+else:
+    process.load('Configuration.Geometry.GeometryRecoDB_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
 
 process.GlobalTag.globaltag = sampleConfig.GetGlobalTag(options.sampleType)
@@ -85,13 +94,24 @@ if options.rerunTauReco:
     process.combinatoricRecoTaus.builders[0].signalConeSize = cms.string('max(min(0.2, 4.528/(pt()^0.8982)), 0.03)') ## change to quantile 0.95
     process.selectedPatTaus.cut = cms.string('pt > 18.')   ## remove DMFinding filter (was pt > 18. && tauID(\'decayModeFindingNewDMs\')> 0.5)
 
-tauIdConfig = importlib.import_module('TauMLTools.Production.runTauIdMVA')
-updatedTauName = "slimmedTausNewID"
-tauIdEmbedder = tauIdConfig.TauIDEmbedder(
-    process, cms, debug = False, updatedTauName = updatedTauName,
-    toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1"]
-)
-tauIdEmbedder.runTauID(tau_collection = tau_collection)
+# include Phase2 specific configuration only after 11_0_X
+if isPhase2:
+    tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
+    updatedTauName = "slimmedTausNewID"
+    tauIdEmbedder = tauIdConfig.TauIDEmbedder(
+        process, cms, updatedTauName = updatedTauName,
+        toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1", "newDMPhase2v1"]
+    )
+    tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
+else:
+    tauIdConfig = importlib.import_module('TauMLTools.Production.runTauIdMVA')
+    updatedTauName = "slimmedTausNewID"
+    tauIdEmbedder = tauIdConfig.TauIDEmbedder(
+        process, cms, debug = False, updatedTauName = updatedTauName,
+        toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1"]
+    )
+    tauIdEmbedder.runTauID(tau_collection = tau_collection)
+
 tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
 
 tauJetdR = 0.3

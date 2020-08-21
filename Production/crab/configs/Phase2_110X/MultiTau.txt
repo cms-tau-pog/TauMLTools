@@ -1,0 +1,5 @@
+sampleType=MC_Phase2_110X
+
+MultiTau_PT15to500_NoPU  /MultiTau_PT15to500/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v1/MINIAODSIM
+MultiTau_PT15to500_PU140 /MultiTau_PT15to500/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v1/MINIAODSIM
+MultiTau_PT15to500_PU200 /MultiTau_PT15to500/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v1/MINIAODSIM

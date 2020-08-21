@@ -57,6 +57,8 @@ private:
         "VVLoose VLoose Loose Medium Tight VTight VVTight") \
     TAU_ID(byIsolationMVArun2017v2DBoldDMdR0p3wLT2017, "by{wp}IsolationMVArun2017v2DBoldDMdR0p3wLT{raw}2017", true, \
         "VVLoose VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(byIsolationMVADBnewDMwLTPhase2, "by{wp}IsolationMVADBnewDMwLTPhase2{raw}", true, \
+        "VVLoose VLoose Loose Medium Tight VTight VVTight") \
     /**/
 
 #define TAU_ID(name, pattern, has_raw, wp_list) name,
@@ -122,11 +124,11 @@ struct TauIdDescriptor {
     {
         const std::string disc_name = ::analysis::ToString(discriminator);
         if(has_raw)
-            tuple.template get<float>(prefix + disc_name + raw_suffix) = tau ? tau->tauID(raw_name) : default_value;
+            tuple.template get<float>(prefix + disc_name + raw_suffix) = tau && tau->isTauIDAvailable(raw_name) ? tau->tauID(raw_name) : default_value;
         if(!working_points.empty()) {
             TauIdResults id_results;
             for(const auto& wp_entry : working_points) {
-                const bool result = tau && tau->tauID(wp_entry.second) > 0.5;
+                const bool result = tau && tau->isTauIDAvailable(wp_entry.second) && tau->tauID(wp_entry.second) > 0.5;
                 id_results.SetResult(wp_entry.first, result);
             }
             tuple.template get<TauIdResults::BitsContainer>(prefix + disc_name) = id_results.GetResultBits();

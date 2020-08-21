@@ -3,12 +3,9 @@
 import sys
 from sets import Set
 import FWCore.ParameterSet.Config as cms
+import os
 
-from Configuration.Eras.Era_Run2_2016_cff import Run2_2016
-from Configuration.Eras.Era_Run2_2017_cff import Run2_2017
-from Configuration.Eras.Era_Run2_2018_cff import Run2_2018
-
-mcSampleTypes = Set([ 'MC_16', 'MC_17', 'MC_18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D' ])
+mcSampleTypes = Set([ 'MC_16', 'MC_17', 'MC_18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D', 'MC_Phase2_111X', 'MC_Phase2_110X'])
 dataSampleTypes = Set([ 'Run2016' , 'Run2017', 'Run2018ABC', 'Run2018D' ])
 
 periodDict = { 'MC_16' : 'Run2016',
@@ -21,13 +18,10 @@ periodDict = { 'MC_16' : 'Run2016',
                'Run2018ABC' : 'Run2018',
                'Run2018D' : 'Run2018',
                'Emb_18ABC' : 'Run2018',
-               'Emb_18D' : 'Run2018'
+               'Emb_18D' : 'Run2018',
+               'MC_Phase2_110X' : 'Phase2',
+               'MC_Phase2_111X' : 'Phase2',
              }
-
-periodCfgMap = {'Run2016': Run2_2016,
-                'Run2017': Run2_2017,
-                'Run2018': Run2_2018,
-            }
 
 globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
                  'Run2016' : '102X_dataRun2_v12',
@@ -40,7 +34,9 @@ globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
                  'Run2018ABC' : '102X_dataRun2_v12',
                  'Run2018D' : '102X_dataRun2_Prompt_v15',
                  'Emb_18ABC' : '102X_dataRun2_v12',
-                 'Emb_18D' : '102X_dataRun2_Prompt_v15'
+                 'Emb_18D' : '102X_dataRun2_Prompt_v15',
+                 'MC_Phase2_110X' : '110X_mcRun4_realistic_v3',
+                 'MC_Phase2_111X' : '111X_mcRun4_realistic_T15_v1',
                }
 
 def IsData(sampleType):
@@ -64,7 +60,17 @@ def GetGlobalTag(sampleType):
 
 def GetPeriodCfg(sampleType):
     period = GetPeriod(sampleType)
-    if period not in periodCfgMap:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
-        sys.exit(1)
-    return periodCfgMap[period]
+    if period == 'Run2016':
+        from Configuration.Eras.Era_Run2_2016_cff import Run2_2016
+        return Run2_2016
+    elif period == 'Run2017':
+        from Configuration.Eras.Era_Run2_2017_cff import Run2_2017
+        return Run2_2017
+    elif period == 'Run2018':
+        from Configuration.Eras.Era_Run2_2018_cff import Run2_2018
+        return Run2_2018
+    elif period == 'Phase2':
+        from Configuration.Eras.Era_Phase2C9_cff import Phase2C9
+        return Phase2C9
+    else:
+        raise RuntimeError('Period = "{}" is not supported.'.format(period))
