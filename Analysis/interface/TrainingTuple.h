@@ -91,6 +91,8 @@
     VAR(Int_t, tau_decayModeFindingNewDMs) /* tau passed the new decay mode finding requirements */ \
     VAR(Float_t, chargedIsoPtSum) /* sum of the transverse momentums of charged pf candidates inside
                                      the tau isolation cone with dR < 0.5 */ \
+    VAR(Float_t, spectator_chargedIsoPtSum) /* sum of the transverse momentums of charged pf candidates inside
+                                     the tau isolation cone with dR < 0.5 WITHOUT NORMALIZING THE DISTRIBUTION TO ZERO MEAN AND UNIT VARIANCE */ \
     VAR(Float_t, chargedIsoPtSumdR03_over_dR05) /* ratio between sum of the transverse momentums of charged pf
                                                    candidates inside the tau isolation cone with dR < 0.3 and
                                                    dR < 0.5 */ \
