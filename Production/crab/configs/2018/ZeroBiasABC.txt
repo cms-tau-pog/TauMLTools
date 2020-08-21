@@ -1,0 +1,6 @@
+lumiMask=/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+sampleType=Run2018ABC requireGenMatch=False
+
+ZeroBias_Run2018A /ZeroBias/Run2018A-17Sep2018-v1/MINIAOD
+ZeroBias_Run2018B /ZeroBias/Run2018B-17Sep2018-v1/MINIAOD
+ZeroBias_Run2018C /ZeroBias/Run2018C-17Sep2018-v1/MINIAOD
