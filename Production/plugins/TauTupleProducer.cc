@@ -161,6 +161,7 @@ private:
         tauTuple().run  = event.id().run();
         tauTuple().lumi = event.id().luminosityBlock();
         tauTuple().evt  = event.id().event();
+        tauTuple().sampleType = isMC ? static_cast<int>(SampleType::MC) : static_cast<int>(SampleType::Data);
 
         edm::Handle<std::vector<reco::Vertex>> vertices;
         event.getByToken(vertices_token, vertices);
