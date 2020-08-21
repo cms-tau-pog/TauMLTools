@@ -293,7 +293,7 @@ def run_training(train_suffix, model_name, data_loader, epoch, n_epochs):
     read_hdf_lock.release()
     return fit_hist
 
-config = tf.compat.v1.ConfigProto()
+config = tf.compat.v1.ConfigProto(intra_op_parallelism_threads=32, inter_op_parallelism_threads=32)
 config.gpu_options.allow_growth = True
 sess = tf.compat.v1.Session(config=config)
 K.set_session(sess)
