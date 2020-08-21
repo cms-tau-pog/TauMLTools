@@ -23,7 +23,6 @@ parser.add_argument('--store-json', action="store_true", help="Store ROC curves 
 parser.add_argument('--inequality-in-title', action="store_true",
                     help="Use inequality in the title to define pt range, instead of an interval")
 parser.add_argument('--public-plots', action="store_true", help="Apply public plot styles")
-
 args = parser.parse_args()
 
 import os
@@ -32,12 +31,11 @@ import pandas
 import numpy as np
 import json
 import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-import eval_tools
-import common
-matplotlib.use('Agg')
-
+import TauMLTools.Training.eval_tools as eval_tools
+import TauMLTools.Training.common as common
 
 def AddPredictionsToDataFrame(df, file_name, label = ''):
     df_pred = pandas.read_hdf(file_name)
