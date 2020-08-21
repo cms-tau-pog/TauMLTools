@@ -6,7 +6,7 @@ DiscriminatorWP = None
 PlotSetup = None
 apply_dm_cuts = True
 
-setup_branches = [ 'chargedIsoPtSum' ]
+setup_branches = [ 'spectator_chargedIsoPtSum' ]
 
 def Initialize(eval_tools, args):
     global Discriminator
@@ -31,9 +31,9 @@ def GetDiscriminators(other_type, deep_results_label, prev_deep_results_label):
 
     if other_type == 'jet':
         discr = [
-            Discriminator('charged iso', 'relNegChargedIsoPtSum', True, False, 'green',
+            Discriminator('charged iso', 'score_chargedIsoPtSum', True, False, 'green',
                           [ DiscriminatorWP.Loose, DiscriminatorWP.Medium, DiscriminatorWP.Tight ],
-                          working_points_thrs = { "Loose": -0.2, "Medium": -0.1, "Tight": -0.05 }),
+                          working_points_thrs = { "Loose": math.exp(-2.*0.2), "Medium": math.exp(-2.*0.1), "Tight": math.exp(-2.*0.05) }),
         ]
         if has_prev_results:
             discr.append(Discriminator(prev_deep_results_text, 'deepId{}_vs_jet'.format(prev_deep_results_label),
@@ -44,8 +44,7 @@ def GetDiscriminators(other_type, deep_results_label, prev_deep_results_label):
         raise RuntimeError('Unknown other_type = "{}"'.format(other_type))
 
 def DefineBranches(df, tau_types):
-    df['chargedIsoPtSum'] = pandas.Series(df.chargedIsoPtSum * 123.5 + 47.78, index=df.index)
-    df['relNegChargedIsoPtSum'] = pandas.Series(-df.chargedIsoPtSum / df.tau_pt, index=df.index)
+    df['score_chargedIsoPtSum'] = pandas.Series(math.exp(-2.*df.spectator_chargedIsoPtSum/max(1.e-9, df.tau_pt)), index=df.index)
     return df
 
 def ApplySelection(df, other_type):
