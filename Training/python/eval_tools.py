@@ -2,7 +2,7 @@ import numpy as np
 import pandas
 import uproot
 from sklearn import metrics
-from statsmodels.stats.proportion import proportion_confint
+##from statsmodels.stats.proportion import proportion_confint
 from scipy import interpolate
 
 class DiscriminatorWP:
@@ -183,7 +183,9 @@ class Discriminator:
                     eff = float(n_passed) / n_total
                     wp_roc.pr[kind, n_wp - n - 1] = eff
                     if not self.raw:
-                        ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
+                        ##ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
+                        ci_low = eff - 1.e-3
+                        ci_upp = eff + 1.e-3
                         wp_roc.pr_err[kind, 1, n_wp - n - 1] = ci_upp - eff
                         wp_roc.pr_err[kind, 0, n_wp - n - 1] = eff - ci_low
         if not self.raw:
