@@ -239,6 +239,7 @@ private:
 
 
         out.chargedIsoPtSum = GetValueNorm(tau.chargedIsoPtSum, 47.78f, 123.5f);
+        out.spectator_chargedIsoPtSum = tau.chargedIsoPtSum;
         out.chargedIsoPtSumdR03_over_dR05 = GetValue(tau.chargedIsoPtSumdR03 / tau.chargedIsoPtSum);
         out.footprintCorrection = GetValueNorm(tau.footprintCorrection, 9.029f, 26.42f);
         out.neutralIsoPtSum = GetValueNorm(tau.neutralIsoPtSum, 57.59f, 155.3f);
