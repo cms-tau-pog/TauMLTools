@@ -322,11 +322,17 @@ INITIALIZE_TREE(tau_tuple, TauTuple, TAU_DATA)
 namespace tau_tuple {
 
 template<typename T>
-constexpr T DefaultFillValue() { return 0; }
+constexpr T DefaultFillValue() { return std::numeric_limits<T>::lowest(); }
 template<>
-constexpr float DefaultFillValue<float>() { return 0.; }
+constexpr float DefaultFillValue<float>() { return -999.; }
 template<>
-constexpr int DefaultFillValue<int>() { return 0; }
+constexpr int DefaultFillValue<int>() { return -999; }
+//template<typename T>
+//constexpr T DefaultFillValue() { return 0; }
+//template<>
+//constexpr float DefaultFillValue<float>() { return 0.; }
+//template<>
+//constexpr int DefaultFillValue<int>() { return 0; }
 
 enum class ComponenetType { Gamma = 0, ChargedHadronCandidate = 1, NeutralHadronCandidate = 2};
 
