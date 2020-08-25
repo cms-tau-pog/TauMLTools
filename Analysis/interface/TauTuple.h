@@ -229,6 +229,16 @@
     ELE_VAR(Float_t, closestCtfTrack_normalizedChi2) /* chi^2 divided by number of degrees of freedom
                                                         of the closest CTF track */ \
     ELE_VAR(Int_t, closestCtfTrack_numberOfValidHits) /* number of valid hits on the closest CTF track */ \
+    ELE_VAR3(Float_t, sigmaEtaEta, sigmaIetaIeta, sigmaIphiIphi) /* shower shape spread */ \
+    ELE_VAR4(Float_t, e1x5, e2x5Max, e5x5, r9) /* shower shape signatures */ \
+    ELE_VAR5(Float_t, hcalDepth1OverEcal, hcalDepth2OverEcal, hcalDepth1OverEcalBc, hcalDepth2OverEcalBc, hcalOverEcalValid) /* HCAL over ECAL variables */ \
+    ELE_VAR4(Float_t, eLeft, eRight, eBottom, eTop) /* shower shape energies of cluster cell neighbours(?) */ \
+    ELE_VAR3(Float_t, full5x5_sigmaEtaEta, full5x5_sigmaIetaIeta, full5x5_sigmaIphiIphi) /* shower shape spread */ \
+    ELE_VAR4(Float_t, full5x5_e1x5, full5x5_e2x5Max, full5x5_e5x5, full5x5_r9) /* shower shape signatures */ \
+    ELE_VAR5(Float_t, full5x5_hcalDepth1OverEcal, full5x5_hcalDepth2OverEcal, full5x5_hcalDepth1OverEcalBc, full5x5_hcalDepth2OverEcalBc, full5x5_hcalOverEcalValid) /* HCAL over ECAL variables */ \
+    ELE_VAR4(Float_t, full5x5_eLeft, full5x5_eRight, full5x5_eBottom, full5x5_eTop) /* shower shape energies of cluster cell neighbours(?) */ \
+    ELE_VAR4(Float_t, full5x5_e2x5Left, full5x5_e2x5Right, full5x5_e2x5Bottom, full5x5_e2x5Top) /* 2x5 shower shape energies of cluster cell neighbours(?) */ \
+    /* Phase2 specific electron */ \
     ELE_VAR4(Float_t, hgcal_sigmaUU, hgcal_sigmaVV, hgcal_sigmaEE, hgcal_sigmaPP) /* HGCal cluster spread */ \
     ELE_VAR(Int_t, hgcal_nLayers) /* number of layers of HGCal cluster */ \
     ELE_VAR2(Int_t, hgcal_firstLayer, hgcal_lastLayer) /* first/last layer of HGCal cluster */ \

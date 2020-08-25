@@ -498,6 +498,44 @@ private:
             tauTuple().ele_mvaInput_hadEnergy.push_back(ele->mvaInput().hadEnergy);
             tauTuple().ele_mvaInput_deltaEta.push_back(ele->mvaInput().deltaEta);
 
+            tauTuple().ele_sigmaEtaEta.push_back(ele->sigmaEtaEta());
+            tauTuple().ele_sigmaIetaIeta.push_back(ele->sigmaIetaIeta());
+            tauTuple().ele_sigmaIphiIphi.push_back(ele->sigmaIphiIphi());
+            tauTuple().ele_e1x5.push_back(ele->e1x5());
+            tauTuple().ele_e2x5Max.push_back(ele->e2x5Max());
+            tauTuple().ele_e5x5.push_back(ele->e5x5());
+            tauTuple().ele_r9.push_back(ele->r9());
+            tauTuple().ele_hcalDepth1OverEcal.push_back(ele->hcalDepth1OverEcal());
+            tauTuple().ele_hcalDepth2OverEcal.push_back(ele->hcalDepth2OverEcal());
+            tauTuple().ele_hcalDepth1OverEcalBc.push_back(ele->hcalDepth1OverEcalBc());
+            tauTuple().ele_hcalDepth2OverEcalBc.push_back(ele->hcalDepth2OverEcalBc());
+            tauTuple().ele_hcalOverEcalValid.push_back(ele->hcalOverEcalValid());
+            tauTuple().ele_eLeft.push_back(ele->eLeft());
+            tauTuple().ele_eRight.push_back(ele->eRight());
+            tauTuple().ele_eTop.push_back(ele->eTop());
+            tauTuple().ele_eBottom.push_back(ele->eBottom());
+
+            tauTuple().ele_full5x5_sigmaEtaEta.push_back(ele->full5x5_sigmaEtaEta());
+            tauTuple().ele_full5x5_sigmaIetaIeta.push_back(ele->full5x5_sigmaIetaIeta());
+            tauTuple().ele_full5x5_sigmaIphiIphi.push_back(ele->full5x5_sigmaIphiIphi());
+            tauTuple().ele_full5x5_e1x5.push_back(ele->full5x5_e1x5());
+            tauTuple().ele_full5x5_e2x5Max.push_back(ele->full5x5_e2x5Max());
+            tauTuple().ele_full5x5_e5x5.push_back(ele->full5x5_e5x5());
+            tauTuple().ele_full5x5_r9.push_back(ele->full5x5_r9());
+            tauTuple().ele_full5x5_hcalDepth1OverEcal.push_back(ele->full5x5_hcalDepth1OverEcal());
+            tauTuple().ele_full5x5_hcalDepth2OverEcal.push_back(ele->full5x5_hcalDepth2OverEcal());
+            tauTuple().ele_full5x5_hcalDepth1OverEcalBc.push_back(ele->full5x5_hcalDepth1OverEcalBc());
+            tauTuple().ele_full5x5_hcalDepth2OverEcalBc.push_back(ele->full5x5_hcalDepth2OverEcalBc());
+            tauTuple().ele_full5x5_hcalOverEcalValid.push_back(ele->full5x5_hcalOverEcalValid());
+            tauTuple().ele_full5x5_eLeft.push_back(ele->full5x5_eLeft());
+            tauTuple().ele_full5x5_eRight.push_back(ele->full5x5_eRight());
+            tauTuple().ele_full5x5_eTop.push_back(ele->full5x5_eTop());
+            tauTuple().ele_full5x5_eBottom.push_back(ele->full5x5_eBottom());
+            tauTuple().ele_full5x5_e2x5Left.push_back(ele->full5x5_e2x5Left());
+            tauTuple().ele_full5x5_e2x5Right.push_back(ele->full5x5_e2x5Right());
+            tauTuple().ele_full5x5_e2x5Top.push_back(ele->full5x5_e2x5Top());
+            tauTuple().ele_full5x5_e2x5Bottom.push_back(ele->full5x5_e2x5Bottom());
+
             // Only phase2 electrons with !ele->isEB() obtain a value != default_{int_,}value via hasUserFloat() decision
             tauTuple().ele_hgcal_sigmaUU.push_back(ele->hasUserFloat("hgcElectronID:sigmaUU") ? ele->userFloat("hgcElectronID:sigmaUU") : default_value);
             tauTuple().ele_hgcal_sigmaVV.push_back(ele->hasUserFloat("hgcElectronID:sigmaVV") ? ele->userFloat("hgcElectronID:sigmaVV") : default_value);
