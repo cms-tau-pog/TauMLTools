@@ -62,6 +62,7 @@
     VAR(Int_t, jetTauMatch) /* match between jet and tau: NoMatch = 0, PF = 1, dR = 2 */ \
     VAR(Int_t, tau_index) /* index of the tau */ \
     VAR4(Float_t, tau_pt, tau_eta, tau_phi, tau_mass) /* 4-momentum of the tau */ \
+    VAR4(Float_t, spectator_tau_pt, spectator_tau_eta, spectator_tau_phi, spectator_tau_mass) /* 4-momentum of the tau, WITHOUT NORMALIZING THE DISTRIBUTION TO ZERO MEAN AND UNIT VARIANCE */ \
     VAR(Float_t, tau_E_over_pt) /* energy of the tau divided by the pt of the tau */ \
     VAR(Float_t, tau_charge) /* tau charge */ \
     VAR(Int_t, gen_e) /* tau is an electron based on gen matching */ \
@@ -91,14 +92,23 @@
     VAR(Int_t, tau_decayModeFindingNewDMs) /* tau passed the new decay mode finding requirements */ \
     VAR(Float_t, chargedIsoPtSum) /* sum of the transverse momentums of charged pf candidates inside
                                      the tau isolation cone with dR < 0.5 */ \
+    VAR(Float_t, chargedIsoPtSumHGCalFix) /* sum of the transverse momentums of charged pf candidates inside
+                                     the tau isolation cone with dR < 0.5, with "HGCal fix" */ \
     VAR(Float_t, spectator_chargedIsoPtSum) /* sum of the transverse momentums of charged pf candidates inside
                                      the tau isolation cone with dR < 0.5 WITHOUT NORMALIZING THE DISTRIBUTION TO ZERO MEAN AND UNIT VARIANCE */ \
+    VAR(Float_t, spectator_chargedIsoPtSumHGCalFix) /* sum of the transverse momentums of charged pf candidates inside
+                                     the tau isolation cone with dR < 0.5, with "HGCal fix", WITHOUT NORMALIZING THE DISTRIBUTION TO ZERO MEAN AND UNIT VARIANCE */ \
     VAR(Float_t, chargedIsoPtSumdR03_over_dR05) /* ratio between sum of the transverse momentums of charged pf
                                                    candidates inside the tau isolation cone with dR < 0.3 and
                                                    dR < 0.5 */ \
+    VAR(Float_t, chargedIsoPtSumdR03_over_dR05HGCalFix) /* ratio between sum of the transverse momentums of charged pf
+                                                           candidates inside the tau isolation cone with dR < 0.3 and
+                                                           dR < 0.5, with "HGCal fix" */ \
     VAR(Float_t, footprintCorrection) /* tau footprint correction inside the tau isolation cone with dR < 0.5 */ \
     VAR(Float_t, neutralIsoPtSum) /* sum of the transverse momentums of neutral pf candidates inside
                                      the tau isolation cone with dR < 0.5 */ \
+    VAR(Float_t, neutralIsoPtSumHGCalFix) /* sum of the transverse momentums of neutral pf candidates inside
+                                     the tau isolation cone with dR < 0.5, with "HGCal fix" */ \
     VAR(Float_t, neutralIsoPtSumWeight_over_neutralIsoPtSum) /* ratio between weighted and unweighted sum of
                                                                 the transverse momentums of neutral pf candidates inside
                                                                 the tau isolation cone with dR < 0.5 */ \
@@ -108,6 +118,9 @@
     VAR(Float_t, neutralIsoPtSumdR03_over_dR05) /* ration between sum of the transverse momentums of neutral pf
                                                    candidates inside the tau isolation cone with dR < 0.3 and
                                                    dR < 0.5 */ \
+    VAR(Float_t, neutralIsoPtSumdR03_over_dR05HGCalFix) /* ration between sum of the transverse momentums of neutral pf
+                                                           candidates inside the tau isolation cone with dR < 0.3 and
+                                                           dR < 0.5, with "HGCal fix" */ \
     VAR(Float_t, photonPtSumOutsideSignalCone) /* sum of the transverse momentums of photons
                                                   inside the tau isolation cone with dR < 0.5 */ \
     VAR(Float_t, puCorrPtSum) /* pile-up correction for the sum of the transverse momentums */ \
