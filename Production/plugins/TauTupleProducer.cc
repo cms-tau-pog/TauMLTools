@@ -27,6 +27,7 @@
 #include "TauMLTools/Analysis/interface/TauTuple.h"
 #include "TauMLTools/Analysis/interface/SummaryTuple.h"
 #include "TauMLTools/Analysis/interface/TauIdResults.h"
+#include "TauMLTools/Analysis/interface/AnalysisTypes.h"
 #include "TauMLTools/Production/interface/GenTruthTools.h"
 #include "TauMLTools/Production/interface/TauAnalysis.h"
 #include "TauMLTools/Production/interface/MuonHitMatch.h"
@@ -190,6 +191,8 @@ private:
         tauTuple().lumi = event.id().luminosityBlock();
         tauTuple().evt  = event.id().event();
 
+        tauTuple().sampleType = ( isMC ) ? (int)SampleType::MC : (int)SampleType::Data; // CV: dirty hack; embedded samples not supported yet !!
+
         edm::Handle<std::vector<reco::Vertex>> vertices;
         event.getByToken(vertices_token, vertices);
         tauTuple().npv = static_cast<int>(vertices->size());
@@ -295,18 +298,22 @@ private:
             tauTuple().tau_charge = has_tau ? tau->charge() : default_int_value;
 
             FillGenMatchResult(leptonGenMatch, qcdGenMatch);
-
+            //std::cout << "tau: pT = " << tau->pt() << ", eta = " << tau->eta() << ", phi = " << tau->phi() << ", mass = " << tau->mass() << " (decayMode = " << tau->decayMode() << ")" << std::endl;
             tauTuple().tau_decayMode = has_tau ? tau->decayMode() : default_int_value; 
             tauTuple().tau_decayModeFinding = has_tau ? getTauID(has_tau, tau, "decayModeFinding", -1.) > 0.5f : default_int_value;
             tauTuple().tau_decayModeFindingNewDMs = has_tau ? getTauID(has_tau, tau, "decayModeFindingNewDMs", -1.) > 0.5f : default_int_value;
             tauTuple().chargedIsoPtSum = getTauID(has_tau, tau, "chargedIsoPtSum", default_value);
+            tauTuple().chargedIsoPtSumHGCalFix = getTauID(has_tau, tau, "chargedIsoPtSumHGCalFix", default_value);
             tauTuple().chargedIsoPtSumdR03 = getTauID(has_tau, tau, "chargedIsoPtSumdR03", default_value);
+            tauTuple().chargedIsoPtSumdR03HGCalFix = getTauID(has_tau, tau, "chargedIsoPtSumdR03HGCalFix", default_value);
             tauTuple().footprintCorrection = getTauID(has_tau, tau, "footprintCorrection", default_value);
             tauTuple().footprintCorrectiondR03 = getTauID(has_tau, tau, "footprintCorrectiondR03", default_value);
             tauTuple().neutralIsoPtSum = getTauID(has_tau, tau, "neutralIsoPtSum", default_value);
+            tauTuple().neutralIsoPtSumHGCalFix = getTauID(has_tau, tau, "neutralIsoPtSumHGCalFix", default_value);
             tauTuple().neutralIsoPtSumWeight = getTauID(has_tau, tau, "neutralIsoPtSumWeight", default_value);
             tauTuple().neutralIsoPtSumWeightdR03 = getTauID(has_tau, tau, "neutralIsoPtSumWeightdR03", default_value);
             tauTuple().neutralIsoPtSumdR03 = getTauID(has_tau, tau, "neutralIsoPtSumdR03", default_value);
+            tauTuple().neutralIsoPtSumdR03HGCalFix = getTauID(has_tau, tau, "neutralIsoPtSumdR03HGCalFix", default_value);
             tauTuple().photonPtSumOutsideSignalCone = getTauID(has_tau, tau, "photonPtSumOutsideSignalCone", default_value);
             tauTuple().photonPtSumOutsideSignalConedR03 = getTauID(has_tau, tau, "photonPtSumOutsideSignalConedR03", default_value);
             tauTuple().puCorrPtSum = getTauID(has_tau, tau, "puCorrPtSum", default_value);
