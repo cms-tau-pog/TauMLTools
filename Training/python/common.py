@@ -25,8 +25,8 @@ tau_id_branches = [ 'byCombinedIsolationDeltaBetaCorr3Hits', 'byCombinedIsolatio
 
 input_event_branches = [ 'rho' ]
 # input_tau_branches = [ 'tau_pt', 'tau_eta', 'tau_phi', 'tau_mass', 'tau_E_over_pt', 'tau_charge',
-#                        'tau_n_charged_prongs', 'tau_n_neutral_prongs', 'chargedIsoPtSum',
-#                        'chargedIsoPtSumdR03_over_dR05', 'footprintCorrection', 'neutralIsoPtSum',
+#                        'tau_n_charged_prongs', 'tau_n_neutral_prongs', 'chargedIsoPtSumHGCalFix',
+#                        'chargedIsoPtSumdR03_over_dR05', 'footprintCorrection', 'neutralIsoPtSumHGCalFix',
 #                        'neutralIsoPtSumWeight_over_neutralIsoPtSum', 'neutralIsoPtSumWeightdR03_over_neutralIsoPtSum',
 #                        'neutralIsoPtSumdR03_over_dR05', 'photonPtSumOutsideSignalCone', 'puCorrPtSum',
 #                        'tau_dxy_pca_x', 'tau_dxy_pca_y', 'tau_dxy_pca_z', 'tau_dxy_valid', 'tau_dxy', 'tau_dxy_sig',
@@ -38,10 +38,13 @@ input_event_branches = [ 'rho' ]
 #                        'tau_inside_ecal_crack', 'leadChargedCand_etaAtEcalEntrance_minus_tau_eta' ]
 
 input_tau_branches = [ 'tau_pt', 'tau_eta', 'tau_phi', 'tau_mass', 'tau_E_over_pt', 'tau_charge',
-                       'tau_n_charged_prongs', 'tau_n_neutral_prongs', 'chargedIsoPtSum',
-                       'chargedIsoPtSumdR03_over_dR05', 'footprintCorrection', 'neutralIsoPtSum',
+                       'tau_n_charged_prongs', 'tau_n_neutral_prongs', 'chargedIsoPtSumHGCalFix',
+                       'chargedIsoPtSumdR03_over_dR05HGCalFix', 'footprintCorrection', 'neutralIsoPtSumHGCalFix',
+##                     'tau_n_charged_prongs', 'tau_n_neutral_prongs', 'chargedIsoPtSum',
+##                     'chargedIsoPtSumdR03_over_dR05', 'footprintCorrection', 'neutralIsoPtSum',
                        'neutralIsoPtSumWeight_over_neutralIsoPtSum', 'neutralIsoPtSumWeightdR03_over_neutralIsoPtSum',
-                       'neutralIsoPtSumdR03_over_dR05', 'photonPtSumOutsideSignalCone', 'puCorrPtSum',
+                       'neutralIsoPtSumdR03_over_dR05HGCalFix', 'photonPtSumOutsideSignalCone', 'puCorrPtSum',
+##                     'neutralIsoPtSumdR03_over_dR05', 'photonPtSumOutsideSignalCone', 'puCorrPtSum',
                        'tau_dxy_valid', 'tau_dxy', 'tau_dxy_sig',
                        'tau_ip3d_valid', 'tau_ip3d', 'tau_ip3d_sig', 'tau_dz', 'tau_dz_sig_valid', 'tau_dz_sig',
                        'tau_flightLength_x', 'tau_flightLength_y', 'tau_flightLength_z', 'tau_flightLength_sig',
