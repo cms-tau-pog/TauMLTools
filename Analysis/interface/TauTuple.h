@@ -95,18 +95,26 @@
     VAR(Int_t, tau_decayModeFindingNewDMs) /* tau passed the new decay mode finding requirements */ \
     VAR(Float_t, chargedIsoPtSum) /* sum of the transverse momentums of charged pf candidates inside
                                      the tau isolation cone with dR < 0.5 */ \
+    VAR(Float_t, chargedIsoPtSumHGCalFix) /* sum of the transverse momentums of charged pf candidates inside
+                                     the tau isolation cone with dR < 0.5, with "HGCal fix" */ \
     VAR(Float_t, chargedIsoPtSumdR03) /* sum of the transverse momentums of charged pf candidates inside
                                          the tau isolation cone with dR < 0.3 */ \
+    VAR(Float_t, chargedIsoPtSumdR03HGCalFix) /* sum of the transverse momentums of charged pf candidates inside
+                                                 the tau isolation cone with dR < 0.3, with "HGCal fix" */ \
     VAR(Float_t, footprintCorrection) /* tau footprint correction inside the tau isolation cone with dR < 0.5 */ \
     VAR(Float_t, footprintCorrectiondR03) /* tau footprint correction inside the tau isolation cone with dR < 0.3 */ \
     VAR(Float_t, neutralIsoPtSum) /* sum of the transverse momentums of neutral pf candidates inside
                                      the tau isolation cone with dR < 0.5 */ \
+    VAR(Float_t, neutralIsoPtSumHGCalFix) /* sum of the transverse momentums of neutral pf candidates inside
+                                             the tau isolation cone with dR < 0.5, with "HGCal fix" */ \
     VAR(Float_t, neutralIsoPtSumWeight) /* weighted sum of the transverse momentums of neutral pf candidates inside
                                            the tau isolation cone with dR < 0.5 */ \
     VAR(Float_t, neutralIsoPtSumWeightdR03) /* weighted sum of the transverse momentums of neutral pf candidates inside
                                                the tau isolation cone with dR < 0.3 */ \
     VAR(Float_t, neutralIsoPtSumdR03) /* sum of the transverse momentums of neutral pf candidates inside
                                          the tau isolation cone with dR < 0.3 */ \
+    VAR(Float_t, neutralIsoPtSumdR03HGCalFix) /* sum of the transverse momentums of neutral pf candidates inside
+                                                 the tau isolation cone with dR < 0.3, with "HGCal fix" */ \
     VAR(Float_t, photonPtSumOutsideSignalCone) /* sum of the transverse momentums of photons
                                                   inside the tau isolation cone with dR < 0.5 */ \
     VAR(Float_t, photonPtSumOutsideSignalConedR03) /* sum of the transverse momentums of photons inside
