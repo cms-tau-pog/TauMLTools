@@ -43,7 +43,7 @@ def ApplySelection(df, other_type):
     return df
 
 def GetPtBins():
-    return [ 20, 100, 1000 ]
+    return [ 20, 30, 40, 60, 80, 120, 1000 ]
 
 def GetPlotSetup(other_type):
     if other_type == 'jet':
