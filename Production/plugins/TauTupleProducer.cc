@@ -479,6 +479,9 @@ private:
             tauTuple().ele_trackMomentumOut.push_back(ele->trackMomentumOut().R());
             tauTuple().ele_trackMomentumAtEleClus.push_back(ele->trackMomentumAtEleClus().R());
             tauTuple().ele_trackMomentumAtVtxWithConstraint.push_back(ele->trackMomentumAtVtxWithConstraint().R());
+            tauTuple().ele_dB.push_back(ele->dB());
+            tauTuple().ele_edB.push_back(ele->edB());
+            tauTuple().ele_ip3d.push_back(ele->ip3d());
             tauTuple().ele_ecalEnergy.push_back(ele->ecalEnergy());
             tauTuple().ele_ecalEnergy_error.push_back(ele->ecalEnergyError());
             tauTuple().ele_eSuperClusterOverP.push_back(ele->eSuperClusterOverP());
@@ -488,17 +491,19 @@ private:
             tauTuple().ele_deltaEtaSuperClusterTrackAtVtx.push_back(ele->deltaEtaSuperClusterTrackAtVtx());
             tauTuple().ele_deltaEtaSeedClusterTrackAtCalo.push_back(ele->deltaEtaSeedClusterTrackAtCalo());
             tauTuple().ele_deltaEtaEleClusterTrackAtCalo.push_back(ele->deltaEtaEleClusterTrackAtCalo());
+            tauTuple().ele_deltaEtaSeedClusterTrackAtVtx.push_back(ele->deltaEtaSeedClusterTrackAtVtx());
             tauTuple().ele_deltaPhiEleClusterTrackAtCalo.push_back(ele->deltaPhiEleClusterTrackAtCalo());
             tauTuple().ele_deltaPhiSuperClusterTrackAtVtx.push_back(ele->deltaPhiSuperClusterTrackAtVtx());
             tauTuple().ele_deltaPhiSeedClusterTrackAtCalo.push_back(ele->deltaPhiSeedClusterTrackAtCalo());
 
-            tauTuple().ele_mvaInput_earlyBrem.push_back(ele->mvaInput().earlyBrem);
-            tauTuple().ele_mvaInput_lateBrem.push_back(ele->mvaInput().lateBrem);
-            tauTuple().ele_mvaInput_sigmaEtaEta.push_back(ele->mvaInput().sigmaEtaEta);
-            tauTuple().ele_mvaInput_hadEnergy.push_back(ele->mvaInput().hadEnergy);
-            tauTuple().ele_mvaInput_deltaEta.push_back(ele->mvaInput().deltaEta);
+            tauTuple().ele_mvaInput_earlyBrem.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") ? ele->mvaInput().earlyBrem : default_int_value);
+            tauTuple().ele_mvaInput_lateBrem.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") ? ele->mvaInput().lateBrem : default_int_value);
+            tauTuple().ele_mvaInput_sigmaEtaEta.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") ? ele->mvaInput().sigmaEtaEta : default_value);
+            tauTuple().ele_mvaInput_hadEnergy.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") ? ele->mvaInput().hadEnergy : default_value);
+            tauTuple().ele_mvaInput_deltaEta.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") ? ele->mvaInput().deltaEta : default_value);
 
             // shower shape variables are available for non-HGCal electrons with pt > 5
+            tauTuple().ele_sigmaIetaIphi.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->sigmaIetaIphi() : default_value);
             tauTuple().ele_sigmaEtaEta.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->sigmaEtaEta() : default_value);
             tauTuple().ele_sigmaIetaIeta.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->sigmaIetaIeta() : default_value);
             tauTuple().ele_sigmaIphiIphi.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->sigmaIphiIphi() : default_value);
@@ -510,7 +515,6 @@ private:
             tauTuple().ele_hcalDepth2OverEcal.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->hcalDepth2OverEcal() : default_value);
             tauTuple().ele_hcalDepth1OverEcalBc.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->hcalDepth1OverEcalBc() : default_value);
             tauTuple().ele_hcalDepth2OverEcalBc.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->hcalDepth2OverEcalBc() : default_value);
-            tauTuple().ele_hcalOverEcalValid.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->hcalOverEcalValid() : default_value);
             tauTuple().ele_eLeft.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->eLeft() : default_value);
             tauTuple().ele_eRight.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->eRight() : default_value);
             tauTuple().ele_eTop.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->eTop() : default_value);
@@ -519,6 +523,7 @@ private:
             tauTuple().ele_full5x5_sigmaEtaEta.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_sigmaEtaEta() : default_value);
             tauTuple().ele_full5x5_sigmaIetaIeta.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_sigmaIetaIeta() : default_value);
             tauTuple().ele_full5x5_sigmaIphiIphi.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_sigmaIphiIphi() : default_value);
+            tauTuple().ele_full5x5_sigmaIetaIphi.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_sigmaIetaIphi() : default_value);
             tauTuple().ele_full5x5_e1x5.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_e1x5() : default_value);
             tauTuple().ele_full5x5_e2x5Max.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_e2x5Max() : default_value);
             tauTuple().ele_full5x5_e5x5.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_e5x5() : default_value);
@@ -527,7 +532,6 @@ private:
             tauTuple().ele_full5x5_hcalDepth2OverEcal.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_hcalDepth2OverEcal() : default_value);
             tauTuple().ele_full5x5_hcalDepth1OverEcalBc.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_hcalDepth1OverEcalBc() : default_value);
             tauTuple().ele_full5x5_hcalDepth2OverEcalBc.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_hcalDepth2OverEcalBc() : default_value);
-            tauTuple().ele_full5x5_hcalOverEcalValid.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_hcalOverEcalValid() : default_value);
             tauTuple().ele_full5x5_eLeft.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_eLeft() : default_value);
             tauTuple().ele_full5x5_eRight.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_eRight() : default_value);
             tauTuple().ele_full5x5_eTop.push_back(!ele->hasUserFloat("hgcElectronID:sigmaUU") && ele->polarP4().pt() > 5 ? ele->full5x5_eTop() : default_value);

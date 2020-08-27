@@ -187,6 +187,7 @@
     ELE_VAR(Float_t, cc_gamma_energy) /* sum of the energies of additional calo clusters
                                          in the electron super cluster */ \
     ELE_VAR(Int_t, cc_n_gamma) /* number of additional calo clusters in the electron super cluster */ \
+    ELE_VAR3(Float_t, dB, edB, ip3d) /* impact parameter of the electron */ \
     ELE_VAR(Float_t, trackMomentumAtVtx) /* module of the track momentum at the PCA to the beam spot */ \
     ELE_VAR(Float_t, trackMomentumAtCalo) /* module of the track momentum extrapolated at the supercluster position
                                              from the innermost track state */ \
@@ -210,6 +211,8 @@
                                                         from the outermost track state */ \
     ELE_VAR(Float_t, deltaEtaEleClusterTrackAtCalo) /* electron cluster eta - track eta position at calo extrapolated
                                                        from the outermost state */ \
+    ELE_VAR(Float_t, deltaEtaSeedClusterTrackAtVtx) /* cluster eta - track eta position at calo extrapolated
+                                                       from innermost track state */ \
     ELE_VAR(Float_t, deltaPhiEleClusterTrackAtCalo) /* electron cluster phi - track phi position at calo extrapolated
                                                        from the outermost track state */ \
     ELE_VAR(Float_t, deltaPhiSuperClusterTrackAtVtx) /* supercluster phi - track phi position at calo extrapolated
@@ -229,13 +232,13 @@
     ELE_VAR(Float_t, closestCtfTrack_normalizedChi2) /* chi^2 divided by number of degrees of freedom
                                                         of the closest CTF track */ \
     ELE_VAR(Int_t, closestCtfTrack_numberOfValidHits) /* number of valid hits on the closest CTF track */ \
-    ELE_VAR3(Float_t, sigmaEtaEta, sigmaIetaIeta, sigmaIphiIphi) /* shower shape spread */ \
+    ELE_VAR4(Float_t, sigmaEtaEta, sigmaIetaIeta, sigmaIphiIphi, sigmaIetaIphi) /* shower shape spread */ \
     ELE_VAR4(Float_t, e1x5, e2x5Max, e5x5, r9) /* shower shape signatures */ \
-    ELE_VAR5(Float_t, hcalDepth1OverEcal, hcalDepth2OverEcal, hcalDepth1OverEcalBc, hcalDepth2OverEcalBc, hcalOverEcalValid) /* HCAL over ECAL variables */ \
+    ELE_VAR4(Float_t, hcalDepth1OverEcal, hcalDepth2OverEcal, hcalDepth1OverEcalBc, hcalDepth2OverEcalBc) /* HCAL over ECAL variables */ \
     ELE_VAR4(Float_t, eLeft, eRight, eBottom, eTop) /* shower shape energies of cluster cell neighbours(?) */ \
-    ELE_VAR3(Float_t, full5x5_sigmaEtaEta, full5x5_sigmaIetaIeta, full5x5_sigmaIphiIphi) /* shower shape spread */ \
+    ELE_VAR4(Float_t, full5x5_sigmaEtaEta, full5x5_sigmaIetaIeta, full5x5_sigmaIphiIphi, full5x5_sigmaIetaIphi) /* shower shape spread */ \
     ELE_VAR4(Float_t, full5x5_e1x5, full5x5_e2x5Max, full5x5_e5x5, full5x5_r9) /* shower shape signatures */ \
-    ELE_VAR5(Float_t, full5x5_hcalDepth1OverEcal, full5x5_hcalDepth2OverEcal, full5x5_hcalDepth1OverEcalBc, full5x5_hcalDepth2OverEcalBc, full5x5_hcalOverEcalValid) /* HCAL over ECAL variables */ \
+    ELE_VAR4(Float_t, full5x5_hcalDepth1OverEcal, full5x5_hcalDepth2OverEcal, full5x5_hcalDepth1OverEcalBc, full5x5_hcalDepth2OverEcalBc) /* HCAL over ECAL variables */ \
     ELE_VAR4(Float_t, full5x5_eLeft, full5x5_eRight, full5x5_eBottom, full5x5_eTop) /* shower shape energies of cluster cell neighbours(?) */ \
     ELE_VAR4(Float_t, full5x5_e2x5Left, full5x5_e2x5Right, full5x5_e2x5Bottom, full5x5_e2x5Top) /* 2x5 shower shape energies of cluster cell neighbours(?) */ \
     /* Phase2 specific electron */ \
