@@ -486,8 +486,8 @@ private:
             tauTuple().ele_trackMomentumOut.push_back(ele->trackMomentumOut().R());
             tauTuple().ele_trackMomentumAtEleClus.push_back(ele->trackMomentumAtEleClus().R());
             tauTuple().ele_trackMomentumAtVtxWithConstraint.push_back(ele->trackMomentumAtVtxWithConstraint().R());
-            tauTuple().ele_dxy.push_back(ele->dB());
-            tauTuple().ele_dxy_error.push_back(ele->edB());
+            tauTuple().ele_dxy.push_back(ele->dB(pat::Electron::PV2D));
+            tauTuple().ele_dxy_error.push_back(ele->edB(pat::Electron::PV2D));
             tauTuple().ele_ip3d.push_back(ele->ip3d());
             tauTuple().ele_ecalEnergy.push_back(ele->ecalEnergy());
             tauTuple().ele_ecalEnergy_error.push_back(ele->ecalEnergyError());
