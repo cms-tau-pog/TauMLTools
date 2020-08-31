@@ -168,8 +168,9 @@
                                       validHitInFirstPixelBarrelLayer = -1, noLostInnerHits = 0 (it could still not
                                       have a hit in the first layer, e.g. if it crosses an inactive sensor),
                                       oneLostInnerHit = 1, moreLostInnerHits = 2 */ \
-    CAND_VAR(Int_t, numberOfPixelHits) /* number of valid pixel hits */ \
-    CAND_VAR3(Float_t, vertex_x, vertex_y, vertex_z) /* position of the vertex to which the candidate is associated */ \
+    CAND_VAR2(Int_t, numberOfPixelHits, numberOfHits) /* number of valid pixel hits */ \
+    CAND_VAR4(Float_t, vertex_x, vertex_y, vertex_z, vertex_t) /* position & time of the vertex to which the candidate is associated */ \
+    CAND_VAR2(Float_t, time, timeError) /* time and time error information on the PF candidate */ \
     CAND_VAR(Int_t, hasTrackDetails) /* has track details */ \
     CAND_VAR(Float_t, dxy) /* signed transverse impact parameter wrt to the primary vertex */ \
     CAND_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
@@ -178,9 +179,9 @@
     CAND_VAR(Float_t, track_chi2) /* chi^2 of the pseudo track made with the candidate kinematics */ \
     CAND_VAR(Float_t, track_ndof) /* number of degrees of freedom of the pseudo track
                                      made with the candidate kinematics */ \
-    CAND_VAR(Float_t, hcalFraction) /* fraction of ECAL and HCAL for HF and neutral hadrons
+    CAND_VAR2(Float_t, caloFraction, hcalFraction) /* fraction of ECAL and HCAL for HF and neutral hadrons
                                        and isolated charged hadrons */ \
-    CAND_VAR(Float_t, rawCaloFraction) /* raw ECAL+HCAL energy over candidate energy for isolated charged hadrons */ \
+    CAND_VAR2(Float_t, rawCaloFraction, rawHcalFraction) /* raw ECAL and HCAL energy over candidate energy for isolated charged hadrons */ \
     /* PAT electrons */ \
     ELE_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the electron */ \
     ELE_VAR(Float_t, cc_ele_energy) /* energy of the first calo cluster in the electron super cluster */ \

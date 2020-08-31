@@ -440,10 +440,15 @@ private:
             tauTuple().pfCand_charge.push_back(cand->charge());
             tauTuple().pfCand_lostInnerHits.push_back(cand->lostInnerHits());
             tauTuple().pfCand_numberOfPixelHits.push_back(cand->numberOfPixelHits());
+            tauTuple().pfCand_numberOfHits.push_back(cand->numberOfHits());
 
             tauTuple().pfCand_vertex_x.push_back(static_cast<float>(cand->vertex().x()));
             tauTuple().pfCand_vertex_y.push_back(static_cast<float>(cand->vertex().y()));
             tauTuple().pfCand_vertex_z.push_back(static_cast<float>(cand->vertex().z()));
+            tauTuple().pfCand_vertex_t.push_back(static_cast<float>(cand->vertexRef()->t()));
+
+            tauTuple().pfCand_time.push_back(cand->time());
+            tauTuple().pfCand_timeError.push_back(cand->timeError());
 
             const bool hasTrackDetails = cand->hasTrackDetails();
             tauTuple().pfCand_hasTrackDetails.push_back(hasTrackDetails);
@@ -457,7 +462,9 @@ private:
                         hasTrackDetails ? static_cast<float>(cand->pseudoTrack().ndof()) : default_value);
 
             tauTuple().pfCand_hcalFraction.push_back(cand->hcalFraction());
+            tauTuple().pfCand_caloFraction.push_back(cand->caloFraction());
             tauTuple().pfCand_rawCaloFraction.push_back(cand->rawCaloFraction());
+            tauTuple().pfCand_rawHcalFraction.push_back(cand->rawHcalFraction());
         }
     }
 
