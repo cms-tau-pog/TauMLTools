@@ -307,7 +307,21 @@
                                     the point of intersection with the Ecal.  Can be used to identify
                                     roughly the calorimeter cells the track should hit.*/ \
     TRACK_VAR(Int_t, n_ValidHits) /* number Of Valid Hits */ \
+    TRACK_VAR(Int_t, n_BadHits) /* number Of Bad Hits */ \
+    TRACK_VAR3(Int_t, n_TimingHits, n_ValidTimingHits, n_LostTimingHits) /* number Of Timing Hits (all, valid, list) */ \
+    TRACK_VAR4(Int_t, n_MuonHits, n_ValidMuonHits, n_LostMuonHits, n_BadMuonHits) /* number Of Muon Hits (all, valid, lost, bad) */ \
+    TRACK_VAR3(Int_t, n_ValidMuonDTHits, n_LostMuonDTHits, n_BadMuonDTHits) /* number Of Muon DT Hits (valid, lost, bad) */ \
+    TRACK_VAR3(Int_t, n_ValidMuonCSCHits, n_LostMuonCSCHits, n_BadMuonCSCHits) /* number Of Muon CSC Hits (valid, lost, bad) */ \
+    TRACK_VAR3(Int_t, n_ValidMuonRPCHits, n_LostMuonRPCHits, n_BadMuonRPCHits) /* number Of Muon RPC Hits (valid, lost, bad) */ \
+    TRACK_VAR3(Int_t, n_ValidMuonGEMHits, n_LostMuonGEMHits, n_BadMuonGEMHits) /* number Of Muon GEM Hits (valid, lost, bad) */ \
+    TRACK_VAR3(Int_t, n_ValidMuonME0Hits, n_LostMuonME0Hits, n_BadMuonME0Hits) /* number Of Muon ME0 Hits (valid, lost, bad) */ \
     TRACK_VAR(Int_t, n_InactiveHits) /* number Of Inactive Hits */ \
+    TRACK_VAR3(Int_t, n_AllHits_0, \
+                      n_AllHits_1, \
+                      n_AllHits_2) /* number Of All Hits
+                                       0 -> TRACK_HITS,
+                                       1 -> MISSING_INNER_HITS,
+                                       2 -> MISSING_OUTER_HITS*/ \
     TRACK_VAR3(Int_t, n_LostHits_0, \
                       n_LostHits_1, \
                       n_LostHits_2) /* number Of Lost Hits

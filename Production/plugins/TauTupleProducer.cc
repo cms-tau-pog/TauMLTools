@@ -667,7 +667,36 @@ private:
           tauTuple().track_n_InactiveHits.push_back(hitPattern.numberOfInactiveHits());
           tauTuple().track_n_ValidPixelHits.push_back(hitPattern.numberOfValidPixelHits());
           tauTuple().track_n_ValidStripHits.push_back(hitPattern.numberOfValidStripHits());
+
+          tauTuple().track_n_MuonHits.push_back(hitPattern.numberOfMuonHits());
+          tauTuple().track_n_BadHits.push_back(hitPattern.numberOfBadHits());
+          tauTuple().track_n_BadMuonHits.push_back(hitPattern.numberOfBadMuonHits());
+          tauTuple().track_n_BadMuonDTHits.push_back(hitPattern.numberOfBadMuonDTHits());
+          tauTuple().track_n_BadMuonCSCHits.push_back(hitPattern.numberOfBadMuonCSCHits());
+          tauTuple().track_n_BadMuonRPCHits.push_back(hitPattern.numberOfBadMuonRPCHits());
+          tauTuple().track_n_BadMuonGEMHits.push_back(hitPattern.numberOfBadMuonGEMHits());
+          tauTuple().track_n_BadMuonME0Hits.push_back(hitPattern.numberOfBadMuonME0Hits());
+          tauTuple().track_n_ValidMuonHits.push_back(hitPattern.numberOfValidMuonHits());
+          tauTuple().track_n_ValidMuonDTHits.push_back(hitPattern.numberOfValidMuonDTHits());
+          tauTuple().track_n_ValidMuonCSCHits.push_back(hitPattern.numberOfValidMuonCSCHits());
+          tauTuple().track_n_ValidMuonRPCHits.push_back(hitPattern.numberOfValidMuonRPCHits());
+          tauTuple().track_n_ValidMuonGEMHits.push_back(hitPattern.numberOfValidMuonGEMHits());
+          tauTuple().track_n_ValidMuonME0Hits.push_back(hitPattern.numberOfValidMuonME0Hits());
+          tauTuple().track_n_LostMuonHits.push_back(hitPattern.numberOfLostMuonHits());
+          tauTuple().track_n_LostMuonDTHits.push_back(hitPattern.numberOfLostMuonDTHits());
+          tauTuple().track_n_LostMuonCSCHits.push_back(hitPattern.numberOfLostMuonCSCHits());
+          tauTuple().track_n_LostMuonRPCHits.push_back(hitPattern.numberOfLostMuonRPCHits());
+          tauTuple().track_n_LostMuonGEMHits.push_back(hitPattern.numberOfLostMuonGEMHits());
+          tauTuple().track_n_LostMuonME0Hits.push_back(hitPattern.numberOfLostMuonME0Hits());
+
+          tauTuple().track_n_TimingHits.push_back(hitPattern.numberOfTimingHits());
+          tauTuple().track_n_ValidTimingHits.push_back(hitPattern.numberOfValidTimingHits());
+          tauTuple().track_n_LostTimingHits.push_back(hitPattern.numberOfLostTimingHits());
+
           using ctgr = reco::HitPattern;
+          tauTuple().track_n_AllHits_0.push_back(hitPattern.numberOfAllHits(ctgr::TRACK_HITS));
+          tauTuple().track_n_AllHits_1.push_back(hitPattern.numberOfAllHits(ctgr::MISSING_INNER_HITS));
+          tauTuple().track_n_AllHits_2.push_back(hitPattern.numberOfAllHits(ctgr::MISSING_OUTER_HITS));
           tauTuple().track_n_LostHits_0.push_back(hitPattern.numberOfLostHits(ctgr::TRACK_HITS));
           tauTuple().track_n_LostHits_1.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_INNER_HITS));
           tauTuple().track_n_LostHits_2.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_OUTER_HITS));
