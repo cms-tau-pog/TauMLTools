@@ -622,6 +622,7 @@ private:
             tauTuple().muon_segmentCompatibility.push_back(static_cast<float>(muon->segmentCompatibility()));
             tauTuple().muon_caloCompatibility.push_back(muon->caloCompatibility());
             tauTuple().muon_pfEcalEnergy.push_back(muon->pfEcalEnergy());
+            tauTuple().muon_type.push_back(muon->type());
 
             const MuonHitMatch hit_match(*muon);
             for(int subdet : MuonHitMatch::ConsideredSubdets()) {

@@ -267,6 +267,16 @@
     MUON_VAR(Float_t, caloCompatibility) /* relative likelihood based on ECAL, HCAL, HO energy defined as
                                             L_muon / (L_muon + L_not_muon) */ \
     MUON_VAR(Float_t, pfEcalEnergy) /* PF based energy deposition in the ECAL */ \
+    MUON_VAR(UInt_t, type) /* Muon type - type of the algorithm that reconstructed this muon
+                              multiple algorithms can reconstruct the same muon
+                              GlobalMuon = 1 << 1;
+                              TrackerMuon = 1 << 2;
+                              StandAloneMuon = 1 << 3;
+                              CaloMuon = 1 << 4;
+                              PFMuon = 1 << 5;
+                              RPCMuon = 1 << 6;
+                              GEMMuon = 1 << 7;
+                              ME0Muon = 1 << 8; */ \
     MUON_VAR4(Int_t, n_matches_DT_1, n_matches_DT_2, n_matches_DT_3, \
                      n_matches_DT_4) /* number of segment matches for the DT subdetector stations */ \
     MUON_VAR4(Int_t, n_matches_CSC_1, n_matches_CSC_2, n_matches_CSC_3, \
