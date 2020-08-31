@@ -187,7 +187,7 @@
     ELE_VAR(Float_t, cc_gamma_energy) /* sum of the energies of additional calo clusters
                                          in the electron super cluster */ \
     ELE_VAR(Int_t, cc_n_gamma) /* number of additional calo clusters in the electron super cluster */ \
-    ELE_VAR3(Float_t, dB, edB, ip3d) /* impact parameter of the electron */ \
+    ELE_VAR3(Float_t, dxy, dxy_error, ip3d) /* impact parameter of the electron */ \
     ELE_VAR(Float_t, trackMomentumAtVtx) /* module of the track momentum at the PCA to the beam spot */ \
     ELE_VAR(Float_t, trackMomentumAtCalo) /* module of the track momentum extrapolated at the supercluster position
                                              from the innermost track state */ \
