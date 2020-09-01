@@ -283,12 +283,20 @@
                      n_matches_CSC_4) /* number of segment matches for the CSC subdetector stations */ \
     MUON_VAR4(Int_t, n_matches_RPC_1, n_matches_RPC_2, n_matches_RPC_3, \
                      n_matches_RPC_4) /* number of segment matches for the RPC subdetector stations */ \
+    MUON_VAR4(Int_t, n_matches_GEM_1, n_matches_GEM_2, n_matches_GEM_3, \
+                     n_matches_GEM_4) /* number of segment matches for the GEM subdetector stations */ \
+    MUON_VAR4(Int_t, n_matches_ME0_1, n_matches_ME0_2, n_matches_ME0_3, \
+                     n_matches_ME0_4) /* number of segment matches for the ME0 subdetector stations */ \
     MUON_VAR4(Int_t, n_hits_DT_1, n_hits_DT_2, n_hits_DT_3, \
                      n_hits_DT_4) /* number of valid and bad hits for the DT subdetector stations */ \
     MUON_VAR4(Int_t, n_hits_CSC_1, n_hits_CSC_2, n_hits_CSC_3, \
                      n_hits_CSC_4) /* number of valid and bad hits for the CSC subdetector stations */ \
     MUON_VAR4(Int_t, n_hits_RPC_1, n_hits_RPC_2, n_hits_RPC_3, \
                      n_hits_RPC_4) /* number of valid and bad hits for the RPC subdetector stations */ \
+    MUON_VAR4(Int_t, n_hits_GEM_1, n_hits_GEM_2, n_hits_GEM_3, \
+                     n_hits_GEM_4) /* number of valid and bad hits for the GEM subdetector stations */ \
+    MUON_VAR4(Int_t, n_hits_ME0_1, n_hits_ME0_2, n_hits_ME0_3, \
+                     n_hits_ME0_4) /* number of valid and bad hits for the ME0 subdetector stations */ \
     /* PAT IsolatedTrack*/ \
     TRACK_VAR3(Float_t, pt, eta, phi) /* track kinematics */ \
     TRACK_VAR(Int_t, fromPV) /* the association to PV=ipv. >=PVLoose corresponds to JME definition,
