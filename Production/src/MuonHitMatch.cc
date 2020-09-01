@@ -63,7 +63,7 @@ void MuonHitMatch::CountHits(const pat::Muon& muon, CountMap& n_hits)
             if(hit_id == 0) break;
             if(hit_pattern.muonHitFilter(hit_id) && (hit_pattern.getHitType(hit_id) == TrackingRecHit::valid
                                                      || hit_pattern.getHitType(hit_id) == TrackingRecHit::bad)) {
-                const size_t station_index = GetStationIndex(hit_pattern.getMuonStation(hit_id), false);
+                size_t station_index = GetStationIndex(hit_pattern.getMuonStation(hit_id), false);
                 if(station_index < n_muon_stations) {
                     CountArray* muon_n_hits = nullptr;
                     if(hit_pattern.muonDTHitFilter(hit_id))
@@ -74,8 +74,10 @@ void MuonHitMatch::CountHits(const pat::Muon& muon, CountMap& n_hits)
                         muon_n_hits = &n_hits.at(MuonSubdetId::RPC);
                     else if(hit_pattern.muonGEMHitFilter(hit_id))
                         muon_n_hits = &n_hits.at(MuonSubdetId::GEM);
-                    else if(hit_pattern.muonME0HitFilter(hit_id))
+                    else if(hit_pattern.muonME0HitFilter(hit_id)) {
                         muon_n_hits = &n_hits.at(MuonSubdetId::ME0);
+                        station_index = GetStationIndex(1, false);
+                    }
 
                     if(muon_n_hits)
                         ++muon_n_hits->at(station_index);
