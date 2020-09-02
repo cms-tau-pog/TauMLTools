@@ -39,6 +39,13 @@ globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
                  'MC_Phase2_111X' : '111X_mcRun4_realistic_T15_v1',
                }
 
+def IsEmbedded(sampleType):
+    isEmbedded = sampleType in mcSampleTypes and 'Emb' in sampleType
+    if not sampleType in mcSampleTypes and not sampleType in dataSampleTypes:
+        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        sys.exit(1)
+    return isEmbedded
+
 def IsData(sampleType):
     isData = sampleType in dataSampleTypes
     if not isData and not sampleType in mcSampleTypes:

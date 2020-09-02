@@ -41,6 +41,7 @@ options.parseArguments()
 
 sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
 isData = sampleConfig.IsData(options.sampleType)
+isEmbedded = sampleConfig.IsEmbedded(options.sampleType)
 period = sampleConfig.GetPeriod(options.sampleType)
 period_cfg = sampleConfig.GetPeriodCfg(options.sampleType)
 
@@ -121,8 +122,12 @@ tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
 tauJetdR = 0.3
 objectdR = 0.5
 
+print 'isMC', int(not isData if not isEmbedded else False)
+print 'isEm', int(not isData if     isEmbedded else False)
+
 process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
-    isMC                            = cms.bool(not isData),
+    isMC                            = cms.bool(not isData if not isEmbedded else False),
+    isEmbedded                      = cms.bool(not isData if     isEmbedded else False),
     minJetPt                        = cms.double(10.),
     maxJetEta                       = cms.double(3.),
     forceTauJetMatch                = cms.bool(False),
