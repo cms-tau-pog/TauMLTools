@@ -122,9 +122,6 @@ tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
 tauJetdR = 0.3
 objectdR = 0.5
 
-print 'isMC', int(not isData if not isEmbedded else False)
-print 'isEm', int(not isData if     isEmbedded else False)
-
 process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     isMC                            = cms.bool(not isData if not isEmbedded else False),
     isEmbedded                      = cms.bool(not isData if     isEmbedded else False),
