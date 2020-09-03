@@ -335,7 +335,6 @@ private:
                       Long64_t& end, bool inner)
     {
         begin = cellTuple.GetEntries();
-std::cout << "tau: pT = " << tau.tau_pt << ", eta = " << tau.tau_eta << ", phi = " << tau.tau_phi << ", mass = " << tau.tau_mass << " (decayMode = " << tau.tau_decayMode << ")" << std::endl;
         auto cellGrid = CreateCellGrid(tau, cellGridRef, inner);
         const int max_eta_index = cellGrid.MaxEtaIndex(), max_phi_index = cellGrid.MaxPhiIndex();
         const int max_distance = max_eta_index + max_phi_index;
