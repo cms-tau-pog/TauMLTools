@@ -186,6 +186,11 @@ private:
         tauTuple().pv_x = static_cast<float>(PV.position().x());
         tauTuple().pv_y = static_cast<float>(PV.position().y());
         tauTuple().pv_z = static_cast<float>(PV.position().z());
+        tauTuple().pv_t = static_cast<float>(PV.t());
+        tauTuple().pv_xE = static_cast<float>(PV.xError());
+        tauTuple().pv_yE = static_cast<float>(PV.yError());
+        tauTuple().pv_zE = static_cast<float>(PV.zError());
+        tauTuple().pv_tE = static_cast<float>(PV.tError());
         tauTuple().pv_chi2 = static_cast<float>(PV.chi2());
         tauTuple().pv_ndof = static_cast<float>(PV.ndof());
 
@@ -438,10 +443,15 @@ private:
             tauTuple().pfCand_charge.push_back(cand->charge());
             tauTuple().pfCand_lostInnerHits.push_back(cand->lostInnerHits());
             tauTuple().pfCand_numberOfPixelHits.push_back(cand->numberOfPixelHits());
+            tauTuple().pfCand_numberOfHits.push_back(cand->numberOfHits());
 
             tauTuple().pfCand_vertex_x.push_back(static_cast<float>(cand->vertex().x()));
             tauTuple().pfCand_vertex_y.push_back(static_cast<float>(cand->vertex().y()));
             tauTuple().pfCand_vertex_z.push_back(static_cast<float>(cand->vertex().z()));
+            tauTuple().pfCand_vertex_t.push_back(static_cast<float>(cand->vertexRef()->t()));
+
+            tauTuple().pfCand_time.push_back(cand->time());
+            tauTuple().pfCand_timeError.push_back(cand->timeError());
 
             const bool hasTrackDetails = cand->hasTrackDetails();
             tauTuple().pfCand_hasTrackDetails.push_back(hasTrackDetails);
@@ -455,7 +465,9 @@ private:
                         hasTrackDetails ? static_cast<float>(cand->pseudoTrack().ndof()) : default_value);
 
             tauTuple().pfCand_hcalFraction.push_back(cand->hcalFraction());
+            tauTuple().pfCand_caloFraction.push_back(cand->caloFraction());
             tauTuple().pfCand_rawCaloFraction.push_back(cand->rawCaloFraction());
+            tauTuple().pfCand_rawHcalFraction.push_back(cand->rawHcalFraction());
         }
     }
 
@@ -477,6 +489,9 @@ private:
             tauTuple().ele_trackMomentumOut.push_back(ele->trackMomentumOut().R());
             tauTuple().ele_trackMomentumAtEleClus.push_back(ele->trackMomentumAtEleClus().R());
             tauTuple().ele_trackMomentumAtVtxWithConstraint.push_back(ele->trackMomentumAtVtxWithConstraint().R());
+            tauTuple().ele_dxy.push_back(ele->dB(pat::Electron::PV2D));
+            tauTuple().ele_dxy_error.push_back(ele->edB(pat::Electron::PV2D));
+            tauTuple().ele_ip3d.push_back(ele->ip3d());
             tauTuple().ele_ecalEnergy.push_back(ele->ecalEnergy());
             tauTuple().ele_ecalEnergy_error.push_back(ele->ecalEnergyError());
             tauTuple().ele_eSuperClusterOverP.push_back(ele->eSuperClusterOverP());
@@ -486,15 +501,106 @@ private:
             tauTuple().ele_deltaEtaSuperClusterTrackAtVtx.push_back(ele->deltaEtaSuperClusterTrackAtVtx());
             tauTuple().ele_deltaEtaSeedClusterTrackAtCalo.push_back(ele->deltaEtaSeedClusterTrackAtCalo());
             tauTuple().ele_deltaEtaEleClusterTrackAtCalo.push_back(ele->deltaEtaEleClusterTrackAtCalo());
+            tauTuple().ele_deltaEtaSeedClusterTrackAtVtx.push_back(ele->deltaEtaSeedClusterTrackAtVtx());
             tauTuple().ele_deltaPhiEleClusterTrackAtCalo.push_back(ele->deltaPhiEleClusterTrackAtCalo());
             tauTuple().ele_deltaPhiSuperClusterTrackAtVtx.push_back(ele->deltaPhiSuperClusterTrackAtVtx());
             tauTuple().ele_deltaPhiSeedClusterTrackAtCalo.push_back(ele->deltaPhiSeedClusterTrackAtCalo());
 
-            tauTuple().ele_mvaInput_earlyBrem.push_back(ele->mvaInput().earlyBrem);
-            tauTuple().ele_mvaInput_lateBrem.push_back(ele->mvaInput().lateBrem);
-            tauTuple().ele_mvaInput_sigmaEtaEta.push_back(ele->mvaInput().sigmaEtaEta);
-            tauTuple().ele_mvaInput_hadEnergy.push_back(ele->mvaInput().hadEnergy);
-            tauTuple().ele_mvaInput_deltaEta.push_back(ele->mvaInput().deltaEta);
+
+            const bool isHGCAL = ele->hasUserFloat("hgcElectronID:sigmaUU");
+            tauTuple().ele_mvaInput_earlyBrem.push_back(!isHGCAL ? ele->mvaInput().earlyBrem : default_int_value);
+            tauTuple().ele_mvaInput_lateBrem.push_back(!isHGCAL ? ele->mvaInput().lateBrem : default_int_value);
+            tauTuple().ele_mvaInput_sigmaEtaEta.push_back(!isHGCAL ? ele->mvaInput().sigmaEtaEta : default_value);
+            tauTuple().ele_mvaInput_hadEnergy.push_back(!isHGCAL ? ele->mvaInput().hadEnergy : default_value);
+            tauTuple().ele_mvaInput_deltaEta.push_back(!isHGCAL ? ele->mvaInput().deltaEta : default_value);
+
+            // shower shape variables are available for non-HGCal electrons with pt > 5
+            const bool hasShapeVars = !isHGCAL && ele->polarP4().pt() > 5;
+            tauTuple().ele_sigmaIetaIphi.push_back(hasShapeVars ? ele->sigmaIetaIphi() : default_value);
+            tauTuple().ele_sigmaEtaEta.push_back(hasShapeVars ? ele->sigmaEtaEta() : default_value);
+            tauTuple().ele_sigmaIetaIeta.push_back(hasShapeVars ? ele->sigmaIetaIeta() : default_value);
+            tauTuple().ele_sigmaIphiIphi.push_back(hasShapeVars ? ele->sigmaIphiIphi() : default_value);
+            tauTuple().ele_e1x5.push_back(hasShapeVars ? ele->e1x5() : default_value);
+            tauTuple().ele_e2x5Max.push_back(hasShapeVars ? ele->e2x5Max() : default_value);
+            tauTuple().ele_e5x5.push_back(hasShapeVars ? ele->e5x5() : default_value);
+            tauTuple().ele_r9.push_back(hasShapeVars ? ele->r9() : default_value);
+            tauTuple().ele_hcalDepth1OverEcal.push_back(hasShapeVars ? ele->hcalDepth1OverEcal() : default_value);
+            tauTuple().ele_hcalDepth2OverEcal.push_back(hasShapeVars ? ele->hcalDepth2OverEcal() : default_value);
+            tauTuple().ele_hcalDepth1OverEcalBc.push_back(hasShapeVars ? ele->hcalDepth1OverEcalBc() : default_value);
+            tauTuple().ele_hcalDepth2OverEcalBc.push_back(hasShapeVars ? ele->hcalDepth2OverEcalBc() : default_value);
+            tauTuple().ele_eLeft.push_back(hasShapeVars ? ele->eLeft() : default_value);
+            tauTuple().ele_eRight.push_back(hasShapeVars ? ele->eRight() : default_value);
+            tauTuple().ele_eTop.push_back(hasShapeVars ? ele->eTop() : default_value);
+            tauTuple().ele_eBottom.push_back(hasShapeVars ? ele->eBottom() : default_value);
+
+            tauTuple().ele_full5x5_sigmaEtaEta.push_back(hasShapeVars ? ele->full5x5_sigmaEtaEta() : default_value);
+            tauTuple().ele_full5x5_sigmaIetaIeta.push_back(hasShapeVars ? ele->full5x5_sigmaIetaIeta() : default_value);
+            tauTuple().ele_full5x5_sigmaIphiIphi.push_back(hasShapeVars ? ele->full5x5_sigmaIphiIphi() : default_value);
+            tauTuple().ele_full5x5_sigmaIetaIphi.push_back(hasShapeVars ? ele->full5x5_sigmaIetaIphi() : default_value);
+            tauTuple().ele_full5x5_e1x5.push_back(hasShapeVars ? ele->full5x5_e1x5() : default_value);
+            tauTuple().ele_full5x5_e2x5Max.push_back(hasShapeVars ? ele->full5x5_e2x5Max() : default_value);
+            tauTuple().ele_full5x5_e5x5.push_back(hasShapeVars ? ele->full5x5_e5x5() : default_value);
+            tauTuple().ele_full5x5_r9.push_back(hasShapeVars ? ele->full5x5_r9() : default_value);
+            tauTuple().ele_full5x5_hcalDepth1OverEcal.push_back(hasShapeVars ? ele->full5x5_hcalDepth1OverEcal() : default_value);
+            tauTuple().ele_full5x5_hcalDepth2OverEcal.push_back(hasShapeVars ? ele->full5x5_hcalDepth2OverEcal() : default_value);
+            tauTuple().ele_full5x5_hcalDepth1OverEcalBc.push_back(hasShapeVars ? ele->full5x5_hcalDepth1OverEcalBc() : default_value);
+            tauTuple().ele_full5x5_hcalDepth2OverEcalBc.push_back(hasShapeVars ? ele->full5x5_hcalDepth2OverEcalBc() : default_value);
+            tauTuple().ele_full5x5_eLeft.push_back(hasShapeVars ? ele->full5x5_eLeft() : default_value);
+            tauTuple().ele_full5x5_eRight.push_back(hasShapeVars ? ele->full5x5_eRight() : default_value);
+            tauTuple().ele_full5x5_eTop.push_back(hasShapeVars ? ele->full5x5_eTop() : default_value);
+            tauTuple().ele_full5x5_eBottom.push_back(hasShapeVars ? ele->full5x5_eBottom() : default_value);
+            tauTuple().ele_full5x5_e2x5Left.push_back(hasShapeVars ? ele->full5x5_e2x5Left() : default_value);
+            tauTuple().ele_full5x5_e2x5Right.push_back(hasShapeVars ? ele->full5x5_e2x5Right() : default_value);
+            tauTuple().ele_full5x5_e2x5Top.push_back(hasShapeVars ? ele->full5x5_e2x5Top() : default_value);
+            tauTuple().ele_full5x5_e2x5Bottom.push_back(hasShapeVars ? ele->full5x5_e2x5Bottom() : default_value);
+
+            // Only phase2 electrons with !ele->isEB() obtain a value != default_{int_,}value via hasUserFloat() decision
+            const auto fillUserFloat = [&ele](std::vector<float>& output, const std::string& name) {
+                output.push_back(ele->hasUserFloat(name) ? ele->userFloat(name) : default_value);
+            };
+
+            const auto fillUserInt = [&ele](std::vector<int>& output, const std::string& name) {
+                output.push_back(ele->hasUserFloat(name) ? static_cast<int>(ele->userFloat(name)) : default_int_value);
+            };
+
+            fillUserFloat(tauTuple().ele_hgcal_sigmaUU, "hgcElectronID:sigmaUU");
+            fillUserFloat(tauTuple().ele_hgcal_sigmaVV, "hgcElectronID:sigmaVV");
+            fillUserFloat(tauTuple().ele_hgcal_sigmaEE, "hgcElectronID:sigmaEE");
+            fillUserFloat(tauTuple().ele_hgcal_sigmaPP, "hgcElectronID:sigmaPP");
+            fillUserInt(tauTuple().ele_hgcal_nLayers, "hgcElectronID:nLayers");
+            fillUserInt(tauTuple().ele_hgcal_firstLayer, "hgcElectronID:firstLayer");
+            fillUserInt(tauTuple().ele_hgcal_lastLayer, "hgcElectronID:lastLayer");
+            fillUserInt(tauTuple().ele_hgcal_layerEfrac10, "hgcElectronID:layerEfrac10");
+            fillUserInt(tauTuple().ele_hgcal_layerEfrac90, "hgcElectronID:layerEfrac90");
+            fillUserFloat(tauTuple().ele_hgcal_e4oEtot, "hgcElectronID:e4oEtot");
+            fillUserFloat(tauTuple().ele_hgcal_ecEnergy, "hgcElectronID:ecEnergy");
+            fillUserFloat(tauTuple().ele_hgcal_ecEnergyEE, "hgcElectronID:ecEnergyEE");
+            fillUserFloat(tauTuple().ele_hgcal_ecEnergyBH, "hgcElectronID:ecEnergyBH");
+            fillUserFloat(tauTuple().ele_hgcal_ecEnergyFH, "hgcElectronID:ecEnergyFH");
+            fillUserFloat(tauTuple().ele_hgcal_ecEt, "hgcElectronID:ecEt");
+            fillUserFloat(tauTuple().ele_hgcal_ecOrigEnergy, "hgcElectronID:ecOrigEnergy");
+            fillUserFloat(tauTuple().ele_hgcal_ecOrigEt, "hgcElectronID:ecOrigEt");
+            fillUserFloat(tauTuple().ele_hgcal_caloIsoRing0, "hgcElectronID:caloIsoRing0");
+            fillUserFloat(tauTuple().ele_hgcal_caloIsoRing1, "hgcElectronID:caloIsoRing1");
+            fillUserFloat(tauTuple().ele_hgcal_caloIsoRing2, "hgcElectronID:caloIsoRing2");
+            fillUserFloat(tauTuple().ele_hgcal_caloIsoRing3, "hgcElectronID:caloIsoRing3");
+            fillUserFloat(tauTuple().ele_hgcal_caloIsoRing4, "hgcElectronID:caloIsoRing4");
+            fillUserFloat(tauTuple().ele_hgcal_depthCompatibility, "hgcElectronID:depthCompatibility");
+            fillUserFloat(tauTuple().ele_hgcal_expectedDepth, "hgcElectronID:expectedDepth");
+            fillUserFloat(tauTuple().ele_hgcal_expectedSigma, "hgcElectronID:expectedSigma");
+            fillUserFloat(tauTuple().ele_hgcal_measuredDepth, "hgcElectronID:measuredDepth");
+            fillUserFloat(tauTuple().ele_hgcal_pcaAxisX, "hgcElectronID:pcaAxisX");
+            fillUserFloat(tauTuple().ele_hgcal_pcaAxisY, "hgcElectronID:pcaAxisY");
+            fillUserFloat(tauTuple().ele_hgcal_pcaAxisZ, "hgcElectronID:pcaAxisZ");
+            fillUserFloat(tauTuple().ele_hgcal_pcaPositionX, "hgcElectronID:pcaPositionX");
+            fillUserFloat(tauTuple().ele_hgcal_pcaPositionY, "hgcElectronID:pcaPositionY");
+            fillUserFloat(tauTuple().ele_hgcal_pcaPositionZ, "hgcElectronID:pcaPositionZ");
+            fillUserFloat(tauTuple().ele_hgcal_pcaEig1, "hgcElectronID:pcaEig1");
+            fillUserFloat(tauTuple().ele_hgcal_pcaEig2, "hgcElectronID:pcaEig2");
+            fillUserFloat(tauTuple().ele_hgcal_pcaEig3, "hgcElectronID:pcaEig3");
+            fillUserFloat(tauTuple().ele_hgcal_pcaSig1, "hgcElectronID:pcaSig1");
+            fillUserFloat(tauTuple().ele_hgcal_pcaSig2, "hgcElectronID:pcaSig2");
+            fillUserFloat(tauTuple().ele_hgcal_pcaSig3, "hgcElectronID:pcaSig3");
 
             const auto& gsfTrack = ele->gsfTrack();
             tauTuple().ele_gsfTrack_normalizedChi2.push_back(
@@ -530,6 +636,7 @@ private:
             tauTuple().muon_segmentCompatibility.push_back(static_cast<float>(muon->segmentCompatibility()));
             tauTuple().muon_caloCompatibility.push_back(muon->caloCompatibility());
             tauTuple().muon_pfEcalEnergy.push_back(muon->pfEcalEnergy());
+            tauTuple().muon_type.push_back(muon->type());
 
             const MuonHitMatch hit_match(*muon);
             for(int subdet : MuonHitMatch::ConsideredSubdets()) {
@@ -574,16 +681,45 @@ private:
           tauTuple().track_n_InactiveHits.push_back(hitPattern.numberOfInactiveHits());
           tauTuple().track_n_ValidPixelHits.push_back(hitPattern.numberOfValidPixelHits());
           tauTuple().track_n_ValidStripHits.push_back(hitPattern.numberOfValidStripHits());
+
+          tauTuple().track_n_MuonHits.push_back(hitPattern.numberOfMuonHits());
+          tauTuple().track_n_BadHits.push_back(hitPattern.numberOfBadHits());
+          tauTuple().track_n_BadMuonHits.push_back(hitPattern.numberOfBadMuonHits());
+          tauTuple().track_n_BadMuonDTHits.push_back(hitPattern.numberOfBadMuonDTHits());
+          tauTuple().track_n_BadMuonCSCHits.push_back(hitPattern.numberOfBadMuonCSCHits());
+          tauTuple().track_n_BadMuonRPCHits.push_back(hitPattern.numberOfBadMuonRPCHits());
+          tauTuple().track_n_BadMuonGEMHits.push_back(hitPattern.numberOfBadMuonGEMHits());
+          tauTuple().track_n_BadMuonME0Hits.push_back(hitPattern.numberOfBadMuonME0Hits());
+          tauTuple().track_n_ValidMuonHits.push_back(hitPattern.numberOfValidMuonHits());
+          tauTuple().track_n_ValidMuonDTHits.push_back(hitPattern.numberOfValidMuonDTHits());
+          tauTuple().track_n_ValidMuonCSCHits.push_back(hitPattern.numberOfValidMuonCSCHits());
+          tauTuple().track_n_ValidMuonRPCHits.push_back(hitPattern.numberOfValidMuonRPCHits());
+          tauTuple().track_n_ValidMuonGEMHits.push_back(hitPattern.numberOfValidMuonGEMHits());
+          tauTuple().track_n_ValidMuonME0Hits.push_back(hitPattern.numberOfValidMuonME0Hits());
+          tauTuple().track_n_LostMuonHits.push_back(hitPattern.numberOfLostMuonHits());
+          tauTuple().track_n_LostMuonDTHits.push_back(hitPattern.numberOfLostMuonDTHits());
+          tauTuple().track_n_LostMuonCSCHits.push_back(hitPattern.numberOfLostMuonCSCHits());
+          tauTuple().track_n_LostMuonRPCHits.push_back(hitPattern.numberOfLostMuonRPCHits());
+          tauTuple().track_n_LostMuonGEMHits.push_back(hitPattern.numberOfLostMuonGEMHits());
+          tauTuple().track_n_LostMuonME0Hits.push_back(hitPattern.numberOfLostMuonME0Hits());
+
+          tauTuple().track_n_TimingHits.push_back(hitPattern.numberOfTimingHits());
+          tauTuple().track_n_ValidTimingHits.push_back(hitPattern.numberOfValidTimingHits());
+          tauTuple().track_n_LostTimingHits.push_back(hitPattern.numberOfLostTimingHits());
+
           using ctgr = reco::HitPattern;
-          tauTuple().track_n_LostHits_0.push_back(hitPattern.numberOfLostHits(ctgr::TRACK_HITS));
-          tauTuple().track_n_LostHits_1.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_INNER_HITS));
-          tauTuple().track_n_LostHits_2.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_OUTER_HITS));
-          tauTuple().track_n_LostPixelHits_0.push_back(hitPattern.numberOfLostPixelHits(ctgr::TRACK_HITS));
-          tauTuple().track_n_LostPixelHits_1.push_back(hitPattern.numberOfLostPixelHits(ctgr::MISSING_INNER_HITS));
-          tauTuple().track_n_LostPixelHits_2.push_back(hitPattern.numberOfLostPixelHits(ctgr::MISSING_OUTER_HITS));
-          tauTuple().track_n_LostStripHits_0.push_back(hitPattern.numberOfLostStripHits(ctgr::TRACK_HITS));
-          tauTuple().track_n_LostStripHits_1.push_back(hitPattern.numberOfLostStripHits(ctgr::MISSING_INNER_HITS));
-          tauTuple().track_n_LostStripHits_2.push_back(hitPattern.numberOfLostStripHits(ctgr::MISSING_OUTER_HITS));
+          tauTuple().track_n_AllHits_TRACK.push_back(hitPattern.numberOfAllHits(ctgr::TRACK_HITS));
+          tauTuple().track_n_AllHits_MISSING_INNER.push_back(hitPattern.numberOfAllHits(ctgr::MISSING_INNER_HITS));
+          tauTuple().track_n_AllHits_MISSING_OUTER.push_back(hitPattern.numberOfAllHits(ctgr::MISSING_OUTER_HITS));
+          tauTuple().track_n_LostHits_TRACK.push_back(hitPattern.numberOfLostHits(ctgr::TRACK_HITS));
+          tauTuple().track_n_LostHits_MISSING_INNER.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_INNER_HITS));
+          tauTuple().track_n_LostHits_MISSING_OUTER.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_OUTER_HITS));
+          tauTuple().track_n_LostPixelHits_TRACK.push_back(hitPattern.numberOfLostPixelHits(ctgr::TRACK_HITS));
+          tauTuple().track_n_LostPixelHits_MISSING_INNER.push_back(hitPattern.numberOfLostPixelHits(ctgr::MISSING_INNER_HITS));
+          tauTuple().track_n_LostPixelHits_MISSING_OUTER.push_back(hitPattern.numberOfLostPixelHits(ctgr::MISSING_OUTER_HITS));
+          tauTuple().track_n_LostStripHits_TRACK.push_back(hitPattern.numberOfLostStripHits(ctgr::TRACK_HITS));
+          tauTuple().track_n_LostStripHits_MISSING_INNER.push_back(hitPattern.numberOfLostStripHits(ctgr::MISSING_INNER_HITS));
+          tauTuple().track_n_LostStripHits_MISSING_OUTER.push_back(hitPattern.numberOfLostStripHits(ctgr::MISSING_OUTER_HITS));
 
         }
     }
