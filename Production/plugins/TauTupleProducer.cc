@@ -121,6 +121,7 @@ class TauTupleProducer : public edm::EDAnalyzer {
 public:
     TauTupleProducer(const edm::ParameterSet& cfg) :
         isMC(cfg.getParameter<bool>("isMC")),
+        isEmbedded(cfg.getParameter<bool>("isEmbedded")),
         storeJetsWithoutTau(cfg.getParameter<bool>("storeJetsWithoutTau")),
         requireGenMatch(cfg.getParameter<bool>("requireGenMatch")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
@@ -161,6 +162,8 @@ private:
         tauTuple().run  = event.id().run();
         tauTuple().lumi = event.id().luminosityBlock();
         tauTuple().evt  = event.id().event();
+        tauTuple().sampleType = isEmbedded ? static_cast<int>(SampleType::Embedded) :
+                                isMC ? static_cast<int>(SampleType::MC) : static_cast<int>(SampleType::Data);
 
         edm::Handle<std::vector<reco::Vertex>> vertices;
         event.getByToken(vertices_token, vertices);
@@ -617,7 +620,7 @@ private:
     }
 
 private:
-    const bool isMC, storeJetsWithoutTau, requireGenMatch;
+    const bool isMC, isEmbedded, storeJetsWithoutTau, requireGenMatch;
     TauJetBuilderSetup builderSetup;
 
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;
