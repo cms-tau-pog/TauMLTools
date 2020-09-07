@@ -123,8 +123,8 @@ tauJetdR = 0.3
 objectdR = 0.5
 
 process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
-    isMC                            = cms.bool(not isData if not isEmbedded else False),
-    isEmbedded                      = cms.bool(not isData if     isEmbedded else False),
+    isMC                            = cms.bool(not isData),
+    isEmbedded                      = cms.bool(isEmbedded),
     minJetPt                        = cms.double(10.),
     maxJetEta                       = cms.double(3.),
     forceTauJetMatch                = cms.bool(False),
