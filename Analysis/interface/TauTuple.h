@@ -324,32 +324,32 @@
     TRACK_VAR3(Int_t, n_ValidMuonGEMHits, n_LostMuonGEMHits, n_BadMuonGEMHits) /* number Of Muon GEM Hits (valid, lost, bad) */ \
     TRACK_VAR3(Int_t, n_ValidMuonME0Hits, n_LostMuonME0Hits, n_BadMuonME0Hits) /* number Of Muon ME0 Hits (valid, lost, bad) */ \
     TRACK_VAR(Int_t, n_InactiveHits) /* number Of Inactive Hits */ \
-    TRACK_VAR3(Int_t, n_AllHits_0, \
-                      n_AllHits_1, \
-                      n_AllHits_2) /* number Of All Hits
-                                       0 -> TRACK_HITS,
-                                       1 -> MISSING_INNER_HITS,
-                                       2 -> MISSING_OUTER_HITS*/ \
-    TRACK_VAR3(Int_t, n_LostHits_0, \
-                      n_LostHits_1, \
-                      n_LostHits_2) /* number Of Lost Hits
-                                       0 -> TRACK_HITS,
-                                       1 -> MISSING_INNER_HITS,
-                                       2 -> MISSING_OUTER_HITS*/ \
+    TRACK_VAR3(Int_t, n_AllHits_TRACK, \
+                      n_AllHits_MISSING_INNER, \
+                      n_AllHits_MISSING_OUTER) /* number Of All Hits; hit patterns:
+                                                  0 -> TRACK_HITS,
+                                                  1 -> MISSING_INNER_HITS,
+                                                  2 -> MISSING_OUTER_HITS*/ \
+    TRACK_VAR3(Int_t, n_LostHits_TRACK, \
+                      n_LostHits_MISSING_INNER, \
+                      n_LostHits_MISSING_OUTER) /* number Of Lost Hits; hit patterns:
+                                                   0 -> TRACK_HITS,
+                                                   1 -> MISSING_INNER_HITS,
+                                                   2 -> MISSING_OUTER_HITS*/ \
     TRACK_VAR(Int_t, n_ValidPixelHits) /* number Of Valid Pixel Hits */ \
     TRACK_VAR(Int_t, n_ValidStripHits) /* number Of Valid Strip Hits */ \
-    TRACK_VAR3(Int_t, n_LostPixelHits_0, \
-                      n_LostPixelHits_1, \
-                      n_LostPixelHits_2) /* number Of Lost Pixe Hits
-                                           0 -> TRACK_HITS,
-                                           1 -> MISSING_INNER_HITS,
-                                           2 -> MISSING_OUTER_HITS */ \
-    TRACK_VAR3(Int_t, n_LostStripHits_0, \
-                      n_LostStripHits_1, \
-                      n_LostStripHits_2) /* number Of Lost Strip Hits
-                                          0 -> TRACK_HITS,
-                                          1 -> MISSING_INNER_HITS,
-                                          2 -> MISSING_OUTER_HITS */ \
+    TRACK_VAR3(Int_t, n_LostPixelHits_TRACK, \
+                      n_LostPixelHits_MISSING_INNER, \
+                      n_LostPixelHits_MISSING_OUTER) /* number Of Lost Pixel Hits; hit patterns:
+                                                        0 -> TRACK_HITS,
+                                                        1 -> MISSING_INNER_HITS,
+                                                        2 -> MISSING_OUTER_HITS */ \
+    TRACK_VAR3(Int_t, n_LostStripHits_TRACK, \
+                      n_LostStripHits_MISSING_INNER, \
+                      n_LostStripHits_MISSING_OUTER) /* number Of Lost Strip Hits; hit patterns:
+                                                        0 -> TRACK_HITS,
+                                                        1 -> MISSING_INNER_HITS,
+                                                        2 -> MISSING_OUTER_HITS */ \
     /**/
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)

@@ -705,18 +705,18 @@ private:
           tauTuple().track_n_LostTimingHits.push_back(hitPattern.numberOfLostTimingHits());
 
           using ctgr = reco::HitPattern;
-          tauTuple().track_n_AllHits_0.push_back(hitPattern.numberOfAllHits(ctgr::TRACK_HITS));
-          tauTuple().track_n_AllHits_1.push_back(hitPattern.numberOfAllHits(ctgr::MISSING_INNER_HITS));
-          tauTuple().track_n_AllHits_2.push_back(hitPattern.numberOfAllHits(ctgr::MISSING_OUTER_HITS));
-          tauTuple().track_n_LostHits_0.push_back(hitPattern.numberOfLostHits(ctgr::TRACK_HITS));
-          tauTuple().track_n_LostHits_1.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_INNER_HITS));
-          tauTuple().track_n_LostHits_2.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_OUTER_HITS));
-          tauTuple().track_n_LostPixelHits_0.push_back(hitPattern.numberOfLostPixelHits(ctgr::TRACK_HITS));
-          tauTuple().track_n_LostPixelHits_1.push_back(hitPattern.numberOfLostPixelHits(ctgr::MISSING_INNER_HITS));
-          tauTuple().track_n_LostPixelHits_2.push_back(hitPattern.numberOfLostPixelHits(ctgr::MISSING_OUTER_HITS));
-          tauTuple().track_n_LostStripHits_0.push_back(hitPattern.numberOfLostStripHits(ctgr::TRACK_HITS));
-          tauTuple().track_n_LostStripHits_1.push_back(hitPattern.numberOfLostStripHits(ctgr::MISSING_INNER_HITS));
-          tauTuple().track_n_LostStripHits_2.push_back(hitPattern.numberOfLostStripHits(ctgr::MISSING_OUTER_HITS));
+          tauTuple().track_n_AllHits_TRACK.push_back(hitPattern.numberOfAllHits(ctgr::TRACK_HITS));
+          tauTuple().track_n_AllHits_MISSING_INNER.push_back(hitPattern.numberOfAllHits(ctgr::MISSING_INNER_HITS));
+          tauTuple().track_n_AllHits_MISSING_OUTER.push_back(hitPattern.numberOfAllHits(ctgr::MISSING_OUTER_HITS));
+          tauTuple().track_n_LostHits_TRACK.push_back(hitPattern.numberOfLostHits(ctgr::TRACK_HITS));
+          tauTuple().track_n_LostHits_MISSING_INNER.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_INNER_HITS));
+          tauTuple().track_n_LostHits_MISSING_OUTER.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_OUTER_HITS));
+          tauTuple().track_n_LostPixelHits_TRACK.push_back(hitPattern.numberOfLostPixelHits(ctgr::TRACK_HITS));
+          tauTuple().track_n_LostPixelHits_MISSING_INNER.push_back(hitPattern.numberOfLostPixelHits(ctgr::MISSING_INNER_HITS));
+          tauTuple().track_n_LostPixelHits_MISSING_OUTER.push_back(hitPattern.numberOfLostPixelHits(ctgr::MISSING_OUTER_HITS));
+          tauTuple().track_n_LostStripHits_TRACK.push_back(hitPattern.numberOfLostStripHits(ctgr::TRACK_HITS));
+          tauTuple().track_n_LostStripHits_MISSING_INNER.push_back(hitPattern.numberOfLostStripHits(ctgr::MISSING_INNER_HITS));
+          tauTuple().track_n_LostStripHits_MISSING_OUTER.push_back(hitPattern.numberOfLostStripHits(ctgr::MISSING_OUTER_HITS));
 
         }
     }
