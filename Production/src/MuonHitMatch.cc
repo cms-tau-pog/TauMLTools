@@ -76,7 +76,7 @@ void MuonHitMatch::CountHits(const pat::Muon& muon, CountMap& n_hits)
                         muon_n_hits = &n_hits.at(MuonSubdetId::GEM);
                     else if(hit_pattern.muonME0HitFilter(hit_id)) {
                         muon_n_hits = &n_hits.at(MuonSubdetId::ME0);
-                        station_index = GetStationIndex(1, false);
+                        station_index = GetStationIndex(1, false); // Fix is needed to be consistent with 'CountMatches'. Otherwise, we get numbers from 1 - 4 from 'getMuonStation'
                     }
 
                     if(muon_n_hits)
