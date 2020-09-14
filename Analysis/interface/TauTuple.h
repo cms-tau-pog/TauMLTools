@@ -44,6 +44,9 @@
     VAR(Float_t, genEventWeight) /* gen event weight */ \
     VAR(Float_t, trainingWeight) /* training weight */ \
     VAR(Int_t, sampleType) /* type of the sample (MC, Embedded or Data) */ \
+    VAR(Int_t, dataset_id) /* ID of the dataset (needed to identify the original dataset after shuffle&merge) */ \
+    VAR(Int_t, dataset_group_id) /* ID of the dataset group (needed to identify the original dataset group
+                                    after shuffle&merge) */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
     VAR4(Float_t, pv_x, pv_y, pv_z, pv_t) /* position and time of the primary vertex (PV) */ \
     VAR4(Float_t, pv_xE, pv_yE, pv_zE, pv_tE) /* position and time errors of the primary vertex (PV) */ \
@@ -76,7 +79,7 @@
     VAR4(Float_t, lepton_gen_pt, lepton_gen_eta, \
                   lepton_gen_phi, lepton_gen_mass) /* 4-momentum of the matched gen lepton (last copy)*/ \
     VAR4(Float_t, lepton_gen_firstCopy_pt , lepton_gen_firstCopy_eta, \
-                  lepton_gen_firstCopy_phi, lepton_gen_firstCopy_mass) /* 4-momentum of the matched gen lepton 
+                  lepton_gen_firstCopy_phi, lepton_gen_firstCopy_mass) /* 4-momentum of the matched gen lepton
                                                                           (first copy) */ \
     VAR(std::vector<Int_t>, lepton_gen_vis_pdg) /* PDG of the matched lepton */ \
     VAR4(std::vector<Float_t>, lepton_gen_vis_pt, lepton_gen_vis_eta, \

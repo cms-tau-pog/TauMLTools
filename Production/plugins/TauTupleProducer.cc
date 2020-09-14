@@ -164,7 +164,9 @@ private:
         tauTuple().evt  = event.id().event();
         tauTuple().sampleType = isEmbedded ? static_cast<int>(SampleType::Embedded) :
                                 isMC ? static_cast<int>(SampleType::MC) : static_cast<int>(SampleType::Data);
-
+        tauTuple().dataset_id = -1;
+        tauTuple().dataset_group_id = -1;
+        
         edm::Handle<std::vector<reco::Vertex>> vertices;
         event.getByToken(vertices_token, vertices);
         tauTuple().npv = static_cast<int>(vertices->size());

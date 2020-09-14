@@ -1,4 +1,5 @@
-sampleType=Emb_18ABC requireGenMatch=False
+lumiMask=/afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/ReReco/Cert_314472-325175_13TeV_17SeptEarlyReReco2018ABC_PromptEraD_Collisions18_JSON.txt
+sampleType=Emb_18ABC requireGenMatch=False rerunTauReco=True
 
 Embedded_MuTau_Run2018A /EmbeddingRun2018A/MuTauFinalState-inputDoubleMu_102X_miniAOD-v1/USER
 Embedded_MuTau_Run2018B	/EmbeddingRun2018B/MuTauFinalState-inputDoubleMu_102X_miniAOD-v1/USER
