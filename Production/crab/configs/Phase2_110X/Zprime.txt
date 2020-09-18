@@ -1,0 +1,3 @@
+sampleType=MC_Phase2_110X
+
+ZprimeToMuMu_M-6000_PU140 /ZprimeToMuMu_M-6000_TuneCP5_14TeV-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM

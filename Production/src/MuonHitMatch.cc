@@ -8,14 +8,14 @@ namespace tau_analysis {
 
 const std::vector<int>& MuonHitMatch::ConsideredSubdets()
 {
-    static const std::vector<int> subdets = { MuonSubdetId::DT, MuonSubdetId::CSC, MuonSubdetId::RPC };
+    static const std::vector<int> subdets = { MuonSubdetId::DT, MuonSubdetId::CSC, MuonSubdetId::RPC, MuonSubdetId::GEM, MuonSubdetId::ME0};
     return subdets;
 }
 
 const std::string& MuonHitMatch::SubdetName(int subdet)
 {
     static const std::map<int, std::string> subdet_names = {
-        { MuonSubdetId::DT, "DT" }, { MuonSubdetId::CSC, "CSC" }, { MuonSubdetId::RPC, "RPC" }
+        { MuonSubdetId::DT, "DT" }, { MuonSubdetId::CSC, "CSC" }, { MuonSubdetId::RPC, "RPC" }, { MuonSubdetId::GEM, "GEM" }, { MuonSubdetId::ME0, "ME0" }
     };
     if(!subdet_names.count(subdet))
         throw cms::Exception("MuonHitMatch") << "Subdet name for subdet id " << subdet << " not found.";
@@ -46,7 +46,7 @@ MuonHitMatch::MuonHitMatch(const pat::Muon& muon)
 void MuonHitMatch::CountMatches(const pat::Muon& muon, CountMap& n_matches)
 {
     for(const auto& segment : muon.matches()) {
-        if(segment.segmentMatches.empty() && segment.rpcMatches.empty()) continue;
+        if(segment.segmentMatches.empty() && segment.rpcMatches.empty() && segment.gemMatches.empty() && segment.me0Matches.empty()) continue;
         if(n_matches.count(segment.detector())) {
             const size_t station_index = GetStationIndex(segment.station(), true);
             ++n_matches.at(segment.detector()).at(station_index);
@@ -63,7 +63,7 @@ void MuonHitMatch::CountHits(const pat::Muon& muon, CountMap& n_hits)
             if(hit_id == 0) break;
             if(hit_pattern.muonHitFilter(hit_id) && (hit_pattern.getHitType(hit_id) == TrackingRecHit::valid
                                                      || hit_pattern.getHitType(hit_id) == TrackingRecHit::bad)) {
-                const size_t station_index = GetStationIndex(hit_pattern.getMuonStation(hit_id), false);
+                size_t station_index = GetStationIndex(hit_pattern.getMuonStation(hit_id), false);
                 if(station_index < n_muon_stations) {
                     CountArray* muon_n_hits = nullptr;
                     if(hit_pattern.muonDTHitFilter(hit_id))
@@ -72,6 +72,12 @@ void MuonHitMatch::CountHits(const pat::Muon& muon, CountMap& n_hits)
                         muon_n_hits = &n_hits.at(MuonSubdetId::CSC);
                     else if(hit_pattern.muonRPCHitFilter(hit_id))
                         muon_n_hits = &n_hits.at(MuonSubdetId::RPC);
+                    else if(hit_pattern.muonGEMHitFilter(hit_id))
+                        muon_n_hits = &n_hits.at(MuonSubdetId::GEM);
+                    else if(hit_pattern.muonME0HitFilter(hit_id)) {
+                        muon_n_hits = &n_hits.at(MuonSubdetId::ME0);
+                        station_index = GetStationIndex(1, false); // Fix is needed to be consistent with 'CountMatches'. Otherwise, we get numbers from 1 - 4 from 'getMuonStation'
+                    }
 
                     if(muon_n_hits)
                         ++muon_n_hits->at(station_index);

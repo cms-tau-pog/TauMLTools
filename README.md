@@ -9,6 +9,7 @@ Tools to perform machine learning studies for tau lepton reconstruction and iden
 ### Setup for pre-processing
 Root-tuples production steps (both big-tuple and training tuple) require CMSSW environment
 ```sh
+export SCRAM_ARCH=slc7_amd64_gcc700
 cmsrel CMSSW_10_6_13
 cd CMSSW_10_6_13/src
 cmsenv
@@ -59,16 +60,36 @@ cmsRun TauMLTools/Production/python/Production.py sampleType=MC_18 inputFiles=/s
 ```
 
 In order to run a large-scale production for the entire datasets, the CMS computing grid should be used via CRAB interface.
-To submit jobs on CRAB following steps should be followed:
-1. Go to directory [TauMLTools/Production/crab](https://github.com/cms-tau-pog/TauMLTools/tree/master/Production/crab)
-1. Use submit.py to submit jobs on CRAB
-   ```sh
-   ./submit.py --workArea work-area --cfg ../python/Production.py --site STAGEOUT_SITE --output raw-tuples-v2 configs/2017/*.txt
-   ```
-   For more command line options use `submit.py --help`.
-1. Follow usual CRAB workflow until all jobs are finished
+Submission and status control can be performed using [crab_submit.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Production/scripts/crab_submit.py) and [crab_cmd.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Production/scripts/crab_cmd.py) commands.
 
-The centrally produced `TauTuples` will be available in `/eos/cms/store/group/phys_tau/TauML`.
+#### 2018 root-tuple production steps
+1. Go to `$CMSSW_BASE/src` and load CMS and environments:
+   ```sh
+   cd $CMSSW_BASE/src
+   cmsenv
+   source /cvmfs/cms.cern.ch/common/crab-setup.sh
+   ```
+1. Enable VOMS proxy:
+   ```sh
+   voms-proxy-init -rfc -voms cms -valid 192:00
+   export X509_USER_PROXY=`voms-proxy-info -path`
+   ```
+1. Submit task in a config file (or a set of config files) using `crab_submit.py`:
+   ```sh
+   crab_submit.py --workArea work-area --cfg TauMLTools/Production/python/Production.py --site T2_CH_CERN --output /store/group/phys_tau/TauML/prod_2018_v1/crab_output TauMLTools/Production/crab/configs/2018/CONFIG1.txt TauMLTools/Production/crab/configs/2018/CONFIG2.txt ...
+   ```
+   * For more command line options use `crab_submit.py --help`.
+   * For big dataset file-based splitting should be used
+   * For Embedded samples a custom DBS should be specified
+1. Regularly check task status using `crab_cmd.py`:
+   ```sh
+   crab_cmd.py --workArea work-area --cmd status
+   ```
+1. Once all jobs within a given task are finished you can move it from `work-area` to `finished` folder (to avoid rerunning status each time) and set `done` for the dataset in the production google-doc.
+1. If some jobs are failed: try to understand the reason and use standard crab tools to solve the problem (e.g. `crab resubmit` with additional arguments). In very problematic cases a recovery task could be created.
+1. Once production is over, all produced `TauTuples` will be moved in `/eos/cms/store/group/phys_tau/TauML/prod_2018_v1/full_tuples`.
+
+
 
 ### Big tuples splitting
 

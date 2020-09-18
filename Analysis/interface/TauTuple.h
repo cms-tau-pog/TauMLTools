@@ -24,6 +24,7 @@
 #define ELE_VAR2(type, name1, name2) ELE_VAR(type, name1) ELE_VAR(type, name2)
 #define ELE_VAR3(type, name1, name2, name3) ELE_VAR2(type, name1, name2) ELE_VAR(type, name3)
 #define ELE_VAR4(type, name1, name2, name3, name4) ELE_VAR3(type, name1, name2, name3) ELE_VAR(type, name4)
+#define ELE_VAR5(type, name1, name2, name3, name4, name5) ELE_VAR4(type, name1, name2, name3, name4) ELE_VAR(type, name5)
 
 #define MUON_VAR2(type, name1, name2) MUON_VAR(type, name1) MUON_VAR(type, name2)
 #define MUON_VAR3(type, name1, name2, name3) MUON_VAR2(type, name1, name2) MUON_VAR(type, name3)
@@ -43,8 +44,12 @@
     VAR(Float_t, genEventWeight) /* gen event weight */ \
     VAR(Float_t, trainingWeight) /* training weight */ \
     VAR(Int_t, sampleType) /* type of the sample (MC, Embedded or Data) */ \
+    VAR(Int_t, dataset_id) /* ID of the dataset (needed to identify the original dataset after shuffle&merge) */ \
+    VAR(Int_t, dataset_group_id) /* ID of the dataset group (needed to identify the original dataset group
+                                    after shuffle&merge) */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
-    VAR3(Float_t, pv_x, pv_y, pv_z) /* position of the primary vertex (PV) */ \
+    VAR4(Float_t, pv_x, pv_y, pv_z, pv_t) /* position and time of the primary vertex (PV) */ \
+    VAR4(Float_t, pv_xE, pv_yE, pv_zE, pv_tE) /* position and time errors of the primary vertex (PV) */ \
     VAR(Float_t, pv_chi2) /* chi^2 of the primary vertex (PV) */ \
     VAR(Float_t, pv_ndof) /* number of degrees of freedom of the primary vertex (PV) */ \
     /* Jet variables */ \
@@ -74,7 +79,7 @@
     VAR4(Float_t, lepton_gen_pt, lepton_gen_eta, \
                   lepton_gen_phi, lepton_gen_mass) /* 4-momentum of the matched gen lepton (last copy)*/ \
     VAR4(Float_t, lepton_gen_firstCopy_pt , lepton_gen_firstCopy_eta, \
-                  lepton_gen_firstCopy_phi, lepton_gen_firstCopy_mass) /* 4-momentum of the matched gen lepton 
+                  lepton_gen_firstCopy_phi, lepton_gen_firstCopy_mass) /* 4-momentum of the matched gen lepton
                                                                           (first copy) */ \
     VAR(std::vector<Int_t>, lepton_gen_vis_pdg) /* PDG of the matched lepton */ \
     VAR4(std::vector<Float_t>, lepton_gen_vis_pt, lepton_gen_vis_eta, \
@@ -174,8 +179,9 @@
                                       validHitInFirstPixelBarrelLayer = -1, noLostInnerHits = 0 (it could still not
                                       have a hit in the first layer, e.g. if it crosses an inactive sensor),
                                       oneLostInnerHit = 1, moreLostInnerHits = 2 */ \
-    CAND_VAR(Int_t, numberOfPixelHits) /* number of valid pixel hits */ \
-    CAND_VAR3(Float_t, vertex_x, vertex_y, vertex_z) /* position of the vertex to which the candidate is associated */ \
+    CAND_VAR2(Int_t, numberOfPixelHits, numberOfHits) /* number of valid pixel hits */ \
+    CAND_VAR4(Float_t, vertex_x, vertex_y, vertex_z, vertex_t) /* position & time of the vertex to which the candidate is associated */ \
+    CAND_VAR2(Float_t, time, timeError) /* time and time error information on the PF candidate */ \
     CAND_VAR(Int_t, hasTrackDetails) /* has track details */ \
     CAND_VAR(Float_t, dxy) /* signed transverse impact parameter wrt to the primary vertex */ \
     CAND_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
@@ -184,15 +190,16 @@
     CAND_VAR(Float_t, track_chi2) /* chi^2 of the pseudo track made with the candidate kinematics */ \
     CAND_VAR(Float_t, track_ndof) /* number of degrees of freedom of the pseudo track
                                      made with the candidate kinematics */ \
-    CAND_VAR(Float_t, hcalFraction) /* fraction of ECAL and HCAL for HF and neutral hadrons
+    CAND_VAR2(Float_t, caloFraction, hcalFraction) /* fraction of ECAL and HCAL for HF and neutral hadrons
                                        and isolated charged hadrons */ \
-    CAND_VAR(Float_t, rawCaloFraction) /* raw ECAL+HCAL energy over candidate energy for isolated charged hadrons */ \
+    CAND_VAR2(Float_t, rawCaloFraction, rawHcalFraction) /* raw ECAL and HCAL energy over candidate energy for isolated charged hadrons */ \
     /* PAT electrons */ \
     ELE_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the electron */ \
     ELE_VAR(Float_t, cc_ele_energy) /* energy of the first calo cluster in the electron super cluster */ \
     ELE_VAR(Float_t, cc_gamma_energy) /* sum of the energies of additional calo clusters
                                          in the electron super cluster */ \
     ELE_VAR(Int_t, cc_n_gamma) /* number of additional calo clusters in the electron super cluster */ \
+    ELE_VAR3(Float_t, dxy, dxy_error, ip3d) /* impact parameter of the electron */ \
     ELE_VAR(Float_t, trackMomentumAtVtx) /* module of the track momentum at the PCA to the beam spot */ \
     ELE_VAR(Float_t, trackMomentumAtCalo) /* module of the track momentum extrapolated at the supercluster position
                                              from the innermost track state */ \
@@ -216,6 +223,8 @@
                                                         from the outermost track state */ \
     ELE_VAR(Float_t, deltaEtaEleClusterTrackAtCalo) /* electron cluster eta - track eta position at calo extrapolated
                                                        from the outermost state */ \
+    ELE_VAR(Float_t, deltaEtaSeedClusterTrackAtVtx) /* cluster eta - track eta position at calo extrapolated
+                                                       from innermost track state */ \
     ELE_VAR(Float_t, deltaPhiEleClusterTrackAtCalo) /* electron cluster phi - track phi position at calo extrapolated
                                                        from the outermost track state */ \
     ELE_VAR(Float_t, deltaPhiSuperClusterTrackAtVtx) /* supercluster phi - track phi position at calo extrapolated
@@ -235,6 +244,30 @@
     ELE_VAR(Float_t, closestCtfTrack_normalizedChi2) /* chi^2 divided by number of degrees of freedom
                                                         of the closest CTF track */ \
     ELE_VAR(Int_t, closestCtfTrack_numberOfValidHits) /* number of valid hits on the closest CTF track */ \
+    ELE_VAR4(Float_t, sigmaEtaEta, sigmaIetaIeta, sigmaIphiIphi, sigmaIetaIphi) /* shower shape spread */ \
+    ELE_VAR4(Float_t, e1x5, e2x5Max, e5x5, r9) /* shower shape signatures */ \
+    ELE_VAR4(Float_t, hcalDepth1OverEcal, hcalDepth2OverEcal, hcalDepth1OverEcalBc, hcalDepth2OverEcalBc) /* HCAL over ECAL variables */ \
+    ELE_VAR4(Float_t, eLeft, eRight, eBottom, eTop) /* shower shape energies of cluster cell neighbours(?) */ \
+    ELE_VAR4(Float_t, full5x5_sigmaEtaEta, full5x5_sigmaIetaIeta, full5x5_sigmaIphiIphi, full5x5_sigmaIetaIphi) /* shower shape spread */ \
+    ELE_VAR4(Float_t, full5x5_e1x5, full5x5_e2x5Max, full5x5_e5x5, full5x5_r9) /* shower shape signatures */ \
+    ELE_VAR4(Float_t, full5x5_hcalDepth1OverEcal, full5x5_hcalDepth2OverEcal, full5x5_hcalDepth1OverEcalBc, full5x5_hcalDepth2OverEcalBc) /* HCAL over ECAL variables */ \
+    ELE_VAR4(Float_t, full5x5_eLeft, full5x5_eRight, full5x5_eBottom, full5x5_eTop) /* shower shape energies of cluster cell neighbours(?) */ \
+    ELE_VAR4(Float_t, full5x5_e2x5Left, full5x5_e2x5Right, full5x5_e2x5Bottom, full5x5_e2x5Top) /* 2x5 shower shape energies of cluster cell neighbours(?) */ \
+    /* Phase2 specific electron */ \
+    ELE_VAR4(Float_t, hgcal_sigmaUU, hgcal_sigmaVV, hgcal_sigmaEE, hgcal_sigmaPP) /* HGCal cluster spread */ \
+    ELE_VAR(Int_t, hgcal_nLayers) /* number of layers of HGCal cluster */ \
+    ELE_VAR2(Int_t, hgcal_firstLayer, hgcal_lastLayer) /* first/last layer of HGCal cluster */ \
+    ELE_VAR2(Int_t, hgcal_layerEfrac10, hgcal_layerEfrac90) /* layers with energy fraction of HGCal cluster */ \
+    ELE_VAR(Float_t, hgcal_e4oEtot) /* e4 energy over total energy of the HGCal cluster (?) */ \
+    ELE_VAR4(Float_t, hgcal_ecEnergy, hgcal_ecEnergyEE, hgcal_ecEnergyFH, hgcal_ecEnergyBH) /* energy in a cylinder around electron in HGCal */ \
+    ELE_VAR(Float_t, hgcal_ecEt) /* transverse energy in a cylinder around electron shower axis in HGCal */ \
+    ELE_VAR2(Float_t, hgcal_ecOrigEnergy, hgcal_ecOrigEt) /* original energy (including transverse) in a cylinder around electron shower axis in HGCal */ \
+    ELE_VAR5(Float_t, hgcal_caloIsoRing0, hgcal_caloIsoRing1, hgcal_caloIsoRing2, hgcal_caloIsoRing3, hgcal_caloIsoRing4) /* Isolation sum rings around electron in HGCal */ \
+    ELE_VAR4(Float_t, hgcal_depthCompatibility, hgcal_expectedDepth, hgcal_expectedSigma, hgcal_measuredDepth) /* shower depth variables for electron in HGCal */ \
+    ELE_VAR3(Float_t, hgcal_pcaAxisX, hgcal_pcaAxisY, hgcal_pcaAxisZ) /* pca on axis X,Y,Z (?) */ \
+    ELE_VAR3(Float_t, hgcal_pcaPositionX, hgcal_pcaPositionY, hgcal_pcaPositionZ) /* pca position in X,Y,Z (?) */ \
+    ELE_VAR3(Float_t, hgcal_pcaEig1, hgcal_pcaEig2, hgcal_pcaEig3) /* pca eigenvalues (?) */ \
+    ELE_VAR3(Float_t, hgcal_pcaSig1, hgcal_pcaSig2, hgcal_pcaSig3) /* pca significances (?) */ \
     /* PAT muons */ \
     MUON_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the muon */ \
     MUON_VAR(Float_t, dxy) /* signed transverse impact parameter of the inner track wrt to the primary vertex */ \
@@ -245,18 +278,36 @@
     MUON_VAR(Float_t, caloCompatibility) /* relative likelihood based on ECAL, HCAL, HO energy defined as
                                             L_muon / (L_muon + L_not_muon) */ \
     MUON_VAR(Float_t, pfEcalEnergy) /* PF based energy deposition in the ECAL */ \
+    MUON_VAR(UInt_t, type) /* Muon type - type of the algorithm that reconstructed this muon
+                              multiple algorithms can reconstruct the same muon
+                              GlobalMuon = 1 << 1;
+                              TrackerMuon = 1 << 2;
+                              StandAloneMuon = 1 << 3;
+                              CaloMuon = 1 << 4;
+                              PFMuon = 1 << 5;
+                              RPCMuon = 1 << 6;
+                              GEMMuon = 1 << 7;
+                              ME0Muon = 1 << 8; */ \
     MUON_VAR4(Int_t, n_matches_DT_1, n_matches_DT_2, n_matches_DT_3, \
                      n_matches_DT_4) /* number of segment matches for the DT subdetector stations */ \
     MUON_VAR4(Int_t, n_matches_CSC_1, n_matches_CSC_2, n_matches_CSC_3, \
                      n_matches_CSC_4) /* number of segment matches for the CSC subdetector stations */ \
     MUON_VAR4(Int_t, n_matches_RPC_1, n_matches_RPC_2, n_matches_RPC_3, \
                      n_matches_RPC_4) /* number of segment matches for the RPC subdetector stations */ \
+    MUON_VAR4(Int_t, n_matches_GEM_1, n_matches_GEM_2, n_matches_GEM_3, \
+                     n_matches_GEM_4) /* number of segment matches for the GEM subdetector stations */ \
+    MUON_VAR4(Int_t, n_matches_ME0_1, n_matches_ME0_2, n_matches_ME0_3, \
+                     n_matches_ME0_4) /* number of segment matches for the ME0 subdetector stations */ \
     MUON_VAR4(Int_t, n_hits_DT_1, n_hits_DT_2, n_hits_DT_3, \
                      n_hits_DT_4) /* number of valid and bad hits for the DT subdetector stations */ \
     MUON_VAR4(Int_t, n_hits_CSC_1, n_hits_CSC_2, n_hits_CSC_3, \
                      n_hits_CSC_4) /* number of valid and bad hits for the CSC subdetector stations */ \
     MUON_VAR4(Int_t, n_hits_RPC_1, n_hits_RPC_2, n_hits_RPC_3, \
                      n_hits_RPC_4) /* number of valid and bad hits for the RPC subdetector stations */ \
+    MUON_VAR4(Int_t, n_hits_GEM_1, n_hits_GEM_2, n_hits_GEM_3, \
+                     n_hits_GEM_4) /* number of valid and bad hits for the GEM subdetector stations */ \
+    MUON_VAR4(Int_t, n_hits_ME0_1, n_hits_ME0_2, n_hits_ME0_3, \
+                     n_hits_ME0_4) /* number of valid and bad hits for the ME0 subdetector stations */ \
     /* PAT IsolatedTrack*/ \
     TRACK_VAR3(Float_t, pt, eta, phi) /* track kinematics */ \
     TRACK_VAR(Int_t, fromPV) /* the association to PV=ipv. >=PVLoose corresponds to JME definition,
@@ -275,27 +326,41 @@
                                     the point of intersection with the Ecal.  Can be used to identify
                                     roughly the calorimeter cells the track should hit.*/ \
     TRACK_VAR(Int_t, n_ValidHits) /* number Of Valid Hits */ \
+    TRACK_VAR(Int_t, n_BadHits) /* number Of Bad Hits */ \
+    TRACK_VAR3(Int_t, n_TimingHits, n_ValidTimingHits, n_LostTimingHits) /* number Of Timing Hits (all, valid, list) */ \
+    TRACK_VAR4(Int_t, n_MuonHits, n_ValidMuonHits, n_LostMuonHits, n_BadMuonHits) /* number Of Muon Hits (all, valid, lost, bad) */ \
+    TRACK_VAR3(Int_t, n_ValidMuonDTHits, n_LostMuonDTHits, n_BadMuonDTHits) /* number Of Muon DT Hits (valid, lost, bad) */ \
+    TRACK_VAR3(Int_t, n_ValidMuonCSCHits, n_LostMuonCSCHits, n_BadMuonCSCHits) /* number Of Muon CSC Hits (valid, lost, bad) */ \
+    TRACK_VAR3(Int_t, n_ValidMuonRPCHits, n_LostMuonRPCHits, n_BadMuonRPCHits) /* number Of Muon RPC Hits (valid, lost, bad) */ \
+    TRACK_VAR3(Int_t, n_ValidMuonGEMHits, n_LostMuonGEMHits, n_BadMuonGEMHits) /* number Of Muon GEM Hits (valid, lost, bad) */ \
+    TRACK_VAR3(Int_t, n_ValidMuonME0Hits, n_LostMuonME0Hits, n_BadMuonME0Hits) /* number Of Muon ME0 Hits (valid, lost, bad) */ \
     TRACK_VAR(Int_t, n_InactiveHits) /* number Of Inactive Hits */ \
-    TRACK_VAR3(Int_t, n_LostHits_0, \
-                      n_LostHits_1, \
-                      n_LostHits_2) /* number Of Lost Hits
-                                       0 -> TRACK_HITS,
-                                       1 -> MISSING_INNER_HITS,
-                                       2 -> MISSING_OUTER_HITS*/ \
+    TRACK_VAR3(Int_t, n_AllHits_TRACK, \
+                      n_AllHits_MISSING_INNER, \
+                      n_AllHits_MISSING_OUTER) /* number Of All Hits; hit patterns:
+                                                  0 -> TRACK_HITS,
+                                                  1 -> MISSING_INNER_HITS,
+                                                  2 -> MISSING_OUTER_HITS*/ \
+    TRACK_VAR3(Int_t, n_LostHits_TRACK, \
+                      n_LostHits_MISSING_INNER, \
+                      n_LostHits_MISSING_OUTER) /* number Of Lost Hits; hit patterns:
+                                                   0 -> TRACK_HITS,
+                                                   1 -> MISSING_INNER_HITS,
+                                                   2 -> MISSING_OUTER_HITS*/ \
     TRACK_VAR(Int_t, n_ValidPixelHits) /* number Of Valid Pixel Hits */ \
     TRACK_VAR(Int_t, n_ValidStripHits) /* number Of Valid Strip Hits */ \
-    TRACK_VAR3(Int_t, n_LostPixelHits_0, \
-                      n_LostPixelHits_1, \
-                      n_LostPixelHits_2) /* number Of Lost Pixe Hits
-                                           0 -> TRACK_HITS,
-                                           1 -> MISSING_INNER_HITS,
-                                           2 -> MISSING_OUTER_HITS */ \
-    TRACK_VAR3(Int_t, n_LostStripHits_0, \
-                      n_LostStripHits_1, \
-                      n_LostStripHits_2) /* number Of Lost Strip Hits
-                                          0 -> TRACK_HITS,
-                                          1 -> MISSING_INNER_HITS,
-                                          2 -> MISSING_OUTER_HITS */ \
+    TRACK_VAR3(Int_t, n_LostPixelHits_TRACK, \
+                      n_LostPixelHits_MISSING_INNER, \
+                      n_LostPixelHits_MISSING_OUTER) /* number Of Lost Pixel Hits; hit patterns:
+                                                        0 -> TRACK_HITS,
+                                                        1 -> MISSING_INNER_HITS,
+                                                        2 -> MISSING_OUTER_HITS */ \
+    TRACK_VAR3(Int_t, n_LostStripHits_TRACK, \
+                      n_LostStripHits_MISSING_INNER, \
+                      n_LostStripHits_MISSING_OUTER) /* number Of Lost Strip Hits; hit patterns:
+                                                        0 -> TRACK_HITS,
+                                                        1 -> MISSING_INNER_HITS,
+                                                        2 -> MISSING_OUTER_HITS */ \
     /**/
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)

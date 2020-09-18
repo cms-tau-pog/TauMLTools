@@ -17,27 +17,22 @@ def submit(config, dryrunBool):
         print "ERROR: failed to submit task due to ClientException.\n{}".format(cle)
 
 class Job:
-    def __init__(self, line, jobNameSuffix = '', unitsPerJob = -1):
+    def __init__(self, line, jobNameSuffix = ''):
         items = filter(lambda s: len(s) != 0, re.split(" |\t", line))
         n_items = len(items)
-        if n_items < 3 or n_items > 4:
+        if n_items < 2 or n_items > 3:
             raise RuntimeError("invalid job description = '{}'.".format(line))
         self.jobName = items[0]
         self.requestName = self.jobName + jobNameSuffix
-        if unitsPerJob == -1:
-            self.unitsPerJob = int(items[1])
-        else:
-            self.unitsPerJob = unitsPerJob
-        self.inputDataset = items[2]
-        if n_items > 3:
-            self.lumiMask = items[3]
+        self.inputDataset = items[1]
+        if n_items > 2:
+            self.lumiMask = items[2]
         else:
             self.lumiMask = None
 
 
     def __str__(self):
-        str = "requestName = '{}', unitsPerJob = {}, inputDataset = '{}'".format(self.requestName, self.unitsPerJob,
-                                                                                 self.inputDataset)
+        str = "requestName = '{}', inputDataset = '{}'".format(self.requestName, self.inputDataset)
         if self.lumiMask is not None:
             str += ", lumiMask = '{}'".format(self.lumiMask)
         return str
@@ -45,31 +40,31 @@ class Job:
     def submit(self, config, dryrunBool):
         config.General.requestName = self.requestName
         config.Data.inputDataset = self.inputDataset
-        config.Data.unitsPerJob = self.unitsPerJob
         if self.lumiMask is not None:
             config.Data.lumiMask = self.lumiMask
         submit(config, dryrunBool)
 
 class JobCollection:
-    def __init__(self, file_name, job_names = '', lumi_mask = '', jobNameSuffix = '', unitsPerJob = -1):
+    def __init__(self, file_name, job_names = '', lumi_mask = '', jobNameSuffix = ''):
         self.jobs = []
         self.jobNames = job_names
         input_file = open(file_name, 'r')
         lines = [ s.strip() for s in input_file.readlines() ]
         lines = filter(lambda s: len(s) != 0 and s[0] != '#', lines)
-        if len(lines) <= 2:
+        if len(lines) <= 1:
             raise RuntimeError("file '{}' is empty".format(file_name))
         header_items = filter(lambda s: len(s) != 0, re.split(" |\n", lines[0]))
-        self.pyCfgParams = filter(lambda s: len(s) != 0, re.split(" |\t", lines[1]))
-        if len(header_items) == 0 or len(header_items) > 2:
-            raise RuntimeError("invalid jobs file header '{}' in file '{}'".fromat(lines[0], file_name))
-        self.splitting = header_items[0]
-        known_splittings = Set(['FileBased', 'LumiBased', 'EventAwareLumiBased', 'Automatic'])
-        if not self.splitting in known_splittings:
-            raise RuntimeError("unknown splitting = '{}' in file '{}'".format(self.splitting, file_name))
-        self.lumiMask =  ''
-        if len(header_items) > 1:
-            if header_items[1].lower() == "signal":
+        index_line = 0
+        if header_items[0].startswith("lumiMask"):
+            index_line = 1
+            lumi = filter(lambda s: len(s) != 0, re.split("=", header_items[0]))
+            self.lumiMask = lumi[1]
+        else:
+            self.lumiMask =  ''
+        self.pyCfgParams = filter(lambda s: len(s) != 0, re.split(" |\t", lines[index_line]))
+
+        if len(header_items) > 0:
+            if header_items[0].lower() == "signal":
                 if len(lines) < 4:
                     raise RuntimeError("invalid signal jobs definition in file '{}'".format(file_name))
                 masses = filter(lambda s: len(s) != 0, re.split(" |\t", lines[2]))
@@ -78,26 +73,28 @@ class JobCollection:
                     line = template.format(M = mass)
                     self.jobs.append(Job(line))
                 return
-            else:
-                self.lumiMask = header_items[1]
         if len(lumi_mask) != 0:
             self.lumiMask = lumi_mask
 
-        for line in lines[2:]:
-            self.jobs.append(Job(line, jobNameSuffix, unitsPerJob))
+        index_sample = 1
+        if header_items[0].startswith("lumiMask"):
+            index_sample = 2
+        for line in lines[index_sample:]:
+            self.jobs.append(Job(line, jobNameSuffix))
         input_file.close()
 
     def __str__(self):
-        result = "Splitting = '{}', cfgParams = {}, lumiMask = '{}'".format(self.splitting, self.pyCfgParams,
-                                                                              self.lumiMask)
+        result = "cfgParams = {}, lumiMask = '{}'".format(self.pyCfgParams, self.lumiMask)
         for job in self.jobs:
             if len(self.jobNames) == 0 or job.jobName in self.jobNames:
                 result += "\n" + str(job)
         return result
 
-    def submit(self, config, dryrunBool):
-        config.Data.splitting = self.splitting
+    def submit(self, config, splitting, unitsPerJob, dryrunBool):
         config.JobType.pyCfgParams = self.pyCfgParams
+        config.Data.unitsPerJob = unitsPerJob
+        config.Data.splitting = splitting
+
         for job in self.jobs:
             if len(self.jobNames) == 0 or job.jobName in self.jobNames:
                 config.Data.lumiMask = self.lumiMask

@@ -1,0 +1,26 @@
+sampleType=MC_Phase2_110X
+
+Muminus_Pt100-gun_NoPU   /Muminus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muminus_Pt100-gun_PU140  /Muminus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muminus_Pt100-gun_PU200  /Muminus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muminus_Pt1000-gun_NoPU  /Muminus_Pt1000-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muminus_Pt1000-gun_PU140 /Muminus_Pt1000-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muminus_Pt1000-gun_PU200 /Muminus_Pt1000-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muminus_Pt50-gun_NoPU    /Muminus_Pt50-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muminus_Pt50-gun_PU140   /Muminus_Pt50-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muminus_Pt50-gun_PU200   /Muminus_Pt50-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muminus_Pt500-gun_NoPU   /Muminus_Pt500-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muminus_Pt500-gun_PU140  /Muminus_Pt500-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muminus_Pt500-gun_PU200  /Muminus_Pt500-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muplus_Pt100-gun_NoPU    /Muplus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muplus_Pt100-gun_PU140   /Muplus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muplus_Pt100-gun_PU200   /Muplus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muplus_Pt1000-gun_NoPU   /Muplus_Pt1000-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muplus_Pt1000-gun_PU140  /Muplus_Pt1000-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muplus_Pt1000-gun_PU200  /Muplus_Pt1000-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muplus_Pt50-gun_NoPU     /Muplus_Pt50-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muplus_Pt50-gun_PU140    /Muplus_Pt50-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muplus_Pt50-gun_PU200    /Muplus_Pt50-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muplus_Pt500-gun_NoPU    /Muplus_Pt500-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muplus_Pt500-gun_PU140   /Muplus_Pt500-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM
+Muplus_Pt500-gun_PU200   /Muplus_Pt500-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU200_110X_mcRun4_realistic_v3-v2/MINIAODSIM
