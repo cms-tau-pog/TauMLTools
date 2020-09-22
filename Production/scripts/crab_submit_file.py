@@ -33,6 +33,8 @@ parser.add_argument('--maxMemory', required=False, type=int, default=2000,
 					help="maximum amount of memory (in MB) a job is allowed to use (default: 2000 MB )")
 parser.add_argument('--numCores', required=False, type=int, default=1, help="number of cores per job (default: 1)")
 parser.add_argument('--allowNonValid', action="store_true", help="Allow nonvalid dataset as an input.")
+parser.add_argument('--vomsGroup',required=False, type=str, default="", help="custom VOMS group of used proxy")
+parser.add_argument('--vomsRole', required=False, type=str, default="", help="custom VOMS role of used proxy")
 parser.add_argument('--jobFile', required=True, type=str, help="text file with jobs descriptions")
 args = parser.parse_args()
 
@@ -57,6 +59,11 @@ config.General.transferLogs = False
 config.Data.publication = False
 
 config.Site.storageSite = args.site
+
+if len(args.vomsGroup) != 0:
+    config.User.voGroup = args.vomsGroup
+if len(args.vomsRole) != 0:
+    config.User.voRole = args.vomsRole
 
 if args.output[0] == '/':
     config.Data.outLFNDirBase = args.output
