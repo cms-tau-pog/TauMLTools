@@ -106,6 +106,7 @@ std::string CollectionToString(const Collection& col, const std::string& separat
     return ss.str();
 }
 
+std::string GetPathWithoutFileName(const std::string& file_name);
 std::string RemoveFileExtension(const std::string& file_name);
 std::string GetFileNameWithoutPath(const std::string& file_name);
 
