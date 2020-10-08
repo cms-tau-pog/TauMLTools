@@ -19,6 +19,7 @@ struct Arguments {
     run::Argument<std::string> exclude_list{"exclude-list", "comma separated list of files to exclude", ""};
     run::Argument<std::string> exclude_dir_list{"exclude-dir-list",
                                                "comma separated list of directories to exclude", ""};
+    run::Argument<unsigned> n_threads{"n-threads", "number of threads", 1};
 };
 
 struct HistArgs {
@@ -38,13 +39,14 @@ struct HistArgs {
 class HistSpectrum : public root_ext::AnalyzerData {
 
 public:
-  HistSpectrum(std::shared_ptr<TFile> outputFile, HistArgs hargs) : root_ext::AnalyzerData(outputFile)
+  HistSpectrum(std::shared_ptr<TFile> outputFile, const HistArgs& hargs) : root_ext::AnalyzerData(outputFile)
   {
     eta_pt_hist.SetMasterHist(hargs.eta_bins, hargs.eta_min, hargs.eta_max,
                               hargs.pt_bins, hargs.pt_min, hargs.pt_max);
   }
 
   TH2D_ENTRY(eta_pt_hist, 4, 0, 2.3, 200, 0, 1000)
+  TH1D_ENTRY(not_valid, 1, 0, 2)
 
 };
 
@@ -68,8 +70,10 @@ public:
                                                   args.exclude_dir_list())),
        outputfile(root_ext::CreateRootFile(args.outputfile()))
     {
+      ROOT::EnableThreadSafety();
+      if(args.n_threads() > 1) ROOT::EnableImplicitMT(args.n_threads());
+
       auto par_path = GetPathWithoutFileName(args.outputfile());
-      std::cout << par_path << "\n";
       if(!boost::filesystem::exists(par_path)) boost::filesystem::create_directory(par_path);
 
       hists = std::make_shared<HistSpectrum>(outputfile,
@@ -82,7 +86,9 @@ public:
             std::cout << "file: " << file_name << std::endl;
             auto file = root_ext::OpenRootFile(file_name);
 
-            TauTuple input_tauTuple("taus", file.get(), true);
+            TauTuple input_tauTuple("taus", file.get(), true, {},
+                     {"tau_pt", "tau_eta", "sampleType", "lepton_gen_match", "tau_index"});
+
             for(const Tau& tau : input_tauTuple)
             {
               AddTau(tau);
@@ -94,7 +100,8 @@ public:
                   << "Number of files = " << input_files.size() << std::endl
                   << "Number of processed taus = " << total_size << std::endl
                   << "Number of taus within the ranges of histogram = " << Integral()
-                  << " (" << Integral()/total_size*100 << "%)" << std::endl;
+                  << " (" << Integral()/total_size*100 << "%)" << std::endl
+                  << "Number if not Valid taus:" << hists->not_valid().GetEntries() << std::endl;
     }
 
 private:
@@ -124,13 +131,22 @@ private:
 
     void AddTau(const Tau& tau)
     {
-        const auto gen_match = static_cast<analysis::GenLeptonMatch>(tau.lepton_gen_match);
-        const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
-        const TauType tau_type = analysis::GenMatchToTauType(gen_match, sample_type);
-        hists->eta_pt_hist(tau_type).Fill(std::abs(tau.tau_eta), tau.tau_pt);
+        if(PassSelection(tau)) {
+            const auto gen_match = static_cast<analysis::GenLeptonMatch>(tau.lepton_gen_match);
+            const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
+            const TauType tau_type = analysis::GenMatchToTauType(gen_match, sample_type);
+            hists->eta_pt_hist(tau_type).Fill(std::abs(tau.tau_eta), tau.tau_pt);
+        } else {
+            hists->not_valid().Fill(1);
+        }
     }
 
-    double Integral()
+    bool PassSelection(const Tau& tau) const
+    {
+      return (tau.tau_index >= 0);
+    }
+
+    double Integral() const
     {
       return  hists->eta_pt_hist("tau").Integral()
             + hists->eta_pt_hist("e").Integral()
