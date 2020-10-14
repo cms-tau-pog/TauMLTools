@@ -68,7 +68,7 @@ public:
                                                   args.file_name_pattern(),
                                                   args.exclude_list(),
                                                   args.exclude_dir_list())),
-       outputfile(root_ext::CreateRootFile(args.outputfile()))
+      outputfile(root_ext::CreateRootFile(args.outputfile()))
     {
       ROOT::EnableThreadSafety();
       if(args.n_threads() > 1) ROOT::EnableImplicitMT(args.n_threads());
@@ -101,7 +101,7 @@ public:
                   << "Number of processed taus = " << total_size << std::endl
                   << "Number of taus within the ranges of histogram = " << Integral()
                   << " (" << Integral()/total_size*100 << "%)" << std::endl
-                  << "Number if not Valid taus:" << hists->not_valid().GetEntries() << std::endl;
+                  << "Number of not Valid taus = " << hists->not_valid().GetEntries() << std::endl;
     }
 
 private:
