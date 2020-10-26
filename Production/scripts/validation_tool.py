@@ -3,6 +3,7 @@ import argparse
 parser = argparse.ArgumentParser('''
 The script runs a binned KS test between different chunks of the same RDataFrame. For simplicity, all chunks are compared to the first one.
 If a KS test is below the threshold, a warning message is printed on screen.
+NOTE: the binning of each variable must be hard coded in the script (using the BINS dictionary)
 NOTE: pvalue = 99 means that one of the two histograms is empty.
 ''')
 
@@ -106,7 +107,7 @@ def run_validation(dataframe, branches, pwd = ''):
     OUTPUT_ROOT.mkdir('/'.join([pwd, branch]))
 
     histos = get_histos(dataframe, branch = branch, norm = True)
-  
+
     pvalues = [histos[0].KolmogorovTest(hh) if histos[0].Integral()*hh.Integral() else 99 for hh in histos]
     if not histos[0].Integral():
       print '[WARNING] control histogram is empty for step {} inside {}'.format(branch, pwd)
