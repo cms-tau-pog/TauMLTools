@@ -22,8 +22,8 @@ if not os.path.isdir(args.input):
 if not os.path.isdir(args.output):
 	os.makedirs(args.output)
 
-pt_hist = "200, 0, 1000"
-eta_hist = "4, 0, 2.3"
+pt_hist = "4990, 10, 5000"
+eta_hist = "25, 0, 2.5"
 
 print "regex filter for dataset names: "+args.filter
 
