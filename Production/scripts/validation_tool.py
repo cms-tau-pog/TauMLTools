@@ -95,7 +95,7 @@ def save_histos(histos, fdir, pvalues):
   can.Write()
   OUTPUT_ROOT.cd()
 
-def run_validation(dataframe, branches, pwd = ''):
+def run_validation(dataframe, branches, pwd):
   OUTPUT_ROOT.cd()
   OUTPUT_ROOT.mkdir(pwd)
   
