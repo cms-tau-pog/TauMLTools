@@ -112,18 +112,18 @@ def run_validation(dataframe, branches, pwd):
 
     pvalues = [histos[0].KolmogorovTest(hh) if histos[0].Integral()*hh.Integral() else 99 for hh in histos]
     if not histos[0].Integral():
-      print '[WARNING] control histogram is empty for step {} inside {}'.format(branch, pwd)
+      print ('[WARNING] control histogram is empty for step {} inside {}'.format(branch, pwd))
     
     if not all([pv >= PVAL_THRESHOLD for pv in pvalues]):
-      print '[WARNING] KS test failed for step {} inside {}. p-values are:'.format(branch, pwd)
-      print '\t', pvalues
+      print ('[WARNING] KS test failed for step {} inside {}. p-values are:'.format(branch, pwd))
+      print ('\t', pvalues)
     
     JSON_DICT[pwd][branch] = pvalues
     
     save_histos(histos, fdir = '/'.join([pwd, branch]), pvalues = pvalues)
 
 if __name__ == '__main__':
-  print '[INFO] reading files', args.input
+  print ('[INFO] reading files', args.input)
   input_files = ROOT.std.vector('std::string')()
   for file in glob.glob(args.input):
     input_files.push_back(str(file))
@@ -156,4 +156,4 @@ if __name__ == '__main__':
 
   OUTPUT_ROOT.Close()
   json.dump(JSON_DICT, OUTPUT_JSON, indent = 4)
-  print '[INFO] all done. Files', args.output, 'and', args.json, 'have been created'
+  print ('[INFO] all done. Files', args.output, 'and', args.json, 'have been created')
