@@ -63,10 +63,10 @@ def get_histos(dataframe, branch, norm = False):
   model = (branch, "") + BINS[branch]
   hptrs = [sf.Histo1D(model, branch) for sf in subframes]
   histos = [hh.GetValue().Clone() for hh in hptrs]
-  
+
   for ii, hh in enumerate(histos):
     hh.SetTitle(branch)
-    hh.SetName('_'.join([hh.GetName(), ii]))
+    hh.SetName('_'.join([hh.GetName(), str(ii)]))
     hh.Sumw2()
     hh.ClearUnderflowAndOverflow()
     if norm and hh.Integral():
