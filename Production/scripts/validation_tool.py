@@ -55,7 +55,7 @@ def groupby(dataframe, by):
   return {tt: dataframe.Filter('{} == {}'.format(by, tt)) for tt in types}
 
 def get_histos(dataframe, branch, norm = False):
-  size = int(dataframe.Count())
+  size = dataframe.Count().GetValue()
   sub_size = 1 + size // N_SPLITS
   subframes = [dataframe.Range(ii*sub_size, (ii+1)*sub_size) for ii in range(N_SPLITS)]
   
