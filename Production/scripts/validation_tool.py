@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
   ## first, run on plain columns
   dataframe = ROOT.RDataFrame('taus', input_files)
-  run_validation(dataframe = dataframe, pwd = main_dir, branches = ['lepton_gen_match', 'sampleType', 'dataset_group_id'])
+  run_validation(dataframe = dataframe, pwd = main_dir, branches = ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id'])
 
   ## then, group by tau type
   tau_type_dataframes = groupby(dataframe = dataframe, by = 'lepton_gen_match')
@@ -148,6 +148,11 @@ if __name__ == '__main__':
   group_id_dataframes = groupby(dataframe = dataframe, by = 'dataset_group_id')
   for ii, df in group_id_dataframes.iteritems():
     run_validation(dataframe = df, pwd = '/'.join([main_dir, 'dataset_group_id', str(ii)]), branches = ['tau_pt', 'tau_eta', 'dataset_id'])
+
+  ## then, group by dataset id
+  group_id_dataframes = groupby(dataframe = dataframe, by = 'dataset_id')
+  for ii, df in group_id_dataframes.iteritems():
+    run_validation(dataframe = df, pwd = '/'.join([main_dir, 'dataset_id', str(ii)]), branches = ['tau_pt', 'tau_eta'])
 
   OUTPUT_ROOT.Close()
   json.dump(JSON_DICT, OUTPUT_JSON, indent = 4)
