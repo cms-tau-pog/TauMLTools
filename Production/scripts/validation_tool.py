@@ -12,7 +12,7 @@ import glob
 import json
 from collections import OrderedDict
 
-parser.add_argument('--input'       , required = True, type = str, help = 'input file. Accepts glob patterns')
+parser.add_argument('--input'       , required = True, type = str, help = 'input file. Accepts glob patterns (use quotes)')
 parser.add_argument('--output'      , required = True, type = str, help = 'output file name')
 parser.add_argument('--pdf'         , default  = None, type = str, help = 'output pdf directory')
 parser.add_argument('--json'        , required = True, type = str, help = 'output json file name')
