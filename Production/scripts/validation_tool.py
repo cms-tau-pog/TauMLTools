@@ -13,9 +13,7 @@ import json
 from collections import OrderedDict
 
 parser.add_argument('--input'       , required = True, type = str, help = 'input file. Accepts glob patterns (use quotes)')
-parser.add_argument('--output'      , required = True, type = str, help = 'output file name')
-parser.add_argument('--pdf'         , default  = None, type = str, help = 'output pdf directory')
-parser.add_argument('--json'        , required = True, type = str, help = 'output json file name')
+parser.add_argument('--output'      , required = True, type = str, help = 'output directory name')
 parser.add_argument('--nsplit'      , default  = 100 , type = str, help = 'number of chunks per file')
 parser.add_argument('--pvthreshold' , default  = .05 , type = str, help = 'threshold of KS test (above = ok)')
 
@@ -24,15 +22,16 @@ parser.add_argument('--legend', action = 'store_true', help = 'Draw a TLegent on
 args = parser.parse_args()
 
 import os
-if not os.path.exists(args.pdf):
-  os.makedirs(args.pdf)
+pdf_dir = '/'.join([args.output, 'pdf'])
+if not os.path.exists(pdf_dir):
+  os.makedirs(pdf_dir)
 
 ROOT.gROOT.SetBatch(not args.visual)
 ROOT.gStyle.SetOptStat(0)
 
 JSON_DICT      = OrderedDict()
-OUTPUT_ROOT    = ROOT.TFile.Open('{}'.format(args.output), 'RECREATE')
-OUTPUT_JSON    = open(args.json, 'w')
+OUTPUT_ROOT    = ROOT.TFile.Open('{}/histograms.root'.format(args.output), 'RECREATE')
+OUTPUT_JSON    = open('{}/pvalues.json'.format(args.output), 'w')
 N_SPLITS       = args.nsplit
 PVAL_THRESHOLD = args.pvthreshold
 
@@ -92,8 +91,7 @@ def save_histos(histos, fdir, pvalues):
     hh.Write()
   if args.legend:
     leg.Draw("SAME")
-  if args.pdf is not None:
-    can.SaveAs('{}/{}.pdf'.format(args.pdf, fdir.replace('/', '_')), 'pdf')
+  can.SaveAs('{}/pdf/{}.pdf'.format(args.output, fdir.replace('/', '_')), 'pdf')
   can.Write()
   OUTPUT_ROOT.cd()
 
