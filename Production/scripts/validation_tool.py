@@ -51,6 +51,7 @@ def groupby(dataframe, by):
   hist = _.GetValue()
   hist.ClearUnderflowAndOverflow()
   types = list(set([round(hist.GetBinCenter(jj)) for jj in range(hist.GetNbinsX()) if hist.GetBinContent(jj)]))
+  types = [int(tt) for tt in types]
 
   return {tt: dataframe.Filter('{} == {}'.format(by, tt)) for tt in types}
 
