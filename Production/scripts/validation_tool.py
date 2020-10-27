@@ -16,7 +16,7 @@ parser.add_argument('--input'       , required = True, type = str, help = 'input
 parser.add_argument('--output'      , required = True, type = str, help = 'output file name')
 parser.add_argument('--pdf'         , default  = None, type = str, help = 'output pdf directory')
 parser.add_argument('--json'        , required = True, type = str, help = 'output json file name')
-parser.add_argument('--nsplit'      , default  = 5   , type = str, help = 'number of chunks per file')
+parser.add_argument('--nsplit'      , default  = 100 , type = str, help = 'number of chunks per file')
 parser.add_argument('--pvthreshold' , default  = .05 , type = str, help = 'threshold of KS test (above = ok)')
 
 parser.add_argument('--visual', action = 'store_true', help = 'Won\'t run the script in batch mode')
