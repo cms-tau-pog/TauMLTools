@@ -56,7 +56,7 @@ def groupby(dataframe, by):
 
 def get_histos(dataframe, branch, norm = False):
   size = int(dataframe.Count())
-  sub_size = 1 + size / N_SPLITS
+  sub_size = 1 + size // N_SPLITS
   subframes = [dataframe.Range(ii*sub_size, (ii+1)*sub_size) for ii in range(N_SPLITS)]
   
   model = (branch, "") + BINS[branch]
