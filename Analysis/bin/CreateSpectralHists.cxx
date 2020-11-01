@@ -25,14 +25,14 @@ struct Arguments {
 struct HistArgs {
   int eta_bins, pt_bins;
   double eta_min, eta_max, pt_min, pt_max;
-  HistArgs(std::vector<std::string> args_pt, std::vector<std::string> args_eta)
+  HistArgs(const std::vector<std::string>& args_pt, const std::vector<std::string>& args_eta)
   {
-    pt_bins = analysis::Parse<int>(args_pt[0]);
-    pt_min = analysis::Parse<double>(args_pt[1]);
-    pt_max = analysis::Parse<double>(args_pt[2]);
-    eta_bins = analysis::Parse<int>(args_eta[0]);
-    eta_min = analysis::Parse<double>(args_eta[1]);
-    eta_max = analysis::Parse<double>(args_eta[2]);
+    pt_bins = analysis::Parse<int>(args_pt.at(0));
+    pt_min = analysis::Parse<double>(args_pt.at(1));
+    pt_max = analysis::Parse<double>(args_pt.at(2));
+    eta_bins = analysis::Parse<int>(args_eta.at(0));
+    eta_min = analysis::Parse<double>(args_eta.at(1));
+    eta_max = analysis::Parse<double>(args_eta.at(2));
   }
 };
 
