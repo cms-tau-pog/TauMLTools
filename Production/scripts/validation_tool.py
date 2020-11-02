@@ -1,4 +1,12 @@
-#!/usr/bin/env python
+from __future__ import print_function
+import sys; PYTHON_MAJOR = int(sys.version_info.major)
+dict_iterator = 'items' if PYTHON_MAJOR == 3 else 'iteritems'
+
+import ROOT
+import glob
+import json
+from collections import OrderedDict
+
 import argparse
 parser = argparse.ArgumentParser('''
 The script runs a binned KS test between different chunks of the same RDataFrame. For simplicity, all chunks are compared to the first one.
@@ -7,151 +15,181 @@ NOTE: the binning of each variable must be hard coded in the script (using the B
 NOTE: pvalue = 99 means that one of the two histograms is empty.
 ''')
 
-import ROOT
-import glob
-import json
-from collections import OrderedDict
-
 parser.add_argument('--input'       , required = True, type = str, help = 'input file. Accepts glob patterns (use quotes)')
 parser.add_argument('--output'      , required = True, type = str, help = 'output directory name')
-parser.add_argument('--nsplit'      , default  = 100 , type = str, help = 'number of chunks per file')
+parser.add_argument('--nsplit'      , default  = 100 , type = int, help = 'number of chunks per file')
 parser.add_argument('--pvthreshold' , default  = .05 , type = str, help = 'threshold of KS test (above = ok)')
+parser.add_argument('--n_threads'   , default  = 1   , type = int, help = 'enable ROOT implicit multithreading')
 
 parser.add_argument('--visual', action = 'store_true', help = 'Won\'t run the script in batch mode')
 parser.add_argument('--legend', action = 'store_true', help = 'Draw a TLegent on canvases')
 args = parser.parse_args()
+
+ROOT.gROOT.SetBatch(not args.visual)
+ROOT.gStyle.SetOptStat(0)
 
 import os
 pdf_dir = '/'.join([args.output, 'pdf'])
 if not os.path.exists(pdf_dir):
   os.makedirs(pdf_dir)
 
-ROOT.gROOT.SetBatch(not args.visual)
-ROOT.gStyle.SetOptStat(0)
-
 JSON_DICT      = OrderedDict()
 OUTPUT_ROOT    = ROOT.TFile.Open('{}/histograms.root'.format(args.output), 'RECREATE')
 OUTPUT_JSON    = open('{}/pvalues.json'.format(args.output), 'w')
-N_SPLITS       = args.nsplit
+N_SPLIT        = args.nsplit
 PVAL_THRESHOLD = args.pvthreshold
 
 ## binning of tested variables (cannot use unbinned distributions with python before root 6.18)
 BINS = {
   'tau_pt'    : (50, 0, 5000),
-  'tau_eta'   : (5, -2.5, 2.5),
+  'tau_eta'   : (5, -3.2, 3.2),
   'lepton_gen_match' : (20, -1, 19),
   'sampleType': (20, -1, 19),      
   'dataset_id': (20, -1, 19),
   'dataset_group_id': (20, -1, 19),
 }
 
-def groupby(dataframe, by):
-  _ = dataframe.Histo1D(by)
-  hist = _.GetValue()
-  hist.ClearUnderflowAndOverflow()
-  types = list(set([round(hist.GetBinCenter(jj)) for jj in range(hist.GetNbinsX()) if hist.GetBinContent(jj)]))
-  types = [int(tt) for tt in types]
+class Lazy_container:
+  def __init__(self, ptr, hst = None):
+    self.ptr = ptr
+    self.hst = hst
+  def load_histogram(self):
+    self.hst = self.ptr.GetValue()
 
-  return {tt: dataframe.Filter('{} == {}'.format(by, tt)) for tt in types}
+class Entry:  ## 2D entry (chunk_id x variable)
+  def __init__(self, var, histo, tdir = None):
+    self.var = var
+    self.hst = histo
+    self.tdir = tdir if not tdir is None else self.var
 
-def get_histos(dataframe, branch, norm = False):
-  size = dataframe.Count().GetValue()
-  sub_size = 1 + size // N_SPLITS
-  subframes = [dataframe.Range(ii*sub_size, (ii+1)*sub_size) for ii in range(N_SPLITS)]
-  
-  model = (branch, "") + BINS[branch]
-  hptrs = [sf.Histo1D(model, branch) for sf in subframes]
-  histos = [hh.GetValue().Clone() for hh in hptrs]
-
-  for ii, hh in enumerate(histos):
-    hh.SetTitle(branch)
-    hh.SetName('_'.join([hh.GetName(), str(ii)]))
-    hh.Sumw2()
-    hh.ClearUnderflowAndOverflow()
-    if norm and hh.Integral():
-      hh.Scale(1. / hh.Integral())
-
-  return histos
-
-def save_histos(histos, fdir, pvalues):
-  OUTPUT_ROOT.cd()
-  OUTPUT_ROOT.cd(fdir)
-  
-  can = ROOT.TCanvas()
-  leg = ROOT.TLegend(0.9, 0.1, 1., 0.9, "p-values (KS with the first chunk)")
-
-  histos[0].GetYaxis().SetRangeUser(0, 1.1*max(hh.GetMaximum() for hh in histos))
-  histos[0].SetMarkerStyle(20)
-
-  for ii, hh in enumerate(histos): 
-    hh.SetLineColor(ii+1)
-    hh.SetMarkerColor(ii+1)
-    leg.AddEntry(hh, 'chunk %d - pval = %.3f' %(ii, pvalues[ii]), 'lep')
-    hh.Draw("PE" + " SAME" * (ii != 0))
-    hh.Write()
-  if args.legend:
-    leg.Draw("SAME")
-  can.SaveAs('{}/pdf/{}.pdf'.format(args.output, fdir.replace('/', '_')), 'pdf')
-  can.Write()
-  OUTPUT_ROOT.cd()
-
-def run_validation(dataframe, branches, pwd):
-  OUTPUT_ROOT.cd()
-  OUTPUT_ROOT.mkdir(pwd)
-  
-  if not pwd in JSON_DICT.keys():
-    JSON_DICT[pwd] = OrderedDict()
-
-  for branch in branches:
-    OUTPUT_ROOT.cd() 
-    OUTPUT_ROOT.mkdir('/'.join([pwd, branch]))
-
-    histos = get_histos(dataframe, branch = branch, norm = True)
-
-    pvalues = [histos[0].KolmogorovTest(hh) if histos[0].Integral()*hh.Integral() else 99 for hh in histos]
-    if not histos[0].Integral():
-      print ('[WARNING] control histogram is empty for step {} inside {}'.format(branch, pwd))
+  def run_KS_test(self, norm = True):    
+    self.chunks = [self.hst.ProjectionY('chunk_{}'.format(cc), cc+1, cc+1).Clone() for cc in range(N_SPLIT)]
+    self.chunks[0].SetMarkerStyle(20)
+    for jj, hh in enumerate(self.chunks):
+      hh.SetTitle(self.tdir)
+      hh.Sumw2()
+      hh.SetLineColor(jj+1)
+      if hh.Integral() and norm:
+        hh.Scale(1. / hh.Integral())
     
-    if not all([pv >= PVAL_THRESHOLD for pv in pvalues]):
-      print ('[WARNING] KS test failed for step {} inside {}. p-values are:'.format(branch, pwd))
-      print ('\t', pvalues)
+    if not self.chunks[0].Integral():
+      print ('[WARNING] control histogram is empty inside {}'.format(self.tdir))
     
-    JSON_DICT[pwd][branch] = pvalues
+    self.pvalues = [self.chunks[0].KolmogorovTest(hh) if self.chunks[0].Integral()*hh.Integral() else 99 for hh in self.chunks]
+    if not all([pv >= PVAL_THRESHOLD for pv in self.pvalues]):
+      print ('[WARNING] KS test failed for step {}. p-values are:'.format(self.tdir))
+      print ('\t', self.pvalues)
+  
+  def save_data(self):
+    OUTPUT_ROOT.cd()
     
-    save_histos(histos, fdir = '/'.join([pwd, branch]), pvalues = pvalues)
+    if not OUTPUT_ROOT.GetDirectory(self.tdir):
+      OUTPUT_ROOT.mkdir(self.tdir)
+    
+    OUTPUT_ROOT.cd(self.tdir)
+    
+    can = ROOT.TCanvas()
+    leg = ROOT.TLegend(0.9, 0.1, 1., 0.9, "p-values (KS with the first chunk)")
+    for ii, hh in enumerate(self.chunks):
+      hh.Write()
+      hh.Draw('PE'+' SAME'*(ii != 0))
+      leg.AddEntry(hh, 'chunk %d - pval = %.3f' %(ii, self.pvalues[ii]), 'lep')
+    if args.legend:
+      leg.Draw("SAME")
+    
+    can.SaveAs('{}/pdf/{}.pdf'.format(args.output, self.tdir.replace('/', '_')), 'pdf')
+    can.Write()
+
+    OUTPUT_ROOT.cd()
+
+    json_here = JSON_DICT
+    for here in self.tdir.split('/'):
+      if not here in json_here.keys():
+        json_here[here] = OrderedDict()
+      json_here = json_here[here]
+    json_here['pvalues'] = self.pvalues
+
+def to_2D(histo, vbin):
+  histo.GetZaxis().SetRange(vbin, vbin)
+  return histo.Project3D('yx').Clone()
 
 if __name__ == '__main__':
   print ('[INFO] reading files', args.input)
+  
+  if args.n_threads > 1:
+    ROOT.ROOT.EnableImplicitMT(args.n_threads)
+
   input_files = ROOT.std.vector('std::string')()
+  
   for file in glob.glob(args.input):
     input_files.push_back(str(file))
 
-  main_dir = 'KS_test'
-
-  ## first, run on plain columns
+  model = lambda main, third = None: (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]+BINS[third] if not third is None else (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]
+  
   dataframe = ROOT.RDataFrame('taus', input_files)
-  run_validation(dataframe = dataframe, pwd = main_dir, branches = ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id'])
+  dataframe = dataframe.Define('chunk_id', 'rdfentry_ % {}'.format(N_SPLIT))
 
-  ## then, group by tau type
-  tau_type_dataframes = groupby(dataframe = dataframe, by = 'lepton_gen_match')
-  for ii, df in tau_type_dataframes.iteritems():
-    run_validation(dataframe = df, pwd = '/'.join([main_dir, 'lepton_gen_match', str(ii)]), branches = ['tau_pt', 'tau_eta'])
+  ## unbinned distributions
+  ptr_lgm = Lazy_container(dataframe.Histo2D(model('lepton_gen_match'), 'chunk_id', 'lepton_gen_match'))
+  ptr_st  = Lazy_container(dataframe.Histo2D(model('sampleType')      , 'chunk_id', 'sampleType'      ))
+  ptr_dgi = Lazy_container(dataframe.Histo2D(model('dataset_group_id'), 'chunk_id', 'dataset_group_id'))
+  ptr_di  = Lazy_container(dataframe.Histo2D(model('dataset_id')      , 'chunk_id', 'dataset_id'      ))
 
-  ## then, group by sample type
-  sample_type_dataframes = groupby(dataframe = dataframe, by = 'sampleType')
-  for ii, df in sample_type_dataframes.iteritems():
-    run_validation(dataframe = df, pwd = '/'.join([main_dir, 'sampleType', str(ii)]), branches = ['tau_pt', 'tau_eta'])
+  ## binned distributions
+  ptrs_tau_pt = {
+    binned_variable: Lazy_container(dataframe.Histo3D(model('tau_pt', third = binned_variable), 'chunk_id', 'tau_pt', binned_variable))
+      for binned_variable in ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id']
+  }
+  ptrs_tau_eta = {
+    binned_variable: Lazy_container(dataframe.Histo3D(model('tau_eta', third = binned_variable), 'chunk_id', 'tau_eta', binned_variable))
+      for binned_variable in ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id']
+  }
+  ptrs_dataset_id = {
+    binned_variable: Lazy_container(dataframe.Histo3D(model('dataset_id', third = binned_variable), 'chunk_id', 'dataset_id', binned_variable))
+      for binned_variable in ['dataset_group_id']
+  }
 
-  ## then, group by dataset group id
-  group_id_dataframes = groupby(dataframe = dataframe, by = 'dataset_group_id')
-  for ii, df in group_id_dataframes.iteritems():
-    run_validation(dataframe = df, pwd = '/'.join([main_dir, 'dataset_group_id', str(ii)]), branches = ['tau_pt', 'tau_eta', 'dataset_id'])
+  lazy_containers = [ptr_lgm, ptr_st, ptr_dgi, ptr_di ] +\
+    [lc for lc in ptrs_tau_pt.values()]  +\
+    [lc for lc in ptrs_tau_eta.values()] +\
+    [lc for lc in ptrs_dataset_id.values()]
+  
+  for lc in lazy_containers:
+    lc.load_histogram()
+  
+  ## run validation
+  entry_lgm = Entry(var = 'lepton_gen_match', histo = ptr_lgm.hst)
+  entry_st  = Entry(var = 'sampleType'      , histo = ptr_st .hst)
+  entry_dgi = Entry(var = 'dataset_group_id', histo = ptr_dgi.hst)
+  entry_di  = Entry(var = 'dataset_id'      , histo = ptr_di .hst)
 
-  ## then, group by dataset id
-  group_id_dataframes = groupby(dataframe = dataframe, by = 'dataset_id')
-  for ii, df in group_id_dataframes.iteritems():
-    run_validation(dataframe = df, pwd = '/'.join([main_dir, 'dataset_id', str(ii)]), branches = ['tau_pt', 'tau_eta'])
+  entries_tau_pt = [
+    Entry(var = 'tau_pt', histo = to_2D(ptrs_tau_pt[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_pt']))
+      for binned_variable in ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
+  ] ; entries_tau_pt = [ee for ee in entries_tau_pt if ee.hst.GetEntries()]
+
+  entries_tau_eta = [
+    Entry(var = 'tau_eta', histo = to_2D(ptrs_tau_eta[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_eta']))
+      for binned_variable in ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
+  ] ; entries_tau_eta = [ee for ee in entries_tau_eta if ee.hst.GetEntries()]
+  
+  entries_dataset_id = [
+    Entry(var = 'dataset_id', histo = to_2D(ptrs_dataset_id[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'dataset_id']))
+      for binned_variable in ['dataset_group_id']
+      for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
+  ]; entries_dataset_id = [ee for ee in entries_dataset_id if ee.hst.GetEntries()]
+
+  entries = [entry_lgm, entry_st, entry_dgi, entry_di] +\
+    [ee for ee in entries_tau_pt]  +\
+    [ee for ee in entries_tau_eta] +\
+    [ee for ee in entries_dataset_id]
+
+  for ee in entries:
+    ee.run_KS_test()
+    ee.save_data()
 
   OUTPUT_ROOT.Close()
   json.dump(JSON_DICT, OUTPUT_JSON, indent = 4)
-  print ('[INFO] all done. Files', args.output, 'and', args.json, 'have been created')
+  print ('[INFO] all done. Files saved in', args.output)
