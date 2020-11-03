@@ -1,6 +1,4 @@
 from __future__ import print_function
-import sys; PYTHON_MAJOR = int(sys.version_info.major)
-dict_iterator = 'items' if PYTHON_MAJOR == 3 else 'iteritems'
 
 import ROOT
 import glob
@@ -39,7 +37,7 @@ OUTPUT_JSON    = open('{}/pvalues.json'.format(args.output), 'w')
 N_SPLIT        = args.nsplit
 PVAL_THRESHOLD = args.pvthreshold
 
-## binning of tested variables (cannot use unbinned distributions with python before root 6.18)
+## binning of tested variables
 BINS = {
   'tau_pt'    : (50, 0, 5000),
   'tau_eta'   : (5, -3.2, 3.2),
@@ -64,7 +62,9 @@ class Entry:  ## 2D entry (chunk_id x variable)
 
   def run_KS_test(self, norm = True):    
     self.chunks = [self.hst.ProjectionY('chunk_{}'.format(cc), cc+1, cc+1).Clone() for cc in range(N_SPLIT)]
+
     self.chunks[0].SetMarkerStyle(20)
+
     for jj, hh in enumerate(self.chunks):
       hh.SetTitle(self.tdir)
       hh.Sumw2()
@@ -72,6 +72,8 @@ class Entry:  ## 2D entry (chunk_id x variable)
       if hh.Integral() and norm:
         hh.Scale(1. / hh.Integral())
     
+    self.chunks[0].GetYaxis().SetRangeUser(0, 1.1*max(hh.GetMaximum() for hh in self.chunks))
+
     if not self.chunks[0].Integral():
       print ('[WARNING] control histogram is empty inside {}'.format(self.tdir))
     
@@ -127,7 +129,8 @@ if __name__ == '__main__':
   model = lambda main, third = None: (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]+BINS[third] if not third is None else (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]
   
   dataframe = ROOT.RDataFrame('taus', input_files)
-  dataframe = dataframe.Define('chunk_id', 'rdfentry_ % {}'.format(N_SPLIT))
+  tot_entries = dataframe.Count().GetValue()
+  dataframe = dataframe.Define('chunk_id', 'rdfentry_ * {} / {}'.format(N_SPLIT, tot_entries))
 
   ## unbinned distributions
   ptr_lgm = Lazy_container(dataframe.Histo2D(model('lepton_gen_match'), 'chunk_id', 'lepton_gen_match'))
