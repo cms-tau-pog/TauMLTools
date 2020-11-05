@@ -50,10 +50,11 @@ ENUM_NAMES(GenQcdMatch) = {
     { GenQcdMatch::Gluon, "gen_gluon" }
 };
 
-enum class TauType { e = 0, mu = 1, tau = 2, jet = 3, emb = 4, data = 5 };
+enum class TauType { e = 0, mu = 1, tau = 2, jet = 3, emb_e = 4, emb_mu = 5, emb_tau = 6, emb_jet = 7, data = 8 };
 ENUM_NAMES(TauType) = {
     { TauType::e, "e" }, { TauType::mu, "mu" }, { TauType::tau, "tau" }, { TauType::jet, "jet" },
-    { TauType::emb, "emb" }, { TauType::data, "data" }
+    { TauType::emb_e, "emb_e" }, { TauType::emb_mu, "emb_mu" }, { TauType::emb_tau, "emb_tau" }, { TauType::emb_jet, "emb_jet" },
+    { TauType::data, "data" }
 };
 
 enum class SampleType { Data = 0, MC = 1, Embedded = 2 };
@@ -71,11 +72,15 @@ inline TauType GenMatchToTauType(GenLeptonMatch gen_match, SampleType sample_typ
         return TauType::mu;
     } else if(gen_match == GenLeptonMatch::Tau) {
         if(sample_type == SampleType::MC) return TauType::tau;
-        if(sample_type == SampleType::Embedded) return TauType::emb;
+        if(sample_type == SampleType::Embedded) return TauType::emb_tau;
     } else if(gen_match == GenLeptonMatch::NoMatch) {
         if(sample_type == SampleType::MC) return TauType::jet;
         if(sample_type == SampleType::Data) return TauType::data;
-    }
+        if(sample_type == SampleType::Embedded) return TauType::emb_jet;
+    } else if(sample_type == SampleType::Embedded && (gen_match == GenLeptonMatch::Muon
+              || gen_match == GenLeptonMatch::TauMuon)) return TauType::emb_mu;
+      else if(sample_type == SampleType::Embedded && gen_match == GenLeptonMatch::TauElectron)
+        return TauType::emb_e;
     throw exception("Incompatible gen_lepton_match = %1% and sample_type = %2%.") % gen_match % sample_type;
 }
 
