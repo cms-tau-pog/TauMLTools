@@ -53,12 +53,6 @@ public:
 namespace analysis {
 class CreateSpectralHists {
 
-private:
-    std::vector<std::string> input_files;
-    std::shared_ptr<TFile> outputfile;
-    std::shared_ptr<HistSpectrum> hists;
-    Int_t total_size=0;
-
 public:
     using Tau = tau_tuple::Tau;
     using TauTuple = tau_tuple::TauTuple;
@@ -136,6 +130,7 @@ private:
             const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
             const TauType tau_type = analysis::GenMatchToTauType(gen_match, sample_type);
             hists->eta_pt_hist(tau_type).Fill(std::abs(tau.tau_eta), tau.tau_pt);
+            ttypes[tau_type] = true;
         } else {
             hists->not_valid().Fill(1);
         }
@@ -148,11 +143,18 @@ private:
 
     double Integral() const
     {
-      return  hists->eta_pt_hist("tau").Integral()
-            + hists->eta_pt_hist("e").Integral()
-            + hists->eta_pt_hist("mu").Integral()
-            + hists->eta_pt_hist("jet").Integral();
+      double res = 0;
+      for(auto type: ttypes) res += hists
+        ->eta_pt_hist(analysis::ToString(type.first)).Integral();
+      return res;
     }
+
+  private:
+      std::vector<std::string> input_files;
+      std::shared_ptr<TFile> outputfile;
+      std::shared_ptr<HistSpectrum> hists;
+      std::map<TauType,bool> ttypes;
+      Int_t total_size=0;
 
 };
 
