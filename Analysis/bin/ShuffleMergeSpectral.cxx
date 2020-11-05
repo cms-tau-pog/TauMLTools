@@ -33,16 +33,20 @@ struct Arguments {
     run::Argument<std::string> pt_bins{"pt-bins", "pt bins"};
     run::Argument<std::string> eta_bins{"eta-bins", "eta bins"};
     run::Argument<analysis::MergeMode> mode{"mode", "merging mode: MergeAll or MergePerEntry"};
-    run::Argument<size_t> max_entries{"max-entries", "maximal number of entries in output tuple",
+    run::Argument<size_t> max_entries{"max-entries", "maximal number of entries in output train+test tuples",
                                             std::numeric_limits<size_t>::max()};
     run::Argument<unsigned> n_threads{"n-threads", "number of threads", 1};
     run::Argument<unsigned> seed{"seed", "random seed to initialize the generator used for sampling", 1234567};
     run::Argument<std::string> disabled_branches{"disabled-branches",
                                                  "list of branches to disabled in the input tuples", ""};
-    run::Argument<std::string> path_spectrum{"input_spec", "input path with spectrums for all the samples"};
-    run::Argument<std::string> tau_ratio{"tau_ratio", "ratio of tau types in the final spectrum"};
-    run::Argument<double> start_entry{"start_entry", "starting ratio from which file will be processed", 0};
-    run::Argument<double> end_entry{"end_entry", "end ratio until which file will be processed", 1};
+    run::Argument<std::string> path_spectrum{"input-spec", "input path with spectrums for all the samples"};
+    run::Argument<std::string> tau_ratio{"tau-ratio", "ratio of tau types in the final spectrum"};
+    run::Argument<double> start_entry{"start-entry", "starting ratio from which file will be processed", 0};
+    run::Argument<double> end_entry{"end-entry", "end ratio until which file will be processed", 1};
+    run::Argument<double> test_size{"test-size", "the ralative size of the testing dataset r=N_test/N_all",0.1};
+    run::Argument<double> pt_threshold{"pt-threshold", "pt threshold to take all candidates",100};
+    run::Argument<double> exp_disbalance{"exp-disbalance", "maximal expected disbalance between low pt and high pt regions",0};
+
 };
 
 struct SourceDesc {
@@ -57,7 +61,7 @@ struct SourceDesc {
         name(_name), group_name(_group_name), file_names(_file_names),
         disabled_branches(_disabled_branches), entry_begin_rel(_begin_rel), entry_end_rel(_end_rel),
         tau_types(_tautypes), current_n_processed(0), files_n_total(_file_names.size()),
-        entries_file(std::numeric_limits<size_t>::infinity()), total_n_processed(0)
+        entries_file(std::numeric_limits<size_t>::infinity()), total_n_processed(0), total_n_input(0)
     {
         if(file_names.empty())
           throw analysis::exception("Empty list of files for the source '%1%'.") % name;
@@ -105,11 +109,7 @@ struct SourceDesc {
       return true;
     }
 
-    const Tau& GetNextTau()
-    {
-      return current_tuple->data();
-    }
-
+    const Tau& GetNextTau() { return current_tuple->data(); }
     const size_t GetNumberOfProcessed() const { return total_n_processed; }
     const size_t GetNumberOfInput() const { return total_n_input; }
     const TauType GetType() { return current_tau_type; }
@@ -118,15 +118,11 @@ struct SourceDesc {
     const int GetNameH() const { return dataset_hash; }
     const int GetGroupNameH() const { return datagroup_hash; }
     const std::vector<std::string>& GetFileNames() const { return file_names; }
-    // double GetWeight() const { return weight; }
-    // const std::string& GetBinName() const { return bin_name; }
-    // void SetBinName(const std::string& _bin_name) { bin_name = _bin_name; }
 
   private:
       const std::string name;
       const std::string group_name;
       const std::vector<std::string> file_names;
-      // const double weight;
       const std::set<std::string> disabled_branches;
       const double entry_begin_rel;
       const double entry_end_rel;
@@ -192,7 +188,7 @@ struct EntryDesc {
           const path spectrum_file(base_spectrum_dir + "/" + dir_name + ".root");
 
           if(!is_regular_file(spectrum_file))
-            throw analysis::exception("No spectrum file are found for entry '%1%'") % sample_dir_entry;
+            throw analysis::exception("No spectrum file are founupperd for entry '%1%'") % sample_dir_entry;
           std::cout << spectrum_file << " - spectrum" << std::endl;
 
           has_dir_match = true;
@@ -227,21 +223,22 @@ class SpectrumHists {
 
 public:
 
-    SpectrumHists(const std::string& groupname_,
-                  const std::vector<double>& pt_bins,
+    SpectrumHists(const std::string& groupname_, const std::vector<double>& pt_bins,
                   const std::vector<double>& eta_bins,
+                  const Double_t exp_disbalance_,
                   const std::set<TauType>& tau_types_):
-                  groupname(groupname_),ttypes(tau_types_)
+                  groupname(groupname_), exp_disbalance(exp_disbalance_), ttypes(tau_types_)
     {
       std::cout << "Initialization of group SpectrumHists..." << std::endl;
       for(TauType type: ttypes){
         const char *name = (groupname+"_"+analysis::ToString(type)).c_str();
-        ttype_hists[type] = std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0],
-                                                   pt_bins.size()-1,&pt_bins[0]);
+        ttype_prob[type] = std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0],
+                                                   pt_bins.size()-2,&pt_bins[0]);
+        ttype_entries[type] = std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0],
+                                                  pt_bins.size()-1,&pt_bins[0]);
       }
       // testing for the uniform distr.
       target_hist = SetTargetHist_test(1.0, pt_bins, eta_bins);
-
       n_entries = 0;
     }
 
@@ -253,13 +250,12 @@ public:
       std::shared_ptr<TFile> current_file = std::make_shared<TFile>(path_spectrum_file.c_str());
       for (TauType type: ttypes){
         std::shared_ptr<TH2D> hist_ttype((TH2D*)current_file->Get(("eta_pt_hist_"+analysis::ToString(type)).c_str()));
-        auto map_bins = GetBinMap(ttype_hists.at(type), hist_ttype);
+        auto map_bins = GetBinMap(ttype_entries.at(type), hist_ttype);
         for(unsigned int ix=0; ix<=map_bins.first.size(); ix++)
           for(unsigned int iy=0; iy<=map_bins.second.size(); iy++)
-            ttype_hists[type]->SetBinContent(map_bins.first[ix],map_bins.second[iy],
-              ttype_hists[type]->GetBinContent(map_bins.first[ix],map_bins.second[iy])
+            ttype_entries[type]->SetBinContent(map_bins.first[ix],map_bins.second[iy],
+              ttype_entries[type]->GetBinContent(map_bins.first[ix],map_bins.second[iy])
               + hist_ttype->GetBinContent(ix,iy));
-
         //To get Number of entries in ranges
         entries[dataset][type] = hist_ttype->Integral();
         n_entries += hist_ttype->GetEntries(); //needed for monitoring
@@ -269,25 +265,54 @@ public:
     void CalculateProbability() // TO BE CHECKED AND DISCUSSED!
     {
       for (TauType type: ttypes) {
-        if(CheckZeros(ttype_hists.at(type)))
+        if(CheckZeros(ttype_entries.at(type)))
           throw analysis::exception("Empty spectrum histogram for groupname: '%1%' and tau type: '%2%'") % groupname % type;
-        std::shared_ptr<TH2D> new_h((TH2D*)target_hist->Clone());
-        new_h->Divide(ttype_hists.at(type).get());
-        ttype_hists.at(type) = new_h;
-        Int_t MaxBin = ttype_hists.at(type)->GetMaximumBin();
+        std::shared_ptr<TH2D> ratio_h((TH2D*)target_hist->Clone());
+        for(int i_x = 1; i_x<=ratio_h->GetNbinsX(); i_x++)
+          for(int i_y = 1; i_y<=ratio_h->GetNbinsY(); i_y++)
+            ratio_h->SetBinContent(i_x,i_y,
+              target_hist->GetBinContent(i_x,i_y)/ttype_entries.at(type)->GetBinContent(i_x,i_y)
+            );
+        ttype_prob.at(type) = ratio_h;
+        Int_t MaxBin = ttype_prob.at(type)->GetMaximumBin();
         Int_t x,y,z;
-        ttype_hists.at(type)->GetBinXYZ(MaxBin, x, y, z);
-        std::cout << "max pt_bin eta_bin: " << y << " " << x
-                  << " Scale: " << ttype_hists.at(type)->GetBinContent(x,y) << "\n";
-        ttype_hists.at(type)->Scale(1.0/ttype_hists.at(type)->GetBinContent(x,y));
+        ttype_prob.at(type)->GetBinXYZ(MaxBin, x, y, z);
+        ttype_prob.at(type)->Scale(1.0/ttype_prob.at(type)->GetBinContent(x,y));
+
+
+        // double scale = 1.0;
+        // if(exp_disbalance!=0.0)
+        //   scale = std::min(1.0, exp_disbalance*Nhigh_pt[type]*ttype_hists.at(type)->GetBinContent(x,y));
+        // if(scale!=1.0)
+        //   std::cout << "WARNING: Disbalance is bigger, scale factor will be applied" << std::endl;
+        // std::cout << "max pt_bin eta_bin: " << y << " " << x
+        //           << " MaxBin: " << ttype_hists.at(type)->GetBinContent(x,y)
+        //           << " scale factor: " << scale << "\n";
+        // ttype_hists.at(type)->Scale(scale/ttype_hists.at(type)->GetBinContent(x,y));
       }
+    }
+
+    const std::map<TauType, Double_t> GetTauTypeEntriesFinal() const
+    {
+      std::map<TauType, Double_t> EntriesFinal;
+      for (TauType type: ttypes) {
+        EntriesFinal[type] = 0.0;
+        std::shared_ptr<TH2D> entries_count((TH2D*)ttype_entries.at(type)->Clone());
+        for(int i_x = 1; i_x<=ttype_prob.at(type)->GetNbinsX(); i_x++)
+          for(int i_y = 1; i_y<=ttype_prob.at(type)->GetNbinsY(); i_y++)
+            entries_count->SetBinContent(i_x,i_y,
+              entries_count->GetBinContent(i_x,i_y)*ttype_prob.at(type)->GetBinContent(i_x,i_y)
+            );
+        EntriesFinal.at(type) = entries_count->Integral();
+      }
+      return EntriesFinal;
     }
 
     const double GetProbability(const TauType type, const double pt, const double eta) const
     {
-      return ttype_hists.at(type)->GetBinContent(
-             ttype_hists.at(type)->GetXaxis()->FindBin(eta),
-             ttype_hists.at(type)->GetYaxis()->FindBin(pt));
+      return ttype_prob.at(type)->GetBinContent(
+             ttype_prob.at(type)->GetXaxis()->FindBin(eta),
+             ttype_prob.at(type)->GetYaxis()->FindBin(pt));
     }
 
     const std::map<std::string, Double_t> GetDataSetsProbabilities() const
@@ -301,38 +326,33 @@ public:
       return Probs;
     }
 
-    const std::map<TauType, Double_t> GetTauTypeEntries() const
-    {
-      std::map<TauType, Double_t> Probs;
-      for (TauType type: ttypes) {
-        Probs[type] = 0.0;
-        for(auto entry: entries)
-            Probs[type] += entry.second.at(type);
-      }
-      return Probs;
-    }
 
     void SaveHists(const std::string& output)
     {
       if(!boost::filesystem::exists(output)) boost::filesystem::create_directory(output);
       TFile file = TFile((output+"/"+groupname+".root").c_str(),"RECREATE");
       for (TauType type: ttypes)
-        ttype_hists[type]->Write((analysis::ToString(type)+"_prob").c_str());
+        ttype_prob[type]->Write((analysis::ToString(type)+"_prob").c_str());
       file.Close();
+      TFile file_n = TFile((output+"/"+groupname+"_n.root").c_str(),"RECREATE");
+      for (TauType type: ttypes)
+        ttype_entries[type]->Write((analysis::ToString(type)+"_entries").c_str());
+      file_n.Close();
     }
 
     const size_t GetEntries() { return n_entries; }
 
 private:
-  std::shared_ptr<TH2D> SetTargetHist_test(const double factor,const std::vector<double>& pt_bins,
+  std::shared_ptr<TH2D> SetTargetHist_test(const double scale,const std::vector<double>& pt_bins,
                                                                const std::vector<double>& eta_bins)
   {
     std::shared_ptr<TH2D> tartget_hist = std::make_shared<TH2D>("tartget","tartget",
                                           eta_bins.size()-1,&eta_bins[0],
-                                          pt_bins.size()-1,&pt_bins[0]);
+                                          pt_bins.size()-2,&pt_bins[0]);
     for(Int_t i_pt = 1; i_pt <= tartget_hist->GetNbinsY(); i_pt++)
       for(Int_t i_eta = 1; i_eta <= tartget_hist->GetNbinsX(); i_eta++)
-        tartget_hist->SetBinContent(i_eta,i_pt,factor);
+        tartget_hist->SetBinContent(i_eta,i_pt,1.0);
+    tartget_hist->Scale(scale/tartget_hist->Integral());
     return tartget_hist;
   }
 
@@ -378,10 +398,12 @@ private:
 
 private:
   const std::string& groupname;
-  std::map<TauType, std::shared_ptr<TH2D>> ttype_hists; // pair<tau_type, propability_hist>
+  std::map<TauType, std::shared_ptr<TH2D>> ttype_entries; // pair<tau_type, probability_hist>
+  std::map<TauType, std::shared_ptr<TH2D>> ttype_prob; // pair<tau_type, probability_hist>
   std::map<std::string, std::map<TauType, Double_t>> entries; // pair<dataset, pair<tau type, n entries>>
   size_t n_entries; // needed for monitoring
   std::shared_ptr<TH2D> target_hist;
+  Double_t pt_threshold, exp_disbalance;
 
 public:
   const std::set<TauType> ttypes; // vector of tau types e.g: e,tau...
@@ -398,11 +420,13 @@ public:
     using Uniform = std::uniform_real_distribution<double>;
     using Discret = std::discrete_distribution<int>;
 
-    DataSetProcessor(const std::vector<EntryDesc>& entries, const std::vector<double>& pt_bins, const std::vector<double>& eta_bins,
-                     Generator& _gen, const std::set<std::string>& disabled_branches, bool verbose,
-                     const std::map<TauType, Double_t> tau_ratio, Double_t start_entry, Double_t end_entry) :
+    DataSetProcessor(const std::vector<EntryDesc>& entries, const std::vector<double>& pt_bins,
+                     const std::vector<double>& eta_bins, Generator& _gen,
+                     const std::set<std::string>& disabled_branches, bool verbose,
+                     const std::map<TauType, Double_t> tau_ratio, const Double_t start_entry,
+                     const Double_t end_entry, const double pt_threshold_, const Double_t exp_disbalance_) :
                      pt_max(pt_bins.back()), pt_min(pt_bins[0]), eta_max(eta_bins.back()),
-                     gen(&_gen)
+                     pt_threshold(pt_threshold_), exp_disbalance(exp_disbalance_), gen(&_gen)
     {
       if(verbose) std::cout << "Loading Data Groups..." << std::endl;
       LoadDataGroups(entries, pt_bins, eta_bins, disabled_branches, start_entry, end_entry);
@@ -413,10 +437,10 @@ public:
 
       if(verbose) std::cout << "Saving histograms..." << std::endl;
       for(auto spectrum: spectrums)
-        spectrum.second->SaveHists("./merge_out");
+        spectrum.second->SaveHists("./out");
 
       if(verbose) std::cout << "Writing hash table..." << std::endl;
-      WriteHashTables("./merge_out");
+      WriteHashTables("./out");
 
       // GetProbability of dataset
       // ~ Number of entries per all/one TauType
@@ -495,8 +519,8 @@ private:
       if(dist_uniform(*gen) >= ttype_prob.at(currentType)) return false;
       Double_t pt = tuple.tau_pt;
       Double_t abs_eta = abs(tuple.tau_eta);
-      if( pt<=pt_min || pt>=pt_threshold || abs_eta>=eta_max) return false;
-      else if(pt>=pt_max) return true;
+      if( pt<=pt_min || pt>=pt_max || abs_eta>=eta_max) return false;
+      else if(pt>=pt_threshold) return true;
       if(dist_uniform(*gen) <= spectrums.at(set_to_group.at(dataset))
                           ->GetProbability(currentType, pt, abs_eta)) return true;
       return false;
@@ -513,9 +537,9 @@ private:
             file_.second, disabled_branches, start_, end_, group_desc_.tau_types);
           sources[dataname] = source;
         }
-        spectrums[group_desc_.name] = std::make_shared<SpectrumHists>(group_desc_.name,
-                                                                    pt_bins,eta_bins,
-                                                                    group_desc_.tau_types);
+        spectrums[group_desc_.name] = std::make_shared<SpectrumHists>(group_desc_.name, pt_bins,
+                                                                      eta_bins, exp_disbalance,
+                                                                      group_desc_.tau_types);
         for(const std::pair<std::string,std::string> spectrum: group_desc_.spectrum_files)
           spectrums[group_desc_.name]->AddHist(spectrum.first,spectrum.second);
       }
@@ -527,15 +551,17 @@ private:
       std::map<TauType, Double_t> probab;
       std::map<TauType, Double_t> accumulated_entries;
       for(auto spectrum: spectrums){
-        auto entries_ = spectrum.second->GetTauTypeEntries();
+        auto entries_ = spectrum.second->GetTauTypeEntriesFinal();
         for(TauType type: spectrum.second->ttypes)
           accumulated_entries[type] += entries_.at(type);
       }
       for(auto tauR_: tau_ratio){
-        if(tauR_.second==0)
-          continue;
+        // std::cout << "Number of taus: " << analysis::ToString(tauR_.first) << accumulated_entries[tauR_.first] << std::endl;
+        // if(tauR_.second==0)
+        //   continue;
         if(accumulated_entries.at(tauR_.first)==0)
           throw analysis::exception("No taus of the type '%1%' are found in the tuples") % tauR_.first;
+        std::cout << "tau prob" << tauR_.second << " " << accumulated_entries.at(tauR_.first) << "\n";
         probab[tauR_.first] = tauR_.second/accumulated_entries.at(tauR_.first);
       }
       auto pr = std::max_element(std::begin(probab), std::end(probab),
@@ -563,7 +589,8 @@ private:
     std::map<TauType, Double_t> ttype_prob; // pair<type, probability> (summed up per all dataset)
     const Double_t pt_max,pt_min;
     const Double_t eta_max;
-    const Double_t pt_threshold=1000;
+    const Double_t pt_threshold;
+    const Double_t exp_disbalance;
     size_t all_entries;
 
     Generator* gen;
@@ -632,23 +659,33 @@ public:
         std::cout << "Processing:";
         for(const auto& entry : entry_list)
           std::cout << ' ' << entry.name;
-        std::cout << "\nOutput: " << file_name << std::endl;
+        std::cout << "\nOutput train: " << file_name << std::endl;
         auto output_file = root_ext::CreateRootFile(file_name, ROOT::kLZ4, 4);
         auto output_tuple = std::make_shared<TauTuple>("taus", output_file.get(), false);
-        std::cout << "Creating event bin map..." << std::endl;
+
+        const std::string& file_name_test = RemoveFileExtension(file_name)+"_test.root";
+        std::cout << "Output test: " << file_name_test << std::endl;
+        auto output_file_test = root_ext::CreateRootFile(file_name_test, ROOT::kLZ4, 4);
+        auto output_tuple_test = std::make_shared<TauTuple>("taus", output_file_test.get(), false);
 
         DataSetProcessor processor(entry_list, pt_bins, eta_bins,
                                    gen, disabled_branches, true, tau_ratio,
-                                   args.start_entry(),args.end_entry());
+                                   args.start_entry(),args.end_entry(),
+                                   args.pt_threshold(), args.exp_disbalance());
 
         size_t n_processed = 0;
-
+        int test_fill_period = (int)(1.0/args.test_size());
         while(processor.DoNextStep()){
-
           const auto& tau = processor.GetNextTau();
-          (*output_tuple)() = tau;
-          output_tuple->Fill();
-          if(++n_processed % 1000 == 0){
+          n_processed++;
+          if(n_processed % test_fill_period == 0){
+            (*output_tuple_test)() = tau;
+            output_tuple_test->Fill();
+          } else {
+            (*output_tuple)() = tau;
+            output_tuple->Fill();
+          }
+          if(n_processed % 1000 == 0){
             std::cout << n_processed << " is selected" << std::endl;
             processor.PrintStatusReport();
           }
@@ -656,14 +693,14 @@ public:
             std::cout << "stop: number of entries exceeded max_entries" << std::endl;
             break;
           }
-
         }
 
         std::cout << "Writing output tuples..." << std::endl;
         output_tuple->Write();
         output_tuple.reset();
+        output_tuple_test->Write();
+        output_tuple_test.reset();
         std::cout << file_name << " has been successfully created." << std::endl;
-
       }
       std::cout << "All entries has been merged." << std::endl;
     }
