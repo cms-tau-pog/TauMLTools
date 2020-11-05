@@ -161,6 +161,35 @@ ShuffleMerge --cfg TauML/Analysis/config/testing_inputs.cfg --input tuples-v2 --
              --n-threads 12 --disabled-branches "trainingWeight"
 ```
 
+#### Validation
+A validation can be run on shuffled samples to ensure that different parts of the training set have compatible distributions.
+To run the validation tool, a ROOT version greater or equal to 6.16 is needed:
+```
+source /cvmfs/sft.cern.ch/lcg/views/LCG_97apython3/x86_64-centos7-clang10-opt/setup.sh
+```
+Then, run:
+```
+python TauMLTools/Production/scripts/validation_tool.py  --input "/path/to/input/*.root" \
+                                                         --output output_directory \
+                                                         --n_threads n_threads \
+                                                         --legend > results.txt
+```
+The script will create the directory "output_directory" containing the results of the test.
+Validation is run on the following ditributions with a Kolmogorov-Smirnov test:
+
+- dataset_id, dataset_group_id, lepton_gen_match, sampleType 
+- tau_pt and tau_eta for each bin of the previous
+- dataset_id for each bin of dataset_group_id
+
+If a KS test is not successful, a warning message is print on screen.
+
+Optional arguments are available running:
+```
+python TauMLTools/Production/scripts/validation_tool.py --help
+```
+
+A time benchmark is available [here](https://github.com/cms-tau-pog/TauMLTools/pull/31#issue-510206277).
+
 ### Production of flat inputs
 
 In this stage, `TauTuple`s are transformed into flat [TrainingTuples](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/interface/TrainingTuple.h) that are suitable as an input for the training.
