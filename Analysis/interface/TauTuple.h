@@ -44,6 +44,8 @@
     VAR(Float_t, genEventWeight) /* gen event weight */ \
     VAR(Float_t, trainingWeight) /* training weight */ \
     VAR(Int_t, sampleType) /* type of the sample (MC, Embedded or Data) */ \
+    VAR(Int_t, tauType) /* tau type match e = 0, mu = 1, tau = 2, jet = 3,
+                emb_e = 4, emb_mu = 5, emb_tau = 6, emb_jet = 7, data = 8 */ \
     VAR(Int_t, dataset_id) /* ID of the dataset (needed to identify the original dataset after shuffle&merge) */ \
     VAR(Int_t, dataset_group_id) /* ID of the dataset group (needed to identify the original dataset group
                                     after shuffle&merge) */ \

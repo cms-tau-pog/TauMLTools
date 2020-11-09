@@ -104,6 +104,7 @@ struct SourceDesc {
       }
       while (tau_types.find(current_tau_type) == tau_types.end());
       ++total_n_processed;
+      (*current_tuple)().tauType = static_cast<Int_t>(current_tau_type);
       (*current_tuple)().dataset_id = dataset_hash;
       (*current_tuple)().dataset_group_id = datagroup_hash;
       return true;
@@ -563,7 +564,8 @@ private:
         if(tauR_.second!=-1){
           if(accumulated_entries.at(tauR_.first)==0)
             throw analysis::exception("No taus of the type '%1%' are found in the tuples") % tauR_.first;
-          std::cout << "tau prob" << tauR_.second << " " << accumulated_entries.at(tauR_.first) << "\n";
+          std::cout << "tau: " << analysis::ToString(tauR_.first) << " Prob: " << tauR_.second
+                    << " " << accumulated_entries.at(tauR_.first) << "\n";
           probab[tauR_.first] = tauR_.second/accumulated_entries.at(tauR_.first);
         }
       }
@@ -679,6 +681,7 @@ public:
                                    args.exp_disbalance());
 
         size_t n_processed = 0;
+        std::cout << "starting loops:" <<std::endl;
         while(processor.DoNextStep()){
           const auto& tau = processor.GetNextTau();
           n_processed++;
