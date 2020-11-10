@@ -13,11 +13,13 @@ NOTE: the binning of each variable must be hard coded in the script (using the B
 NOTE: pvalue = 99 means that one of the two histograms is empty.
 ''')
 
-parser.add_argument('--input'       , required = True, type = str, help = 'input file. Accepts glob patterns (use quotes)')
-parser.add_argument('--output'      , required = True, type = str, help = 'output directory name')
-parser.add_argument('--nsplit'      , default  = 100 , type = int, help = 'number of chunks per file')
-parser.add_argument('--pvthreshold' , default  = .05 , type = str, help = 'threshold of KS test (above = ok)')
-parser.add_argument('--n_threads'   , default  = 1   , type = int, help = 'enable ROOT implicit multithreading')
+parser.add_argument('--input'         , required = True, type = str, help = 'input file. Accepts glob patterns (use quotes)')
+parser.add_argument('--output'        , required = True, type = str, help = 'output directory name')
+parser.add_argument('--nsplit'        , default  = 100 , type = int, help = 'number of chunks per file')
+parser.add_argument('--pvthreshold'   , default  = .05 , type = str, help = 'threshold of KS test (above = ok)')
+parser.add_argument('--n_threads'     , default  = 1   , type = int, help = 'enable ROOT implicit multithreading')
+parser.add_argument('--id_json'       , required = True, type = str, help = 'dataset id json file')
+parser.add_argument('--group_id_json' , required = True, type = str, help = 'dataset group id json file')
 
 parser.add_argument('--visual', action = 'store_true', help = 'Won\'t run the script in batch mode')
 parser.add_argument('--legend', action = 'store_true', help = 'Draw a TLegent on canvases')
@@ -128,7 +130,21 @@ if __name__ == '__main__':
 
   model = lambda main, third = None: (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]+BINS[third] if not third is None else (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]
   
+  cpp_function = '''
+std::vector<int> hash_list = {%s};
+int hash, line = 0;
+for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it++, line++){
+ if (*it == %s) return line;
+} return line;'''
+
+  id_json       = json.load(open(args.id_json, 'r'))
+  group_id_json = json.load(open(args.group_id_json, 'r'))
+  ids = id_json.values()
+  group_ids = group_id_json.values()
+
   dataframe = ROOT.RDataFrame('taus', input_files)
+  dataframe = dataframe.Define('uh_dataset_id', cpp_function % (','.join(ids), 'dataset_id'))
+  dataframe = dataframe.Define('uh_dataset_group_id', cpp_function % (','.join(group_ids), 'dataset_group_id'))
   tot_entries = dataframe.Count().GetValue()
   dataframe = dataframe.Define('chunk_id', 'rdfentry_ * {} / {}'.format(N_SPLIT, tot_entries))
 
