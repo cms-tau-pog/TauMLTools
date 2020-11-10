@@ -143,30 +143,34 @@ for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it
   ids = id_json.values()
   group_ids = group_id_json.values()
 
+  BINS['uh_dataset_group_id'] = (len(group_ids), 0, len(group_ids))
+  BINS['uh_dataset_id']       = (len(ids), 0, len(ids))
+
   dataframe = ROOT.RDataFrame('taus', input_files)
-  dataframe = dataframe.Define('uh_dataset_id', cpp_function % (','.join(ids), 'dataset_id'))
-  dataframe = dataframe.Define('uh_dataset_group_id', cpp_function % (','.join(group_ids), 'dataset_group_id'))
   tot_entries = dataframe.Count().GetValue()
+
   dataframe = dataframe.Define('chunk_id', 'rdfentry_ * {} / {}'.format(N_SPLIT, tot_entries))
+  dataframe = dataframe.Define('uh_dataset_id'      , cpp_function % (','.join(ids), 'dataset_id'))
+  dataframe = dataframe.Define('uh_dataset_group_id', cpp_function % (','.join(group_ids), 'dataset_group_id'))
 
   ## unbinned distributions
   ptr_lgm = Lazy_container(dataframe.Histo2D(model('TauType'), 'chunk_id', 'TauType'))
   ptr_st  = Lazy_container(dataframe.Histo2D(model('sampleType')      , 'chunk_id', 'sampleType'      ))
-  ptr_dgi = Lazy_container(dataframe.Histo2D(model('dataset_group_id'), 'chunk_id', 'dataset_group_id'))
-  ptr_di  = Lazy_container(dataframe.Histo2D(model('dataset_id')      , 'chunk_id', 'dataset_id'      ))
+  ptr_dgi = Lazy_container(dataframe.Histo2D(model('uh_dataset_group_id'), 'chunk_id', 'uh_dataset_group_id'))
+  ptr_di  = Lazy_container(dataframe.Histo2D(model('uh_dataset_id')      , 'chunk_id', 'uh_dataset_id'      ))
 
   ## binned distributions
   ptrs_tau_pt = {
     binned_variable: Lazy_container(dataframe.Histo3D(model('tau_pt', third = binned_variable), 'chunk_id', 'tau_pt', binned_variable))
-      for binned_variable in ['TauType', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for binned_variable in ['tauType', 'sampleType', 'uh_dataset_group_id', 'uh_dataset_id']
   }
   ptrs_tau_eta = {
     binned_variable: Lazy_container(dataframe.Histo3D(model('tau_eta', third = binned_variable), 'chunk_id', 'tau_eta', binned_variable))
-      for binned_variable in ['TauType', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for binned_variable in ['tauType', 'sampleType', 'uh_dataset_group_id', 'uh_dataset_id']
   }
   ptrs_dataset_id = {
-    binned_variable: Lazy_container(dataframe.Histo3D(model('dataset_id', third = binned_variable), 'chunk_id', 'dataset_id', binned_variable))
-      for binned_variable in ['dataset_group_id']
+    binned_variable: Lazy_container(dataframe.Histo3D(model('uh_dataset_id', third = binned_variable), 'chunk_id', 'uh_dataset_id', binned_variable))
+      for binned_variable in ['uh_dataset_group_id']
   }
 
   lazy_containers = [ptr_lgm, ptr_st, ptr_dgi, ptr_di ] +\
@@ -178,26 +182,26 @@ for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it
     lc.load_histogram()
   
   ## run validation
-  entry_lgm = Entry(var = 'TauType', histo = ptr_lgm.hst)
+  entry_lgm = Entry(var = 'tauType', histo = ptr_lgm.hst)
   entry_st  = Entry(var = 'sampleType'      , histo = ptr_st .hst)
-  entry_dgi = Entry(var = 'dataset_group_id', histo = ptr_dgi.hst)
-  entry_di  = Entry(var = 'dataset_id'      , histo = ptr_di .hst)
+  entry_dgi = Entry(var = 'uh_dataset_group_id', histo = ptr_dgi.hst)
+  entry_di  = Entry(var = 'uh_dataset_id'      , histo = ptr_di .hst)
 
   entries_tau_pt = [
     Entry(var = 'tau_pt', histo = to_2D(ptrs_tau_pt[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_pt']))
-      for binned_variable in ['TauType', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for binned_variable in ['tauType', 'sampleType', 'uh_dataset_group_id', 'uh_dataset_id']
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ] ; entries_tau_pt = [ee for ee in entries_tau_pt if ee.hst.GetEntries()]
 
   entries_tau_eta = [
     Entry(var = 'tau_eta', histo = to_2D(ptrs_tau_eta[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_eta']))
-      for binned_variable in ['TauType', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for binned_variable in ['tauType', 'sampleType', 'uh_dataset_group_id', 'uh_dataset_id']
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ] ; entries_tau_eta = [ee for ee in entries_tau_eta if ee.hst.GetEntries()]
   
   entries_dataset_id = [
-    Entry(var = 'dataset_id', histo = to_2D(ptrs_dataset_id[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'dataset_id']))
-      for binned_variable in ['dataset_group_id']
+    Entry(var = 'uh_dataset_id', histo = to_2D(ptrs_dataset_id[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'uh_dataset_id']))
+      for binned_variable in ['uh_dataset_group_id']
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ]; entries_dataset_id = [ee for ee in entries_dataset_id if ee.hst.GetEntries()]
 
