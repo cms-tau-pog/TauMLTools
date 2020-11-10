@@ -41,7 +41,7 @@ PVAL_THRESHOLD = args.pvthreshold
 BINS = {
   'tau_pt'    : (50, 0, 5000),
   'tau_eta'   : (5, -3.2, 3.2),
-  'lepton_gen_match' : (20, -1, 19),
+  'TauType' : (20, -1, 19),
   'sampleType': (20, -1, 19),      
   'dataset_id': (20, -1, 19),
   'dataset_group_id': (20, -1, 19),
@@ -133,7 +133,7 @@ if __name__ == '__main__':
   dataframe = dataframe.Define('chunk_id', 'rdfentry_ * {} / {}'.format(N_SPLIT, tot_entries))
 
   ## unbinned distributions
-  ptr_lgm = Lazy_container(dataframe.Histo2D(model('lepton_gen_match'), 'chunk_id', 'lepton_gen_match'))
+  ptr_lgm = Lazy_container(dataframe.Histo2D(model('TauType'), 'chunk_id', 'TauType'))
   ptr_st  = Lazy_container(dataframe.Histo2D(model('sampleType')      , 'chunk_id', 'sampleType'      ))
   ptr_dgi = Lazy_container(dataframe.Histo2D(model('dataset_group_id'), 'chunk_id', 'dataset_group_id'))
   ptr_di  = Lazy_container(dataframe.Histo2D(model('dataset_id')      , 'chunk_id', 'dataset_id'      ))
@@ -141,11 +141,11 @@ if __name__ == '__main__':
   ## binned distributions
   ptrs_tau_pt = {
     binned_variable: Lazy_container(dataframe.Histo3D(model('tau_pt', third = binned_variable), 'chunk_id', 'tau_pt', binned_variable))
-      for binned_variable in ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for binned_variable in ['TauType', 'sampleType', 'dataset_group_id', 'dataset_id']
   }
   ptrs_tau_eta = {
     binned_variable: Lazy_container(dataframe.Histo3D(model('tau_eta', third = binned_variable), 'chunk_id', 'tau_eta', binned_variable))
-      for binned_variable in ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for binned_variable in ['TauType', 'sampleType', 'dataset_group_id', 'dataset_id']
   }
   ptrs_dataset_id = {
     binned_variable: Lazy_container(dataframe.Histo3D(model('dataset_id', third = binned_variable), 'chunk_id', 'dataset_id', binned_variable))
@@ -161,20 +161,20 @@ if __name__ == '__main__':
     lc.load_histogram()
   
   ## run validation
-  entry_lgm = Entry(var = 'lepton_gen_match', histo = ptr_lgm.hst)
+  entry_lgm = Entry(var = 'TauType', histo = ptr_lgm.hst)
   entry_st  = Entry(var = 'sampleType'      , histo = ptr_st .hst)
   entry_dgi = Entry(var = 'dataset_group_id', histo = ptr_dgi.hst)
   entry_di  = Entry(var = 'dataset_id'      , histo = ptr_di .hst)
 
   entries_tau_pt = [
     Entry(var = 'tau_pt', histo = to_2D(ptrs_tau_pt[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_pt']))
-      for binned_variable in ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for binned_variable in ['TauType', 'sampleType', 'dataset_group_id', 'dataset_id']
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ] ; entries_tau_pt = [ee for ee in entries_tau_pt if ee.hst.GetEntries()]
 
   entries_tau_eta = [
     Entry(var = 'tau_eta', histo = to_2D(ptrs_tau_eta[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_eta']))
-      for binned_variable in ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for binned_variable in ['TauType', 'sampleType', 'dataset_group_id', 'dataset_id']
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ] ; entries_tau_eta = [ee for ee in entries_tau_eta if ee.hst.GetEntries()]
   
