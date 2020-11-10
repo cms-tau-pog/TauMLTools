@@ -169,11 +169,14 @@ source /cvmfs/sft.cern.ch/lcg/views/LCG_97apython3/x86_64-centos7-clang10-opt/se
 ```
 Then, run:
 ```
-python TauMLTools/Production/scripts/validation_tool.py  --input "/path/to/input/*.root" \
+python TauMLTools/Production/scripts/validation_tool.py  --input input_directory \
+                                                         --id_json /path/to/dataset_id_json_file \
+                                                         --group_id_json /path/to/dataset_group_id_json_file \
                                                          --output output_directory \
                                                          --n_threads n_threads \
                                                          --legend > results.txt
 ```
+The *id_json*  (*group_id_json*) points to a json file containing the list of datasets names (dataset group names) and their hash values, used to identify them inside the shuffled ROOT tuples. These files are needed in order to create a unique identifier which can be handled by ROOT. These files are produced at the shuffle and merge step. 
 The script will create the directory "output_directory" containing the results of the test.
 Validation is run on the following ditributions with a Kolmogorov-Smirnov test:
 
