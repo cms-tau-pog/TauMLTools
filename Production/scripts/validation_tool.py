@@ -38,14 +38,12 @@ OUTPUT_JSON    = open('{}/pvalues.json'.format(args.output), 'w')
 N_SPLIT        = args.nsplit
 PVAL_THRESHOLD = args.pvthreshold
 
-## binning of tested variables
+## binning of tested variables (dataset group id and dataset id are guessed from jsons)
 BINS = {
   'tau_pt'    : (50, 0, 5000),
   'tau_eta'   : (5, -3.2, 3.2),
-  'TauType' : (20, -1, 19),
-  'sampleType': (20, -1, 19),      
-  'dataset_id': (20, -1, 19),
-  'dataset_group_id': (20, -1, 19),
+  'tauType' : (4, 0, 4),
+  'sampleType': (20, -1, 19),
 }
 
 class Lazy_container:
@@ -117,7 +115,7 @@ def to_2D(histo, vbin):
   return histo.Project3D('yx').Clone()
 
 if __name__ == '__main__':
-  print ('[INFO] reading files', args.input)
+  print ('[INFO] reading files from', args.input)
   
   if args.n_threads > 1:
     ROOT.ROOT.EnableImplicitMT(args.n_threads)
@@ -154,7 +152,7 @@ for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it
   dataframe = dataframe.Define('uh_dataset_group_id', cpp_function % (','.join(group_ids), 'dataset_group_id'))
 
   ## unbinned distributions
-  ptr_lgm = Lazy_container(dataframe.Histo2D(model('TauType'), 'chunk_id', 'TauType'))
+  ptr_lgm = Lazy_container(dataframe.Histo2D(model('tauType'), 'chunk_id', 'tauType'))
   ptr_st  = Lazy_container(dataframe.Histo2D(model('sampleType')      , 'chunk_id', 'sampleType'      ))
   ptr_dgi = Lazy_container(dataframe.Histo2D(model('uh_dataset_group_id'), 'chunk_id', 'uh_dataset_group_id'))
   ptr_di  = Lazy_container(dataframe.Histo2D(model('uh_dataset_id')      , 'chunk_id', 'uh_dataset_id'      ))
