@@ -1,9 +1,9 @@
 from __future__ import print_function
 
 import ROOT
-import glob
 import json
 from collections import OrderedDict
+import os
 
 import argparse
 parser = argparse.ArgumentParser('''
@@ -13,7 +13,7 @@ NOTE: the binning of each variable must be hard coded in the script (using the B
 NOTE: pvalue = 99 means that one of the two histograms is empty.
 ''')
 
-parser.add_argument('--input'         , required = True, type = str, help = 'input file. Accepts glob patterns (use quotes)')
+parser.add_argument('--input'         , required = True, type = str, help = 'input directory. Will loop inside all subdirectories')
 parser.add_argument('--output'        , required = True, type = str, help = 'output directory name')
 parser.add_argument('--nsplit'        , default  = 100 , type = int, help = 'number of chunks per file')
 parser.add_argument('--pvthreshold'   , default  = .05 , type = str, help = 'threshold of KS test (above = ok)')
@@ -28,7 +28,6 @@ args = parser.parse_args()
 ROOT.gROOT.SetBatch(not args.visual)
 ROOT.gStyle.SetOptStat(0)
 
-import os
 pdf_dir = '/'.join([args.output, 'pdf'])
 if not os.path.exists(pdf_dir):
   os.makedirs(pdf_dir)
@@ -125,8 +124,10 @@ if __name__ == '__main__':
 
   input_files = ROOT.std.vector('std::string')()
   
-  for file in glob.glob(args.input):
-    input_files.push_back(str(file))
+  for root, dirs, files in os.walk(args.input):
+    for ff in files:
+      if not '.root' in ff: continue
+      input_files.push_back('/'.join([root, ff]))
 
   model = lambda main, third = None: (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]+BINS[third] if not third is None else (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]
   
