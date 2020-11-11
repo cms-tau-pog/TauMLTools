@@ -4,6 +4,7 @@ import ROOT
 import json
 from collections import OrderedDict
 import os
+import re
 
 import argparse
 parser = argparse.ArgumentParser('''
@@ -14,6 +15,7 @@ NOTE: pvalue = 99 means that one of the two histograms is empty.
 ''')
 
 parser.add_argument('--input'         , required = True, type = str, help = 'input directory. Will loop inside all subdirectories')
+parser.add_argument('--regex'  , default  = '.*\.root$', type = str, help = 'regular expression to match to input files')
 parser.add_argument('--output'        , required = True, type = str, help = 'output directory name')
 parser.add_argument('--nsplit'        , default  = 100 , type = int, help = 'number of chunks per file')
 parser.add_argument('--pvthreshold'   , default  = .05 , type = str, help = 'threshold of KS test (above = ok)')
@@ -121,11 +123,11 @@ if __name__ == '__main__':
     ROOT.ROOT.EnableImplicitMT(args.n_threads)
 
   input_files = ROOT.std.vector('std::string')()
+  file_list = ['/'.join([root, ff]) for root, dirs, files in os.walk(args.input) for ff in files]
+  file_list = sorted([ff for ff in file_list if not re.match(args.regex, ff) is None])
   
-  for root, dirs, files in os.walk(args.input):
-    for ff in files:
-      if not '.root' in ff: continue
-      input_files.push_back('/'.join([root, ff]))
+  for ff in file_list:
+    input_files.push_back(ff)
 
   model = lambda main, third = None: (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]+BINS[third] if not third is None else (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]
   
