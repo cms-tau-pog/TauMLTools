@@ -42,7 +42,7 @@ PVAL_THRESHOLD = args.pvthreshold
 BINS = {
   'tau_pt'    : (50, 0, 5000),
   'tau_eta'   : (5, -3.2, 3.2),
-  'tauType' : (4, 0, 4),
+  'tauType' : (10, 0, 10),
   'sampleType': (20, -1, 19),
 }
 
