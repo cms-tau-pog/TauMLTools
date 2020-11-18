@@ -22,6 +22,7 @@ parser.add_argument('--pvthreshold'   , default  = .05 , type = str, help = 'thr
 parser.add_argument('--n_threads'     , default  = 1   , type = int, help = 'enable ROOT implicit multithreading')
 parser.add_argument('--id_json'       , required = True, type = str, help = 'dataset id json file')
 parser.add_argument('--group_id_json' , required = True, type = str, help = 'dataset group id json file')
+parser.add_argument('--use_dataset_id', action = 'store_true', help = 'Add \'dataset_id\' column for comparison and binning')
 
 parser.add_argument('--visual', action = 'store_true', help = 'Won\'t run the script in batch mode')
 parser.add_argument('--legend', action = 'store_true', help = 'Draw a TLegent on canvases')
@@ -160,24 +161,25 @@ for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it
   ptr_di  = Lazy_container(dataframe.Histo2D(model('uh_dataset_id')      , 'chunk_id', 'uh_dataset_id'      ))
 
   ## binned distributions
+  BINNED_VARIABLES = ['tauType', 'sampleType', 'uh_dataset_group_id'] + ['uh_dataset_id']*args.use_dataset_id
   ptrs_tau_pt = {
     binned_variable: Lazy_container(dataframe.Histo3D(model('tau_pt', third = binned_variable), 'chunk_id', 'tau_pt', binned_variable))
-      for binned_variable in ['tauType', 'sampleType', 'uh_dataset_group_id', 'uh_dataset_id']
+      for binned_variable in BINNED_VARIABLES
   }
   ptrs_tau_eta = {
     binned_variable: Lazy_container(dataframe.Histo3D(model('tau_eta', third = binned_variable), 'chunk_id', 'tau_eta', binned_variable))
-      for binned_variable in ['tauType', 'sampleType', 'uh_dataset_group_id', 'uh_dataset_id']
+      for binned_variable in BINNED_VARIABLES
   }
   ptrs_dataset_id = {
     binned_variable: Lazy_container(dataframe.Histo3D(model('uh_dataset_id', third = binned_variable), 'chunk_id', 'uh_dataset_id', binned_variable))
       for binned_variable in ['uh_dataset_group_id']
   }
 
-  lazy_containers = [ptr_lgm, ptr_st, ptr_dgi, ptr_di ] +\
+  lazy_containers = [ptr_lgm, ptr_st, ptr_dgi] + [ptr_di]*args.use_dataset_id +\
     [lc for lc in ptrs_tau_pt.values()]  +\
     [lc for lc in ptrs_tau_eta.values()] +\
-    [lc for lc in ptrs_dataset_id.values()]
-  
+    [lc for lc in ptrs_dataset_id.values()]*args.use_dataset_id
+
   for lc in lazy_containers:
     lc.load_histogram()
   
@@ -189,13 +191,13 @@ for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it
 
   entries_tau_pt = [
     Entry(var = 'tau_pt', histo = to_2D(ptrs_tau_pt[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_pt']))
-      for binned_variable in ['tauType', 'sampleType', 'uh_dataset_group_id', 'uh_dataset_id']
+      for binned_variable in BINNED_VARIABLES
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ] ; entries_tau_pt = [ee for ee in entries_tau_pt if ee.hst.GetEntries()]
 
   entries_tau_eta = [
     Entry(var = 'tau_eta', histo = to_2D(ptrs_tau_eta[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_eta']))
-      for binned_variable in ['tauType', 'sampleType', 'uh_dataset_group_id', 'uh_dataset_id']
+      for binned_variable in BINNED_VARIABLES
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ] ; entries_tau_eta = [ee for ee in entries_tau_eta if ee.hst.GetEntries()]
   
@@ -203,9 +205,10 @@ for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it
     Entry(var = 'uh_dataset_id', histo = to_2D(ptrs_dataset_id[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'uh_dataset_id']))
       for binned_variable in ['uh_dataset_group_id']
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
+      if args.use_dataset_id
   ]; entries_dataset_id = [ee for ee in entries_dataset_id if ee.hst.GetEntries()]
 
-  entries = [entry_lgm, entry_st, entry_dgi, entry_di] +\
+  entries = [entry_lgm, entry_st, entry_dgi] + [entry_di]*args.use_dataset_id +\
     [ee for ee in entries_tau_pt]  +\
     [ee for ee in entries_tau_eta] +\
     [ee for ee in entries_dataset_id]
