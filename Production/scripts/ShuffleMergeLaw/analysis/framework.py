@@ -63,13 +63,13 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
     return law.util.rel_path(__file__, "bootstrap.sh")
 
   def htcondor_job_config(self, config, job_num, branches):
-    now = os.popen('date +%H%M%S').readlines()[0].strip('\n')
     main_dir = os.getenv("ANALYSIS_PATH")
+    report_dir = os.getenv("ANALYSIS_DATA_PATH")
     
-    err_dir = '/'.join([main_dir, 'SML_condor_reports/{}/errors'.format(now)])
-    out_dir = '/'.join([main_dir, 'SML_condor_reports/{}/outputs'.format(now)])
-    log_dir = '/'.join([main_dir, 'SML_condor_reports/{}/logs'.format(now)])
-    
+    err_dir = '/'.join([report_dir, 'errors'.format(now)])
+    out_dir = '/'.join([report_dir, 'outputs'.format(now)])
+    log_dir = '/'.join([report_dir, 'logs'.format(now)])
+
     if not os.path.exists(err_dir): os.makedirs(err_dir)
     if not os.path.exists(out_dir): os.makedirs(out_dir)
     if not os.path.exists(log_dir): os.makedirs(log_dir)
@@ -82,7 +82,9 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
     # maximum runtime
     config.custom_content.append(("+MaxRuntime", int(math.floor(self.max_runtime * 3600)) - 1))
     config.custom_content.append(("getenv", "true"))
-    config.custom_content.append(("erorr" , '/'.join([log_dir, 'err_{}.txt'.format(job_num)])))
-    config.custom_content.append(("output", '/'.join([log_dir, 'out_{}.txt'.format(job_num)])))
+
+    config.custom_content.append(("erorr" , '/'.join([err_dir, 'err_{}.txt'.format(job_num)])))
+    config.custom_content.append(("output", '/'.join([out_dir, 'out_{}.txt'.format(job_num)])))
     config.custom_content.append(("logs"  , '/'.join([log_dir, 'log_{}.txt'.format(job_num)])))
+
     return config
