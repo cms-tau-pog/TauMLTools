@@ -64,11 +64,11 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
 
   def htcondor_job_config(self, config, job_num, branches):
     main_dir = os.getenv("ANALYSIS_PATH")
-    report_dir = os.getenv("ANALYSIS_DATA_PATH")
-    
-    err_dir = '/'.join([report_dir, 'errors'.format(now)])
-    out_dir = '/'.join([report_dir, 'outputs'.format(now)])
-    log_dir = '/'.join([report_dir, 'logs'.format(now)])
+    report_dir = self.htcondor_output_directory().path
+
+    err_dir = '/'.join([report_dir, 'errors'])
+    out_dir = '/'.join([report_dir, 'outputs'])
+    log_dir = '/'.join([report_dir, 'logs'])
 
     if not os.path.exists(err_dir): os.makedirs(err_dir)
     if not os.path.exists(out_dir): os.makedirs(out_dir)

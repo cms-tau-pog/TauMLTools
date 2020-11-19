@@ -27,9 +27,6 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   start_entry       = luigi.FloatParameter(description = 'starting point')
   end_entry         = luigi.FloatParameter(description = 'ending point')
   
-  if end_entry <= start_entry:
-    raise ValueError('--end-entry must be higher than --start-entry')
-  
   def create_branch_map(self):
     step = 1. * (self.end_entry - self.start_entry) / self.n_jobs
     return {i: (round(self.start_entry + i*step, 4), round(self.start_entry + (i+1)*step, 4)) for i in range(self.n_jobs)}
@@ -43,7 +40,6 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     output_name = '.'.join([file_name, self.output_path.split('.')[1]])
 
     quote = lambda x: str('\"{}\"'.format(str(x)))
-
     command = ' '.join(['ShuffleMergeSpectral',
       '--cfg'                 , str(self.cfg)                       ,
       '--input'               , str(self.input_path)                ,
