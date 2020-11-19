@@ -161,6 +161,30 @@ ShuffleMerge --cfg TauML/Analysis/config/testing_inputs.cfg --input tuples-v2 --
              --n-threads 12 --disabled-branches "trainingWeight"
 ```
 
+#### ShuffleMergeSpectral on HTCondor
+ShuffleMergeSpectral can be executed on condor throug the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment 
+```sh
+cd $CMSSW_BASE/src
+cmsenv
+cd TauMLTools/Production/script/ShuffleMergeLaw
+source setup.sh
+law index
+```
+Then, jobs can be submitted running
+```
+law run ShuffleMergeSpectral --version vx --params --n-jobs N
+```
+where *--params* are the [ShuffleMergeSpectral]() parameters. In particular
+
+   - *--start-entry* and *--end-entry* are used to define the range of the whole computation
+   - the *--input* and *--output* parameters have been renamed *--input-path* and *--output-path*
+
+At this point, the worker will start reporting the job status. As long as the worker is alive, it will automatically resubmit failed jobs.  
+
+In addition to *.root* files, a directory containing the condor report files (error, log, output) named SML_condor will be created inside the ShuffleMergeSpectral directory.  
+A *data* directory is also created by law containing more detailed informations about the submitted jobs, as well as the output *.txt* files containing the executed command.  
+Jobs can also be executed locally adding the *--workflow local* argument to the *law run* command.  
+
 #### Validation
 A validation can be run on shuffled samples to ensure that different parts of the training set have compatible distributions.
 To run the validation tool, a ROOT version greater or equal to 6.16 is needed:
