@@ -13,7 +13,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   ## '_' will be converted to '-' for the shell command invocation
   cfg               = luigi.Parameter(description = 'configuration file with the list of input sources')
   input_path        = luigi.Parameter(description = 'input path with tuples for all the samples')
-  output_path       = luigi.Parameter(description = 'output, depending on the merging mode: MergeAll - file MergePerEntry - directory.')
+  output_path       = luigi.Parameter(description = 'output directory')
   pt_bins           = luigi.Parameter(description = 'pt bins')
   eta_bins          = luigi.Parameter(description = 'eta bins')
   mode              = luigi.Parameter(description = 'merging mode: MergeAll or MergePerEntry')
@@ -36,8 +36,8 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
 
   def run(self):
     output = self.output()
-    file_name   = '_'.join([self.output_path.split('.')[0], str(self.branch)])
-    output_name = '.'.join([file_name, self.output_path.split('.')[1]])
+    file_name   = '_'.join(['ShuffleMergeSpectral', str(self.branch)]) + '.root'
+    output_name = '/'.join([self.output_path(), file_name]) if self.mode == 'MergeAll' else self.output_path()
 
     quote = lambda x: str('\"{}\"'.format(str(x)))
     command = ' '.join(['ShuffleMergeSpectral',
