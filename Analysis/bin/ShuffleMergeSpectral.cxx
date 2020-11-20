@@ -46,7 +46,6 @@ struct Arguments {
     run::Argument<double> start_entry{"start-entry", "starting ratio from which file will be processed", 0};
     run::Argument<double> end_entry{"end-entry", "end ratio until which file will be processed", 1};
     run::Argument<double> exp_disbalance{"exp-disbalance", "maximal expected disbalance between low pt and high pt regions",0};
-
 };
 
 struct SourceDesc {
@@ -89,9 +88,12 @@ struct SourceDesc {
             if(*current_file_index >= file_names.size())
                 throw analysis::exception("The expected number of events = %1% is bigger than the actual number of"
                                           " end point events in source '%2%'.") % entries_file % name;
+
             const std::string& file_name = file_names.at(*current_file_index);
+            std::cout << "opening: " << name << " " << file_name << std::endl;
             dataset_hash = dataset_hash_arr.at(*current_file_index);
             current_tuple.reset();
+            if(current_file) current_file->Close();
             current_file = root_ext::OpenRootFile(file_name);
             current_tuple = std::make_shared<TauTuple>("taus", current_file.get(), true, disabled_branches);
             entries_file = current_tuple->GetEntries();
@@ -379,7 +381,7 @@ private:
         if(up_x==(float)oldbins->GetXaxis()->GetBinUpEdge(old_x))
           break;
         else if(old_x==oldbins->GetNbinsX())
-          throw analysis::exception("New histogram's bins over eta are inconsistent.");
+          throw analysis::exception("New histogram bins over eta are inconsistent.");
       }
     }
     // check over y axis
@@ -391,7 +393,7 @@ private:
         if((float)oldbins->GetYaxis()->GetBinUpEdge(old_y)==(float)up_y)
           break;
         else if(old_y==oldbins->GetNbinsY())
-          throw analysis::exception("New histogram's bins over pt are inconsistent.");
+          throw analysis::exception("New histogram bins over pt are inconsistent.");
       }
     }
     return std::make_pair(x_map,y_map);
@@ -687,7 +689,7 @@ public:
           n_processed++;
           (*output_tuple)() = tau;
           output_tuple->Fill();
-          if(n_processed % 500 == 0){
+          if(n_processed % 1000 == 0){
             std::cout << n_processed << " is selected" << std::endl;
             processor.PrintStatusReport(args.end_entry()-args.start_entry());
           }
