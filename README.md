@@ -162,7 +162,7 @@ ShuffleMerge --cfg TauML/Analysis/config/testing_inputs.cfg --input tuples-v2 --
 ```
 
 #### ShuffleMergeSpectral on HTCondor
-ShuffleMergeSpectral can be executed on condor throug the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment 
+ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment 
 ```sh
 cd $CMSSW_BASE/src
 cmsenv
