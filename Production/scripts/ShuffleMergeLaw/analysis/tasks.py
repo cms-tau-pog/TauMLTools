@@ -37,8 +37,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   def run(self):
     output = self.output()
     file_name   = '_'.join(['ShuffleMergeSpectral', str(self.branch)]) + '.root'
-    output_name = '/'.join([self.output_path(), file_name]) if self.mode == 'MergeAll' else self.output_path()
-
+    output_name = '/'.join([self.output_path, file_name]) if self.mode == 'MergeAll' else self.output_path
     quote = lambda x: str('\"{}\"'.format(str(x)))
     command = ' '.join(['ShuffleMergeSpectral',
       '--cfg'                 , str(self.cfg)                       ,
