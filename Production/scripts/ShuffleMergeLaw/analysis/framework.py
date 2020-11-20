@@ -64,7 +64,7 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
 
   def htcondor_job_config(self, config, job_num, branches):
     main_dir = os.getenv("ANALYSIS_PATH")
-    report_dir = self.htcondor_output_directory().path
+    report_dir = str(self.htcondor_output_directory().path)
 
     err_dir = '/'.join([report_dir, 'errors'])
     out_dir = '/'.join([report_dir, 'outputs'])
@@ -76,7 +76,7 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
 
     # render_variables are rendered into all files sent with a job
     config.render_variables["analysis_path"] = main_dir
-    config.render_variables["cmssw_base"]    = os.getenv('CMSSW_BASE')
+    config.render_variables["cmssw_base"]    = str(os.getenv('CMSSW_BASE'))
     # force to run on CC7, http://batchdocs.web.cern.ch/batchdocs/local/submit.html#os-choice
   #    config.custom_content.append(("requirements", "(OpSysAndVer =?= \"CentOS7\")"))
     # maximum runtime
