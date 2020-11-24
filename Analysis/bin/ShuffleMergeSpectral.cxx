@@ -16,8 +16,6 @@
 #include "TauMLTools/Core/interface/PropertyConfigReader.h"
 #include "TauMLTools/Core/interface/ProgressReporter.h"
 #include "TauMLTools/Analysis/interface/TauTuple.h"
-#include <limits>
-typedef std::numeric_limits< double > dbl;
 
 namespace analysis {
 
@@ -48,6 +46,7 @@ struct Arguments {
     run::Argument<double> start_entry{"start-entry", "starting ratio from which file will be processed", 0};
     run::Argument<double> end_entry{"end-entry", "end ratio until which file will be processed", 1};
     run::Argument<double> exp_disbalance{"exp-disbalance", "maximal expected disbalance between low pt and high pt regions",0};
+    run::Argument<std::string> compression_algo{"compression-algo","ZLIB, LZMA, LZ4","LZ4"};
     run::Argument<unsigned> compression_level{"compression-level", "compression level of output file", 4};
     run::Argument<unsigned> parity{"parity","take only even:0, take only odd:1, take all entries:3", 3};
 };
@@ -582,7 +581,7 @@ public:
     ShuffleMergeSpectral(const Arguments& _args) :
         args(_args), pt_bins(ParseBins(args.pt_bins())),
         eta_bins(ParseBins(args.eta_bins())), tau_ratio(ParseTauTypesR(args.tau_ratio())),
-        max_entries(args.max_entries()),parity(args.parity())
+        max_entries(args.max_entries()),parity(args.parity()), compression(compAlg(args.compression_algo()))
     {
       bool verbose = 1;
 		  if(args.n_threads() > 1) ROOT::EnableImplicitMT(args.n_threads());
@@ -605,10 +604,6 @@ public:
           std::cout << "files: " << dsc.data_files.size() << " "
                     << "spectrums: " << dsc.spectrum_files.size()
                     << std::endl;
-        //   for(UInt_t i=0; i<dsc.data_files.size();i++)
-        //     std::cout << dsc.data_files[i] << " "
-        //               << dsc.data_set_names[i] << " "
-        //               << dsc.data_set_names_hashes[i] << std::endl;
         }
       }
 
@@ -636,7 +631,7 @@ public:
         for(const auto& entry : entry_list)
           std::cout << ' ' << entry.name;
         std::cout << "\nOutput: " << file_name << std::endl;
-        auto output_file = root_ext::CreateRootFile(file_name, ROOT::kLZ4, args.compression_level());
+        auto output_file = root_ext::CreateRootFile(file_name, compression, args.compression_level());
         auto output_tuple = std::make_shared<TauTuple>("taus", output_file.get(), false);
 
         DataSetProcessor processor(entry_list, pt_bins, eta_bins,
@@ -650,8 +645,7 @@ public:
           const auto& tau = processor.GetNextTau();
           n_processed++;
           (*output_tuple)() = tau;
-          if(parity==3) output_tuple->Fill();
-      	  else if(tau.evt % 2 == parity) output_tuple->Fill();
+          if(parity == 3 || (tau.evt % 2 == parity)) output_tuple->Fill();
       	  if(n_processed % 1000 == 0){
             std::cout << n_processed << " is selected" << std::endl;
             processor.PrintStatusReport(args.end_entry()-args.start_entry());
@@ -724,6 +718,12 @@ private:
         std::cout << ".\n";
     }
 
+    static ROOT::ECompressionAlgorithm compAlg(const std::string& comp_string) {
+      if("ZLIB") return ROOT::kZLIB;
+      if("LZMA") return ROOT::kLZMA;
+      if("LZ4") return ROOT::kLZ4;
+    }
+
 private:
     Arguments args;
     std::map<std::string, std::vector<EntryDesc>> entries;
@@ -732,6 +732,7 @@ private:
     std::set<std::string> disabled_branches;
     const size_t max_entries;
     const UInt_t parity;
+    const ROOT::ECompressionAlgorithm compression;
 };
 
 } // namespace analysis

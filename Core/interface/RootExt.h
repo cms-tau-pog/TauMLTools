@@ -12,7 +12,6 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <TMatrixD.h>
 #include <TFile.h>
 #include <Compression.h>
-#include <TAxis.h>
 #include <TH2.h>
 
 #include "exception.h"

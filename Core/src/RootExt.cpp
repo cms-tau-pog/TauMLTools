@@ -13,7 +13,6 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <TFile.h>
 #include <Compression.h>
 #include <TAxis.h>
-#include <TH2.h>
 
 #include "TauMLTools/Core/interface/exception.h"
 
@@ -103,9 +102,10 @@ void RebinAndFill(TH2& new_hist, const TH2& old_hist)
         const int bin_low_new = new_axis->FindFixBin(old_low_edge);
         const int bin_up_new = new_axis->FindFixBin(old_up_edge);
 
+        const double new_up_edge = new_axis->GetBinUpEdge(bin_low_new);
         if(bin_low_new != bin_up_new
-          && !(fabs(old_up_edge-new_axis->GetBinUpEdge(bin_low_new)) <= std::numeric_limits<double>::epsilon()*2))
-          throw analysis::exception("Uncompatible bin edges");
+                && !(std::abs(old_up_edge-new_up_edge) <= std::numeric_limits<double>::epsilon() * std::abs(old_up_edge+new_up_edge) * 2))
+            throw analysis::exception("Uncompatible bin edges");
         return bin_low_new;
     };
 
