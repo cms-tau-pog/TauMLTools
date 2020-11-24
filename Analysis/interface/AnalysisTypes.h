@@ -77,10 +77,10 @@ inline TauType GenMatchToTauType(GenLeptonMatch gen_match, SampleType sample_typ
         if(sample_type == SampleType::MC) return TauType::jet;
         if(sample_type == SampleType::Data) return TauType::data;
         if(sample_type == SampleType::Embedded) return TauType::emb_jet;
-    } else if(sample_type == SampleType::Embedded && (gen_match == GenLeptonMatch::Muon
-              || gen_match == GenLeptonMatch::TauMuon)) return TauType::emb_mu;
-      else if(sample_type == SampleType::Embedded && gen_match == GenLeptonMatch::TauElectron)
-        return TauType::emb_e;
+    } else if(sample_type == SampleType::Embedded) {
+        if(gen_match == GenLeptonMatch::TauMuon) return TauType::emb_mu;
+        if(gen_match == GenLeptonMatch::TauElectron) return TauType::emb_e;
+    }
     throw exception("Incompatible gen_lepton_match = %1% and sample_type = %2%.") % gen_match % sample_type;
 }
 
