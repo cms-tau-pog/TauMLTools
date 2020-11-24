@@ -46,8 +46,8 @@ struct Arguments {
     run::Argument<double> start_entry{"start-entry", "starting ratio from which file will be processed", 0};
     run::Argument<double> end_entry{"end-entry", "end ratio until which file will be processed", 1};
     run::Argument<double> exp_disbalance{"exp-disbalance", "maximal expected disbalance between low pt and high pt regions",0};
-    run::Argument<std::string> compression_algo{"compression-algo","ZLIB, LZMA, LZ4","LZ4"};
-    run::Argument<unsigned> compression_level{"compression-level", "compression level of output file", 4};
+    run::Argument<std::string> compression_algo{"compression-algo","ZLIB, LZMA, LZ4","LZMA"};
+    run::Argument<unsigned> compression_level{"compression-level", "compression level of output file", 9};
     run::Argument<unsigned> parity{"parity","take only even:0, take only odd:1, take all entries:3", 3};
 };
 
@@ -719,9 +719,10 @@ private:
     }
 
     static ROOT::ECompressionAlgorithm compAlg(const std::string& comp_string) {
-      if("ZLIB") return ROOT::kZLIB;
-      if("LZMA") return ROOT::kLZMA;
-      if("LZ4") return ROOT::kLZ4;
+      if(comp_string=="ZLIB") return ROOT::kZLIB;
+      if(comp_string=="LZMA") return ROOT::kLZMA;
+      if(comp_string=="LZ4") return ROOT::kLZ4;
+      throw exception("Invalid Compression Algorithm!");
     }
 
 private:
