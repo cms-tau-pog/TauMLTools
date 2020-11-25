@@ -1,3 +1,11 @@
+<bin name="ShuffleMergeSpectral" file="ShuffleMergeSpectral.cxx">
+  <use name="boost_program_options"/>
+  <use name="TauMLTools/Core"/>
+</bin>
+<bin name="CreateSpectralHists" file="CreateSpectralHists.cxx">
+  <use name="boost_program_options"/>
+  <use name="TauMLTools/Core"/>
+</bin>
 <bin name="CreateBalancedTuple" file="CreateBalancedTuple.cxx">
     <use name="boost_program_options"/>
     <use name="TauMLTools/Core"/>

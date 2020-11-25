@@ -18,6 +18,16 @@ std::string RemoveFileExtension(const std::string& file_name)
     return boost::filesystem::change_extension(file_name, "").string();
 }
 
+std::string GetPathWithoutFileName(const std::string& file_name)
+{
+    const size_t lastindex = file_name.find_last_of("/");
+
+    if(lastindex == std::string::npos)
+        return "./";
+    else
+        return file_name.substr(0,lastindex);
+}
+
 std::string GetFileNameWithoutPath(const std::string& file_name)
 {
     const size_t lastindex = file_name.find_last_of("/");
