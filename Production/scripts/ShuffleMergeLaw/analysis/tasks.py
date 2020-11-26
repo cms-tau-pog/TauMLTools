@@ -74,3 +74,5 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     print ('\n'.join([str(stdout), str(stderr)]))
     if not self.workflow == 'htcondor':
       output.dump('\n'.join([str(stdout), str(stderr)]))
+
+    proc.check_returncode()
