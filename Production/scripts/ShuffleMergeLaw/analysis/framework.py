@@ -49,8 +49,7 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
   the CERN HTCondor environment. In most cases, like in this example, only a minimal amount of
   configuration is required.
   """
-
-  max_runtime = law.DurationParameter(default=2.0, unit="h", significant=False,
+  max_runtime = law.DurationParameter(default=24.0, unit="h", significant=False,
     description="maximum runtime, default unit is hours, default: 2")
 
   def htcondor_output_directory(self):
