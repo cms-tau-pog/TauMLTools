@@ -5,6 +5,7 @@ import law
 import subprocess
 import os
 import re
+import sys
 
 from analysis.framework import Task, HTCondorWorkflow
 import luigi
@@ -37,10 +38,9 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     return {i: (round(self.start_entry + i*step, 4), round(self.start_entry + (i+1)*step, 4)) for i in range(self.n_jobs)}
 
   def output(self):
-    return self.local_target("stdout_stderr_job_{}.txt".format(self.branch))
+    return self.local_target("empty_file_{}.txt".format(self.branch))
 
   def run(self):
-    output = self.output()
     file_name   = '_'.join(['ShuffleMergeSpectral', str(self.branch)]) + '.root'
     output_name = '/'.join([self.output_path, file_name]) if self.mode == 'MergeAll' else self.output_path
 
@@ -71,8 +71,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     proc = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     stdout, stderr = proc.communicate()
 
-    print ('\n'.join([str(stdout), str(stderr)]))
-    if not self.workflow == 'htcondor':
-      output.dump('\n'.join([str(stdout), str(stderr)]))
+    sys.stdout.write(stdout + '\n')
+    sys.stderr.write(stderr + '\n')
 
     proc.check_returncode()
