@@ -32,7 +32,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   n_threads         = luigi.OptionalParameter(default = '', description = 'number of threads')
   exp_disbalance    = luigi.OptionalParameter(default = '', description = 'maximal expected disbalance between low pt and high pt regions')
   seed              = luigi.OptionalParameter(default = '', description = 'random seed to initialize the generator used for sampling')
-  
+
   def create_branch_map(self):
     step = 1. * (self.end_entry - self.start_entry) / self.n_jobs
     return {i: (round(self.start_entry + i*step, 4), round(self.start_entry + (i+1)*step, 4)) for i in range(self.n_jobs)}
@@ -64,7 +64,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
       ['--compression-algo' , str(self.compression_algo)        ] * (not self.compression_algo  is None) +\
       ['--compression_level', str(self.compression_level)       ] * (not self.compression_level is None) +\
       ['--parity'           , str(self.parity)                  ] * (not self.parity            is None) +\
-      ['--max_entries'      , str(self.max_entries)             ] * (not self.max_entries       is None)  )
+      ['--max-entries'      , str(self.max_entries)             ] * (not self.max_entries       is None)  )
 
     print ('>> {}'.format(command))
     
