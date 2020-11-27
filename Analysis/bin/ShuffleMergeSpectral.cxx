@@ -86,10 +86,11 @@ struct SourceDesc {
                 current_file_index = 0;
             else
                 ++(*current_file_index);
-            if(*current_file_index >= file_names.size())
-                throw exception("The expected number of events = %1% is bigger than the actual number of"
-                                          " end point events in source '%2%'.") % entries_file % name;
-
+            if(current_file_index == files_n_total) {
+              std::cerr << "WARNING: The current file index = " << current_file_index
+                        << " is bigger than the actual number of files" << std::endl;
+              return false;
+            }
             const std::string& file_name = file_names.at(*current_file_index);
             std::cout << "Opening: " << name << " " << file_name << std::endl;
             dataset_hash = dataset_hash_arr.at(*current_file_index);
@@ -103,6 +104,9 @@ struct SourceDesc {
 
             if(!entries_file)
               throw exception("Root file %1% is empty.") % file_name;
+            if(entries_end-current_n_processed==0)
+              std::cerr << "WARNING: The reading ranges are small, no entries are taken. "
+                        << "Dataset hash: " << dataset_hash << " Data group: " << name << std::endl;
         }
         current_tuple->GetEntry(current_n_processed++);
         const auto gen_match = static_cast<GenLeptonMatch>((*current_tuple)().lepton_gen_match);
