@@ -91,6 +91,6 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
 
     config.custom_content.append(("erorr" , '/'.join([err_dir, 'err_{}.txt'.format(job_num)])))
     config.custom_content.append(("output", '/'.join([out_dir, 'out_{}.txt'.format(job_num)])))
-    config.custom_content.append(("logs"  , '/'.join([log_dir, 'log_{}.txt'.format(job_num)])))
+    config.custom_content.append(("log"   , '/'.join([log_dir, 'log_{}.txt'.format(job_num)])))
 
     return config
