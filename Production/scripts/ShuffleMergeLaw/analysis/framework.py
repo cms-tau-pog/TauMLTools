@@ -81,7 +81,7 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
     config.render_variables["analysis_path"] = main_dir
     config.render_variables["cmssw_base"]    = str(os.getenv('CMSSW_BASE'))
     # force to run on CC7, http://batchdocs.web.cern.ch/batchdocs/local/submit.html#os-choice
-  #    config.custom_content.append(("requirements", "(OpSysAndVer =?= \"CentOS7\")"))
+    config.custom_content.append(("requirements", "(OpSysAndVer =?= \"CentOS7\")"))
     # maximum runtime
     config.custom_content.append(("+MaxRuntime", int(math.floor(self.max_runtime * 3600)) - 1))
     config.custom_content.append(("getenv", "true"))
