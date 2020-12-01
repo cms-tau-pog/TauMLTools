@@ -51,6 +51,10 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
   """
   max_runtime = law.DurationParameter(default=24.0, unit="h", significant=False,
     description="maximum runtime, default unit is hours, default: 2")
+  max_memory  = luigi.Parameter(default = 2000, significant = False,
+    description = 'maximum RAM usage')
+  batch_name  = luigi.Parameter(default = 'ShuffleMergeSpectral',
+    description = 'HTCondor batch name')
 
   def htcondor_output_directory(self):
     # the directory where submission meta data should be stored
@@ -81,6 +85,9 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
     # maximum runtime
     config.custom_content.append(("+MaxRuntime", int(math.floor(self.max_runtime * 3600)) - 1))
     config.custom_content.append(("getenv", "true"))
+
+    config.custom_content.append(('request_memory', '{}'.format(self.max_memory)))
+    config.custom_content.append(('JobBatchName'  , self.batch_name))
 
     config.custom_content.append(("erorr" , '/'.join([err_dir, 'err_{}.txt'.format(job_num)])))
     config.custom_content.append(("output", '/'.join([out_dir, 'out_{}.txt'.format(job_num)])))
