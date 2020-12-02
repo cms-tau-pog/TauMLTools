@@ -35,7 +35,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
 
   def create_branch_map(self):
     step = 1. * (self.end_entry - self.start_entry) / self.n_jobs
-    return {i: (round(self.start_entry + i*step, 4), round(self.start_entry + (i+1)*step, 4)) for i in range(self.n_jobs)}
+    return {i: (round(self.start_entry + i*step, 6), round(self.start_entry + (i+1)*step, 6)) for i in range(self.n_jobs)}
 
   def output(self):
     return self.local_target("empty_file_{}.txt".format(self.branch))
