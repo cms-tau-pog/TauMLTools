@@ -72,7 +72,8 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     stdout, stderr = proc.communicate()
 
     sys.stdout.write(stdout + '\n')
-    sys.stderr.write(stderr + '\n')
+    #sys.stderr.write(stderr + '\n')
+    sys.stdout.write(stderr + '\n')
 
     retcode = proc.returncode
     if proc.returncode != 0:
