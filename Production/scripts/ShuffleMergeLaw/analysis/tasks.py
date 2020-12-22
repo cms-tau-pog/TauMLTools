@@ -92,8 +92,9 @@ class HaddFiles(Task, HTCondorWorkflow, law.LocalWorkflow):
       return sum([ff.size for ff in self.files])
 
   ## '_' will be converted to '-' for the shell command invocation
-  input_path        = luigi.Parameter(description = 'input path with tuples for all the samples')
-  output_path       = luigi.Parameter(description = 'output directory')
+  input_path  = luigi.Parameter(description = 'input path with tuples for all the samples')
+  output_path = luigi.Parameter(description = 'output directory')
+  output_size = luigi.FloatParameter(description = 'output file size in GB', default = 10.)
 
   def create_branch_map(self):
     batches = []
@@ -108,7 +109,7 @@ class HaddFiles(Task, HTCondorWorkflow, law.LocalWorkflow):
       dataset_files = ['/'.join([dataset_path, fil]) for fil in os.listdir(dataset_path) if os.path.isfile('/'.join([dataset_path, fil]))]
 
       for ff in dataset_files:
-        if batches[-1].size() > 10e+9:
+        if batches[-1].size() > self.output_size*1.e+9:
           batches.append(self.FileBatch(dataset = ds))
         batches[-1].files.append(self.InputFile(path = ff, size = os.path.getsize(ff)))
 
