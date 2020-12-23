@@ -87,7 +87,7 @@ struct SourceDesc {
             else
                 ++(*current_file_index);
             if(current_file_index == files_n_total) {
-              std::cerr << "WARNING: The current file index = " << current_file_index
+              std::cout << "WARNING: The current file index = " << current_file_index
                         << " is bigger than the actual number of files" << std::endl;
               return false;
             }
@@ -95,7 +95,6 @@ struct SourceDesc {
             std::cout << "Opening: " << name << " " << file_name << std::endl;
             dataset_hash = dataset_hash_arr.at(*current_file_index);
             current_tuple.reset();
-            if(current_file) current_file->Close();
             current_file = root_ext::OpenRootFile(file_name);
             current_tuple = std::make_shared<TauTuple>("taus", current_file.get(), true, disabled_branches);
             entries_file = current_tuple->GetEntries();
@@ -105,7 +104,7 @@ struct SourceDesc {
             if(!entries_file)
               throw exception("Root file %1% is empty.") % file_name;
             if(entries_end-current_n_processed==0)
-              std::cerr << "WARNING: The reading ranges are small, no entries are taken. "
+              std::cout << "WARNING: The reading ranges are small, no entries are taken. "
                         << "Dataset hash: " << dataset_hash << " Data group: " << name << std::endl;
         }
         current_tuple->GetEntry(current_n_processed++);
