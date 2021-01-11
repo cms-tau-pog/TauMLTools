@@ -101,7 +101,7 @@ class HaddFiles(Task, HTCondorWorkflow, law.LocalWorkflow):
     datasets = [fol for fol in os.listdir(self.input_path) if os.path.isdir('/'.join([self.input_path, fol]))]
     for ds in datasets:
       if not os.path.exists('/'.join([self.output_path, ds])):
-        os.makedirs('/'.join([self.output_path, ds]))
+        os.mkdir('/'.join([self.output_path, ds]))
 
       batches.append(self.FileBatch(dataset = ds))
 
@@ -120,7 +120,7 @@ class HaddFiles(Task, HTCondorWorkflow, law.LocalWorkflow):
 
   def run(self):
     quote = lambda x: str('\"{}\"'.format(str(x)))
-    command = 'hadd -O -ff {OUT} {IN}'.format(
+    command = 'hadd -O -ff -k {OUT} {IN}'.format(
       OUT = '/'.join([self.output_path, self.branch_data.dataset, 'HaddFile_{}.root'.format(self.branch)]),
       IN  = ' '.join([ff.path for ff in self.branch_data.files])
     )
