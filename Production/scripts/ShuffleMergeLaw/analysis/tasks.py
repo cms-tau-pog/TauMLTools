@@ -34,6 +34,10 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   seed              = luigi.Parameter(default = '', description = 'random seed to initialize the generator used for sampling')
 
   def create_branch_map(self):
+    self.output_dir = '/'.join([self.output_path, 'tmp'])
+    if not os.path.exists(self.output_dir):
+      os.makedirs(self.output_dir)
+
     step = 1. * (self.end_entry - self.start_entry) / self.n_jobs
     return {i: (round(self.start_entry + i*step, 6), round(self.start_entry + (i+1)*step, 6)) for i in range(self.n_jobs)}
 
@@ -41,9 +45,9 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     return self.local_target("empty_file_{}.txt".format(self.branch))
 
   def run(self):
+    self.output_dir = '/'.join([self.output_path, 'tmp'])
     file_name   = '_'.join(['ShuffleMergeSpectral', str(self.branch)]) + '.root'
-    self.output_dir = getattr(self, 'output_dir', self.output_path)
-    output_name = '/'.join([self.output_dir, file_name]) if self.mode == 'MergeAll' else self.output_path
+    output_name = '/'.join([self.output_dir, file_name]) if self.mode == 'MergeAll' else self.output_dir
 
     quote = lambda x: str('\"{}\"'.format(str(x)))
     command = ' '.join(['ShuffleMergeSpectral',
@@ -78,6 +82,11 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     retcode = proc.returncode
     if proc.returncode != 0:
       raise Exception('job {} return code is {}'.format(self.branch, retcode))
+    elif proc.returncode == 0 and self.mode == 'MergeAll':
+      os.rename(output_name, '/'.join([self.output_dir, '..', file_name]))
+    else:
+      ## what happens if not MergeAll?
+      pass
 
 class HaddFiles(Task, HTCondorWorkflow, law.LocalWorkflow):
   class InputFile:
