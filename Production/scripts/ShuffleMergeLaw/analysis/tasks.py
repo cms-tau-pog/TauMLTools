@@ -80,10 +80,12 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     sys.stdout.write(stderr + '\n')
 
     retcode = proc.returncode
-    if proc.returncode != 0:
+    if retcode != 0:
       raise Exception('job {} return code is {}'.format(self.branch, retcode))
-    elif proc.returncode == 0 and self.mode == 'MergeAll':
+    elif retcode == 0 and self.mode == 'MergeAll':
       os.rename(output_name, '/'.join([self.output_dir, '..', file_name]))
+      taskout = self.output()
+      taskout.dump('Task ended with code %s\n' %retcode)
     else:
       ## what happens if not MergeAll?
       pass
