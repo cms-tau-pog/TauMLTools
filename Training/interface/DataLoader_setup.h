@@ -1,12 +1,12 @@
 struct setup {
-  static constexpr size_t    n_tau              = 1000;
+  static constexpr size_t    n_tau              = 500;
   static constexpr Long64_t  start_dataset      = 0;
   static constexpr Long64_t  end_dataset        = std::numeric_limits<Long64_t>::max();
   static constexpr size_t    n_inner_cells      = 11;  // number of inner cells in eta and phi
   static constexpr Double_t  inner_cell_size    = 0.02; // size of the inner cell in eta and phi
   static constexpr size_t    n_outer_cells      = 21; // number of outer cells in eta and phi
   static constexpr Double_t  outer_cell_size    = 0.05; // size of the outer cell in eta and phi
-  static constexpr Int_t     n_threads          = 4; // number of threads
+  static constexpr Int_t     n_threads          = 1; // number of threads
   static constexpr Float_t   training_weight_factor = 4.f; // additional factor to the normalization of the training weights
   static constexpr Int_t     parity             = -1; // take odd (parity=1), even (parity=0) or all (parity=-1) events
   static constexpr size_t    n_fe_tau    = 43;  // number of high level featurese of tau
@@ -14,10 +14,18 @@ struct setup {
   static constexpr size_t    n_pf_mu     = 23; // Number of features for PfCand_electron
   static constexpr size_t    n_pf_chHad  = 27;
   static constexpr size_t    n_pf_nHad   = 7;
-  static constexpr size_t    n_pf_gamma  = 20;
+  static constexpr size_t    n_pf_gamma  = 23;
   static constexpr size_t    n_ele       = 37;
   static constexpr size_t    n_muon      = 37;
 
+  static constexpr Int_t     tau_types   = 6; /*
+                                                tau_e       = "tauType==0"
+                                                tau_mu      = "tauType==1"
+                                                tau_h       = "tauType==2"
+                                                tau_jet     = "tauType==3"
+                                                tau_emb_tau = "tauType==6"
+                                                tau_emb_jet = "tauType==7"
+                                              */
 };
 
 enum class CellObjectType {
@@ -125,7 +133,7 @@ enum class PfCand_muon_f {
   pfCand_muon_dz = 19,
   pfCand_muon_dz_sig = 20,
   pfCand_muon_track_chi2_ndof = 21,
-  pfCand_muon_track_ndo = 22,
+  pfCand_muon_track_ndof = 22,
 
 };
 
@@ -190,7 +198,10 @@ enum class pfCand_gamma_f {
   pfCand_gamma_hasTrackDetails = 16,
   pfCand_gamma_dxy = 17,
   pfCand_gamma_dxy_sig = 18,
-  pfCand_gamma_dz = 19
+  pfCand_gamma_dz = 19,
+  pfCand_gamma_dz_sig = 20,
+  pfCand_gamma_track_chi2_ndof = 21,
+  pfCand_gamma_track_ndof = 22
 };
 
 enum class Electron_f {
