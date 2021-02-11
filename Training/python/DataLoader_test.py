@@ -1,6 +1,5 @@
 # The environment on Centos 7 is:
 # source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_99 x86_64-centos7-gcc10-opt
-
 import ROOT as R
 import numpy as np
 import ctypes
@@ -20,13 +19,14 @@ n_muon      = 37
 tau_types   = 6
 
 R.gROOT.ProcessLine(".include /afs/cern.ch/user/m/myshched/DeepTau/CMSSW_10_6_17/src")
+R.gInterpreter.ProcessLine('#include "../interface/DataLoader_setup.h"')
 R.gInterpreter.ProcessLine('#include "../interface/DataLoader_main.h"')
 
 data_loader = R.DataLoader()
-data_loader.Initialize('/eos/user/m/myshched/LawTest_flush10_virt10_v3/ShuffleMergeSpectral_0.root')
+print("maximum batch number: ",data_loader.GetMaxBatchNumber())
 
 times = []
-for i in range(10):
+for i in range(1000):
     start = time.time()
 
     if not(data_loader.HasNext()):

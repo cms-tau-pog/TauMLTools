@@ -1,21 +1,82 @@
 #include <boost/preprocessor/variadic.hpp>
 #include <boost/math/constants/constants.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "TauMLTools/Core/interface/AnalysisMath.h"
-#include "TauMLTools/Core/interface/RootExt.h"
 #include "TauMLTools/Analysis/interface/TauTuple.h"
 
 #include "TROOT.h"
 #include "TLorentzVector.h"
-#include "DataLoader_setup.h"
 
 using namespace ROOT::Math;
 
-std::shared_ptr<TFile> OpenRootFile(const std::string& file_name){
-    std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "READ"));
-    if(!file || file->IsZombie())
-        throw std::runtime_error("File not opened.");
-    return file;
+// to open with one file
+// std::shared_ptr<TFile> OpenRootFile(const std::string& file_name){
+//     std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "READ"));
+//     if(!file || file->IsZombie())
+//         throw std::runtime_error("File not opened.");
+//     return file;
+// }
+
+std::vector<std::string> SplitValueList(const std::string& _values_str,
+                                        bool allow_duplicates = true,
+                                        const std::string& separators = " \t",
+                                        bool enable_token_compress = true)
+{
+    std::string values_str = _values_str;
+    std::vector<std::string> result;
+    if(enable_token_compress)
+        boost::trim_if(values_str, boost::is_any_of(separators));
+    if(!values_str.size()) return result;
+    const auto token_compress = enable_token_compress ? boost::algorithm::token_compress_on
+                                                      : boost::algorithm::token_compress_off;
+    boost::split(result, values_str, boost::is_any_of(separators), token_compress);
+    if(!allow_duplicates) {
+        std::unordered_set<std::string> set_result;
+        for(const std::string& value : result) {
+            if(set_result.count(value))
+                throw std::runtime_error("Value "+value+"listed more than once in the value list "
+                      +values_str+".");
+            set_result.insert(value);
+        }
+    }
+    return result;
+}
+
+void CollectInputFiles(const boost::filesystem::path& dir, std::vector<std::string>& files,
+                       const boost::regex& pattern, const std::set<std::string>& exclude,
+                       const std::set<std::string>& exclude_dirs)
+{
+    for(const auto& entry : boost::make_iterator_range(boost::filesystem::directory_iterator(dir), {})) {
+        if(boost::filesystem::is_directory(entry)
+                && !exclude_dirs.count(entry.path().filename().string()))
+            CollectInputFiles(entry.path(), files, pattern, exclude, exclude_dirs);
+        else if(boost::regex_match(entry.path().string(), pattern)
+                && !exclude.count(entry.path().filename().string()))
+            files.push_back(entry.path().string());
+    }
+}
+
+std::vector<std::string> FindInputFiles(const std::vector<std::string>& dirs,
+                                        const std::string& file_name_pattern,
+                                        const std::string& exclude_list,
+                                        const std::string& exclude_dir_list)
+{
+    auto exclude_vector = SplitValueList(exclude_list, true, ",");
+    std::set<std::string> exclude(exclude_vector.begin(), exclude_vector.end());
+
+    auto exclude_dir_vector = SplitValueList(exclude_dir_list, true, ",");
+    std::set<std::string> exclude_dirs(exclude_dir_vector.begin(), exclude_dir_vector.end());
+
+    const boost::regex pattern(file_name_pattern);
+    std::vector<std::string> files;
+    for(const auto& dir : dirs) {
+        boost::filesystem::path path(dir);
+        CollectInputFiles(path, files, pattern, exclude, exclude_dirs);
+    }
+    return files;
 }
 
 using Cell = std::map<CellObjectType, std::set<size_t>>;
@@ -145,29 +206,33 @@ public:
     using TauTuple = tau_tuple::TauTuple;
 
     DataLoader() :
-        n_tau(setup::n_tau), current_entry(setup::start_dataset), start_dataset(setup::start_dataset), end_dataset(setup::end_dataset),
+        n_tau(setup::n_tau), current_entry(setup::start_dataset), start_dataset(setup::start_dataset),
         n_inner_cells(setup::n_inner_cells), inner_cell_size(setup::inner_cell_size), n_outer_cells(setup::n_outer_cells),
-        outer_cell_size(setup::outer_cell_size), n_threads(setup::n_threads), parity(setup::parity),
+        outer_cell_size(setup::outer_cell_size), n_threads(setup::n_threads),
         n_fe_tau(setup::n_fe_tau), n_pf_el(setup::n_pf_el) ,n_pf_mu(setup::n_pf_mu),
         n_pf_chHad(setup::n_pf_chHad), n_pf_nHad(setup::n_pf_nHad) ,n_pf_gamma(setup::n_pf_gamma),
         n_electrons(setup::n_ele), n_muons(setup::n_muon), n_labels(setup::tau_types),
-        // trainingWeightFactor(tauTuple.GetEntries() / training_weight_factor,
         innerCellGridRef(n_inner_cells, n_inner_cells, inner_cell_size, inner_cell_size),
-        outerCellGridRef(n_outer_cells, n_outer_cells, outer_cell_size, outer_cell_size)
+        outerCellGridRef(n_outer_cells, n_outer_cells, outer_cell_size, outer_cell_size),
+        input_files(FindInputFiles(setup::input_dirs,setup::file_name_pattern,
+                                   setup::exclude_list, setup::exclude_dir_list))
     {
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
-    }
 
-    void Initialize(std::string file_name)
-    {
-        if(tauTuple)
-            throw std::runtime_error("DataLoader is already initialized.");
-        file = OpenRootFile(file_name);
-        tauTuple = std::make_shared<tau_tuple::TauTuple>(file.get(), true);
+      // file = OpenRootFile(file_name);
+      // tauTuple = std::make_shared<tau_tuple::TauTuple>(file.get(), true);
+
+      std::cout << "Number of files to process: " << input_files.size() << std::endl;
+      tauTuple = std::make_shared<TauTuple>("taus", input_files, true);
+      end_dataset = std::min(setup::end_dataset, tauTuple->GetEntries());
     }
 
     bool HasNext() {
         return (current_entry + n_tau) < end_dataset;
+    }
+
+    size_t GetMaxBatchNumber () {
+        return (end_dataset - start_dataset) / n_tau;
     }
 
     std::shared_ptr<Data> LoadNext(){
@@ -192,14 +257,11 @@ public:
         for(Long64_t tau_i = 0; tau_i < n_tau; ++tau_i, ++current_entry) {
             tauTuple->GetEntry(current_entry);
             const auto& tau = tauTuple->data();
-            if(parity == -1 || tau.evt % 2 == static_cast<unsigned>(parity)) {
                 FillTauBranches(tau, tau_i, data);
                 FillCellGrid(tau, tau_i, innerCellGridRef, data, true);
                 FillCellGrid(tau, tau_i, outerCellGridRef, data, false);
-            }
         }
 
-        std::cout << "One batch is returned" << std::endl;
         return data;
     }
 
@@ -750,7 +812,6 @@ private:
   const size_t n_outer_cells;
   const double outer_cell_size;
   const int n_threads;
-  const size_t parity;
   const size_t n_fe_tau;
   const size_t n_pf_el;
   const size_t n_pf_mu;
@@ -761,10 +822,9 @@ private:
   const size_t n_muons;
   const int n_labels;
   const CellGrid innerCellGridRef, outerCellGridRef;
-  // const float trainingWeightFactor;
+  const std::vector<std::string> input_files;
 
-
-  std::shared_ptr<TFile> file;
-  std::shared_ptr<tau_tuple::TauTuple> tauTuple; // tuple is the tree
+  // std::shared_ptr<TFile> file; // to open with one file
+  std::shared_ptr<TauTuple> tauTuple;
 
 };

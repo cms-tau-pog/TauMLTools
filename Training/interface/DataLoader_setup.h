@@ -7,8 +7,6 @@ struct setup {
   static constexpr size_t    n_outer_cells      = 21; // number of outer cells in eta and phi
   static constexpr Double_t  outer_cell_size    = 0.05; // size of the outer cell in eta and phi
   static constexpr Int_t     n_threads          = 1; // number of threads
-  static constexpr Float_t   training_weight_factor = 4.f; // additional factor to the normalization of the training weights
-  static constexpr Int_t     parity             = -1; // take odd (parity=1), even (parity=0) or all (parity=-1) events
   static constexpr size_t    n_fe_tau    = 43;  // number of high level featurese of tau
   static constexpr size_t    n_pf_el     = 22; // Number of features for PfCand_electron
   static constexpr size_t    n_pf_mu     = 23; // Number of features for PfCand_electron
@@ -17,7 +15,6 @@ struct setup {
   static constexpr size_t    n_pf_gamma  = 23;
   static constexpr size_t    n_ele       = 37;
   static constexpr size_t    n_muon      = 37;
-
   static constexpr Int_t     tau_types   = 6; /*
                                                 tau_e       = "tauType==0"
                                                 tau_mu      = "tauType==1"
@@ -26,6 +23,10 @@ struct setup {
                                                 tau_emb_tau = "tauType==6"
                                                 tau_emb_jet = "tauType==7"
                                               */
+  inline static const std::vector<std::string> input_dirs{"/eos/cms/store/group/phys_tau/TauML/prod_2018_v1/ShuffleMergeSpectral_v0/"};
+  inline static const std::string file_name_pattern = "^.*_(1|2|3|4|5|6|7|8|9|10).root$";
+  inline static const std::string exclude_list = "";
+  inline static const std::string exclude_dir_list = "";
 };
 
 enum class CellObjectType {
