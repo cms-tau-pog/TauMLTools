@@ -17,10 +17,8 @@ def update(process):
         VeryBigOR= cms.InputTag("hltL1sDoubleTauBigOR"),
         hltDoubleL2Tau26eta2p2 = cms.InputTag("hltDoubleL2Tau26eta2p2"),
         hltDoubleL2IsoTau26eta2p2 = cms.InputTag("hltDoubleL2IsoTau26eta2p2")
-
         # step successivo -> isolamento basato su questi tau, si vedono le tracce attorno con algo semplici
     )
-
     process.HLTL2p5IsoTauL1TauSeededSequence = cms.Sequence( process.HLTL2TauPixelIsolationSequenceL1TauSeeded +  cms.ignore(process.hltL2TauIsoFilterL1TauSeeded) + process.hltL2TauJetsIsoL1TauSeeded)
 
     process.HLT_TauTupleProd = cms.Path(process.HLTBeginSequence + cms.ignore(process.hltL1sDoubleTauBigOR) +  process.HLTL2TauJetsL1TauSeededSequence + cms.ignore(process.hltDoubleL2Tau26eta2p2) + process.HLTL2p5IsoTauL1TauSeededSequence + cms.ignore(process.hltDoubleL2IsoTau26eta2p2) + process.TrainTupleProd, process.HLTDoLocalPixelTask, process.HLTRecoPixelTracksTask, process.HLTRecopixelvertexingTask, process.HLTDoFullUnpackingEgammaEcalTask, process.HLTDoLocalHcalTask)

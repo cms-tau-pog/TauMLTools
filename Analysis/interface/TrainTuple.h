@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "Core/interface/SmartTree.h"
-#include "Analysis/interface/TauIdResults.h"
+#include "TauMLTools/Core/interface/SmartTree.h"
+#include "TauMLTools/Analysis/interface/TauIdResults.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 #include <Math/VectorUtil.h>
 
@@ -30,7 +30,7 @@
     VAR(Int_t, npv) /* number of primary vertices */ \
     VAR(Int_t, nppv) /* number of primary patavertices */ \
     VAR(Float_t, genEventWeight) /* gen event weight */ \
-    VAR(Float_t, trainingWeight) /* training weight */ \
+    /*VAR(Float_t, trainingWeight)  training weight */ \
     VAR(Int_t, sampleType) /* type of the sample (MC, Embedded or Data) */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
     /* L1 objects */ \
@@ -74,6 +74,10 @@
     CALO_TOWER_VAR(Int_t, numProblematicHcalCells) /* caloTower numProblematicHcalCells candidate*/ \
     CALO_TOWER_VAR(Float_t, ecalTime) /* caloTower ecalTime candidate*/ \
     CALO_TOWER_VAR(Float_t, hcalTime) /* caloTower hcalTime candidate*/ \
+    CALO_TOWER_VAR(Float_t, hottestCellE) /* hottest caloTower cell Energy */ \
+    CALO_TOWER_VAR(Int_t, emLvl1) /* em energy at level 1 */ \
+    CALO_TOWER_VAR(Int_t, hadLv11) /* had energy at level 1 */ \
+    CALO_TOWER_VAR(Int_t, numCrystals) /* number of (fired) crystals */ \
     /* Tracks candidates */ \
     TRACK_VAR(Float_t, pt) /* track pt candidate*/ \
     TRACK_VAR(Float_t, eta) /* track eta candidate*/ \
@@ -92,22 +96,22 @@
     VERT(Float_t, chi2) /* chi^2 of the vertices (PV) */ \
     VERT(Int_t, ndof) /* number of degrees of freedom of vertices (PV) */ \
     /* CaloTaus candidates */ \
-    CALO_TAU_VAR(Float_t, pt) /* caloTau pt candidate*/ \
-    CALO_TAU_VAR(Float_t, eta) /* caloTau eta candidate*/ \
-    CALO_TAU_VAR(Float_t, phi) /* caloTau phi candidate*/ \
-    CALO_TAU_VAR(Float_t, energy) /* caloTau energy candidate*/ \
-    CALO_TAU_VAR(Float_t, maxEInEmTowers) /* caloTau maximum energy deposited in ECAL towers*/ \
-    CALO_TAU_VAR(Float_t, maxEInHadTowers) /* caloTau maximum energy deposited in HCAL towers*/ \
-    CALO_TAU_VAR(Float_t, energyFractionHadronic) /* caloTau jet hadronic energy fraction*/ \
-    CALO_TAU_VAR(Float_t, emEnergyFraction) /* caloTau jet electromagnetic energy fraction*/ \
-    CALO_TAU_VAR(Float_t, hadEnergyInHB) /* caloTau jet hadronic energy in HB*/ \
-    CALO_TAU_VAR(Float_t, hadEnergyInHO) /* caloTau jet hadronic energy in HO*/ \
-    CALO_TAU_VAR(Float_t, hadEnergyInHE) /* caloTau jet hadronic energy in HE*/ \
-    CALO_TAU_VAR(Float_t, hadEnergyInHF) /* caloTau jet hadronic energy in HF*/ \
-    CALO_TAU_VAR(Float_t, emEnergyInEB) /* caloTau jet electromagnetic energy in EB*/ \
-    CALO_TAU_VAR(Float_t, emEnergyInEE) /* caloTau jet electromagnetic energy in EE*/ \
-    CALO_TAU_VAR(Float_t, emEnergyInHF) /* caloTau jet electromagnetic energy extracted from HF*/ \
-    CALO_TAU_VAR(Float_t, towersArea) /* caloTau area of contributing towers*/ \
+    CALO_TAU_VAR(Float_t, pt) /* caloTau pt candidate corresp to p4->at(pt)*/ \
+    CALO_TAU_VAR(Float_t, eta) /* caloTau eta candidate corresp to p4->at(eta)*/ \
+    CALO_TAU_VAR(Float_t, phi) /* caloTau phi candidate corresp to p4->at(phi)*/ \
+    CALO_TAU_VAR(Float_t, energy) /* caloTau energy candidate corresp to p4->at(E)*/ \
+    CALO_TAU_VAR(Float_t, maxEInEmTowers) /** Returns the maximum energy deposited in ECAL towers*/ \
+    CALO_TAU_VAR(Float_t, maxEInHadTowers) /** Returns the maximum energy deposited in HCAL towers*/ \
+    CALO_TAU_VAR(Float_t, energyFractionHadronic) /** Returns the jet hadronic energy fraction*/ \
+    CALO_TAU_VAR(Float_t, emEnergyFraction) /** Returns the jet electromagnetic energy fraction*/ \
+    CALO_TAU_VAR(Float_t, hadEnergyInHB) /** Returns the jet hadronic energy in HB*/ \
+    CALO_TAU_VAR(Float_t, hadEnergyInHO) /** Returns the jet hadronic energy in HO*/ \
+    CALO_TAU_VAR(Float_t, hadEnergyInHE) /** Returns the jet hadronic energy in HE*/ \
+    CALO_TAU_VAR(Float_t, hadEnergyInHF) /** Returns the jet hadronic energy in HF*/ \
+    CALO_TAU_VAR(Float_t, emEnergyInEB) /** Returns the jet electromagnetic energy in EB*/ \
+    CALO_TAU_VAR(Float_t, emEnergyInEE) /** Returns the jet electromagnetic energy in EE*/ \
+    CALO_TAU_VAR(Float_t, emEnergyInHF) /** Returns the jet electromagnetic energy extracted from HF*/ \
+    CALO_TAU_VAR(Float_t, towersArea) /** Returns area of contributing towers */ \
     CALO_TAU_VAR(Int_t, n90) /* caloTau number of constituents carrying a 90% of the total Jet energy*/ \
     CALO_TAU_VAR(Int_t, n60) /* caloTau number of constituents carrying a 60% of the total Jet energy*/ \
     /* Outputs of the different filters */ \
@@ -125,19 +129,6 @@ INITIALIZE_TREE(train_tuple, TrainTuple, TAU_DATA)
 #undef VAR2
 #undef VAR3
 #undef VAR4
-#undef TAU_DATA
-#undef CAND_VAR
-#undef CAND_VAR2
-#undef CAND_VAR3
-#undef CAND_VAR4
-#undef ELE_VAR
-#undef ELE_VAR2
-#undef ELE_VAR3
-#undef ELE_VAR4
-#undef MUON_VAR
-#undef MUON_VAR2
-#undef MUON_VAR3
-#undef MUON_VAR4
 #undef TAU_ID
 #undef TAU_VAR
 #undef CALO_TOWER_VAR

@@ -303,7 +303,7 @@ private:
         trainingTauTuple().gen_mu = tauType == TauType::mu;
         trainingTauTuple().gen_tau = tauType == TauType::tau;
         trainingTauTuple().gen_jet = tauType == TauType::jet;
-        trainingTauTuple().gen_emb = tauType == TauType::emb;
+        //trainingTauTuple().gen_emb = tauType == TauType::emb;
         trainingTauTuple().gen_data = tauType == TauType::data;
         if(tauType != TauType::jet && tauType != TauType::data) {
             const auto gen_vis_sum = SumP4(tau.lepton_gen_vis_pt, tau.lepton_gen_vis_eta, tau.lepton_gen_vis_phi,
