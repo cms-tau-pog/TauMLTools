@@ -15,16 +15,15 @@ struct setup {
   static constexpr size_t    n_pf_gamma  = 23;
   static constexpr size_t    n_ele       = 37;
   static constexpr size_t    n_muon      = 37;
-  static constexpr Int_t     tau_types   = 6; /*
+  static constexpr Int_t     tau_types   = 4; /*
                                                 tau_e       = "tauType==0"
                                                 tau_mu      = "tauType==1"
                                                 tau_h       = "tauType==2"
                                                 tau_jet     = "tauType==3"
-                                                tau_emb_tau = "tauType==6"
-                                                tau_emb_jet = "tauType==7"
                                               */
   inline static const std::vector<std::string> input_dirs{"/eos/cms/store/group/phys_tau/TauML/prod_2018_v1/ShuffleMergeSpectral_v0/"};
-  inline static const std::string file_name_pattern = "^.*_(1|2|3|4|5|6|7|8|9|10).root$";
+  inline static const std::string file_name_pattern = "^.*_(1|2|3|4|5|6|7|8|9|10).root$"; // As a test take 1-10 files
+  // inline static const std::string file_name_pattern = "^.*_.*.root$";
   inline static const std::string exclude_list = "";
   inline static const std::string exclude_dir_list = "";
 };
@@ -83,7 +82,6 @@ enum class TauFlat_f {
   tau_emFraction = 40,
   tau_inside_ecal_crack = 41,
   leadChargedCand_etaAtEcalEntrance_minus_tau_eta = 42
-
 };
 
 enum class PfCand_electron_f {

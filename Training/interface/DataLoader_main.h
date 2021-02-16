@@ -12,7 +12,6 @@
 
 using namespace ROOT::Math;
 
-// to open with one file
 // std::shared_ptr<TFile> OpenRootFile(const std::string& file_name){
 //     std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "READ"));
 //     if(!file || file->IsZombie())
@@ -90,6 +89,7 @@ struct CellIndex {
     }
 };
 
+
 class CellGrid {
 
 public:
@@ -154,6 +154,7 @@ private:
     std::vector<Cell> cells;
 };
 
+
 struct Data { // (n taus, taus features, n_inner_cells, n_outer_cells, n pfelectron features, n pfmuon features)
     Data(size_t n_tau, size_t tau_fn, size_t n_inner_cells,
          size_t n_outer_cells, size_t pfelectron_fn, size_t pfmuon_fn,
@@ -161,32 +162,24 @@ struct Data { // (n taus, taus features, n_inner_cells, n_outer_cells, n pfelect
          size_t electron_fn, size_t muon_fn, size_t tau_labels) :
          x_tau(n_tau * tau_fn, 0), weight(n_tau, 1), y_onehot(n_tau * tau_labels, 0)
          {
-           // y_onehot = std::vector<std::vector<float>>( n_tau, std::vector<float> (tau_labels, 0) );
-
           // pf electron
            x_grid[CellObjectType::PfCand_electron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfelectron_fn,0);
            x_grid[CellObjectType::PfCand_electron][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * pfelectron_fn,0);
-
            // pf muons
            x_grid[CellObjectType::PfCand_muon][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfmuon_fn,0);
            x_grid[CellObjectType::PfCand_muon][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * pfmuon_fn,0);
-
            // pf charged hadrons
            x_grid[CellObjectType::PfCand_chargedHadron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfchargedhad_fn,0);
            x_grid[CellObjectType::PfCand_chargedHadron][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * pfchargedhad_fn,0);
-
            // pf neutral hadrons
            x_grid[CellObjectType::PfCand_neutralHadron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfneutralhad_fn,0);
            x_grid[CellObjectType::PfCand_neutralHadron][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * pfneutralhad_fn,0);
-
            // pf gamma
            x_grid[CellObjectType::PfCand_gamma][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfgamma_fn,0);
            x_grid[CellObjectType::PfCand_gamma][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * pfgamma_fn,0);
-
            // electrons
            x_grid[CellObjectType::Electron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * electron_fn,0);
            x_grid[CellObjectType::Electron][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * electron_fn,0);
-
            // muons
            x_grid[CellObjectType::Muon][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * muon_fn,0);
            x_grid[CellObjectType::Muon][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * muon_fn,0);
@@ -195,7 +188,7 @@ struct Data { // (n taus, taus features, n_inner_cells, n_outer_cells, n pfelect
     std::vector<float> x_tau;
     std::map<CellObjectType, std::map<bool, std::vector<float>>> x_grid; // [enum class CellObjectType][ 0 - outer, 1 - inner]
     std::vector<float> weight;
-    std::vector<int> y_onehot;
+    std::vector<float> y_onehot;
 };
 
 
@@ -254,12 +247,19 @@ public:
 
         const Long64_t end_entry = current_entry + n_tau;
         size_t n_processed = 0, n_total = static_cast<size_t>(end_entry - start_dataset);
-        for(Long64_t tau_i = 0; tau_i < n_tau; ++tau_i, ++current_entry) {
+        for(Long64_t tau_i = 0; tau_i < n_tau; ++current_entry) {
             tauTuple->GetEntry(current_entry);
             const auto& tau = tauTuple->data();
-                FillTauBranches(tau, tau_i, data);
-                FillCellGrid(tau, tau_i, innerCellGridRef, data, true);
-                FillCellGrid(tau, tau_i, outerCellGridRef, data, false);
+            // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
+            if(tau.tauType < 0 || tau.tauType > 3) continue;
+            else {
+              // filling labels
+              data->y_onehot[ tau_i * n_labels + tau.tauType ] = 1.0;
+              FillTauBranches(tau, tau_i, data);
+              FillCellGrid(tau, tau_i, innerCellGridRef, data, true);
+              FillCellGrid(tau, tau_i, outerCellGridRef, data, false);
+              ++tau_i;
+            }
         }
 
         return data;
@@ -286,16 +286,13 @@ public:
         Long64_t start_array_index = tau_i * n_fe_tau;
 
         // Filling Tau Branche
+        float foo;
         auto get_tau_branch = [&](TauFlat_f _fe) -> float& {
+            if(static_cast<int>(_fe) < 0) return foo;
             size_t _fe_ind = static_cast<size_t>(_fe);
             size_t index = start_array_index + _fe_ind;
             return data->x_tau.at(index);
         };
-
-        // filling labels one_hot vector
-        Int_t tau_type = tau.tauType;
-        if(tau_type<=3) data->y_onehot[ tau_i * n_labels + tau_type ] = 1;
-        else if(tau_type>=6) data->y_onehot[ tau_i * n_labels + tau_type - 2 ] = 1;
 
         get_tau_branch(TauFlat_f::tau_pt) = tau.tau_pt;
         get_tau_branch(TauFlat_f::tau_eta) = tau.tau_eta;
@@ -419,9 +416,12 @@ public:
             }
         };
 
+        float foo;
+
         { // CellObjectType::PfCand_electron
             typedef PfCand_electron_f Br;
             auto get_PFelectron = [&](PfCand_electron_f _fe_n) -> float& {
+              if(static_cast<int>(_fe_n) < 0) return foo;
               size_t flat_index = getIndex(n_pf_el, static_cast<size_t>(_fe_n));
               return data->x_grid.at(CellObjectType::PfCand_electron).at(inner).at(flat_index);
             };
@@ -465,6 +465,7 @@ public:
         { // CellObjectType::PfCand_muon
             typedef PfCand_muon_f Br;
             auto get_PFmuon = [&](PfCand_muon_f _fe_n) -> float& {
+              if(static_cast<int>(_fe_n) < 0) return foo;
               size_t flat_index = getIndex(n_pf_mu, static_cast<size_t>(_fe_n));
               return data->x_grid.at(CellObjectType::PfCand_muon).at(inner).at(flat_index);
             };
@@ -506,6 +507,7 @@ public:
         { // CellObjectType::PfCand_chargedHadron
           typedef PfCand_chargedHadron_f Br;
           auto get_PFchHad = [&](PfCand_chargedHadron_f _fe_n) -> float& {
+            if(static_cast<int>(_fe_n) < 0) return foo;
             size_t flat_index = getIndex(n_pf_chHad, static_cast<size_t>(_fe_n));
             return data->x_grid.at(CellObjectType::PfCand_chargedHadron).at(inner).at(flat_index);
           };
@@ -557,6 +559,7 @@ public:
         { // CellObjectType::PfCand_neutralHadron
           typedef PfCand_neutralHadron_f Br;
           auto get_PFchHad = [&](PfCand_neutralHadron_f _fe_n) -> float& {
+            if(static_cast<int>(_fe_n) < 0) return foo;
             size_t flat_index = getIndex(n_pf_nHad, static_cast<size_t>(_fe_n));
             return data->x_grid.at(CellObjectType::PfCand_neutralHadron).at(inner).at(flat_index);
           };
@@ -577,6 +580,7 @@ public:
         { // CellObjectType::PfCand_gamma
           typedef pfCand_gamma_f Br;
           auto get_PFgamma= [&](pfCand_gamma_f _fe_n) -> float& {
+            if(static_cast<int>(_fe_n) < 0) return foo;
             size_t flat_index = getIndex(n_pf_gamma, static_cast<size_t>(_fe_n));
             return data->x_grid.at(CellObjectType::PfCand_gamma).at(inner).at(flat_index);
           };
@@ -624,6 +628,7 @@ public:
         { // PAT electron
           typedef Electron_f Br;
           auto get_PATele = [&](Electron_f _fe_n) -> float& {
+            if(static_cast<int>(_fe_n) < 0) return foo;
             size_t flat_index = getIndex(n_electrons, static_cast<size_t>(_fe_n));
             return data->x_grid.at(CellObjectType::Electron).at(inner).at(flat_index);
           };
@@ -689,6 +694,7 @@ public:
         { // PAT muon
           typedef Muon_f Br;
           auto get_PATmuon = [&](Muon_f _fe_n) -> float& {
+            if(static_cast<int>(_fe_n) < 0) return foo;
             size_t flat_index = getIndex(n_muons, static_cast<size_t>(_fe_n));
             return data->x_grid.at(CellObjectType::Muon).at(inner).at(flat_index);
           };
