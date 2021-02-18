@@ -1,7 +1,5 @@
 import FWCore.ParameterSet.Config as cms
 def update(process):
-    from HLTrigger.Configuration.customizeHLTforPatatrack import customizeHLTforPatatrack
-    process = customizeHLTforPatatrack(process)
 
     #extremely big or da definire, e poi tutto diventa *Extended
 
@@ -109,7 +107,7 @@ def update(process):
         writeJetsWithConst = cms.bool( False ),
         inputEMin = cms.double( 0.0 )
     )
-    process.hltL2TauJetsL1ExtremelyBigORTauSeeded = cms.EDProducer( "L2TauJetsMerger",
+    process.hltL2TauJetsL1TauSeededExtended = cms.EDProducer( "L2TauJetsMerger",
         EtMin = cms.double( 20.0 ),
         JetSrc = cms.VInputTag( 'hltAkIsoTauL1sTauExtremelyBigORSeededRegional' )
     )
@@ -413,7 +411,23 @@ def update(process):
         Finder = cms.string( "DivisiveVertexFinder" ),
         ZSeparation = cms.double( 0.05 )
     )
+    process.hltL2TauPixelIsoTagProducerL1TauSeededExtended = cms.EDProducer( "L2TauPixelIsoTagProducer",
+        TrackSrc = cms.InputTag( "" ),
+        BeamSpotSrc = cms.InputTag( "hltOnlineBeamSpot" ),
+        TrackMaxNChi2 = cms.double( 1000.0 ),
+        TrackMinNHits = cms.int32( 3 ),
+        TrackPVMaxDZ = cms.double( 0.1 ),
+        IsoConeMax = cms.double( 0.4 ),
+        TrackMinPt = cms.double( 0.9 ),
+        IsoConeMin = cms.double( 0.15 ),
+        VertexSrc = cms.InputTag( "hltPixelVerticesRegL1TauSeededExtended" ),
+        JetSrc = cms.InputTag( "hltL2TausForPixelIsolationL1TauSeededExtended" ),
+        TrackMaxDxy = cms.double( 0.2 ),
+        MaxNumberPV = cms.int32( 1 )
+    )
 
+    from HLTrigger.Configuration.customizeHLTforPatatrack import customizeHLTforPatatrack
+    process = customizeHLTforPatatrack(process)
     process.TrainTupleProd = cms.EDAnalyzer("TrainTupleProducer",
         isMC = cms.bool(True),
         genEvent = cms.InputTag("generator"),
@@ -433,18 +447,24 @@ def update(process):
     )
 
 
-
-
-
     process.HLTCaloTausCreatorL1TauSeededRegionalSequenceExtended = cms.Sequence( process.HLTDoCaloSequence + cms.ignore(process.hltL1sTauExtremelyBigOR) + process.hltCaloTowerL1sTauExtremelyBigORSeededRegional + process.hltAkIsoTauL1sTauExtremelyBigORSeededRegional )
 
-    process.HLTL2TauJetsL1TauSeededSequenceExtended = cms.Sequence( process.HLTCaloTausCreatorL1TauSeededRegionalSequenceExtended + process.hltL2TauJetsL1ExtremelyBigORTauSeeded )
+    process.HLTL2TauJetsL1TauSeededSequenceExtended = cms.Sequence( process.HLTCaloTausCreatorL1TauSeededRegionalSequenceExtended + process.hltL2TauJetsL1TauSeededExtended )
 
-    process.HLT_TauTupleProd = cms.Path(process.HLTBeginSequence + process.HLTL2TauJetsL1TauSeededSequenceExtended, process.HLTDoLocalPixelTask, process.HLTRecoPixelTracksTask, process.HLTRecopixelvertexingTask)
+    process.HLTPixelTrackFromQuadAndTriSequenceRegL1TauSeededExtended = cms.Sequence( process.hltPixelTracksFilter + process.hltPixelTracksFitter + process.hltPixelTracksTrackingRegionsRegL1TauSeededExtended + process.hltPixelLayerQuadrupletsRegL1TauSeededExtended + process.hltPixelTracksHitDoubletsRegL1TauSeededExtended + process.hltPixelTracksHitQuadrupletsRegL1TauSeededExtended + process.hltPixelTracksFromQuadrupletsRegL1TauSeededExtended + process.hltPixelTripletsClustersRefRemovalRegL1TauSeededExtended + process.hltPixelLayerTripletsWithClustersRemovalRegL1TauSeededExtended + process.hltPixelTracksHitDoubletsForTripletsRegL1TauSeededExtended + process.hltPixelTracksHitTripletsRegL1TauSeededExtended + process.hltPixelTracksFromTripletsRegL1TauSeededExtended + process.hltPixelTracksMergedRegL1TauSeededExtended )
+
+    process.HLTDoLocalPixelSequenceRegL2TauL1TauSeededExtended = cms.Sequence( process.hltSiPixelDigisRegL1TauSeededExtended + process.hltSiPixelClustersRegL1TauSeededExtended + process.hltSiPixelClustersRegL1TauSeededCacheExtended + process.hltSiPixelRecHitsRegL1TauSeededExtended )
+
+    process.HLTPixelTrackingSequenceRegL2TauL1TauSeededExtended = cms.Sequence( process.HLTDoLocalPixelSequenceRegL2TauL1TauSeededExtended + process.HLTPixelTrackFromQuadAndTriSequenceRegL1TauSeededExtended + process.hltPixelVerticesRegL1TauSeededExtended )
+
+    process.HLTL2TauPixelIsolationSequenceL1TauSeededExtended = cms.Sequence( process.hltL2TausForPixelIsolationL1TauSeededExtended + process.HLTPixelTrackingSequenceRegL2TauL1TauSeededExtended + process.hltL2TauPixelIsoTagProducerL1TauSeededExtended )
+
+    process.HLT_TauTupleProd = cms.Path(process.HLTBeginSequence + process.HLTL2TauJetsL1TauSeededSequenceExtended + process.HLTL2TauPixelIsolationSequenceL1TauSeededExtended, process.HLTDoLocalPixelTask, process.HLTRecoPixelTracksTask, process.HLTRecopixelvertexingTask)
 
     #process.HLT_TauTupleProd = cms.Path(process.HLTBeginSequence + process.HLTL2TauJetsL1TauSeededSequence +  process.HLTL2TauPixelIsolationSequenceL1TauSeeded + process.hltL1sDoubleTauBigOR + process.hltDoubleL2Tau26eta2p2 + process.hltL2TauIsoFilterL1TauSeeded + process.hltL2TauJetsIsoL1TauSeeded + process.hltDoubleL2IsoTau26eta2p2, process.HLTDoLocalPixelTask, process.HLTRecoPixelTracksTask, process.HLTRecopixelvertexingTask)
     process.endjob_step.insert(0, process.TrainTupleProd)
-    process.schedule = cms.Schedule(*[ process.HLTriggerFirstPath, process.HLT_TauTupleProd, process.HLT_DoubleMediumChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_v4, process.HLTriggerFinalPath, process.endjob_step ], tasks=[process.patAlgosToolsTask])
+    # process.HLT_DoubleMediumChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_v4,
+    process.schedule = cms.Schedule(*[ process.HLTriggerFirstPath, process.HLT_TauTupleProd, process.HLTriggerFinalPath, process.endjob_step ], tasks=[process.patAlgosToolsTask])
     process.TFileService = cms.Service('TFileService', fileName = cms.string("ntuple_prova_4.root") )
 
     process.options.wantSummary = cms.untracked.bool(True)
