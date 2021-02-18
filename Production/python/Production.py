@@ -53,9 +53,6 @@ process.options.allowUnscheduled = cms.untracked.bool(True)
 process.options.numberOfThreads = cms.untracked.uint32(options.numberOfThreads)
 process.options.numberOfStreams = cms.untracked.uint32(0)
 
-process.load('FWCore.MessageLogger.MessageLogger_cfi')
-process.MessageLogger.cerr.FwkReport.reportEvery = 100
-
 process.load('Configuration.StandardSequences.MagneticField_cff')
 # include Phase2 specific configuration only after 11_0_X
 if isPhase2:
@@ -108,66 +105,118 @@ if isPhase2:
         toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1", "newDMPhase2v1"]
     )
     tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
+    boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 else:
-    tauIdConfig = importlib.import_module('TauMLTools.Production.runTauIdMVA')
+    from TauMLTools.Production.runTauIdMVA import runTauID
     updatedTauName = "slimmedTausNewID"
-    tauIdEmbedder = tauIdConfig.TauIDEmbedder(
-        process, cms, debug = False, updatedTauName = updatedTauName,
-        toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1"]
+    runTauID(process, outputTauCollection = updatedTauName, inputTauCollection = tau_collection,
+             toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
+    tauIdConfig = importlib.import_module('TauMLTools.Production.runTauIdMVA')
+
+    from RecoTauTag.Configuration.boostedHPSPFTaus_cff import ca8PFJetsCHSprunedForBoostedTaus
+    process.ca8PFJetsCHSprunedForBoostedTausPAT = ca8PFJetsCHSprunedForBoostedTaus.clone(
+        src = cms.InputTag("packedPFCandidates"),
+        jetCollInstanceName = cms.string('subJetsForSeedingBoostedTausPAT')
     )
-    tauIdEmbedder.runTauID(tau_collection = tau_collection)
+    process.cleanedSlimmedTausBoosted = cms.EDProducer("PATBoostedTauCleaner",
+        src = cms.InputTag('slimmedTausBoosted'),
+        pfcands = cms.InputTag('packedPFCandidates'),
+        vtxLabel= cms.InputTag('offlineSlimmedPrimaryVertices'),
+        ca8JetSrc = cms.InputTag('ca8PFJetsCHSprunedForBoostedTausPAT','subJetsForSeedingBoostedTausPAT'),
+        removeOverLap = cms.bool(True),
+    )
 
-tauSrc_InputTag = cms.InputTag('slimmedTausNewID')
+    updatedBoostedTauName = "slimmedBoostedTausNewID"
+    runTauID(process, outputTauCollection=updatedBoostedTauName, inputTauCollection="cleanedSlimmedTausBoosted",
+             toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
 
-tauJetdR = 0.3
-objectdR = 0.5
+    process.boostedSequence = cms.Sequence(
+        process.ca8PFJetsCHSprunedForBoostedTausPAT *
+        process.cleanedSlimmedTausBoosted *
+        getattr(process, updatedBoostedTauName + 'rerunMvaIsolationSequence') *
+        getattr(process, updatedBoostedTauName))
+    boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
+
+# boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
+taus_InputTag = cms.InputTag('slimmedTausNewID')
 
 if isPhase2:
     process.slimmedElectronsMerged = cms.EDProducer("SlimmedElectronMerger",
     src = cms.VInputTag("slimmedElectrons","slimmedElectronsFromMultiCl")
     )
-    electronSrc_InputTag = cms.InputTag('slimmedElectronsMerged')
-    vtxSrc_InputTag = cms.InputTag('offlineSlimmedPrimaryVertices4D')
+    electrons_InputTag = cms.InputTag('slimmedElectronsMerged')
+    vtx_InputTag = cms.InputTag('offlineSlimmedPrimaryVertices4D')
 else:
-    electronSrc_InputTag = cms.InputTag('slimmedElectrons')
-    vtxSrc_InputTag = cms.InputTag('offlineSlimmedPrimaryVertices')
+    electrons_InputTag = cms.InputTag('slimmedElectrons')
+    vtx_InputTag = cms.InputTag('offlineSlimmedPrimaryVertices')
+
+
+tauJetBuilderSetup = cms.PSet(
+    genLepton_genJet_dR     = cms.double(0.4),
+    genLepton_tau_dR        = cms.double(0.2),
+    genLepton_boostedTau_dR = cms.double(0.2),
+    genLepton_jet_dR        = cms.double(0.4),
+    genLepton_fatJet_dR     = cms.double(0.8),
+    genJet_tau_dR           = cms.double(0.4),
+    genJet_boostedTau_dR    = cms.double(0.4),
+    genJet_jet_dR           = cms.double(0.4),
+    genJet_fatJet_dR        = cms.double(0.8),
+    tau_boostedTau_dR       = cms.double(0.2),
+    tau_jet_dR              = cms.double(0.4),
+    tau_fatJet_dR           = cms.double(0.8),
+    jet_fatJet_dR           = cms.double(0.8),
+    jet_maxAbsEta           = cms.double(3.4),
+    fatJet_maxAbsEta        = cms.double(3.8),
+    genLepton_cone          = cms.double(0.5),
+    genJet_cone             = cms.double(0.5),
+    tau_cone                = cms.double(0.5),
+    boostedTau_cone         = cms.double(0.5),
+    jet_cone                = cms.double(0.8),
+    fatJet_cone             = cms.double(0.8),
+)
 
 process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
-    isMC                            = cms.bool(not isData),
-    isEmbedded                      = cms.bool(isEmbedded),
-    minJetPt                        = cms.double(10.),
-    maxJetEta                       = cms.double(3.),
-    forceTauJetMatch                = cms.bool(False),
-    storeJetsWithoutTau             = cms.bool(options.storeJetsWithoutTau),
-    tauJetMatchDeltaRThreshold      = cms.double(tauJetdR),
-    objectMatchDeltaRThresholdTau   = cms.double(objectdR),
-    objectMatchDeltaRThresholdJet   = cms.double(tauJetdR + objectdR),
-    requireGenMatch                 = cms.bool(options.requireGenMatch),
+    isMC               = cms.bool(not isData),
+    isEmbedded         = cms.bool(isEmbedded),
+    requireGenMatch    = cms.bool(options.requireGenMatch),
+    tauJetBuilderSetup = tauJetBuilderSetup,
 
-    lheEventProduct = cms.InputTag('externalLHEProducer'),
-    genEvent        = cms.InputTag('generator'),
-    genParticles    = cms.InputTag('prunedGenParticles'),
-    puInfo          = cms.InputTag('slimmedAddPileupInfo'),
-    vertices        = vtxSrc_InputTag,
-    rho             = cms.InputTag('fixedGridRhoAll'),
-    electrons       = electronSrc_InputTag,
-    muons           = cms.InputTag('slimmedMuons'),
-    taus            = tauSrc_InputTag,
-    jets            = cms.InputTag('slimmedJets'),
-    pfCandidates    = cms.InputTag('packedPFCandidates'),
-    tracks          = cms.InputTag('isolatedTracks'),
+    lheEventProduct    = cms.InputTag('externalLHEProducer'),
+    genEvent           = cms.InputTag('generator'),
+    genParticles       = cms.InputTag('prunedGenParticles'),
+    puInfo             = cms.InputTag('slimmedAddPileupInfo'),
+    vertices           = vtx_InputTag,
+    rho                = cms.InputTag('fixedGridRhoAll'),
+    electrons          = electrons_InputTag,
+    muons              = cms.InputTag('slimmedMuons'),
+    taus               = taus_InputTag,
+    boostedTaus        = boostedTaus_InputTag,
+    jets               = cms.InputTag('slimmedJets'),
+    fatJets            = cms.InputTag('slimmedJetsAK8'),
+    pfCandidates       = cms.InputTag('packedPFCandidates'),
+    isoTracks          = cms.InputTag('isolatedTracks'),
+    lostTracks         = cms.InputTag('lostTracks'),
+    genJets            = cms.InputTag('slimmedGenJets'),
+    genJetFlavourInfos = cms.InputTag('slimmedGenJetsFlavourInfos'),
 )
 
 process.tupleProductionSequence = cms.Sequence(process.tauTupleProducer)
 
 process.p = cms.Path(
-    process.rerunMvaIsolationSequence *
+    getattr(process, updatedTauName + 'rerunMvaIsolationSequence') *
     getattr(process, updatedTauName) *
     process.tupleProductionSequence
 )
 
 if isPhase2:
-    process.p.insert(0,process.slimmedElectronsMerged)
+    process.p.insert(0, process.slimmedElectronsMerged)
+else:
+    process.p.insert(2, process.boostedSequence)
+
+process.load('FWCore.MessageLogger.MessageLogger_cfi')
+x = process.maxEvents.input.value()
+x = x if x >= 0 else 10000
+process.MessageLogger.cerr.FwkReport.reportEvery = max(1, min(1000, x // 10))
 
 if options.dumpPython:
     print process.dumpPython()

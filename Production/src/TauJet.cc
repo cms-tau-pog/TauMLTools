@@ -2,6 +2,7 @@
 */
 
 #include "TauMLTools/Production/interface/TauJet.h"
+#include "TauMLTools/Core/interface/TextIO.h"
 
 #include <Math/VectorUtil.h>
 
@@ -50,7 +51,7 @@ void TauJetBuilder::MatchResult::SetDeltaR_jet(size_t index_in, double dR_in, do
 
 void TauJetBuilder::MatchResult::SetDeltaR(size_t index_in, double dR_in, double dR_thr, double& dR_out)
 {
-    if(dR_in < dR_thr && dR_out < dR_in) {
+    if(dR_in < dR_thr && dR_in < dR_out) {
         dR_out = dR_in;
         index = static_cast<int>(index_in);
     }
@@ -64,6 +65,25 @@ bool TauJetBuilder::MatchResult::operator <(const TauJetBuilder::MatchResult& ot
     if(dR_boostedTau != other.dR_boostedTau) return dR_boostedTau < other.dR_boostedTau;
     if(dR_jet != other.dR_jet) return dR_jet < other.dR_jet;
     return index < other.index;
+}
+
+std::ostream& operator<<(std::ostream& os, const TauJetBuilder::MatchResult& match)
+{
+    const auto print_dR = [&](double dR, const std::string& name) {
+        if(dR < TauJetBuilder::MatchResult::inf)
+            os << ", " << name << " = " << dR;
+    };
+    if(match.index) {
+        os << "index = " << *match.index;
+        print_dR(match.dR_genLepton, "dR_genLepton");
+        print_dR(match.dR_genJet, "dR_genJet");
+        print_dR(match.dR_tau, "dR_tau");
+        print_dR(match.dR_boostedTau, "dR_boostedTau");
+        print_dR(match.dR_jet, "dR_jet");
+    } else {
+        os << "no_match";
+    }
+    return os;
 }
 
 TauJetBuilder::TauJetBuilder(const TauJetBuilderSetup& setup, const pat::TauCollection& taus,
@@ -219,7 +239,7 @@ void TauJetBuilder::Build()
     unmatched = CreateIndexSet(fatJets_.size());
     for(TauJet& tauJet : tauJets_) {
         MatchResult bestMatch;
-        for(size_t fatJetIndex = 0; fatJetIndex < jets_.size(); ++fatJetIndex) {
+        for(size_t fatJetIndex = 0; fatJetIndex < fatJets_.size(); ++fatJetIndex) {
             const auto& fatJet = fatJets_.at(fatJetIndex);
             const auto& p4 = fatJet.polarP4();
 
@@ -302,10 +322,18 @@ void TauJetBuilder::Build()
             tauJet.cands.push_back(pfCandDesc);
         }
 
+        for(size_t pfCandIndex = 0; pfCandIndex < lostTracks_.size(); ++pfCandIndex) {
+            const auto& pfCand = lostTracks_.at(pfCandIndex);
+            if(!hasMatch(pfCand.polarP4())) continue;
+            PFCandDesc pfCandDesc;
+            pfCandDesc.candidate = &pfCand;
+            pfCandDesc.index = static_cast<int>(pfCandIndex);
+            tauJet.lostTracks.push_back(pfCandDesc);
+        }
+
         fillMatched(tauJet.electrons, electrons_);
         fillMatched(tauJet.muons, muons_);
         fillMatched(tauJet.isoTracks, isoTracks_);
-        fillMatched(tauJet.lostTracks, lostTracks_);
     }
 }
 

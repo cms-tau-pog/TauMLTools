@@ -60,7 +60,7 @@ struct TauJet {
     ElectronCollection electrons;
     MuonCollection muons;
     IsoTrackCollection isoTracks;
-    LostTrackCollection lostTracks;
+    PFCandCollection lostTracks;
 };
 
 struct TauJetBuilderSetup {
@@ -74,7 +74,6 @@ struct TauJetBuilderSetup {
 
     double genLepton_cone{0.5}, genJet_cone{0.5}, tau_cone{0.5}, boostedTau_cone{0.5}, jet_cone{0.8}, fatJet_cone{0.8};
 };
-
 
 class TauJetBuilder {
 public:
@@ -145,5 +144,7 @@ private:
     std::deque<TauJet> tauJets_;
     std::vector<reco_tau::gen_truth::GenLepton> genLeptons_;
 };
+
+std::ostream& operator<<(std::ostream& os, const TauJetBuilder::MatchResult& match);
 
 } // namespace tau_analysis

@@ -22,7 +22,7 @@
 #define JET_VAR3(type, name1, name2, name3) JET_VAR2(type, name1, name2) JET_VAR(type, name3)
 #define JET_VAR4(type, name1, name2, name3, name4) JET_VAR3(type, name1, name2, name3) JET_VAR(type, name4)
 
-#define CAND_VAR(type, name) VAR(std::vector<type>, pfCand_##name)
+#define CAND_VAR(type, name) VAR(std::vector<type>, pfCand_##name) VAR(std::vector<type>, lostTrack_##name)
 #define CAND_VAR2(type, name1, name2) CAND_VAR(type, name1) CAND_VAR(type, name2)
 #define CAND_VAR3(type, name1, name2, name3) CAND_VAR2(type, name1, name2) CAND_VAR(type, name3)
 #define CAND_VAR4(type, name1, name2, name3, name4) CAND_VAR3(type, name1, name2, name3) CAND_VAR(type, name4)
@@ -39,7 +39,7 @@
 #define MUON_VAR3(type, name1, name2, name3) MUON_VAR2(type, name1, name2) MUON_VAR(type, name3)
 #define MUON_VAR4(type, name1, name2, name3, name4) MUON_VAR3(type, name1, name2, name3) MUON_VAR(type, name4)
 
-#define TRACK_VAR(type, name) VAR(std::vector<type>, isoTrack_##name) VAR(std::vector<type>, lostTrack_##name)
+#define TRACK_VAR(type, name) VAR(std::vector<type>, isoTrack_##name)
 #define TRACK_VAR2(type, name1, name2) TRACK_VAR(type, name1) TRACK_VAR(type, name2)
 #define TRACK_VAR3(type, name1, name2, name3) TRACK_VAR2(type, name1, name2) TRACK_VAR(type, name3)
 #define TRACK_VAR4(type, name1, name2, name3, name4) TRACK_VAR3(type, name1, name2, name3) TRACK_VAR(type, name4)
@@ -62,7 +62,6 @@
     VAR4(Float_t, pv_xE, pv_yE, pv_zE, pv_tE) /* position and time errors of the primary vertex (PV) */ \
     VAR(Float_t, pv_chi2) /* chi^2 of the primary vertex (PV) */ \
     VAR(Float_t, pv_ndof) /* number of degrees of freedom of the primary vertex (PV) */ \
-    VAR4(Float_t, genPV_x, genPV_y, genPV_z, genPV_t) /* position and time of the PV at the generator level */ \
     VAR(Int_t, entry_index) /* Index of the entry in the event */ \
     VAR(Int_t, total_entries) /* The total number of entries in the event */ \
     /* Gen lepton with the full decay chain */ \
@@ -72,6 +71,8 @@
     VAR(Int_t, genLepton_charge) /* charge of the gen lepton */ \
     VAR4(Float_t, genLepton_vis_pt, genLepton_vis_eta, genLepton_vis_phi, genLepton_vis_mass) /* visible 4-momentum of
                                                                                                  the gen lepton */ \
+    VAR(Int_t, genLepton_lastMotherIndex) /* index of the last mother in genParticle_* vectors:
+                                             >= 0 if at least one mother is available, -1 otherwise */ \
     VAR(std::vector<Int_t>, genParticle_pdgId) /* PDG ID */ \
     VAR(std::vector<Int_t>, genParticle_mother) /* index of the mother */ \
     VAR(std::vector<Int_t>, genParticle_charge) /* charge */ \
@@ -114,6 +115,8 @@
     JET_VAR2(Int_t, chargedMultiplicity, neutralMultiplicity) /* jet charged and neutral multiplicities */ \
     JET_VAR2(Int_t, partonFlavour, hadronFlavour) /* parton-based and hadron-based flavours of the jet */ \
     JET_VAR(Float_t, m_softDrop) /* PUPPI soft-drop mass */ \
+    JET_VAR4(Float_t, nJettiness_tau1, nJettiness_tau2, nJettiness_tau3, nJettiness_tau4) /* n-subjettiness variables
+                                                                                             with PUPPI tau1-4 */ \
     JET_VAR4(std::vector<Float_t>, subJet_pt, subJet_eta, subJet_phi, subJet_mass) /* 4-momenta of sub-jets */ \
     /* Basic tau variables */ \
     TAU_VAR(Int_t, index) /* index of the tau */ \
@@ -176,7 +179,7 @@
     TAU_VAR(Float_t, emFraction) /* tau->emFraction_MVA */ \
     TAU_VAR(Int_t, inside_ecal_crack) /* tau is inside the ECAL crack (1.46 < |eta| < 1.558) */ \
     TAU_VAR(Float_t, leadChargedCand_etaAtEcalEntrance) /* eta at ECAL entrance of the leadChargedCand */ \
-    /* PF candidates */ \
+    /* PF candidates and lost tracks */ \
     CAND_VAR(Int_t, index) /* index of the PF candidate */ \
     CAND_VAR(Int_t, tauSignal) /* PF candidate is a part of the tau signal */ \
     CAND_VAR(Int_t, tauLeadChargedHadrCand) /* PF candidate is the leadChargedHadrCand of the tau */ \
@@ -197,13 +200,17 @@
                                NoPV = 0, PVLoose = 1, PVTight = 2, PVUsedInFit = 3 */ \
     CAND_VAR(Float_t, puppiWeight) /* weight from full PUPPI */ \
     CAND_VAR(Float_t, puppiWeightNoLep) /* weight from PUPPI removing leptons */ \
-    CAND_VAR(Int_t, pdgId) /* PDG identifier */ \
+    CAND_VAR(Int_t, particleType) /* type of the PF candidate:
+                                     0 - Undefined, 1 - charged hadron, 2 - electron, 3 - muon, 4 - photon,
+                                     5 - neutral hadron, 6 - HF tower identified as a hadron,
+                                     7 -  HF tower identified as an EM particle */ \
     CAND_VAR(Int_t, charge) /* electric charge */ \
     CAND_VAR(Int_t, lostInnerHits) /* enumerator specifying the number of lost inner hits:
                                       validHitInFirstPixelBarrelLayer = -1, noLostInnerHits = 0 (it could still not
                                       have a hit in the first layer, e.g. if it crosses an inactive sensor),
                                       oneLostInnerHit = 1, moreLostInnerHits = 2 */ \
-    CAND_VAR2(Int_t, numberOfPixelHits, numberOfHits) /* number of valid pixel hits */ \
+    CAND_VAR2(Int_t, nHits, nPixelHits) /* number of the total valid hits and the number of valid pixel hits */ \
+    CAND_VAR2(Int_t, nPixelLayers, nStripLayers) /* number of pixel (strip) layers with measurement */ \
     CAND_VAR4(Float_t, vertex_x, vertex_y, vertex_z, vertex_t) /* position & time of the vertex to which
                                                                   the candidate is associated */ \
     CAND_VAR2(Float_t, time, timeError) /* time and time error information on the PF candidate */ \
@@ -212,12 +219,14 @@
     CAND_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
     CAND_VAR(Float_t, dz) /* dz wrt to the primary vertex */ \
     CAND_VAR(Float_t, dz_error) /* uncertainty of the dz measurement */ \
+    CAND_VAR3(Float_t, track_pt, track_eta, track_phi) /* track momentum at the reference point */ \
     CAND_VAR(Float_t, track_chi2) /* chi^2 of the pseudo track made with the candidate kinematics */ \
     CAND_VAR(Float_t, track_ndof) /* number of degrees of freedom of the pseudo track
                                      made with the candidate kinematics */ \
     CAND_VAR2(Float_t, caloFraction, hcalFraction) /* fraction of ECAL and HCAL for HF and neutral hadrons
-                                       and isolated charged hadrons */ \
-    CAND_VAR2(Float_t, rawCaloFraction, rawHcalFraction) /* raw ECAL and HCAL energy over candidate energy for isolated charged hadrons */ \
+                                                      and isolated charged hadrons */ \
+    CAND_VAR2(Float_t, rawCaloFraction, rawHcalFraction) /* raw ECAL and HCAL energy over candidate energy
+                                                            for isolated charged hadrons */ \
     /* PAT electrons */ \
     ELE_VAR(Int_t, index) /* index of the electron */ \
     ELE_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the electron */ \
@@ -335,7 +344,7 @@
                      n_hits_GEM_4) /* number of valid and bad hits for the GEM subdetector stations */ \
     MUON_VAR4(Int_t, n_hits_ME0_1, n_hits_ME0_2, n_hits_ME0_3, \
                      n_hits_ME0_4) /* number of valid and bad hits for the ME0 subdetector stations */ \
-    /* Isolated and lost tracks */ \
+    /* Isolated tracks */ \
     TRACK_VAR(Int_t, index) /* index of the track */ \
     TRACK_VAR3(Float_t, pt, eta, phi) /* track kinematics */ \
     TRACK_VAR(Int_t, fromPV) /* the association to PV=ipv. >=PVLoose corresponds to JME definition,
@@ -405,12 +414,6 @@ namespace tau_tuple {
 
 template<typename T>
 constexpr T DefaultFillValue() { return std::numeric_limits<T>::lowest(); }
-template<>
-constexpr float DefaultFillValue<float>() { return -999.; }
-template<>
-constexpr int DefaultFillValue<int>() { return -999; }
-
-enum class ComponenetType { Gamma = 0, ChargedHadronCandidate = 1, NeutralHadronCandidate = 2};
 
 struct TauTupleEntryId {
     UInt_t run;
