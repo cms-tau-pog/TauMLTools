@@ -142,9 +142,9 @@ public:
         pataVertices_token(consumes<reco::VertexCollection>(cfg.getParameter<edm::InputTag>("pataVertices"))),
         Tracks_token(consumes<reco::TrackCollection>(cfg.getParameter<edm::InputTag>("Tracks"))),
         pataTracks_token(consumes<reco::TrackCollection>(cfg.getParameter<edm::InputTag>("pataTracks"))),
-        VeryBigOR_result_token(consumes<bool>(cfg.getParameter<edm::InputTag>("VeryBigOR"))),
-        hltDoubleL2Tau26eta2p2_result_token(consumes<bool>(cfg.getParameter<edm::InputTag>("hltDoubleL2Tau26eta2p2"))),
-        hltDoubleL2IsoTau26eta2p2_result_token(consumes<bool>(cfg.getParameter<edm::InputTag>("hltDoubleL2IsoTau26eta2p2"))),
+        //VeryBigOR_result_token(consumes<Bool_t>(cfg.getParameter<edm::InputTag>("VeryBigOR"))),
+        //hltDoubleL2Tau26eta2p2_result_token(consumes<Bool_t>(cfg.getParameter<edm::InputTag>("hltDoubleL2Tau26eta2p2"))),
+        //hltDoubleL2IsoTau26eta2p2_result_token(consumes<Bool_t>(cfg.getParameter<edm::InputTag>("hltDoubleL2IsoTau26eta2p2"))),
         data(TrainTupleProducerData::RequestGlobalData()),
         trainTuple(data->trainTuple),
         summaryTuple(data->summaryTuple)
@@ -165,17 +165,17 @@ private:
         trainTuple().run  = event.id().run();
         trainTuple().lumi = event.id().luminosityBlock();
         trainTuple().evt  = event.id().event();
-
-        edm::Handle<bool> VBOR_result;
+        /*
+        edm::Handle<Bool_t> VBOR_result;
         event.getByToken(VeryBigOR_result_token, VBOR_result);
-        trainTuple().VeryBigOR_result=*VBOR_result;
-        edm::Handle<bool> hltDoubleL2Tau26eta2p2_result;
+        //trainTuple().VeryBigOR_result =*VBOR_result;
+        edm::Handle<Bool_t> hltDoubleL2Tau26eta2p2_result;
         event.getByToken(hltDoubleL2Tau26eta2p2_result_token, hltDoubleL2Tau26eta2p2_result);
-        trainTuple().hltDoubleL2Tau26eta2p2_result=*hltDoubleL2Tau26eta2p2_result;
-        edm::Handle<bool> hltDoubleL2IsoTau26eta2p2_result;
+        //trainTuple().hltDoubleL2Tau26eta2p2_result=*hltDoubleL2Tau26eta2p2_result;
+        edm::Handle<Bool_t> hltDoubleL2IsoTau26eta2p2_result;
         event.getByToken(hltDoubleL2IsoTau26eta2p2_result_token, hltDoubleL2IsoTau26eta2p2_result);
-        trainTuple().hltDoubleL2IsoTau26eta2p2_result=*hltDoubleL2IsoTau26eta2p2_result;
-
+        //trainTuple().hltDoubleL2IsoTau26eta2p2_result=*hltDoubleL2IsoTau26eta2p2_result;
+        */
         edm::Handle<reco::VertexCollection> vertices;
         event.getByToken(vertices_token, vertices);
 
@@ -210,8 +210,8 @@ private:
 
         //check inputs
         FillL1Objects(*l1Taus);
-        FillTracks(*Tracks, "track");
-        FillTracks(*pataTracks, "patatrack");
+        FillTracks(*Tracks, "track", *vertices);
+        FillTracks(*pataTracks, "patatrack", *pataVertices);
         FillVertices(*vertices, "vert");
         FillVertices(*pataVertices, "patavert");
         FillCaloTowers(*caloTowers);
@@ -252,28 +252,32 @@ private:
     void FillVar(const std::string& var_name, T var, const std::string& prefix){
         trainTuple.get<std::vector<T>>(prefix+"_"+var_name).push_back(var);
     }
-
-    void FillTracks(const reco::TrackCollection& Tracks, const std::string prefix)
+    int FindVertexIndex(const reco::VertexCollection& vertices, const reco::Track& track){
+      const reco::TrackBase *track_to_compare = &track;
+      for(size_t n = 0; n< vertices.size() ; ++n){
+        for(auto k = vertices.at(n).tracks_begin(); k != vertices.at(n).tracks_end(); ++k){
+            if(&**k==track_to_compare) return n;
+        }
+      }
+      return -1;
+    }
+    void FillTracks(const reco::TrackCollection& Tracks, const std::string prefix, const reco::VertexCollection& vertices)
     {
       const auto push_back= [&](const std::string& var_name, auto var){
         FillVar(var_name, var, prefix);
       };
+
         for(unsigned n = 0; n < Tracks.size(); ++n){
-            push_back( "pt", Tracks.at(n).pt());
-            push_back("eta", Tracks.at(n).eta());
-            push_back("phi", Tracks.at(n).phi());
-            push_back("chi2", Tracks.at(n).chi2());
-            push_back("ndof", Tracks.at(n).ndof());
-            push_back("charge", Tracks.at(n).charge());
-            push_back("quality", Tracks.at(n).qualityMask());
-            push_back("dxy", Tracks.at(n).dxy());
-            push_back("dz", Tracks.at(n).dz());
-            /* when we will switch to SoA tracks
-            push_back("vertex_id", Tracks.at(n).vertex_id());
-            push_back("dxy", Tracks.at(n).tip());
-            push_back("dz", Tracks.at(n).zip());
-            push_back("quality", Tracks.at(n).quality());
-            */
+            push_back("pt", static_cast<Float_t>(Tracks.at(n).pt()));
+            push_back("eta", static_cast<Float_t>(Tracks.at(n).eta()));
+            push_back("phi", static_cast<Float_t>(Tracks.at(n).phi()));
+            push_back("chi2", static_cast<Float_t>(Tracks.at(n).chi2()));
+            push_back("ndof", static_cast<Int_t>(Tracks.at(n).ndof()));
+            push_back("charge", static_cast<Int_t>(Tracks.at(n).charge()));
+            push_back("quality", static_cast<UInt_t>(Tracks.at(n).qualityMask()));
+            push_back("dxy", static_cast<Float_t>(Tracks.at(n).dxy()));
+            push_back("dz", static_cast<Float_t>(Tracks.at(n).dz()));
+            push_back("vertex_id", FindVertexIndex(vertices, Tracks.at(n)));
         }
     }
 
@@ -283,13 +287,14 @@ private:
         FillVar(var_name, var, prefix);
       };
         for(unsigned n = 0; n < vertices.size(); ++n){
-            push_back("z", vertices.at(n).z());
-            push_back("chi2", vertices.at(n).chi2());
-            push_back("ndof", vertices.at(n).ndof());
-            Float_t weight = 1/(vertices.at(n).zError());
+            push_back("z", static_cast<Float_t>(vertices.at(n).z()));
+            push_back("chi2", static_cast<Float_t>(vertices.at(n).chi2()));
+            push_back("ndof", static_cast<Int_t>(vertices.at(n).ndof()));
+            Float_t weight = 1/(static_cast<Float_t>(vertices.at(n).zError()));
             push_back("weight", weight);
-            Float_t ptv2 = pow(vertices.at(n).p4().pt(),2);
+            Float_t ptv2 = pow(static_cast<Float_t>(vertices.at(n).p4().pt()),2);
             push_back("ptv2", ptv2);
+
             /* when we will switch completely to SoA tracks
             push_back("weight", vertices.at(n).weight());
             push_back("ptv2", vertices.at(n).ptv2()); */
@@ -370,9 +375,9 @@ private:
     edm::EDGetTokenT<reco::VertexCollection> pataVertices_token;
     edm::EDGetTokenT<reco::TrackCollection> Tracks_token;
     edm::EDGetTokenT<reco::TrackCollection> pataTracks_token;
-    edm::EDGetTokenT<bool> VeryBigOR_result_token;
-    edm::EDGetTokenT<bool> hltDoubleL2Tau26eta2p2_result_token;
-    edm::EDGetTokenT<bool> hltDoubleL2IsoTau26eta2p2_result_token;
+    //edm::EDGetTokenT<Bool_t> VeryBigOR_result_token;
+    //edm::EDGetTokenT<Bool_t> hltDoubleL2Tau26eta2p2_result_token;
+    //edm::EDGetTokenT<Bool_t> hltDoubleL2IsoTau26eta2p2_result_token;
     TrainTupleProducerData* data;
     train_tuple::TrainTuple& trainTuple;
     tau_tuple::SummaryTuple& summaryTuple;

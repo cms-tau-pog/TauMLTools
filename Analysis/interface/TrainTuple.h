@@ -10,9 +10,6 @@
 
 #define TAU_ID(name, pattern, has_raw, wp_list) VAR(std::vector<uint16_t>, name) VAR(std::vector<Float_t>, name##raw)
 #define TAU_VAR(type, name) VAR(std::vector<type>, tau_##name)
-#define CAND_VAR(type, name) VAR(std::vector<type>, pfCand_##name)
-#define ELE_VAR(type, name) VAR(std::vector<type>, ele_##name)
-#define MUON_VAR(type, name) VAR(std::vector<type>, muon_##name)
 #define CALO_TOWER_VAR(type, name) VAR(std::vector<type>, caloTower_##name)
 #define CALO_TAU_VAR(type, name) VAR(std::vector<type>, caloTau_##name)
 #define TRACK_VAR(type, name) VAR(std::vector<type>, track_##name) VAR(std::vector<type>, patatrack_##name)
@@ -83,7 +80,7 @@
     TRACK_VAR(Float_t, eta) /* track eta candidate*/ \
     TRACK_VAR(Float_t, phi) /* track phi candidate*/ \
     TRACK_VAR(Float_t, chi2) /* track chi2 candidate*/ \
-    TRACK_VAR(Float_t, ndof) /* track ndof candidate*/ \
+    TRACK_VAR(Int_t, ndof) /* track ndof candidate*/ \
     TRACK_VAR(Int_t, charge) /* pixelTrack charge candidate*/ \
     TRACK_VAR(UInt_t, quality) /* pixelTrack qualityMask candidate*/ \
     TRACK_VAR(Float_t, dxy) /* track dxy candidate*/ \
@@ -114,10 +111,9 @@
     CALO_TAU_VAR(Float_t, towersArea) /** Returns area of contributing towers */ \
     CALO_TAU_VAR(Int_t, n90) /* caloTau number of constituents carrying a 90% of the total Jet energy*/ \
     CALO_TAU_VAR(Int_t, n60) /* caloTau number of constituents carrying a 60% of the total Jet energy*/ \
-    /* Outputs of the different filters */ \
-    VAR(bool, VeryBigOR_result) /* very big or result */ \
-    VAR(bool, hltDoubleL2Tau26eta2p2_result) /* very big or result */ \
-    VAR(bool, hltDoubleL2IsoTau26eta2p2_result) /* very big or result */ \
+    VAR(Bool_t, VeryBigOR_result)/**/ \
+    VAR(Bool_t, hltDoubleL2Tau26eta2p2_result)/**/ \
+    VAR(Bool_t, hltDoubleL2IsoTau26eta2p2_result)/**/ \
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
 DECLARE_TREE(train_tuple, Tau, TrainTuple, TAU_DATA, "taus")
@@ -134,6 +130,7 @@ INITIALIZE_TREE(train_tuple, TrainTuple, TAU_DATA)
 #undef CALO_TOWER_VAR
 #undef CALO_TAU_VAR
 #undef TRACK_VAR
+#undef VERT
 
 namespace train_tuple {
 
