@@ -134,6 +134,7 @@ public:
     TrainTupleProducer(const edm::ParameterSet& cfg) :
         isMC(cfg.getParameter<bool>("isMC")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
+        //genParticles_token(mayConsume<std::vector<reco::GenParticle>>(cfg.getParameter<edm::InputTag>("genParticles"))),
         puInfo_token(mayConsume<std::vector<PileupSummaryInfo>>(cfg.getParameter<edm::InputTag>("puInfo"))),
         l1Taus_token(consumes<l1t::TauBxCollection>(cfg.getParameter<edm::InputTag>("l1taus"))), // --> VBor
         caloTowers_token(consumes<CaloTowerCollection>(cfg.getParameter<edm::InputTag>("caloTowers"))),
@@ -207,7 +208,13 @@ private:
         edm::Handle<reco::CaloJetCollection> caloTaus;
         event.getByToken(caloTaus_token, caloTaus);
         pat::JetCollection jets;
+        /*
+        edm::Handle<std::vector<reco::GenParticle>> hGenParticles;
+        if(isMC)
+            event.getByToken(genParticles_token, hGenParticles);
 
+        auto genParticles = hGenParticles.isValid() ? hGenParticles.product() : nullptr;
+        */
         //check inputs
         FillL1Objects(*l1Taus);
         FillTracks(*Tracks, "track", *vertices);

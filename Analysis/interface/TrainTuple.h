@@ -111,9 +111,6 @@
     CALO_TAU_VAR(Float_t, towersArea) /** Returns area of contributing towers */ \
     CALO_TAU_VAR(Int_t, n90) /* caloTau number of constituents carrying a 90% of the total Jet energy*/ \
     CALO_TAU_VAR(Int_t, n60) /* caloTau number of constituents carrying a 60% of the total Jet energy*/ \
-    VAR(Bool_t, VeryBigOR_result)/**/ \
-    VAR(Bool_t, hltDoubleL2Tau26eta2p2_result)/**/ \
-    VAR(Bool_t, hltDoubleL2IsoTau26eta2p2_result)/**/ \
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
 DECLARE_TREE(train_tuple, Tau, TrainTuple, TAU_DATA, "taus")
