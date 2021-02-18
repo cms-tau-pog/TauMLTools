@@ -12,12 +12,12 @@
 
 using namespace ROOT::Math;
 
-// std::shared_ptr<TFile> OpenRootFile(const std::string& file_name){
-//     std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "READ"));
-//     if(!file || file->IsZombie())
-//         throw std::runtime_error("File not opened.");
-//     return file;
-// }
+std::shared_ptr<TFile> OpenRootFile(const std::string& file_name){
+    std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "READ"));
+    if(!file || file->IsZombie())
+        throw std::runtime_error("File not opened.");
+    return file;
+}
 
 std::vector<std::string> SplitValueList(const std::string& _values_str,
                                         bool allow_duplicates = true,
@@ -89,6 +89,52 @@ struct CellIndex {
     }
 };
 
+void RebinAndFill(TH2& new_hist, const TH2& old_hist)
+{
+    static const auto check_range = [](const TAxis* old_axis, const TAxis* new_axis) {
+        const double old_min = old_axis->GetBinLowEdge(1);
+        const double old_max = old_axis->GetBinUpEdge(old_axis->GetNbins());
+        const double new_min = new_axis->GetBinLowEdge(1);
+        const double new_max = new_axis->GetBinUpEdge(new_axis->GetNbins());
+        return old_min <= new_min && old_max >= new_max;
+    };
+
+    static const auto get_new_bin = [](const TAxis* old_axis, const TAxis* new_axis, int bin_id_old) {
+        const double old_low_edge = old_axis->GetBinLowEdge(bin_id_old);
+        const double old_up_edge = old_axis->GetBinUpEdge(bin_id_old);
+        const int bin_low_new = new_axis->FindFixBin(old_low_edge);
+        const int bin_up_new = new_axis->FindFixBin(old_up_edge);
+
+        const double new_up_edge = new_axis->GetBinUpEdge(bin_low_new);
+        if(bin_low_new != bin_up_new
+                && !(std::abs(old_up_edge-new_up_edge) <= std::numeric_limits<double>::epsilon() * std::abs(old_up_edge+new_up_edge) * 2))
+            throw std::invalid_argument("Uncompatible bin edges");
+        return bin_low_new;
+    };
+
+    if(!check_range(old_hist.GetXaxis(), new_hist.GetXaxis()))
+        throw std::invalid_argument("x ranges not compatible");
+
+    if(!check_range(old_hist.GetYaxis(), new_hist.GetYaxis()))
+        throw std::invalid_argument("y ranges not compatible");
+
+    for(int x_bin_old = 0; x_bin_old <= old_hist.GetNbinsX() + 1; ++x_bin_old) {
+        const int x_bin_new = get_new_bin(old_hist.GetXaxis(), new_hist.GetXaxis(), x_bin_old);
+        for(int y_bin_old = 0; y_bin_old <= old_hist.GetNbinsY() + 1; ++y_bin_old) {
+            const int y_bin_new = get_new_bin(old_hist.GetYaxis(), new_hist.GetYaxis(), y_bin_old);
+            const int bin_old = old_hist.GetBin(x_bin_old, y_bin_old);
+            const int bin_new = new_hist.GetBin(x_bin_new, y_bin_new);
+
+            const double cnt_old = old_hist.GetBinContent(bin_old);
+            const double err_old = old_hist.GetBinError(bin_old);
+            const double cnt_new = new_hist.GetBinContent(bin_new);
+            const double err_new = new_hist.GetBinError(bin_new);
+
+            new_hist.SetBinContent(bin_new, cnt_new + cnt_old);
+            new_hist.SetBinError(bin_new, std::hypot(err_new, err_old));
+        }
+    }
+}
 
 class CellGrid {
 
@@ -160,7 +206,7 @@ struct Data { // (n taus, taus features, n_inner_cells, n_outer_cells, n pfelect
          size_t n_outer_cells, size_t pfelectron_fn, size_t pfmuon_fn,
          size_t pfchargedhad_fn, size_t pfneutralhad_fn, size_t pfgamma_fn,
          size_t electron_fn, size_t muon_fn, size_t tau_labels) :
-         x_tau(n_tau * tau_fn, 0), weight(n_tau, 1), y_onehot(n_tau * tau_labels, 0)
+         x_tau(n_tau * tau_fn, 0), weight(n_tau, 0), y_onehot(n_tau * tau_labels, 0)
          {
           // pf electron
            x_grid[CellObjectType::PfCand_electron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfelectron_fn,0);
@@ -204,7 +250,9 @@ public:
         outer_cell_size(setup::outer_cell_size), n_threads(setup::n_threads),
         n_fe_tau(setup::n_fe_tau), n_pf_el(setup::n_pf_el) ,n_pf_mu(setup::n_pf_mu),
         n_pf_chHad(setup::n_pf_chHad), n_pf_nHad(setup::n_pf_nHad) ,n_pf_gamma(setup::n_pf_gamma),
-        n_electrons(setup::n_ele), n_muons(setup::n_muon), n_labels(setup::tau_types),
+        n_electrons(setup::n_ele), n_muons(setup::n_muon), n_labels(setup::tau_types), labels_names(setup::tau_types_names),
+        n_eta_bins(setup::n_eta_bins), eta_min(setup::eta_min), eta_max(setup::eta_max),
+        n_pt_bins(setup::n_pt_bins), pt_min(setup::pt_min), pt_max(setup::pt_max),
         innerCellGridRef(n_inner_cells, n_inner_cells, inner_cell_size, inner_cell_size),
         outerCellGridRef(n_outer_cells, n_outer_cells, outer_cell_size, outer_cell_size),
         input_files(FindInputFiles(setup::input_dirs,setup::file_name_pattern,
@@ -218,6 +266,33 @@ public:
       std::cout << "Number of files to process: " << input_files.size() << std::endl;
       tauTuple = std::make_shared<TauTuple>("taus", input_files, true);
       end_dataset = std::min(setup::end_dataset, tauTuple->GetEntries());
+
+      // histogram to calculate weights
+      // TH1::AddDirectory(kFALSE); // sets a global switch disabling the referencing
+      TFile* file_input = new TFile(setup::input_spectrum.c_str());
+      TFile* file_target = new TFile(setup::target_spectrum.c_str());
+      TH2D* target_hist = (TH2D*)file_target->Get("eta_pt_hist_tau");
+
+      for(int type = 0; type < 4; ++type) {
+        hist_weights.push_back(shared_ptr<TH2D>(new TH2D(("w_1_"+labels_names[type]).c_str(),
+                                                         ("w_1_"+labels_names[type]).c_str(),
+                                                         n_eta_bins, eta_min, eta_max,
+                                                         n_pt_bins, pt_min, pt_max)));
+        hist_weights[type]->SetDirectory(0);
+
+        TH2D* after_rebin_input_hist = new TH2D("input_hist", "input_hist",
+                                                n_eta_bins, eta_min, eta_max,
+                                                n_pt_bins, pt_min, pt_max);
+        TH2D* input_hist = (TH2D*)file_input->Get(("eta_pt_hist_"+labels_names[type]).c_str());
+
+        RebinAndFill(*hist_weights[type], *target_hist);
+        RebinAndFill(*after_rebin_input_hist, *input_hist);
+        hist_weights[type]->Divide(after_rebin_input_hist);
+        delete after_rebin_input_hist;
+      }
+
+      file_input->Close();
+      file_target->Close();
     }
 
     bool HasNext() {
@@ -253,8 +328,8 @@ public:
             // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
             if(tau.tauType < 0 || tau.tauType > 3) continue;
             else {
-              // filling labels
-              data->y_onehot[ tau_i * n_labels + tau.tauType ] = 1.0;
+              data->y_onehot[ tau_i * n_labels + tau.tauType ] = 1.0; // filling labels
+              data->weight.at(tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
               FillTauBranches(tau, tau_i, data);
               FillCellGrid(tau, tau_i, innerCellGridRef, data, true);
               FillCellGrid(tau, tau_i, outerCellGridRef, data, false);
@@ -266,7 +341,17 @@ public:
     }
 
   private:
+
       static constexpr float pi = boost::math::constants::pi<float>();
+
+      const double GetWeight(const int type_id, const double pt, const double eta) const
+      {
+        // if(eta <= eta_min || eta >= eta_max || pt<=pt_min || pt>=pt_max) return 0;
+        return hist_weights.at(type_id)->GetBinContent(
+               hist_weights.at(type_id)->GetXaxis()->FindBin(eta),
+               hist_weights.at(type_id)->GetYaxis()->FindBin(pt));
+
+      }
 
       template<typename Scalar>
       static Scalar DeltaPhi(Scalar phi1, Scalar phi2)
@@ -827,10 +912,20 @@ private:
   const size_t n_electrons;
   const size_t n_muons;
   const int n_labels;
+  const std::vector<std::string>  labels_names;
+  const int n_eta_bins;
+  const double eta_min;
+  const double eta_max;
+  const int n_pt_bins;
+  const double pt_min;
+  const double pt_max;
   const CellGrid innerCellGridRef, outerCellGridRef;
   const std::vector<std::string> input_files;
 
   // std::shared_ptr<TFile> file; // to open with one file
   std::shared_ptr<TauTuple> tauTuple;
+
+  // for re-reweighting
+  std::vector<std::shared_ptr<TH2D>> hist_weights;
 
 };

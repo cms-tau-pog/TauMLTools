@@ -21,11 +21,25 @@ struct setup {
                                                 tau_h       = "tauType==2"
                                                 tau_jet     = "tauType==3"
                                               */
+  inline static const std::vector<std::string> tau_types_names{"e","mu","tau","jet"};
+
   inline static const std::vector<std::string> input_dirs{"/eos/cms/store/group/phys_tau/TauML/prod_2018_v1/ShuffleMergeSpectral_v0/"};
   inline static const std::string file_name_pattern = "^.*_(1|2|3|4|5|6|7|8|9|10).root$"; // As a test take 1-10 files
   // inline static const std::string file_name_pattern = "^.*_.*.root$";
   inline static const std::string exclude_list = "";
   inline static const std::string exclude_dir_list = "";
+
+  // reweighting params.
+  inline static const std::string input_spectrum  = "/eos/home-m/myshched/ShuffleSpectrum.root";
+  inline static const std::string target_spectrum  = "/eos/home-m/myshched/ShuffleSpectrum.root"; // tau_h spectrum is taken from target spectrum
+
+  inline static const Int_t    n_pt_bins = 49;
+  inline static const Double_t pt_min    = 20.0;
+  inline static const Double_t pt_max    = 1000.0;
+
+  inline static const Int_t    n_eta_bins = 4;
+  inline static const Double_t eta_min    = 0.0;
+  inline static const Double_t eta_max    = 2.3;
 };
 
 enum class CellObjectType {
