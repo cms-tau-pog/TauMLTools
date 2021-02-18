@@ -12,6 +12,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <TMatrixD.h>
 #include <TFile.h>
 #include <Compression.h>
+#include <TH2.h>
 
 #include "exception.h"
 
@@ -101,6 +102,8 @@ struct WarningSuppressor {
         gErrorIgnoreLevel = old_ignore_level;
     }
 };
+
+void RebinAndFill(TH2&, const TH2&);
 
 } // namespace root_ext
 

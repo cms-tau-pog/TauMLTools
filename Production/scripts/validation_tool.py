@@ -1,9 +1,10 @@
 from __future__ import print_function
 
 import ROOT
-import glob
 import json
 from collections import OrderedDict
+import os
+import re
 
 import argparse
 parser = argparse.ArgumentParser('''
@@ -13,11 +14,15 @@ NOTE: the binning of each variable must be hard coded in the script (using the B
 NOTE: pvalue = 99 means that one of the two histograms is empty.
 ''')
 
-parser.add_argument('--input'       , required = True, type = str, help = 'input file. Accepts glob patterns (use quotes)')
-parser.add_argument('--output'      , required = True, type = str, help = 'output directory name')
-parser.add_argument('--nsplit'      , default  = 100 , type = int, help = 'number of chunks per file')
-parser.add_argument('--pvthreshold' , default  = .05 , type = str, help = 'threshold of KS test (above = ok)')
-parser.add_argument('--n_threads'   , default  = 1   , type = int, help = 'enable ROOT implicit multithreading')
+parser.add_argument('--input'         , required = True, type = str, help = 'input directory. Will loop inside all subdirectories')
+parser.add_argument('--regex'  , default  = '.*\.root$', type = str, help = 'regular expression to match to input files')
+parser.add_argument('--output'        , required = True, type = str, help = 'output directory name')
+parser.add_argument('--nsplit'        , default  = 100 , type = int, help = 'number of chunks per file')
+parser.add_argument('--pvthreshold'   , default  = .05 , type = str, help = 'threshold of KS test (above = ok)')
+parser.add_argument('--n_threads'     , default  = 1   , type = int, help = 'enable ROOT implicit multithreading')
+parser.add_argument('--id_json'       , required = True, type = str, help = 'dataset id json file')
+parser.add_argument('--group_id_json' , required = True, type = str, help = 'dataset group id json file')
+parser.add_argument('--use_dataset_id', action = 'store_true', help = 'Add \'dataset_id\' column for comparison and binning')
 
 parser.add_argument('--visual', action = 'store_true', help = 'Won\'t run the script in batch mode')
 parser.add_argument('--legend', action = 'store_true', help = 'Draw a TLegent on canvases')
@@ -26,7 +31,6 @@ args = parser.parse_args()
 ROOT.gROOT.SetBatch(not args.visual)
 ROOT.gStyle.SetOptStat(0)
 
-import os
 pdf_dir = '/'.join([args.output, 'pdf'])
 if not os.path.exists(pdf_dir):
   os.makedirs(pdf_dir)
@@ -37,14 +41,12 @@ OUTPUT_JSON    = open('{}/pvalues.json'.format(args.output), 'w')
 N_SPLIT        = args.nsplit
 PVAL_THRESHOLD = args.pvthreshold
 
-## binning of tested variables
+## binning of tested variables (dataset group id and dataset id are guessed from jsons)
 BINS = {
   'tau_pt'    : (50, 0, 5000),
   'tau_eta'   : (5, -3.2, 3.2),
-  'lepton_gen_match' : (20, -1, 19),
-  'sampleType': (20, -1, 19),      
-  'dataset_id': (20, -1, 19),
-  'dataset_group_id': (20, -1, 19),
+  'tauType' : (10, 0, 10),
+  'sampleType': (20, -1, 19),
 }
 
 class Lazy_container:
@@ -116,75 +118,97 @@ def to_2D(histo, vbin):
   return histo.Project3D('yx').Clone()
 
 if __name__ == '__main__':
-  print ('[INFO] reading files', args.input)
+  print ('[INFO] reading files from', args.input)
   
   if args.n_threads > 1:
     ROOT.ROOT.EnableImplicitMT(args.n_threads)
 
   input_files = ROOT.std.vector('std::string')()
+  file_list = ['/'.join([root, ff]) for root, dirs, files in os.walk(args.input) for ff in files]
+  file_list = sorted([ff for ff in file_list if not re.match(args.regex, ff) is None])
   
-  for file in glob.glob(args.input):
-    input_files.push_back(str(file))
+  for ff in file_list:
+    input_files.push_back(ff)
 
   model = lambda main, third = None: (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]+BINS[third] if not third is None else (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]
   
+  cpp_function = '''
+std::vector<int> hash_list = {%s};
+int hash, line = 0;
+for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it++, line++){
+ if (*it == %s) return line;
+} return line;'''
+
+  id_json       = json.load(open(args.id_json, 'r'))
+  group_id_json = json.load(open(args.group_id_json, 'r'))
+  ids = id_json.values()
+  group_ids = group_id_json.values()
+
+  BINS['uh_dataset_group_id'] = (len(group_ids), 0, len(group_ids))
+  BINS['uh_dataset_id']       = (len(ids), 0, len(ids))
+
   dataframe = ROOT.RDataFrame('taus', input_files)
   tot_entries = dataframe.Count().GetValue()
+
   dataframe = dataframe.Define('chunk_id', 'rdfentry_ * {} / {}'.format(N_SPLIT, tot_entries))
+  dataframe = dataframe.Define('uh_dataset_id'      , cpp_function % (','.join(ids), 'dataset_id'))
+  dataframe = dataframe.Define('uh_dataset_group_id', cpp_function % (','.join(group_ids), 'dataset_group_id'))
 
   ## unbinned distributions
-  ptr_lgm = Lazy_container(dataframe.Histo2D(model('lepton_gen_match'), 'chunk_id', 'lepton_gen_match'))
+  ptr_lgm = Lazy_container(dataframe.Histo2D(model('tauType'), 'chunk_id', 'tauType'))
   ptr_st  = Lazy_container(dataframe.Histo2D(model('sampleType')      , 'chunk_id', 'sampleType'      ))
-  ptr_dgi = Lazy_container(dataframe.Histo2D(model('dataset_group_id'), 'chunk_id', 'dataset_group_id'))
-  ptr_di  = Lazy_container(dataframe.Histo2D(model('dataset_id')      , 'chunk_id', 'dataset_id'      ))
+  ptr_dgi = Lazy_container(dataframe.Histo2D(model('uh_dataset_group_id'), 'chunk_id', 'uh_dataset_group_id'))
+  ptr_di  = Lazy_container(dataframe.Histo2D(model('uh_dataset_id')      , 'chunk_id', 'uh_dataset_id'      ))
 
   ## binned distributions
+  BINNED_VARIABLES = ['tauType', 'sampleType', 'uh_dataset_group_id'] + ['uh_dataset_id']*args.use_dataset_id
   ptrs_tau_pt = {
     binned_variable: Lazy_container(dataframe.Histo3D(model('tau_pt', third = binned_variable), 'chunk_id', 'tau_pt', binned_variable))
-      for binned_variable in ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for binned_variable in BINNED_VARIABLES
   }
   ptrs_tau_eta = {
     binned_variable: Lazy_container(dataframe.Histo3D(model('tau_eta', third = binned_variable), 'chunk_id', 'tau_eta', binned_variable))
-      for binned_variable in ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for binned_variable in BINNED_VARIABLES
   }
   ptrs_dataset_id = {
-    binned_variable: Lazy_container(dataframe.Histo3D(model('dataset_id', third = binned_variable), 'chunk_id', 'dataset_id', binned_variable))
-      for binned_variable in ['dataset_group_id']
+    binned_variable: Lazy_container(dataframe.Histo3D(model('uh_dataset_id', third = binned_variable), 'chunk_id', 'uh_dataset_id', binned_variable))
+      for binned_variable in ['uh_dataset_group_id']
   }
 
-  lazy_containers = [ptr_lgm, ptr_st, ptr_dgi, ptr_di ] +\
+  lazy_containers = [ptr_lgm, ptr_st, ptr_dgi] + [ptr_di]*args.use_dataset_id +\
     [lc for lc in ptrs_tau_pt.values()]  +\
     [lc for lc in ptrs_tau_eta.values()] +\
-    [lc for lc in ptrs_dataset_id.values()]
-  
+    [lc for lc in ptrs_dataset_id.values()]*args.use_dataset_id
+
   for lc in lazy_containers:
     lc.load_histogram()
   
   ## run validation
-  entry_lgm = Entry(var = 'lepton_gen_match', histo = ptr_lgm.hst)
+  entry_lgm = Entry(var = 'tauType', histo = ptr_lgm.hst)
   entry_st  = Entry(var = 'sampleType'      , histo = ptr_st .hst)
-  entry_dgi = Entry(var = 'dataset_group_id', histo = ptr_dgi.hst)
-  entry_di  = Entry(var = 'dataset_id'      , histo = ptr_di .hst)
+  entry_dgi = Entry(var = 'uh_dataset_group_id', histo = ptr_dgi.hst)
+  entry_di  = Entry(var = 'uh_dataset_id'      , histo = ptr_di .hst)
 
   entries_tau_pt = [
     Entry(var = 'tau_pt', histo = to_2D(ptrs_tau_pt[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_pt']))
-      for binned_variable in ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for binned_variable in BINNED_VARIABLES
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ] ; entries_tau_pt = [ee for ee in entries_tau_pt if ee.hst.GetEntries()]
 
   entries_tau_eta = [
     Entry(var = 'tau_eta', histo = to_2D(ptrs_tau_eta[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_eta']))
-      for binned_variable in ['lepton_gen_match', 'sampleType', 'dataset_group_id', 'dataset_id']
+      for binned_variable in BINNED_VARIABLES
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ] ; entries_tau_eta = [ee for ee in entries_tau_eta if ee.hst.GetEntries()]
   
   entries_dataset_id = [
-    Entry(var = 'dataset_id', histo = to_2D(ptrs_dataset_id[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'dataset_id']))
-      for binned_variable in ['dataset_group_id']
+    Entry(var = 'uh_dataset_id', histo = to_2D(ptrs_dataset_id[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'uh_dataset_id']))
+      for binned_variable in ['uh_dataset_group_id']
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
+      if args.use_dataset_id
   ]; entries_dataset_id = [ee for ee in entries_dataset_id if ee.hst.GetEntries()]
 
-  entries = [entry_lgm, entry_st, entry_dgi, entry_di] +\
+  entries = [entry_lgm, entry_st, entry_dgi] + [entry_di]*args.use_dataset_id +\
     [ee for ee in entries_tau_pt]  +\
     [ee for ee in entries_tau_eta] +\
     [ee for ee in entries_dataset_id]
