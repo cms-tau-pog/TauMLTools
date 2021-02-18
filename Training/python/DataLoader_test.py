@@ -26,7 +26,7 @@ tau_types   = R.setup.tau_types
 data_loader = R.DataLoader()
 print("Max. batch number: ",data_loader.GetMaxBatchNumber())
 
-n_batches = 10
+n_batches = 2000
 n_batches_store = 10
 
 # NN intput data
@@ -90,4 +90,4 @@ from statistics import mean
 print("Mean time: ", mean(times))
 
 time_arr = np.asarray(times)
-np.savetxt("dataloaderBM.csv", time_arr, delimiter=",")
+np.savetxt("dataloaderBM_fulltest.csv", time_arr, delimiter=",")
