@@ -93,6 +93,6 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
     config.custom_content.append(("output", '/'.join([out_dir, 'out_{}.txt'.format(job_num)])))
     config.custom_content.append(("log"   , '/'.join([log_dir, 'log_{}.txt'.format(job_num)])))
 
-    config.custom_content.apend(("x509userproxy", os.environ['X509_USER_PROXY']))
+    config.custom_content.append(("x509userproxy", os.environ['X509_USER_PROXY']))
 
     return config
