@@ -1,8 +1,5 @@
 import FWCore.ParameterSet.Config as cms
 def update(process):
-
-    #extremely big or da definire, e poi tutto diventa *Extended
-
     process.hltL1sTauExtremelyBigOR = cms.EDFilter( "HLTL1TSeed",
         L1SeedsLogicalExpression = cms.string( "L1_LooseIsoEG22er2p1_IsoTau26er2p1_dR_Min0p3 OR L1_LooseIsoEG24er2p1_IsoTau27er2p1_dR_Min0p3 OR L1_LooseIsoEG22er2p1_Tau70er2p1_dR_Min0p3 OR L1_SingleTau120er2p1 OR L1_SingleTau130er2p1 OR L1_DoubleTau70er2p1 OR L1_DoubleIsoTau28er2p1 OR L1_DoubleIsoTau30er2p1 OR L1_DoubleIsoTau32er2p1 OR L1_DoubleIsoTau34er2p1 OR L1_DoubleIsoTau36er2p1 OR L1_DoubleIsoTau28er2p1_Mass_Max90 OR L1_DoubleIsoTau28er2p1_Mass_Max80 OR L1_DoubleIsoTau30er2p1_Mass_Max90 OR L1_DoubleIsoTau30er2p1_Mass_Max80 OR L1_Mu18er2p1_Tau24er2p1 OR L1_Mu18er2p1_Tau26er2p1 OR L1_Mu22er2p1_IsoTau28er2p1 OR L1_Mu22er2p1_IsoTau30er2p1 OR L1_Mu22er2p1_IsoTau32er2p1 OR L1_Mu22er2p1_IsoTau34er2p1 OR L1_Mu22er2p1_IsoTau36er2p1 OR L1_Mu22er2p1_IsoTau40er2p1 OR L1_Mu22er2p1_Tau70er2p1 OR L1_IsoTau40er2p1_ETMHF80 OR L1_IsoTau40er2p1_ETMHF90 OR L1_IsoTau40er2p1_ETMHF100 OR L1_IsoTau40er2p1_ETMHF110 OR L1_QuadJet36er2p5_IsoTau52er2p1 OR L1_DoubleJet35_Mass_Min450_IsoTau45_RmOvlp OR L1_DoubleJet_80_30_Mass_Min420_IsoTau40_RmOvlp" ),
         L1EGammaInputTag = cms.InputTag( 'hltGtStage2Digis','EGamma' ),
@@ -15,7 +12,7 @@ def update(process):
         L1GlobalInputTag = cms.InputTag( "hltGtStage2Digis" )
     )
     process.hltCaloTowerL1sTauExtremelyBigORSeededRegional = process.hltCaloTowerL1sTauVeryBigORSeededRegional.clone(
-        TauTrigger = cms.InputTag('hltGtStage2Digis','Tau')
+        TauTrigger = cms.InputTag('hltL1sTauExtremelyBigOR')
     )
     process.hltAkIsoTauL1sTauExtremelyBigORSeededRegional = process.hltAkIsoTauL1sTauVeryBigORSeededRegional.clone(
         src = cms.InputTag( "hltCaloTowerL1sTauExtremelyBigORSeededRegional" )
@@ -86,27 +83,25 @@ def update(process):
         JetSrc = cms.InputTag( "hltL2TausForPixelIsolationL1TauSeededExtended" )
     )
 
-    from HLTrigger.Configuration.customizeHLTforPatatrack import customizeHLTforPatatrack
-    process = customizeHLTforPatatrack(process)
+    from HLTrigger.Configuration.customizeHLTforPatatrack import customizeHLTforPatatrackTriplets
+    process = customizeHLTforPatatrackTriplets(process)
     process.TrainTupleProd = cms.EDAnalyzer("TrainTupleProducer",
         isMC = cms.bool(True),
         genEvent = cms.InputTag("generator"),
         #genParticles = cms.InputTag("genParticles"),
         puInfo = cms.InputTag("addPileupInfo"),
         l1taus=cms.InputTag('hltGtStage2Digis','Tau'),
-        #l1taus = cms.InputTag("hltL1sTauExtremelyBigOR"), # oggetti di l1, piu basso livello possibile
-        caloTowers = cms.InputTag("hltTowerMakerForAll"), # questo e proprio il nome del producer!!, comunque basandosi dove sono l1 taus sono ricostruite queste "calo towers" --> nel calo prendono i segnali in diversi cristalli (nella regione dei taul1, in un certo deltaR) e creano cluster
-        caloTaus = cms.InputTag("hltAkIsoTauL1sTauExtremelyBigORSeededRegional"), # in base a questi clusters creano un jet, con algoritmo antiKt --> jet prodotti (noi li definiamo "tau")
+        caloTowers = cms.InputTag("hltTowerMakerForAll"),
+        caloTaus = cms.InputTag("hltAkIsoTauL1sTauExtremelyBigORSeededRegional"),
+        ecalInputs =cms.VInputTag("hltEcalRecHit:EcalRecHitsEB", "hltEcalRecHit:EcalRecHitsEE"),
+        hbheInput = cms.InputTag("hltHbhereco"),
+        hfInput = cms.InputTag("hltHfreco"),
+        hoInput = cms.InputTag("hltHoreco"),
         vertices = cms.InputTag("hltPixelVerticesRegL1TauSeededExtended"),
-        pataVertices = cms.InputTag("hltTrimmedPixelVertices"), # queste sono le patatracks
-        Tracks = cms.InputTag("hltPixelTracksMergedRegL1TauSeededExtended"), # pixel tracks, ricostruiti intorno ai jet (ricostruzione tracce pixel nella regione dove puntano i jets)
-        pataTracks = cms.InputTag("hltPixelTracks"), # queste sono le patatracks
-        #VeryBigOR = cms.InputTag("hltL1sDoubleTauBigOR"),
-        #hltDoubleL2Tau26eta2p2 = cms.InputTag("hltDoubleL2Tau26eta2p2"),
-        #hltDoubleL2IsoTau26eta2p2 = cms.InputTag("hltDoubleL2IsoTau26eta2p2")
-        # step successivo -> isolamento basato su questi tau, si vedono le tracce attorno con algo semplici
+        pataVertices = cms.InputTag("hltTrimmedPixelVertices"),
+        Tracks = cms.InputTag("hltPixelTracksMergedRegL1TauSeededExtended"),
+        pataTracks = cms.InputTag("hltPixelTracks"),
     )
-
 
     process.HLTCaloTausCreatorL1TauSeededRegionalSequenceExtended = cms.Sequence( process.HLTDoCaloSequence + cms.ignore(process.hltL1sTauExtremelyBigOR) + process.hltCaloTowerL1sTauExtremelyBigORSeededRegional + process.hltAkIsoTauL1sTauExtremelyBigORSeededRegional )
     process.HLTL2TauJetsL1TauSeededSequenceExtended = cms.Sequence( process.HLTCaloTausCreatorL1TauSeededRegionalSequenceExtended + process.hltL2TauJetsL1TauSeededExtended )
@@ -128,3 +123,11 @@ def update(process):
 
     process.options.wantSummary = cms.untracked.bool(True)
     return process
+
+
+# caloTaus = cms.InputTag("hltAkIsoTauL1sTauExtremelyBigORSeededRegional"), # in base a questi clusters creano un jet, con algoritmo antiKt --> jet prodotti (noi li definiamo "tau")
+# caloTowers = cms.InputTag("hltTowerMakerForAll"), # questo e proprio il nome del producer!!, comunque basandosi dove sono l1 taus sono ricostruite queste "calo towers" --> nel calo prendono i segnali in diversi cristalli (nella regione dei taul1, in un certo deltaR) e creano cluster
+# l1taus = cms.InputTag("hltL1sTauExtremelyBigOR"), # oggetti di l1, piu basso livello possibile
+# pataVertices = cms.InputTag("hltTrimmedPixelVertices"), # queste sono le patatracks
+# Tracks = cms.InputTag("hltPixelTracksMergedRegL1TauSeededExtended"), # pixel tracks, ricostruiti intorno ai jet (ricostruzione tracce pixel nella regione dove puntano i jets)
+# step successivo -> isolamento basato su questi tau, si vedono le tracce attorno con algo semplici

@@ -41,6 +41,29 @@
 #include "DataFormats/TrackReco/interface/Track.h"
 // #include "TauTriggerTools/Common/interface/GenTruthTools.h"
 #include "DataFormats/JetReco/interface/CaloJetCollection.h"
+#include "DataFormats/CaloRecHit/interface/CaloRecHit.h"
+#include "DataFormats/HcalDetId/interface/HcalDetId.h"
+#include "Geometry/CaloGeometry/interface/CaloGeometry.h"
+#include "Geometry/CaloTopology/interface/HcalTopology.h"
+#include "DataFormats/HcalRecHit/interface/HBHERecHit.h"
+#include "DataFormats/HcalRecHit/interface/HFRecHit.h"
+#include "DataFormats/HcalRecHit/interface/HORecHit.h"
+#include "DataFormats/HcalRecHit/interface/HcalRecHitDefs.h"
+#include "DataFormats/EcalRecHit/interface/EcalRecHit.h"
+#include "Geometry/CaloTopology/interface/CaloTowerTopology.h"
+#include "Geometry/CaloTopology/interface/CaloTowerConstituentsMap.h"
+#include "Geometry/CaloGeometry/interface/CaloCellGeometry.h"
+#include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
+#include "RecoLocalCalo/CaloTowersCreator/src/CaloTowersCreator.h"
+#include "Geometry/CaloGeometry/interface/CaloGeometry.h"
+#include "FWCore/Framework/interface/ESHandle.h"
+#include "Geometry/CaloTopology/interface/HcalTopology.h"
+#include "Geometry/CaloTopology/interface/CaloTowerTopology.h"
+#include "RecoLocalCalo/CaloTowersCreator/interface/EScales.h"
+#include "Geometry/Records/interface/CaloGeometryRecord.h"
+// severity level for ECAL
+#include "RecoLocalCalo/EcalRecAlgos/interface/EcalSeverityLevelAlgoRcd.h"
+#include "CommonTools/Utils/interface/StringToEnumValue.h"
 
 namespace tau_analysis {
 
@@ -130,7 +153,14 @@ private:
 class TrainTupleProducer : public edm::EDAnalyzer {
 public:
     using TauDiscriminator = reco::PFTauDiscriminator;
-
+    struct caloRecHitCollections{
+      const HBHERecHitCollection  *hbhe;
+      const HORecHitCollection *ho;
+      const HFRecHitCollection *hf;
+      const EcalRecHitCollection *eb;
+      const EcalRecHitCollection *ee;
+      const CaloGeometry *Geometry;
+    };
     TrainTupleProducer(const edm::ParameterSet& cfg) :
         isMC(cfg.getParameter<bool>("isMC")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
@@ -139,26 +169,31 @@ public:
         l1Taus_token(consumes<l1t::TauBxCollection>(cfg.getParameter<edm::InputTag>("l1taus"))), // --> VBor
         caloTowers_token(consumes<CaloTowerCollection>(cfg.getParameter<edm::InputTag>("caloTowers"))),
         caloTaus_token(consumes<reco::CaloJetCollection>(cfg.getParameter<edm::InputTag>("caloTaus"))),
+        hbhe_token(consumes<HBHERecHitCollection>(cfg.getParameter<edm::InputTag>("hbheInput"))),
+        ho_token(consumes<HORecHitCollection>(cfg.getParameter<edm::InputTag>("hoInput"))),
+        hf_token( consumes<HFRecHitCollection>(cfg.getParameter<edm::InputTag>("hfInput"))),
+        ecalLabels(cfg.getParameter<std::vector<edm::InputTag> >("ecalInputs")),
+        Geometry_token(esConsumes<CaloGeometry,CaloGeometryRecord>()),
         vertices_token(consumes<reco::VertexCollection>(cfg.getParameter<edm::InputTag>("vertices"))),
         pataVertices_token(consumes<reco::VertexCollection>(cfg.getParameter<edm::InputTag>("pataVertices"))),
         Tracks_token(consumes<reco::TrackCollection>(cfg.getParameter<edm::InputTag>("Tracks"))),
         pataTracks_token(consumes<reco::TrackCollection>(cfg.getParameter<edm::InputTag>("pataTracks"))),
-        //VeryBigOR_result_token(consumes<Bool_t>(cfg.getParameter<edm::InputTag>("VeryBigOR"))),
-        //hltDoubleL2Tau26eta2p2_result_token(consumes<Bool_t>(cfg.getParameter<edm::InputTag>("hltDoubleL2Tau26eta2p2"))),
-        //hltDoubleL2IsoTau26eta2p2_result_token(consumes<Bool_t>(cfg.getParameter<edm::InputTag>("hltDoubleL2IsoTau26eta2p2"))),
         data(TrainTupleProducerData::RequestGlobalData()),
         trainTuple(data->trainTuple),
         summaryTuple(data->summaryTuple)
     {
 
-    }
+      const unsigned nLabels = ecalLabels.size();
+      for (unsigned i = 0; i != nLabels; i++)
+        ecal_tokens.push_back(consumes<EcalRecHitCollection>(ecalLabels[i]));
 
+    }
 private:
     static constexpr float default_value = train_tuple::DefaultFillValue<float>();
     static constexpr int default_int_value = train_tuple::DefaultFillValue<int>();
     static constexpr int default_unsigned_value = train_tuple::DefaultFillValue<unsigned>();
 
-    virtual void analyze(const edm::Event& event, const edm::EventSetup&) override
+    virtual void analyze(const edm::Event& event, const edm::EventSetup& eventsetup) override
     {
         std::lock_guard<std::mutex> lock(data->mutex);
         summaryTuple().numberOfProcessedEvents++;
@@ -166,17 +201,7 @@ private:
         trainTuple().run  = event.id().run();
         trainTuple().lumi = event.id().luminosityBlock();
         trainTuple().evt  = event.id().event();
-        /*
-        edm::Handle<Bool_t> VBOR_result;
-        event.getByToken(VeryBigOR_result_token, VBOR_result);
-        //trainTuple().VeryBigOR_result =*VBOR_result;
-        edm::Handle<Bool_t> hltDoubleL2Tau26eta2p2_result;
-        event.getByToken(hltDoubleL2Tau26eta2p2_result_token, hltDoubleL2Tau26eta2p2_result);
-        //trainTuple().hltDoubleL2Tau26eta2p2_result=*hltDoubleL2Tau26eta2p2_result;
-        edm::Handle<Bool_t> hltDoubleL2IsoTau26eta2p2_result;
-        event.getByToken(hltDoubleL2IsoTau26eta2p2_result_token, hltDoubleL2IsoTau26eta2p2_result);
-        //trainTuple().hltDoubleL2IsoTau26eta2p2_result=*hltDoubleL2IsoTau26eta2p2_result;
-        */
+
         edm::Handle<reco::VertexCollection> vertices;
         event.getByToken(vertices_token, vertices);
 
@@ -196,6 +221,35 @@ private:
         edm::Handle<l1t::TauBxCollection> l1Taus;
         event.getByToken(l1Taus_token, l1Taus);
 
+        edm::Handle<EcalRecHitCollection> ebHandle;
+        edm::Handle<EcalRecHitCollection> eeHandle;
+        for (std::vector<edm::EDGetTokenT<EcalRecHitCollection> >::const_iterator i = ecal_tokens.begin(); i != ecal_tokens.end(); i++) {
+          edm::Handle<EcalRecHitCollection> ec_tmp;
+          event.getByToken(*i, ec_tmp);
+          if (ec_tmp->empty())
+            continue;
+          // check if this is EB or EE
+          if ((ec_tmp->begin()->detid()).subdetId() == EcalBarrel) {
+            ebHandle = ec_tmp;
+          }
+          else if ((ec_tmp->begin()->detid()).subdetId() == EcalEndcap) {
+            eeHandle = ec_tmp;
+          }
+        }
+        std::vector<edm::EDGetTokenT<EcalRecHitCollection> >::const_iterator i;
+        for (i = ecal_tokens.begin(); i != ecal_tokens.end(); i++) {
+          edm::Handle<EcalRecHitCollection> ec;
+          event.getByToken(*i, ec);
+        }
+        edm::Handle<HBHERecHitCollection> hbhe;
+        event.getByToken(hbhe_token, hbhe);
+
+        edm::Handle<HORecHitCollection> ho;
+        event.getByToken(ho_token, ho);
+
+        edm::Handle<HFRecHitCollection> hf;
+        event.getByToken(hf_token, hf);
+
         edm::Handle<CaloTowerCollection> caloTowers;
         event.getByToken(caloTowers_token, caloTowers);
 
@@ -208,6 +262,17 @@ private:
         edm::Handle<reco::CaloJetCollection> caloTaus;
         event.getByToken(caloTaus_token, caloTaus);
         pat::JetCollection jets;
+
+        edm::ESHandle<CaloGeometry> Geometry = eventsetup.getHandle(Geometry_token);
+
+        caloRecHitCollections AllCaloRecHits;
+        AllCaloRecHits.hbhe= &*hbhe;
+        AllCaloRecHits.ho= &*ho;
+        AllCaloRecHits.hf= &*hf;
+        AllCaloRecHits.eb= &*ebHandle;
+        AllCaloRecHits.ee= &*eeHandle;
+        AllCaloRecHits.Geometry = &*Geometry;
+
         /*
         edm::Handle<std::vector<reco::GenParticle>> hGenParticles;
         if(isMC)
@@ -221,6 +286,7 @@ private:
         FillTracks(*pataTracks, "patatrack", *pataVertices);
         FillVertices(*vertices, "vert");
         FillVertices(*pataVertices, "patavert");
+        FillCaloRecHit(AllCaloRecHits);
         FillCaloTowers(*caloTowers);
         FillCaloTaus(*caloTaus);
 
@@ -370,6 +436,88 @@ private:
         }
     }
 
+    template<typename C>
+    void FillCommonParts(C calopart, const caloRecHitCollections& caloRecHits, std::string prefix){
+      const auto& position = caloRecHits.Geometry->getGeometry(calopart.id())->getPosition();
+      trainTuple.get<std::vector<Float_t>>(prefix+"_rho").push_back(position.perp());
+      trainTuple.get<std::vector<Float_t>>(prefix+"_eta").push_back(position.eta());
+      trainTuple.get<std::vector<Float_t>>(prefix+"_phi").push_back(position.phi());
+      trainTuple.get<std::vector<Float_t>>(prefix+"_energy").push_back(calopart.energy());
+      trainTuple.get<std::vector<Float_t>>(prefix+"_time").push_back(calopart.time());
+      trainTuple.get<std::vector<ULong64_t>>(prefix+"_detId").push_back(static_cast<ULong64_t>(calopart.id().rawId()));
+    }
+    template<typename C>
+    void FillEcalParts(C calopart, std::string prefix){
+        trainTuple.get<std::vector<uint32_t>>(prefix+"_flagsBits").push_back(static_cast<uint32_t>(calopart.flagsBits()));
+        trainTuple.get<std::vector<Float_t>>(prefix+"_energyError").push_back(calopart.energyError());
+        trainTuple.get<std::vector<Float_t>>(prefix+"_timeError").push_back(calopart.timeError());
+        trainTuple.get<std::vector<Float_t>>(prefix+"_chi2").push_back(calopart.chi2());
+        trainTuple.get<std::vector<Bool_t>>(prefix+"_isRecovered").push_back(static_cast<Bool_t>(calopart.isRecovered()));
+        trainTuple.get<std::vector<Bool_t>>(prefix+"_isTimeValid").push_back(static_cast<Bool_t>(calopart.isTimeValid()));
+        trainTuple.get<std::vector<Bool_t>>(prefix+"_isTimeErrorValid").push_back(static_cast<Bool_t>(calopart.isTimeErrorValid()));
+      }
+    template<typename C>
+    void FillHcalParts(C calopart, std::string prefix){
+      trainTuple.get<std::vector<ULong64_t>>(prefix+"_flags").push_back(static_cast<ULong64_t>(calopart.flags()));
+      trainTuple.get<std::vector<ULong64_t>>(prefix+"_aux").push_back(static_cast<ULong64_t>(calopart.aux()));
+
+    }
+    template<typename C>
+    void FillHFParts(C calopart, std::string prefix){
+      trainTuple.get<std::vector<uint32_t>>(prefix+"_auxHF").push_back(static_cast<uint32_t>(calopart.getAuxHF()));
+      trainTuple.get<std::vector<Float_t>>(prefix+"_timeFalling").push_back(calopart.timeFalling());
+    }
+    template<typename C>
+    void FillHBHEParts(C calopart, const caloRecHitCollections& caloRecHits, std::string prefix){
+      const auto& positionFront = caloRecHits.Geometry->getGeometry(calopart.idFront())->getPosition();
+      trainTuple.get<std::vector<Float_t>>(prefix+"_eraw").push_back(calopart.eraw());
+      trainTuple.get<std::vector<Float_t>>(prefix+"_eaux").push_back(calopart.eaux());
+      trainTuple.get<std::vector<Float_t>>(prefix+"_rho_front").push_back(positionFront.perp());
+      trainTuple.get<std::vector<Float_t>>(prefix+"_eta_front").push_back(positionFront.eta());
+      trainTuple.get<std::vector<Float_t>>(prefix+"_phi_front").push_back(positionFront.phi());
+      trainTuple.get<std::vector<UInt_t>>(prefix+"_auxHBHE").push_back(static_cast<UInt_t>(calopart.auxHBHE()));
+      trainTuple.get<std::vector<UInt_t>>(prefix+"_auxPhase1").push_back(static_cast<UInt_t>(calopart.auxPhase1()));
+      trainTuple.get<std::vector<UInt_t>>(prefix+"_auxTDC").push_back(static_cast<UInt_t>(calopart.auxTDC()));
+      trainTuple.get<std::vector<Bool_t>>(prefix+"_isMerged").push_back(static_cast<Bool_t>(calopart.isMerged()));
+      trainTuple.get<std::vector<ULong64_t>>(prefix+"_flags").push_back(static_cast<ULong64_t>(calopart.flags()));
+      trainTuple.get<std::vector<Float_t>>(prefix+"_chi2").push_back(calopart.chi2());
+      trainTuple.get<std::vector<Float_t>>(prefix+"_timeFalling").push_back(calopart.timeFalling());
+    }
+
+    void FillCaloRecHit(const caloRecHitCollections& caloRecHits)
+    {
+
+      for(const auto& caloRecHit_ee : *caloRecHits.ee)
+      {
+        FillCommonParts(caloRecHit_ee, caloRecHits, "caloRecHit_ee");
+        FillEcalParts(caloRecHit_ee, "caloRecHit_ee");
+      }
+      for(const auto& caloRecHit_eb : *caloRecHits.eb)
+      {
+        FillCommonParts(caloRecHit_eb, caloRecHits, "caloRecHit_eb");
+        FillEcalParts(caloRecHit_eb, "caloRecHit_eb");
+      }
+
+      for(const auto& caloRecHit_ho : *caloRecHits.ho)
+      {
+        FillCommonParts(caloRecHit_ho, caloRecHits, "caloRecHit_ho");
+        FillHcalParts(caloRecHit_ho, "caloRecHit_ho");
+      }
+
+      for(const auto& caloRecHit_hf : *caloRecHits.hf)
+      {
+        FillCommonParts(caloRecHit_hf, caloRecHits, "caloRecHit_hf");
+        FillHcalParts(caloRecHit_hf, "caloRecHit_hf");
+        FillHFParts(caloRecHit_hf, "caloRecHit_hf");
+      }
+      for(const auto& caloRecHit_hbhe : *caloRecHits.hbhe)
+      {
+        FillCommonParts(caloRecHit_hbhe, caloRecHits, "caloRecHit_hbhe"); 
+        FillHBHEParts(caloRecHit_hbhe, caloRecHits, "caloRecHit_hbhe");
+      }
+
+    }
+
 private:
     const bool isMC;
     TauJetBuilderSetup builderSetup;
@@ -378,13 +526,16 @@ private:
     edm::EDGetTokenT<l1t::TauBxCollection> l1Taus_token;
     edm::EDGetTokenT<CaloTowerCollection> caloTowers_token;
     edm::EDGetTokenT<reco::CaloJetCollection> caloTaus_token;
+    edm::EDGetTokenT<HBHERecHitCollection> hbhe_token;
+    edm::EDGetTokenT<HORecHitCollection> ho_token;
+    edm::EDGetTokenT<HFRecHitCollection> hf_token;
+    std::vector<edm::InputTag> ecalLabels;
+    std::vector<edm::EDGetTokenT<EcalRecHitCollection>> ecal_tokens;
+    edm::ESGetToken<CaloGeometry, CaloGeometryRecord> Geometry_token;
     edm::EDGetTokenT<reco::VertexCollection> vertices_token;
     edm::EDGetTokenT<reco::VertexCollection> pataVertices_token;
     edm::EDGetTokenT<reco::TrackCollection> Tracks_token;
     edm::EDGetTokenT<reco::TrackCollection> pataTracks_token;
-    //edm::EDGetTokenT<Bool_t> VeryBigOR_result_token;
-    //edm::EDGetTokenT<Bool_t> hltDoubleL2Tau26eta2p2_result_token;
-    //edm::EDGetTokenT<Bool_t> hltDoubleL2IsoTau26eta2p2_result_token;
     TrainTupleProducerData* data;
     train_tuple::TrainTuple& trainTuple;
     tau_tuple::SummaryTuple& summaryTuple;

@@ -12,6 +12,10 @@
 #define TAU_VAR(type, name) VAR(std::vector<type>, tau_##name)
 #define CALO_TOWER_VAR(type, name) VAR(std::vector<type>, caloTower_##name)
 #define CALO_TAU_VAR(type, name) VAR(std::vector<type>, caloTau_##name)
+#define HBHE_VAR(type, name) VAR(std::vector<type>, caloRecHit_hbhe_##name)
+#define HO_VAR(type, name) VAR(std::vector<type>, caloRecHit_ho_##name)
+#define HF_VAR(type, name) VAR(std::vector<type>, caloRecHit_hf_##name)
+#define ECAL_VAR(type, name) VAR(std::vector<type>, caloRecHit_ee_##name) VAR(std::vector<type>, caloRecHit_eb_##name)
 #define TRACK_VAR(type, name) VAR(std::vector<type>, track_##name) VAR(std::vector<type>, patatrack_##name)
 #define VERT(type, name) VAR(std::vector<type>, vert_##name) VAR(std::vector<type>, patavert_##name)
 
@@ -75,6 +79,57 @@
     CALO_TOWER_VAR(Int_t, emLvl1) /* em energy at level 1 */ \
     CALO_TOWER_VAR(Int_t, hadLv11) /* had energy at level 1 */ \
     CALO_TOWER_VAR(Int_t, numCrystals) /* number of (fired) crystals */ \
+    /* CaloRecHits candidates */ \
+    ECAL_VAR(Float_t, rho) /* */ \
+    ECAL_VAR(Float_t, eta) /* */ \
+    ECAL_VAR(Float_t, phi) /* */ \
+    ECAL_VAR(Float_t, energy) /* */ \
+    ECAL_VAR(Float_t, time) /* */ \
+    ECAL_VAR(ULong64_t, detId) /* */ \
+    ECAL_VAR(Float_t, chi2) /* */ \
+    ECAL_VAR(Float_t, energyError) /* */ \
+    ECAL_VAR(Float_t, timeError) /* */ \
+    ECAL_VAR(uint32_t, flagsBits) /* */ \
+    ECAL_VAR(Bool_t, isRecovered) /* */ \
+    ECAL_VAR(Bool_t, isTimeValid) /* */ \
+    ECAL_VAR(Bool_t, isTimeErrorValid) /* */ \
+    HBHE_VAR(Float_t, rho) /* */ \
+    HBHE_VAR(Float_t, eta) /* */ \
+    HBHE_VAR(Float_t, phi) /* */ \
+    HBHE_VAR(Float_t, energy) /* */ \
+    HBHE_VAR(Float_t, time) /* */ \
+    HBHE_VAR(ULong64_t, detId) /* */ \
+    HBHE_VAR(Float_t, chi2) /* */ \
+    HBHE_VAR(ULong64_t, flags) /* */ \
+    HBHE_VAR(Float_t, eraw) /* */ \
+    HBHE_VAR(Float_t, eaux) /* */ \
+    HBHE_VAR(Float_t, timeFalling) /* */ \
+    HBHE_VAR(ULong64_t, idFront) /* */ \
+    HBHE_VAR(Float_t, rho_front) /* */ \
+    HBHE_VAR(Float_t, eta_front) /* */ \
+    HBHE_VAR(Float_t, phi_front) /* */ \
+    HBHE_VAR(UInt_t, auxHBHE) /* */ \
+    HBHE_VAR(UInt_t, auxPhase1) /* */ \
+    HBHE_VAR(UInt_t, auxTDC) /* */ \
+    HBHE_VAR(Bool_t, isMerged) /* */ \
+    HO_VAR(Float_t, rho) /* */ \
+    HO_VAR(Float_t, eta) /* */ \
+    HO_VAR(Float_t, phi) /* */ \
+    HO_VAR(Float_t, energy) /* */ \
+    HO_VAR(Float_t, time) /* */ \
+    HO_VAR(ULong64_t, detId) /* */ \
+    HO_VAR(ULong64_t, aux) /* */ \
+    HO_VAR(ULong64_t, flags) /* */ \
+    HF_VAR(Float_t, rho) /* */ \
+    HF_VAR(Float_t, eta) /* */ \
+    HF_VAR(Float_t, phi) /* */ \
+    HF_VAR(Float_t, energy) /* */ \
+    HF_VAR(Float_t, time) /* */ \
+    HF_VAR(ULong64_t, detId) /* */ \
+    HF_VAR(ULong64_t, flags) /* */ \
+    HF_VAR(Float_t, timeFalling) /* */ \
+    HF_VAR(uint32_t, auxHF) /* */ \
+    HF_VAR(ULong64_t, aux) /* */ \
     /* Tracks candidates */ \
     TRACK_VAR(Float_t, pt) /* track pt candidate*/ \
     TRACK_VAR(Float_t, eta) /* track eta candidate*/ \
