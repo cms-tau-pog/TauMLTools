@@ -190,7 +190,7 @@ public:
         : name(_name), directory(_directory), readMode(_readMode), disabled_branches(_disabled_branches),
           enabled_branches(_enabled_branches)
     {
-        static constexpr Long64_t maxVirtualSize = 200 * 1024 * 1024;
+        static constexpr Long64_t maxVirtualSize = 100 * 1024 * 1024;
         static constexpr Long64_t autoFlush = - 50 * 1024 * 1024;
         static constexpr Long64_t maxTreeSize = 1000000000000LL;
 

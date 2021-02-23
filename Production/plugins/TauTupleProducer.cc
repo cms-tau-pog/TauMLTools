@@ -342,18 +342,22 @@ private:
                 return pos;
             };
 
-            auto encodeMotherIndex = [&](const std::set<const reco_tau::gen_truth::GenParticle*>& mothers) {
-                static constexpr int shift_scale = 1000;
+            auto encodeMotherIndex = [&](const std::set<const reco_tau::gen_truth::GenParticle*>& mothers) -> Long64_t {
+                static constexpr Long64_t shift_scale =
+                        static_cast<Long64_t>(reco_tau::gen_truth::GenLepton::MaxNumberOfParticles);
 
                 if(mothers.empty()) return -1;
-                if(mothers.size() > 2)
-                    throw cms::Exception("TauTupleProducer") << "Gen particle with >= 2 mothers.";
+                if(mothers.size() > 6)
+                    throw cms::Exception("TauTupleProducer") << "Gen particle with > 6 mothers.";
                 if(mothers.size() > 1 && genLepton->allParticles().size() > static_cast<size_t>(shift_scale))
                     throw cms::Exception("TauTupleProducer") << "Too many gen particles per gen lepton.";
-                int pos = 0;
-                int shift = 1;
-                for(auto mother : mothers) {
-                    pos = pos + shift * getIndex(mother);
+                Long64_t pos = 0;
+                Long64_t shift = 1;
+                std::set<int> mother_indices;
+                for(auto mother : mothers)
+                    mother_indices.insert(getIndex(mother));
+                for(int mother_idx : mother_indices) {
+                    pos = pos + shift * mother_idx;
                     shift *= shift_scale;
                 }
                 return pos;

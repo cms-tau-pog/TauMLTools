@@ -10,9 +10,10 @@ Tools to perform machine learning studies for tau lepton reconstruction and iden
 Root-tuples production steps (both big-tuple and training tuple) require CMSSW environment
 ```sh
 export SCRAM_ARCH=slc7_amd64_gcc700
-cmsrel CMSSW_10_6_13
-cd CMSSW_10_6_13/src
+cmsrel CMSSW_10_6_20
+cd CMSSW_10_6_20/src
 cmsenv
+git cms-merge-topic -u cms-tau-pog:CMSSW_10_6_X_tau-pog_boostedTausMiniFix
 git clone -o cms-tau-pog git@github.com:cms-tau-pog/TauMLTools.git
 scram b -j8
 ```
@@ -215,11 +216,11 @@ python TauMLTools/Production/scripts/validation_tool.py  --input input_directory
                                                          --n_threads n_threads \
                                                          --legend > results.txt
 ```
-The *id_json*  (*group_id_json*) points to a json file containing the list of datasets names (dataset group names) and their hash values, used to identify them inside the shuffled ROOT tuples. These files are needed in order to create a unique identifier which can be handled by ROOT. These files are produced at the shuffle and merge step. 
+The *id_json*  (*group_id_json*) points to a json file containing the list of datasets names (dataset group names) and their hash values, used to identify them inside the shuffled ROOT tuples. These files are needed in order to create a unique identifier which can be handled by ROOT. These files are produced at the shuffle and merge step.
 The script will create the directory "output_directory" containing the results of the test.
 Validation is run on the following ditributions with a Kolmogorov-Smirnov test:
 
-- dataset_id, dataset_group_id, lepton_gen_match, sampleType 
+- dataset_id, dataset_group_id, lepton_gen_match, sampleType
 - tau_pt and tau_eta for each bin of the previous
 - dataset_id for each bin of dataset_group_id
 

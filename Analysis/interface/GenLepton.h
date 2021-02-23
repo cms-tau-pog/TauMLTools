@@ -77,7 +77,7 @@ public:
     static std::vector<GenLepton> fromGenParticleCollection(const std::vector<GenParticleT>& gen_particles)
     {
         std::vector<GenLepton> leptons;
-        std::set<const GenParticleT*> processed_particles;
+        std::map<const GenParticleT*, int> processed_particles;
         for(const auto& particle : gen_particles) {
             if(processed_particles.count(&particle)) continue;
             if(!(particle.statusFlags().isPrompt() && particle.statusFlags().isFirstCopy())) continue;
@@ -97,7 +97,7 @@ public:
 
     static GenLepton fromRootTuple(int lastMotherIndex,
                                    const std::vector<int>& genParticle_pdgId,
-                                   const std::vector<int>& genParticle_mother,
+                                   const std::vector<Long64_t>& genParticle_mother,
                                    const std::vector<int>& genParticle_charge,
                                    const std::vector<int>& genParticle_isFirstCopy,
                                    const std::vector<int>& genParticle_isLastCopy,
@@ -137,16 +137,13 @@ public:
                                   genParticle_phi.at(n), genParticle_mass.at(n));
             p.vertex = Point3D(genParticle_vtx_x.at(n), genParticle_vtx_y.at(n), genParticle_vtx_z.at(n));
             std::set<size_t> mothers;
-            int mother_encoded = genParticle_mother.at(n);
+            Long64_t mother_encoded = genParticle_mother.at(n);
             if(mother_encoded >= 0) {
-                if(mother_encoded > static_cast<int>(MaxNumberOfParticles)) {
-                    int m1 = mother_encoded % static_cast<int>(MaxNumberOfParticles);
-                    int m2 = (mother_encoded - m1) / static_cast<int>(MaxNumberOfParticles);
-                    mothers.insert(m1);
-                    mothers.insert(m2);
-                } else {
-                    mothers.insert(mother_encoded);
-                }
+                do {
+                    Long64_t mother_index = mother_encoded % static_cast<Long64_t>(MaxNumberOfParticles);
+                    mother_encoded = (mother_encoded - mother_index) / static_cast<int>(MaxNumberOfParticles);
+                    mothers.insert(static_cast<size_t>(mother_index));
+                } while(mother_encoded > 0);
             }
             for(size_t mother_index : mothers) {
                 assert(mother_index < N);
@@ -225,10 +222,10 @@ private:
         static constexpr size_t NoneIndex = std::numeric_limits<size_t>::max();
 
         GenLepton& lepton_;
-        std::set<const GenParticleT*>& processedParticles_;
+        std::map<const GenParticleT*, int>& processedParticles_;
         std::map<size_t, std::set<size_t>> relations_;
 
-        FillImpl(GenLepton& lepton, std::set<const GenParticleT*>& processedParticles) :
+        FillImpl(GenLepton& lepton, std::map<const GenParticleT*, int>& processedParticles) :
             lepton_(lepton), processedParticles_(processedParticles)
         {
         }
@@ -267,10 +264,12 @@ private:
         {
             if(fill_recursively) {
                 if(processedParticles_.count(p)) {
+                    const int proc_p_index = processedParticles_.at(p);
+                    if(proc_p_index >= 0)
+                        relations_[mother_index].insert(static_cast<size_t>(proc_p_index));
                     return;
                     // ThrowErrorStatic("particle has already been processed.");
                 }
-                processedParticles_.insert(p);
             }
 
             GenParticle output_p;
@@ -288,6 +287,7 @@ private:
             lepton_.particles_->push_back(output_p);
 
             if(fill_recursively) {
+                processedParticles_[p] = static_cast<int>(p_index);
                 for(auto d : p->daughterRefVector())
                     FillDaughters(&*d, p_index, true);
             }
@@ -313,8 +313,10 @@ private:
         processed.insert(&particle);
         fromLastCopy = fromLastCopy || &particle == lastCopy_;
         const bool isFinalState = particle.daughters.empty();
-        if(isFinalState && !particle.isLastCopy)
+        if(isFinalState && !particle.isLastCopy) {
+            std::cerr << "Inconsistent particle: " << particle << std::endl;
             ThrowError("last copy flag is not set for a final state particle.");
+        }
         if(particle.isLastCopy) {
             const bool isChargedHadron = GenParticle::ChargedHadrons().count(particle.pdgCode());
             const bool isNeutralHadron = GenParticle::NeutralHadrons().count(particle.pdgCode());
