@@ -33,10 +33,10 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
                         const std::set<std::string>& disabled_branches = {}, \
                         const std::set<std::string>& enabled_branches = {}) \
             : BaseSmartTree(name, directory, readMode, disabled_branches,enabled_branches) { Initialize(); } \
-        tree_class_name(const std::string& name, const std::vector<std::string>& files_list, bool readMode, \
+        tree_class_name(const std::string& name, const std::vector<std::string>& files_list, \
                         const std::set<std::string>& disabled_branches = {}, \
                         const std::set<std::string>& enabled_branches = {}) \
-            : BaseSmartTree(name, files_list, readMode, disabled_branches, enabled_branches) { Initialize(); } \
+            : BaseSmartTree(name, files_list, disabled_branches, enabled_branches) { Initialize(); } \
     private: \
         inline void Initialize(); \
     }; \
@@ -217,22 +217,22 @@ public:
         }
     }
 
-    SmartTree(const std::string& _name, const std::vector<std::string>& list, bool _readMode,
+    SmartTree(const std::string& _name, const std::vector<std::string>& list,
               const std::set<std::string>& _disabled_branches = {}, const std::set<std::string>& _enabled_branches ={})
-        : name(_name), readMode(_readMode), disabled_branches(_disabled_branches),
+        : name(_name), disabled_branches(_disabled_branches),
           enabled_branches(_enabled_branches), directory(nullptr)
     {
-        if(readMode) {
-            TChain* fchain = new TChain("taus");
-            for(const std::string& file: list)
-              fchain->Add(file.c_str());
-            tree = fchain;
-            if(!tree)
-                throw std::runtime_error("Tree not found.");
-            if(tree->GetNbranches())
-                tree->SetBranchStatus("*", 0);
-        } else
-            throw std::runtime_error("std::vector<std::string> as an input works only in reading mode");
+        static constexpr Long64_t maxVirtualSize = 200 * 1024 * 1024;
+
+        TChain* fchain = new TChain("taus");
+        for(const std::string& file: list)
+          fchain->Add(file.c_str());
+        tree = fchain;
+        tree->SetMaxVirtualSize(maxVirtualSize);
+        if(!tree)
+            throw std::runtime_error("Tree not found.");
+        if(tree->GetNbranches())
+            tree->SetBranchStatus("*", 0);
     }
 
     SmartTree(const SmartTree& other) = delete;

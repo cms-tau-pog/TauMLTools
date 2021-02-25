@@ -1,58 +1,48 @@
-struct setup {
-  static constexpr size_t    n_tau              = 500;
-  static constexpr Long64_t  start_dataset      = 0;
-  static constexpr Long64_t  end_dataset        = std::numeric_limits<Long64_t>::max();
-  static constexpr size_t    n_inner_cells      = 11;  // number of inner cells in eta and phi
-  static constexpr Double_t  inner_cell_size    = 0.02; // size of the inner cell in eta and phi
-  static constexpr size_t    n_outer_cells      = 21; // number of outer cells in eta and phi
-  static constexpr Double_t  outer_cell_size    = 0.05; // size of the outer cell in eta and phi
-  static constexpr Int_t     n_threads          = 1; // number of threads
-  static constexpr size_t    n_fe_tau    = 43;  // number of high level featurese of tau
-  static constexpr size_t    n_pf_el     = 22; // Number of features for PfCand_electron
-  static constexpr size_t    n_pf_mu     = 23; // Number of features for PfCand_electron
-  static constexpr size_t    n_pf_chHad  = 27;
-  static constexpr size_t    n_pf_nHad   = 7;
-  static constexpr size_t    n_pf_gamma  = 23;
-  static constexpr size_t    n_ele       = 37;
-  static constexpr size_t    n_muon      = 37;
-  static constexpr Int_t     tau_types   = 4; /*
+struct Setup {
+  const static inline size_t    n_tau              = 500;
+  const static inline Long64_t  start_dataset      = 0;
+  const static inline Long64_t  end_dataset        = std::numeric_limits<Long64_t>::max();
+  const static inline size_t    n_inner_cells      = 11;  // number of inner cells in eta and phi
+  const static inline Double_t  inner_cell_size    = 0.02; // size of the inner cell in eta and phi
+  const static inline size_t    n_outer_cells      = 21; // number of outer cells in eta and phi
+  const static inline Double_t  outer_cell_size    = 0.05; // size of the outer cell in eta and phi
+  const static inline Int_t     n_threads          = 1; // number of threads
+  const static inline size_t    n_fe_tau    = 43;  // number of high level featurese of tau
+  const static inline size_t    n_pf_el     = 22; // Number of features for PfCand_electron
+  const static inline size_t    n_pf_mu     = 23; // Number of features for PfCand_electron
+  const static inline size_t    n_pf_chHad  = 27;
+  const static inline size_t    n_pf_nHad   = 7;
+  const static inline size_t    n_pf_gamma  = 23;
+  const static inline size_t    n_ele       = 37;
+  const static inline size_t    n_muon      = 37;
+  const static inline Int_t     tau_types   = 4; /*
                                                 tau_e       = "tauType==0"
                                                 tau_mu      = "tauType==1"
                                                 tau_h       = "tauType==2"
                                                 tau_jet     = "tauType==3"
                                               */
-  inline static const std::vector<std::string> tau_types_names{"e","mu","tau","jet"};
+  const static inline std::vector<std::string> tau_types_names = {"e","mu","tau","jet"};
 
-  inline static const std::vector<std::string> input_dirs{"/eos/cms/store/group/phys_tau/TauML/prod_2018_v1/ShuffleMergeSpectral_v0/"};
-  inline static const std::string file_name_pattern = "^.*_(1|2|3|4|5|6|7|8|9|10).root$"; // As a test take 1-10 files
+  const static inline std::vector<std::string> input_dirs = {"/eos/cms/store/group/phys_tau/TauML/prod_2018_v1/ShuffleMergeSpectral_v0/"};
+  const static inline std::string file_name_pattern = "^.*_(1|2|3|4|5|6|7|8|9|10).root$"; // As a test take 1-10 files
   // inline static const std::string file_name_pattern = "^.*_.*.root$";
-  inline static const std::string exclude_list = "";
-  inline static const std::string exclude_dir_list = "";
+  const static inline std::string exclude_list = "";
+  const static inline std::string exclude_dir_list = "";
 
   // reweighting params.
-  inline static const std::string input_spectrum  = "/eos/home-m/myshched/ShuffleSpectrum.root";
-  inline static const std::string target_spectrum  = "/eos/home-m/myshched/ShuffleSpectrum.root"; // tau_h spectrum is taken from target spectrum
+  const static inline std::string input_spectrum  = "/eos/home-m/myshched/ShuffleSpectrum.root";
+  const static inline std::string target_spectrum  = "/eos/home-m/myshched/ShuffleSpectrum.root"; // tau_h spectrum is taken from target spectrum
 
-  inline static const Int_t    n_pt_bins = 49;
-  inline static const Double_t pt_min    = 20.0;
-  inline static const Double_t pt_max    = 1000.0;
+  const static inline Int_t    n_pt_bins = 49;
+  const static inline Double_t pt_min    = 20.0;
+  const static inline Double_t pt_max    = 1000.0;
 
-  inline static const Int_t    n_eta_bins = 4;
-  inline static const Double_t eta_min    = 0.0;
-  inline static const Double_t eta_max    = 2.3;
+  const static inline Int_t    n_eta_bins = 4;
+  const static inline Double_t eta_min    = 0.0;
+  const static inline Double_t eta_max    = 2.3;
 };
 
-enum class CellObjectType {
-  PfCand_electron,
-  PfCand_muon,
-  PfCand_chargedHadron,
-  PfCand_neutralHadron,
-  PfCand_gamma,
-  Electron,
-  Muon
-};
-
-enum class TauFlat_f {
+enum class TauFlat_Features {
   tau_pt = 0,
   tau_eta = 1,
   tau_phi = 2,
@@ -98,7 +88,7 @@ enum class TauFlat_f {
   leadChargedCand_etaAtEcalEntrance_minus_tau_eta = 42
 };
 
-enum class PfCand_electron_f {
+enum class PfCand_electron_Features {
   pfCand_ele_valid = 0,
   pfCand_ele_rel_pt = 1,
   pfCand_ele_deta = 2,
@@ -123,7 +113,7 @@ enum class PfCand_electron_f {
   pfCand_ele_track_ndof = 21
 };
 
-enum class PfCand_muon_f {
+enum class PfCand_muon_Features {
   pfCand_muon_valid = 0,
   pfCand_muon_rel_pt = 1,
   pfCand_muon_deta = 2,
@@ -150,7 +140,7 @@ enum class PfCand_muon_f {
 
 };
 
-enum class PfCand_chargedHadron_f {
+enum class PfCand_chHad_Features {
   pfCand_chHad_valid  = 0,
   pfCand_chHad_rel_pt = 1,
   pfCand_chHad_deta = 2,
@@ -180,7 +170,7 @@ enum class PfCand_chargedHadron_f {
   pfCand_chHad_rawCaloFraction = 26
 };
 
-enum class PfCand_neutralHadron_f {
+enum class PfCand_nHad_Features {
   pfCand_nHad_valid = 0,
   pfCand_nHad_rel_pt = 1,
   pfCand_nHad_deta = 2,
@@ -191,7 +181,7 @@ enum class PfCand_neutralHadron_f {
 
 };
 
-enum class pfCand_gamma_f {
+enum class pfCand_gamma_Features {
   pfCand_gamma_valid  = 0,
   pfCand_gamma_rel_pt = 1,
   pfCand_gamma_deta = 2,
@@ -217,7 +207,7 @@ enum class pfCand_gamma_f {
   pfCand_gamma_track_ndof = 22
 };
 
-enum class Electron_f {
+enum class Electron_Features {
   ele_valid = 0,
   ele_rel_pt = 1,
   ele_deta = 2,
@@ -257,7 +247,7 @@ enum class Electron_f {
   ele_closestCtfTrack_numberOfValidHits = 36
 };
 
-enum class Muon_f {
+enum class Muon_Features {
   muon_valid = 0,
   muon_rel_pt = 1,
   muon_deta = 2,
