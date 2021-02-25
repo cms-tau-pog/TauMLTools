@@ -1,4 +1,4 @@
-sampleType=MC_18
+sampleType=MC_18 applyRecoPtSieve=True
 
 QCD_Pt_15to30_ext1    /QCD_Pt_15to30_TuneCP5_13TeV_pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15_ext1-v2/MINIAODSIM
 QCD_Pt_30to50    /QCD_Pt_30to50_TuneCP5_13TeV_pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM

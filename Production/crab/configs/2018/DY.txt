@@ -1,4 +1,4 @@
-sampleType=MC_18
+sampleType=MC_18 applyRecoPtSieve=True
 
 DYJetsToLL_M-50-amcatnloFXFX	    /DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
 DYJetsToLL_M-50	                  /DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM

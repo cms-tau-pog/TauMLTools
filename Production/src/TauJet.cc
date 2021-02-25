@@ -4,6 +4,7 @@
 #include "TauMLTools/Production/interface/TauJet.h"
 #include "TauMLTools/Core/interface/TextIO.h"
 
+#include <random>
 #include <Math/VectorUtil.h>
 
 namespace {
@@ -92,10 +93,11 @@ TauJetBuilder::TauJetBuilder(const TauJetBuilderSetup& setup, const pat::TauColl
               const pat::ElectronCollection& electrons, const pat::MuonCollection& muons,
               const pat::IsolatedTrackCollection& isoTracks, const pat::PackedCandidateCollection& lostTracks,
               const reco::GenParticleCollection* genParticles, const reco::GenJetCollection* genJets,
-              bool requireGenMatch) :
+              bool requireGenMatch, bool requireGenORRecoTauMatch, bool applyRecoPtSieve) :
     setup_(setup), taus_(taus), boostedTaus_(boostedTaus), jets_(jets), fatJets_(fatJets), cands_(cands),
     electrons_(electrons), muons_(muons), isoTracks_(isoTracks), lostTracks_(lostTracks), genParticles_(genParticles),
-    genJets_(genJets), requireGenMatch_(requireGenMatch)
+    genJets_(genJets), requireGenMatch_(requireGenMatch), requireGenORRecoTauMatch_(requireGenORRecoTauMatch),
+    applyRecoPtSieve_(applyRecoPtSieve)
 {
     if(genParticles)
         genLeptons_ = reco_tau::gen_truth::GenLepton::fromGenParticleCollection(*genParticles);
@@ -272,6 +274,37 @@ void TauJetBuilder::Build()
             tauJets_.push_back(tauJet);
         }
     }
+
+    if(requireGenORRecoTauMatch_ || applyRecoPtSieve_) {
+        std::deque<TauJet> prunedTauJets;
+        for(const TauJet& tauJet : tauJets_) {
+            const bool is_true_tau = tauJet.genLepton
+                    && tauJet.genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToHadrons;
+            if(requireGenORRecoTauMatch_ && !(tauJet.tau || tauJet.boostedTau || is_true_tau))
+                continue;
+            if(applyRecoPtSieve_ && !tauJet.genLepton) {
+                static std::mt19937 gen(12345);
+                static std::uniform_real_distribution<> dist(0., 1.);
+                static constexpr double slop = -5e-2;
+                static constexpr double ref_pt = 80; // GeV
+                static const double exp_ref = std::exp(slop * ref_pt);
+
+                double pt = -1;
+                if(tauJet.tau)
+                    pt = tauJet.tau->polarP4().pt();
+                if(tauJet.boostedTau)
+                    pt = std::max(pt, tauJet.boostedTau->polarP4().pt());
+                if(pt < 0) continue;
+                if(pt < ref_pt) {
+                    double prob_thr = exp_ref / std::exp(slop * pt);
+                    if(dist(gen) > prob_thr) continue;
+                }
+            }
+            prunedTauJets.push_back(tauJet);
+        }
+        tauJets_ = prunedTauJets;
+    }
+
 
     for(TauJet& tauJet : tauJets_) {
 

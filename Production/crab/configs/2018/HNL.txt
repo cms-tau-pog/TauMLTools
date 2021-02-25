@@ -1,4 +1,4 @@
-sampleType=MC_18
+sampleType=MC_18 requireGenORRecoTauMatch=False
 
 HN_trilepton_M-1_tau   /HeavyNeutrino_trilepton_M-1_V-0_329_tau_massiveAndCKM_LO/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
 HN_trilepton_M-2_tau   /HeavyNeutrino_trilepton_M-2_V-0_0353_tau_massiveAndCKM_LO/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM

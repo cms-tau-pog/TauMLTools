@@ -125,6 +125,8 @@ public:
         isMC(cfg.getParameter<bool>("isMC")),
         isEmbedded(cfg.getParameter<bool>("isEmbedded")),
         requireGenMatch(cfg.getParameter<bool>("requireGenMatch")),
+        requireGenORRecoTauMatch(cfg.getParameter<bool>("requireGenORRecoTauMatch")),
+        applyRecoPtSieve(cfg.getParameter<bool>("applyRecoPtSieve")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
         genParticles_token(mayConsume<reco::GenParticleCollection>(cfg.getParameter<edm::InputTag>("genParticles"))),
         genJets_token(mayConsume<reco::GenJetCollection>(cfg.getParameter<edm::InputTag>("genJets"))),
@@ -266,7 +268,8 @@ private:
         auto genJetFlavourInfos = hGenJetFlavourInfos.isValid() ? hGenJetFlavourInfos.product() : nullptr;
 
         TauJetBuilder builder(builderSetup, *taus, *boostedTaus, *jets, *fatJets, *cands, *electrons, *muons,
-                              *isoTracks, *lostTracks, genParticles, genJets, requireGenMatch);
+                              *isoTracks, *lostTracks, genParticles, genJets, requireGenMatch,
+                              requireGenORRecoTauMatch, applyRecoPtSieve);
         const auto& tauJets = builder.GetTauJets();
         tauTuple().total_entries = static_cast<int>(tauJets.size());
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {
@@ -894,7 +897,7 @@ private:
     }
 
 private:
-    const bool isMC, isEmbedded, requireGenMatch;
+    const bool isMC, isEmbedded, requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve;
     TauJetBuilderSetup builderSetup;
 
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;
