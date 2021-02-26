@@ -83,11 +83,11 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     proc = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     stdout, stderr = proc.communicate()
 
-    sys.stdout.write(stdout + '\n')
-    #sys.stderr.write(stderr + '\n')  ## not working, error log is always empty
-    sys.stdout.write(stderr + '\n')
+    sys.stdout.write(str(stdout) + '\n')
+    sys.stderr.write(str(stderr) + '\n')
 
     retcode = proc.returncode
+
     if retcode != 0:
       raise Exception('job {} return code is {}'.format(self.branch, retcode))
     elif retcode == 0 and self.mode == 'MergeAll':
