@@ -179,6 +179,7 @@ where *--params* are the [ShuffleMergeSpectral](https://github.com/cms-tau-pog/T
    - *--input* has been renamed to *--input-path*
    - *--output* has been renamed to *--output-path*
 
+**NOTA BENE**: *--output-path* should be a full path, otherwise the output will be lost
 The full list of parameters accepted by law and ShuffleMergeSpectral can be printed with the commands
 
 ```
