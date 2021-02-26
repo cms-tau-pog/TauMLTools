@@ -39,8 +39,8 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     if not os.path.exists(self.output_dir):
       os.makedirs(self.output_dir)
     ## this directory will store the json has dictionaries
-    if not os.path.exists('/'.join([self.output_dir, 'hashes'])):
-      os.makedirs('/'.join([self.output_dir, 'hashes']))
+    if not os.path.exists('/'.join([self.output_dir, '..', 'hashes'])):
+      os.makedirs('/'.join([self.output_dir, '..', 'hashes']))
 
 
     step = 1. * (self.end_entry - self.start_entry) / self.n_jobs
