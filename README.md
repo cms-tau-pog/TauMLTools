@@ -166,24 +166,37 @@ ShuffleMergeSpectral can be executed on condor through the [law](https://github.
 ```sh
 cd $CMSSW_BASE/src
 cmsenv
-cd TauMLTools/Production/script/ShuffleMergeLaw
+cd TauMLTools/Analysis/law
 source setup.sh
 law index
 ```
-Then, jobs can be submitted running
+Jobs can be submitted running
 ```
 law run ShuffleMergeSpectral --version vx --params --n-jobs N
 ```
-where *--params* are the [ShuffleMergeSpectral]() parameters. In particular
+where *--params* are the [ShuffleMergeSpectral](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/bin/ShuffleMergeSpectral.cxx#L28-L52) parameters. In particular
 
-   - *--start-entry* and *--end-entry* are used to define the range of the whole computation
-   - the *--input* and *--output* parameters have been renamed *--input-path* and *--output-path*
+   - *--input* has been renamed to *--input-path*
+   - *--output* has been renamed to *--output-path*
 
-At this point, the worker will start reporting the job status. As long as the worker is alive, it will automatically resubmit failed jobs.  
+The full list of parameters accepted by law can be printed with the command
 
-In addition to *.root* files, a directory containing the condor report files (error, log, output) named SML_condor will be created inside the ShuffleMergeSpectral directory.  
-A *data* directory is also created by law containing more detailed informations about the submitted jobs, as well as the output *.txt* files containing the executed command.  
-Jobs can also be executed locally adding the *--workflow local* argument to the *law run* command.  
+```
+law run ShuffleMergeSpectral --help
+```
+
+Jobs are created by the script using the *--start-entry* and *--end-entry* parameters.
+
+Additional arguments can be used to control the condor submission:
+
+   - *--workflow local* will run locally. If omitted, condor will be used
+   - *--max-runtime* condor runtime in hours
+   - *--max-memory* condor RAM request in MB
+   - *--batch-name* batch name to be used on condor. Default is "TauML_law"
+
+At this point, the worker will start reporting the job status. As long as the worker is alive, it will automatically resubmit failed jobs. The worker can be killed with **ctrl+C** once all jobs have been submitted. Failed jobs can be resubmitted running the same command used in the first submission (from the same working directory).
+
+A *data* directory is created. This directory contains information about the jobs as well as the log, output and erorr files created by condor.
 
 #### Validation
 A validation can be run on shuffled samples to ensure that different parts of the training set have compatible distributions.
