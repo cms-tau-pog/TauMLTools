@@ -77,7 +77,7 @@ Submission and status control can be performed using [crab_submit.py](https://gi
    ```
 1. Submit task in a config file (or a set of config files) using `crab_submit.py`:
    ```sh
-   crab_submit.py --workArea work-area --cfg TauMLTools/Production/python/Production.py --site T2_CH_CERN --output /store/group/phys_tau/TauML/prod_2018_v1/crab_output TauMLTools/Production/crab/configs/2018/CONFIG1.txt TauMLTools/Production/crab/configs/2018/CONFIG2.txt ...
+   crab_submit.py --workArea work-area --cfg TauMLTools/Production/python/Production.py --site T2_CH_CERN --output /store/group/phys_tau/TauML/prod_2018_v2/crab_output TauMLTools/Production/crab/configs/2018/CONFIG1.txt TauMLTools/Production/crab/configs/2018/CONFIG2.txt ...
    ```
    * For more command line options use `crab_submit.py --help`.
    * For big dataset file-based splitting should be used
@@ -88,7 +88,7 @@ Submission and status control can be performed using [crab_submit.py](https://gi
    ```
 1. Once all jobs within a given task are finished you can move it from `work-area` to `finished` folder (to avoid rerunning status each time) and set `done` for the dataset in the production google-doc.
 1. If some jobs are failed: try to understand the reason and use standard crab tools to solve the problem (e.g. `crab resubmit` with additional arguments). In very problematic cases a recovery task could be created.
-1. Once production is over, all produced `TauTuples` will be moved in `/eos/cms/store/group/phys_tau/TauML/prod_2018_v1/full_tuples`.
+1. Once production is over, all produced `TauTuples` will be moved in `/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/full_tuples`.
 
 
 
