@@ -50,10 +50,10 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
   configuration is required.
   """
   max_runtime = law.DurationParameter(default=24.0, unit="h", significant=False,
-    description="maximum runtime, default unit is hours, default: 2")
+    description="maximum runtime, default: 24h")
   max_memory  = luigi.Parameter(default = 2000, significant = False,
     description = 'maximum RAM usage')
-  batch_name  = luigi.Parameter(default = 'ShuffleMergeSpectral',
+  batch_name  = luigi.Parameter(default = 'TauML_law',
     description = 'HTCondor batch name')
 
   def htcondor_output_directory(self):
