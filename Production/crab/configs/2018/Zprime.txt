@@ -1,4 +1,4 @@
-sampleType=MC_18 rerunTauReco=True
+sampleType=MC_18 requireGenORRecoTauMatch=False
 
 ZprimeToTauTau_M-1000  /ZprimeToTauTau_M-1000_TuneCP5_13TeV-pythia8-tauola/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
 ZprimeToTauTau_M-1500  /ZprimeToTauTau_M-1500_TuneCP5_13TeV-pythia8-tauola/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
