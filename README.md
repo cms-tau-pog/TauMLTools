@@ -14,7 +14,7 @@ cmsrel CMSSW_10_6_20
 cd CMSSW_10_6_20/src
 cmsenv
 git cms-merge-topic -u cms-tau-pog:CMSSW_10_6_X_tau-pog_boostedTausMiniFix
-git clone -o cms-tau-pog git@github.com:cms-tau-pog/TauMLTools.git
+git clone -o cms-tau-pog -b prod2018_v2 git@github.com:cms-tau-pog/TauMLTools.git
 scram b -j8
 ```
 
@@ -57,7 +57,7 @@ These branches are filled in CMSSW module [Production/plugins/TauTupleProducer.c
 [Production/python/Production.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Production/python/Production.py) contains the configuration that allows to run `TauTupleProducer` with `cmsRun`.
 Here is an example how to run `TauTupleProducer` on 1000 DY events using one MiniAOD file as an input:
 ```sh
-cmsRun TauMLTools/Production/python/Production.py sampleType=MC_18 inputFiles=/store/mc/RunIIAutumn18MiniAOD/DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8/MINIAODSIM/102X_upgrade2018_realistic_v15-v1/00000/A788C40A-03F7-4547-B5BA-C1E01CEBB8D8.root maxEvents=1000 rerunTauReco=True
+cmsRun TauMLTools/Production/python/Production.py sampleType=MC_18 inputFiles=/store/mc/RunIIAutumn18MiniAOD/DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8/MINIAODSIM/102X_upgrade2018_realistic_v15-v1/00000/A788C40A-03F7-4547-B5BA-C1E01CEBB8D8.root maxEvents=1000
 ```
 
 In order to run a large-scale production for the entire datasets, the CMS computing grid should be used via CRAB interface.
