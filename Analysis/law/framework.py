@@ -89,7 +89,7 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
     config.custom_content.append(('request_memory', '{}'.format(self.max_memory)))
     config.custom_content.append(('JobBatchName'  , self.batch_name))
 
-    config.custom_content.append(("erorr" , '/'.join([err_dir, 'err_{}.txt'.format(job_num)])))
+    config.custom_content.append(("error" , '/'.join([err_dir, 'err_{}.txt'.format(job_num)])))
     config.custom_content.append(("output", '/'.join([out_dir, 'out_{}.txt'.format(job_num)])))
     config.custom_content.append(("log"   , '/'.join([log_dir, 'log_{}.txt'.format(job_num)])))
 
