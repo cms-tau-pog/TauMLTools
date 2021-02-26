@@ -10,7 +10,6 @@ action() {
 
     export ANALYSIS_PATH="$this_dir"
     export ANALYSIS_DATA_PATH="$ANALYSIS_PATH/data"
-    export SML_INPUT_DATA="/eos/cms/store/group/phys_tau/TauML/prod_2018_v1/full_tuples/WJetsToLNu_HT-1200To2500/"
 
     source "/afs/cern.ch/user/m/mrieger/public/law_sw/setup.sh" ""
     source "$( law completion )" ""
