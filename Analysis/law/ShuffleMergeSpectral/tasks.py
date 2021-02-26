@@ -35,8 +35,13 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
 
   def create_branch_map(self):
     self.output_dir = '/'.join([self.output_path, 'tmp'])
+    ## create the .root file output directory
     if not os.path.exists(self.output_dir):
       os.makedirs(self.output_dir)
+    ## this directory will store the json has dictionaries
+    if not os.path.exists('/'.join([self.output_dir, 'hashes'])):
+      os.makedirs('/'.join([self.output_dir, 'hashes']))
+
 
     step = 1. * (self.end_entry - self.start_entry) / self.n_jobs
     return {i: (round(self.start_entry + i*step, 6), round(self.start_entry + (i+1)*step, 6)) for i in range(self.n_jobs)}
@@ -84,6 +89,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
       raise Exception('job {} return code is {}'.format(self.branch, retcode))
     elif retcode == 0 and self.mode == 'MergeAll':
       os.rename(output_name, '/'.join([self.output_dir, '..', file_name]))
+      os.rename('./out', '/'.join([self.output_dir, '..', 'hashes', 'out_{}'.format(self.branch)]))
       taskout = self.output()
       taskout.dump('Task ended with code %s\n' %retcode)
     else:
