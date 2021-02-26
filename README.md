@@ -200,6 +200,45 @@ ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
 - `--tau-ratio "jet:1, e:1, mu:1, tau:1"` defines proportion of TauTypes in final root-tuple.
 - `--start-entry 0.0 --end-entry 0.0008` defines from which percentage by which entries will be read within every input root file.
 
+#### ShuffleMergeSpectral on HTCondor
+ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment 
+```sh
+cd $CMSSW_BASE/src
+cmsenv
+cd TauMLTools/Analysis/law
+source setup.sh
+law index
+```
+Jobs can be submitted running
+```
+law run ShuffleMergeSpectral --version vx --params --n-jobs N
+```
+where *--params* are the [ShuffleMergeSpectral](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/bin/ShuffleMergeSpectral.cxx#L28-L52) parameters. In particular
+
+   - *--input* has been renamed to *--input-path*
+   - *--output* has been renamed to *--output-path*
+
+**NOTA BENE**: *--output-path* should be a full path, otherwise the output will be lost
+The full list of parameters accepted by law and ShuffleMergeSpectral can be printed with the commands
+
+```
+ShuffleMergeSpectral --help
+law run ShuffleMergeSpectral --help
+```
+
+Jobs are created by the script using the *--start-entry* and *--end-entry* parameters.
+
+Additional arguments can be used to control the condor submission:
+
+   - *--workflow local* will run locally. If omitted, condor will be used
+   - *--max-runtime* condor runtime in hours
+   - *--max-memory* condor RAM request in MB
+   - *--batch-name* batch name to be used on condor. Default is "TauML_law"
+
+At this point, the worker will start reporting the job status. As long as the worker is alive, it will automatically resubmit failed jobs. The worker can be killed with **ctrl+C** once all jobs have been submitted. Failed jobs can be resubmitted running the same command used in the first submission (from the same working directory).
+
+A *data* directory is created. This directory contains information about the jobs as well as the log, output and erorr files created by condor.
+
 #### Validation
 A validation can be run on shuffled samples to ensure that different parts of the training set have compatible distributions.
 To run the validation tool, a ROOT version greater or equal to 6.16 is needed:
