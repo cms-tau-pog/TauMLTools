@@ -54,6 +54,9 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     file_name   = '_'.join(['ShuffleMergeSpectral', str(self.branch)]) + '.root'
     output_name = '/'.join([self.output_dir, file_name]) if self.mode == 'MergeAll' else self.output_dir
 
+    if not self.mode == 'MergeAll':
+      raise Exception('Only --mode MergeAll is supported by the law tool for now')
+
     quote = lambda x: str('\"{}\"'.format(str(x)))
     command = ' '.join(['ShuffleMergeSpectral',
       '--cfg'               , str(self.cfg)             ,
@@ -93,5 +96,5 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
       taskout = self.output()
       taskout.dump('Task ended with code %s\n' %retcode)
     else:
-      ## what happens if not MergeAll?
+      ## TODO: what happens if not MergeAll?
       pass
