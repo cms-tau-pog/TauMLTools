@@ -19,6 +19,7 @@
 #define TRACK_VAR(type, name) VAR(std::vector<type>, track_##name) VAR(std::vector<type>, patatrack_##name)
 #define VERT(type, name) VAR(std::vector<type>, vert_##name) VAR(std::vector<type>, patavert_##name)
 
+
 #define VAR2(type, name1, name2) VAR(type, name1) VAR(type, name2)
 #define VAR3(type, name1, name2, name3) VAR2(type, name1, name2) VAR(type, name3)
 #define VAR4(type, name1, name2, name3, name4) VAR3(type, name1, name2, name3) VAR(type, name4)
@@ -34,6 +35,55 @@
     /*VAR(Float_t, trainingWeight)  training weight */ \
     VAR(Int_t, sampleType) /* type of the sample (MC, Embedded or Data) */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
+    /* Gen lepton with the full decay chain */ \
+    VAR(std::vector<Int_t>, genLepton_nParticles) /* index of the gen lepton */ \
+    VAR(std::vector<Int_t>, genLepton_kind) /* kind of the gen lepton:
+                                              Electron = 1, Muon = 2, TauElectron = 3, TauMuon = 4, Tau = 5, Other = 6 */\
+    VAR(std::vector<Int_t>, genLepton_charge) /* charge of the gen lepton */ \
+    VAR4(std::vector<Float_t>, genLepton_vis_pt, genLepton_vis_eta, genLepton_vis_phi, genLepton_vis_mass) /* visible 4-momentum of
+                                                                                                 the gen lepton */ \
+    VAR(std::vector<Int_t>, genLepton_lastMotherIndex) /* index of the last mother in genParticle_* vectors:
+                                             >= 0 if at least one mother is available, -1 otherwise */ \
+    VAR(std::vector<Int_t>, genParticle_pdgId) /* PDG ID */ \
+    VAR(std::vector<Int_t>, genParticle_mother) /* index of the mother */ \
+    VAR(std::vector<Int_t>, genParticle_charge) /* charge */ \
+    VAR2(std::vector<Int_t>, genParticle_isFirstCopy, genParticle_isLastCopy) /* indicator whatever a gen particle
+                                                                                 is the first or the last copy */ \
+    VAR4(std::vector<Float_t>, genParticle_pt, genParticle_eta, \
+                               genParticle_phi, genParticle_mass) /* 4-momenta */ \
+    VAR3(std::vector<Float_t>, genParticle_vtx_x, genParticle_vtx_y, genParticle_vtx_z) /* position of the vertex */ \
+    /* L1 Trigger results */ \
+    VAR(std::vector<bool>, L1_LooseIsoEG22er2p1_IsoTau26er2p1_dR_Min0p3) \
+    VAR(std::vector<bool>, L1_LooseIsoEG24er2p1_IsoTau27er2p1_dR_Min0p3) \
+    VAR(std::vector<bool>, L1_LooseIsoEG22er2p1_Tau70er2p1_dR_Min0p3) \
+    VAR(std::vector<bool>, L1_SingleTau120er2p1) \
+    VAR(std::vector<bool>, L1_SingleTau130er2p1) \
+    VAR(std::vector<bool>, L1_DoubleTau70er2p1) \
+    VAR(std::vector<bool>, L1_DoubleIsoTau28er2p1) \
+    VAR(std::vector<bool>, L1_DoubleIsoTau30er2p1) \
+    VAR(std::vector<bool>, L1_DoubleIsoTau32er2p1) \
+    VAR(std::vector<bool>, L1_DoubleIsoTau34er2p1) \
+    VAR(std::vector<bool>, L1_DoubleIsoTau36er2p1) \
+    VAR(std::vector<bool>, L1_DoubleIsoTau28er2p1_Mass_Max90) \
+    VAR(std::vector<bool>, L1_DoubleIsoTau28er2p1_Mass_Max80) \
+    VAR(std::vector<bool>, L1_DoubleIsoTau30er2p1_Mass_Max90) \
+    VAR(std::vector<bool>, L1_DoubleIsoTau30er2p1_Mass_Max80) \
+    VAR(std::vector<bool>, L1_Mu18er2p1_Tau24er2p1) \
+    VAR(std::vector<bool>, L1_Mu18er2p1_Tau26er2p1) \
+    VAR(std::vector<bool>, L1_Mu22er2p1_IsoTau28er2p1) \
+    VAR(std::vector<bool>, L1_Mu22er2p1_IsoTau30er2p1) \
+    VAR(std::vector<bool>, L1_Mu22er2p1_IsoTau32er2p1) \
+    VAR(std::vector<bool>, L1_Mu22er2p1_IsoTau34er2p1) \
+    VAR(std::vector<bool>, L1_Mu22er2p1_IsoTau36er2p1) \
+    VAR(std::vector<bool>, L1_Mu22er2p1_IsoTau40er2p1) \
+    VAR(std::vector<bool>, L1_Mu22er2p1_Tau70er2p1) \
+    VAR(std::vector<bool>, L1_IsoTau40er2p1_ETMHF80) \
+    VAR(std::vector<bool>, L1_IsoTau40er2p1_ETMHF90) \
+    VAR(std::vector<bool>, L1_IsoTau40er2p1_ETMHF100) \
+    VAR(std::vector<bool>, L1_IsoTau40er2p1_ETMHF110) \
+    VAR(std::vector<bool>, L1_QuadJet36er2p5_IsoTau52er2p1) \
+    VAR(std::vector<bool>, L1_DoubleJet35_Mass_Min450_IsoTau45_RmOvlp) \
+    VAR(std::vector<bool>, L1_DoubleJet_80_30_Mass_Min420_IsoTau40_RmOvlp) \
     /* L1 objects */ \
     VAR(std::vector<int>, l1Tau_pt) /* L1 pt candidate*/ \
     VAR(std::vector<int>, l1Tau_eta) /* L1 eta candidate*/ \

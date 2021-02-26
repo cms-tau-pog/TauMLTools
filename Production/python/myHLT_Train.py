@@ -1,7 +1,39 @@
 import FWCore.ParameterSet.Config as cms
 def update(process):
+    l1_paths=["L1_LooseIsoEG22er2p1_IsoTau26er2p1_dR_Min0p3",
+                "L1_LooseIsoEG24er2p1_IsoTau27er2p1_dR_Min0p3",
+                "L1_LooseIsoEG22er2p1_Tau70er2p1_dR_Min0p3",
+                "L1_SingleTau120er2p1",
+                "L1_SingleTau130er2p1",
+                "L1_DoubleTau70er2p1",
+                "L1_DoubleIsoTau28er2p1",
+                "L1_DoubleIsoTau30er2p1",
+                "L1_DoubleIsoTau32er2p1",
+                "L1_DoubleIsoTau34er2p1",
+                "L1_DoubleIsoTau36er2p1",
+                "L1_DoubleIsoTau28er2p1_Mass_Max90",
+                "L1_DoubleIsoTau28er2p1_Mass_Max80",
+                "L1_DoubleIsoTau30er2p1_Mass_Max90",
+                "L1_DoubleIsoTau30er2p1_Mass_Max80",
+                "L1_Mu18er2p1_Tau24er2p1",
+                "L1_Mu18er2p1_Tau26er2p1",
+                "L1_Mu22er2p1_IsoTau28er2p1",
+                "L1_Mu22er2p1_IsoTau30er2p1",
+                "L1_Mu22er2p1_IsoTau32er2p1",
+                "L1_Mu22er2p1_IsoTau34er2p1",
+                "L1_Mu22er2p1_IsoTau36er2p1",
+                "L1_Mu22er2p1_IsoTau40er2p1",
+                "L1_Mu22er2p1_Tau70er2p1",
+                "L1_IsoTau40er2p1_ETMHF80",
+                "L1_IsoTau40er2p1_ETMHF90",
+                "L1_IsoTau40er2p1_ETMHF100",
+                "L1_IsoTau40er2p1_ETMHF110",
+                "L1_QuadJet36er2p5_IsoTau52er2p1",
+                "L1_DoubleJet35_Mass_Min450_IsoTau45_RmOvlp",
+                "L1_DoubleJet_80_30_Mass_Min420_IsoTau40_RmOvlp"]
+
     process.hltL1sTauExtremelyBigOR = cms.EDFilter( "HLTL1TSeed",
-        L1SeedsLogicalExpression = cms.string( "L1_LooseIsoEG22er2p1_IsoTau26er2p1_dR_Min0p3 OR L1_LooseIsoEG24er2p1_IsoTau27er2p1_dR_Min0p3 OR L1_LooseIsoEG22er2p1_Tau70er2p1_dR_Min0p3 OR L1_SingleTau120er2p1 OR L1_SingleTau130er2p1 OR L1_DoubleTau70er2p1 OR L1_DoubleIsoTau28er2p1 OR L1_DoubleIsoTau30er2p1 OR L1_DoubleIsoTau32er2p1 OR L1_DoubleIsoTau34er2p1 OR L1_DoubleIsoTau36er2p1 OR L1_DoubleIsoTau28er2p1_Mass_Max90 OR L1_DoubleIsoTau28er2p1_Mass_Max80 OR L1_DoubleIsoTau30er2p1_Mass_Max90 OR L1_DoubleIsoTau30er2p1_Mass_Max80 OR L1_Mu18er2p1_Tau24er2p1 OR L1_Mu18er2p1_Tau26er2p1 OR L1_Mu22er2p1_IsoTau28er2p1 OR L1_Mu22er2p1_IsoTau30er2p1 OR L1_Mu22er2p1_IsoTau32er2p1 OR L1_Mu22er2p1_IsoTau34er2p1 OR L1_Mu22er2p1_IsoTau36er2p1 OR L1_Mu22er2p1_IsoTau40er2p1 OR L1_Mu22er2p1_Tau70er2p1 OR L1_IsoTau40er2p1_ETMHF80 OR L1_IsoTau40er2p1_ETMHF90 OR L1_IsoTau40er2p1_ETMHF100 OR L1_IsoTau40er2p1_ETMHF110 OR L1_QuadJet36er2p5_IsoTau52er2p1 OR L1_DoubleJet35_Mass_Min450_IsoTau45_RmOvlp OR L1_DoubleJet_80_30_Mass_Min420_IsoTau40_RmOvlp" ),
+        L1SeedsLogicalExpression = cms.string( " OR ".join(l1_paths) ),
         L1EGammaInputTag = cms.InputTag( 'hltGtStage2Digis','EGamma' ),
         L1JetInputTag = cms.InputTag( 'hltGtStage2Digis','Jet' ),
         saveTags = cms.bool( True ),
@@ -11,6 +43,7 @@ def update(process):
         L1MuonInputTag = cms.InputTag( 'hltGtStage2Digis','Muon' ),
         L1GlobalInputTag = cms.InputTag( "hltGtStage2Digis" )
     )
+
     process.hltCaloTowerL1sTauExtremelyBigORSeededRegional = process.hltCaloTowerL1sTauVeryBigORSeededRegional.clone(
         TauTrigger = cms.InputTag('hltL1sTauExtremelyBigOR')
     )
@@ -83,12 +116,24 @@ def update(process):
         JetSrc = cms.InputTag( "hltL2TausForPixelIsolationL1TauSeededExtended" )
     )
 
+    process.l1ExtremelyBigORSequence = cms.Sequence()
+    l1Results = cms.PSet()
+    for l1_path in l1_paths:
+        l1_path_without_underscores = l1_path.replace("_", "")+"path"
+        #print l1_path_without_underscores
+        setattr(process, l1_path_without_underscores, process.hltL1sTauExtremelyBigOR.clone(
+                                            L1SeedsLogicalExpression = cms.string(l1_path)) )
+        process.l1ExtremelyBigORSequence+=cms.ignore(getattr(process, l1_path_without_underscores))
+        setattr(l1Results, l1_path, cms.InputTag(l1_path_without_underscores))
+    #print process.l1ExtremelyBigORSequence
+
     from HLTrigger.Configuration.customizeHLTforPatatrack import customizeHLTforPatatrackTriplets
     process = customizeHLTforPatatrackTriplets(process)
     process.TrainTupleProd = cms.EDAnalyzer("TrainTupleProducer",
         isMC = cms.bool(True),
+        l1Results = l1Results,
         genEvent = cms.InputTag("generator"),
-        #genParticles = cms.InputTag("genParticles"),
+        genParticles = cms.InputTag("genParticles"),
         puInfo = cms.InputTag("addPileupInfo"),
         l1taus=cms.InputTag('hltGtStage2Digis','Tau'),
         caloTowers = cms.InputTag("hltTowerMakerForAll"),
@@ -103,6 +148,7 @@ def update(process):
         pataTracks = cms.InputTag("hltPixelTracks"),
     )
 
+
     process.HLTCaloTausCreatorL1TauSeededRegionalSequenceExtended = cms.Sequence( process.HLTDoCaloSequence + cms.ignore(process.hltL1sTauExtremelyBigOR) + process.hltCaloTowerL1sTauExtremelyBigORSeededRegional + process.hltAkIsoTauL1sTauExtremelyBigORSeededRegional )
     process.HLTL2TauJetsL1TauSeededSequenceExtended = cms.Sequence( process.HLTCaloTausCreatorL1TauSeededRegionalSequenceExtended + process.hltL2TauJetsL1TauSeededExtended )
     process.HLTPixelTrackFromQuadAndTriSequenceRegL1TauSeededExtended = cms.Sequence( process.hltPixelTracksFilter + process.hltPixelTracksFitter + process.hltPixelTracksTrackingRegionsRegL1TauSeededExtended + process.hltPixelLayerQuadrupletsRegL1TauSeededExtended + process.hltPixelTracksHitDoubletsRegL1TauSeededExtended + process.hltPixelTracksHitQuadrupletsRegL1TauSeededExtended + process.hltPixelTracksFromQuadrupletsRegL1TauSeededExtended + process.hltPixelTripletsClustersRefRemovalRegL1TauSeededExtended + process.hltPixelLayerTripletsWithClustersRemovalRegL1TauSeededExtended + process.hltPixelTracksHitDoubletsForTripletsRegL1TauSeededExtended + process.hltPixelTracksHitTripletsRegL1TauSeededExtended + process.hltPixelTracksFromTripletsRegL1TauSeededExtended + process.hltPixelTracksMergedRegL1TauSeededExtended )
@@ -113,12 +159,13 @@ def update(process):
 
     process.HLTL2TauPixelIsolationSequenceL1TauSeededExtended = cms.Sequence( process.hltL2TausForPixelIsolationL1TauSeededExtended + process.HLTPixelTrackingSequenceRegL2TauL1TauSeededExtended + process.hltL2TauPixelIsoTagProducerL1TauSeededExtended )
 
-    process.HLT_TauTupleProd = cms.Path(process.HLTBeginSequence + process.HLTL2TauJetsL1TauSeededSequenceExtended + process.HLTL2TauPixelIsolationSequenceL1TauSeededExtended, process.HLTDoLocalPixelTask, process.HLTRecoPixelTracksTask, process.HLTRecopixelvertexingTask)
+    process.HLT_TauTupleProd = cms.Path(process.HLTBeginSequence + process.l1ExtremelyBigORSequence + process.HLTL2TauJetsL1TauSeededSequenceExtended + process.HLTL2TauPixelIsolationSequenceL1TauSeededExtended, process.HLTDoLocalPixelTask, process.HLTRecoPixelTracksTask, process.HLTRecopixelvertexingTask)
 
-    #process.HLT_TauTupleProd = cms.Path(process.HLTBeginSequence + process.HLTL2TauJetsL1TauSeededSequence +  process.HLTL2TauPixelIsolationSequenceL1TauSeeded + process.hltL1sDoubleTauBigOR + process.hltDoubleL2Tau26eta2p2 + process.hltL2TauIsoFilterL1TauSeeded + process.hltL2TauJetsIsoL1TauSeeded + process.hltDoubleL2IsoTau26eta2p2, process.HLTDoLocalPixelTask, process.HLTRecoPixelTracksTask, process.HLTRecopixelvertexingTask)
-    process.endjob_step.insert(0, process.TrainTupleProd)
+    #process.HLT_TauTupleProd = cms.Path(process.HLTBeginSequence + process.HLTL2TauJetsL1TauSeededSequence +  process.HLTL2TauPixelIsolationSequenceL1TauSeeded + ->> process.hltL1sDoubleTauBigOR + process.hltDoubleL2Tau26eta2p2 + process.hltL2TauIsoFilterL1TauSeeded + process.hltL2TauJetsIsoL1TauSeeded + process.hltDoubleL2IsoTau26eta2p2, process.HLTDoLocalPixelTask, process.HLTRecoPixelTracksTask, process.HLTRecopixelvertexingTask)
+    process.HLTAnalyzerEndpath.insert(1, process.TrainTupleProd)
+    #process.HLTAnalyzerEndpath.insert(0, process.l1ExtremelyBigORSequence)
     # process.HLT_DoubleMediumChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_v4,
-    process.schedule = cms.Schedule(*[ process.HLTriggerFirstPath, process.HLT_TauTupleProd, process.HLTriggerFinalPath, process.endjob_step ], tasks=[process.patAlgosToolsTask])
+    process.schedule = cms.Schedule(*[ process.HLTriggerFirstPath, process.HLT_TauTupleProd, process.HLTAnalyzerEndpath, process.HLTriggerFinalPath, process.endjob_step ], tasks=[process.patAlgosToolsTask])
     process.TFileService = cms.Service('TFileService', fileName = cms.string("ntuple_prova_4.root") )
 
     process.options.wantSummary = cms.untracked.bool(True)
