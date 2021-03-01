@@ -32,7 +32,12 @@ options.register('numberOfThreads', 1, VarParsing.multiplicity.singleton, VarPar
 options.register('storeJetsWithoutTau', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Store jets that don't match to any pat::Tau.")
 options.register('requireGenMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
-                 "Store only taus/jets that have GenLeptonMatch or GenQcdMatch.")
+                 "Store only tau jets that have genLepton_index >= 0 or genJet_index >= 0.")
+options.register('requireGenORRecoTauMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                 """Store only tau jets that satisfy the following condition:
+                    tau_index >= 0 || boostedTau_index >= 0 || (genLepton_index >= 0 && genLepton_kind == 5)""")
+options.register('applyRecoPtSieve', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                 "Randomly drop jet->tau fakes depending on reco tau pt to balance contributions from low and higt pt.")
 options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                 " If 'reclusterJets' set true a new collection of uncorrected ak4PFJets is built to seed taus (as at RECO), otherwise standard slimmedJets are used")
 options.register('rerunTauReco', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
@@ -176,10 +181,12 @@ tauJetBuilderSetup = cms.PSet(
 )
 
 process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
-    isMC               = cms.bool(not isData),
-    isEmbedded         = cms.bool(isEmbedded),
-    requireGenMatch    = cms.bool(options.requireGenMatch),
-    tauJetBuilderSetup = tauJetBuilderSetup,
+    isMC                     = cms.bool(not isData),
+    isEmbedded               = cms.bool(isEmbedded),
+    requireGenMatch          = cms.bool(options.requireGenMatch),
+    requireGenORRecoTauMatch = cms.bool(options.requireGenORRecoTauMatch),
+    applyRecoPtSieve         = cms.bool(options.applyRecoPtSieve),
+    tauJetBuilderSetup       = tauJetBuilderSetup,
 
     lheEventProduct    = cms.InputTag('externalLHEProducer'),
     genEvent           = cms.InputTag('generator'),
