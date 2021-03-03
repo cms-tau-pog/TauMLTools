@@ -1,5 +1,5 @@
 import FWCore.ParameterSet.Config as cms
-def update(process):
+def update(process, isData):
     l1_paths=["L1_LooseIsoEG22er2p1_IsoTau26er2p1_dR_Min0p3",
                 "L1_LooseIsoEG24er2p1_IsoTau27er2p1_dR_Min0p3",
                 "L1_LooseIsoEG22er2p1_Tau70er2p1_dR_Min0p3",
@@ -127,11 +127,14 @@ def update(process):
         setattr(l1Results, l1_path, cms.InputTag(l1_path_without_underscores))
     #print process.l1ExtremelyBigORSequence
 
+
+
     from HLTrigger.Configuration.customizeHLTforPatatrack import customizeHLTforPatatrackTriplets
     process = customizeHLTforPatatrackTriplets(process)
     process.TrainTupleProd = cms.EDAnalyzer("TrainTupleProducer",
-        isMC = cms.bool(True),
+        isMC = cms.bool(not isData),
         l1Results = l1Results,
+        TriggerResults = cms.InputTag("TriggerResults"),
         genEvent = cms.InputTag("generator"),
         genParticles = cms.InputTag("genParticles"),
         puInfo = cms.InputTag("addPileupInfo"),
@@ -165,13 +168,13 @@ def update(process):
     process.HLTAnalyzerEndpath.insert(1, process.TrainTupleProd)
     #process.HLTAnalyzerEndpath.insert(0, process.l1ExtremelyBigORSequence)
     # process.HLT_DoubleMediumChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_v4,
-    process.schedule = cms.Schedule(*[ process.HLTriggerFirstPath, process.HLT_TauTupleProd, process.HLTAnalyzerEndpath, process.HLTriggerFinalPath, process.endjob_step ], tasks=[process.patAlgosToolsTask])
+    process.schedule = cms.Schedule(*[ process.HLTriggerFirstPath, process.HLT_TauTupleProd, process.HLT_DoubleMediumChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_v4, process.HLTAnalyzerEndpath, process.HLTriggerFinalPath, process.endjob_step ], tasks=[process.patAlgosToolsTask])
     process.TFileService = cms.Service('TFileService', fileName = cms.string("ntuple_prova_4.root") )
 
-    process.options.wantSummary = cms.untracked.bool(True)
+    process.options.wantSummary = cms.untracked.bool(False)
     return process
 
-
+# salvare TriggerResults, intero, se passa o meno -> prendo il path ()
 # caloTaus = cms.InputTag("hltAkIsoTauL1sTauExtremelyBigORSeededRegional"), # in base a questi clusters creano un jet, con algoritmo antiKt --> jet prodotti (noi li definiamo "tau")
 # caloTowers = cms.InputTag("hltTowerMakerForAll"), # questo e proprio il nome del producer!!, comunque basandosi dove sono l1 taus sono ricostruite queste "calo towers" --> nel calo prendono i segnali in diversi cristalli (nella regione dei taul1, in un certo deltaR) e creano cluster
 # l1taus = cms.InputTag("hltL1sTauExtremelyBigOR"), # oggetti di l1, piu basso livello possibile

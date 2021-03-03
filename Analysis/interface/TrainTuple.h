@@ -29,8 +29,8 @@
     VAR(UInt_t, run) /* run number */ \
     VAR(UInt_t, lumi) /* lumi section */ \
     VAR(ULong64_t, evt) /* event number */ \
-    VAR(Int_t, npv) /* number of primary vertices */ \
-    VAR(Int_t, nppv) /* number of primary patavertices */ \
+    VAR(Int_t, module_index) /* number of primary patavertices */ \
+    VAR(Int_t, path_state) /* number of primary patavertices */ \
     VAR(Float_t, genEventWeight) /* gen event weight */ \
     /*VAR(Float_t, trainingWeight)  training weight */ \
     VAR(Int_t, sampleType) /* type of the sample (MC, Embedded or Data) */ \
@@ -233,6 +233,20 @@ INITIALIZE_TREE(train_tuple, TrainTuple, TAU_DATA)
 #undef CALO_TAU_VAR
 #undef TRACK_VAR
 #undef VERT
+
+#define AUX_PATH() \
+    VAR(std::vector<std::string>, module_names) \
+
+
+#define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
+DECLARE_TREE(train_tuple, AuxPath, AuxPathTuple, AUX_PATH, "AuxPath")
+#undef VAR
+
+#define VAR(type, name) ADD_DATA_TREE_BRANCH(name)
+INITIALIZE_TREE(train_tuple, AuxPathTuple, AUX_PATH)
+#undef VAR
+#undef AUX_PATH
+
 
 namespace train_tuple {
 

@@ -3,68 +3,70 @@
 
 #include "Compression.h"
 
+#include "DataFormats/CaloRecHit/interface/CaloRecHit.h"
+#include "DataFormats/CaloTowers/interface/CaloTowerCollection.h"
+#include "DataFormats/Candidate/interface/LeafCandidate.h"
+#include "DataFormats/Common/interface/Association.h"
+#include "DataFormats/Common/interface/AssociationVector.h"
+#include "DataFormats/Common/interface/HLTPathStatus.h"
+#include "DataFormats/Common/interface/HLTGlobalStatus.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/EcalRecHit/interface/EcalRecHit.h"
+#include "DataFormats/HcalDetId/interface/HcalDetId.h"
+#include "DataFormats/HcalRecHit/interface/HBHERecHit.h"
+#include "DataFormats/HcalRecHit/interface/HcalRecHitDefs.h"
+#include "DataFormats/HcalRecHit/interface/HFRecHit.h"
+#include "DataFormats/HcalRecHit/interface/HORecHit.h"
+#include "DataFormats/HLTReco/interface/TriggerFilterObjectWithRefs.h"
+#include "DataFormats/JetReco/interface/CaloJetCollection.h"
+#include "DataFormats/L1Trigger/interface/Tau.h"
+#include "DataFormats/MuonReco/interface/MuonSelectors.h"
+#include "DataFormats/RecoCandidate/interface/RecoEcalCandidate.h"
+#include "DataFormats/TauReco/interface/PFTau.h"
+#include "DataFormats/TauReco/interface/PFTauDiscriminator.h"
+#include "DataFormats/TauReco/interface/PFTauTransverseImpactParameter.h"
+#include "DataFormats/TauReco/interface/PFTauTransverseImpactParameterAssociation.h"
+#include "DataFormats/TauReco/interface/PFTauTransverseImpactParameterFwd.h"
+#include "DataFormats/TrackReco/interface/HitPattern.h"
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackReco/interface/TrackFwd.h"
+
+#include "FWCore/Common/interface/TriggerNames.h"
 #include "FWCore/Framework/interface/EDAnalyzer.h"
-#include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/ESHandle.h"
 #include "FWCore/Framework/interface/EventSetup.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 
-#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 #include "AnalysisDataFormats/TopObjects/interface/TtGenEvent.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "CommonTools/Utils/interface/StringToEnumValue.h"
 #include "RecoTauTag/RecoTau/interface/PFRecoTauClusterVariables.h"
+#include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 
-#include "TauMLTools/Core/interface/Tools.h"
-#include "TauMLTools/Core/interface/TextIO.h"
-#include "TauMLTools/Analysis/interface/TrainTuple.h"
+#include "TauMLTools/Analysis/interface/GenLepton.h"
 #include "TauMLTools/Analysis/interface/SummaryTuple.h"
 #include "TauMLTools/Analysis/interface/TauIdResults.h"
+#include "TauMLTools/Analysis/interface/TrainTuple.h"
+#include "TauMLTools/Core/interface/Tools.h"
+#include "TauMLTools/Core/interface/TextIO.h"
 #include "TauMLTools/Production/interface/GenTruthTools.h"
-#include "TauMLTools/Production/interface/TauAnalysis.h"
 #include "TauMLTools/Production/interface/MuonHitMatch.h"
+#include "TauMLTools/Production/interface/TauAnalysis.h"
 #include "TauMLTools/Production/interface/TauJet.h"
-#include "TauMLTools/Analysis/interface/GenLepton.h"
 
-#include "DataFormats/L1Trigger/interface/Tau.h"
-#include "DataFormats/TauReco/interface/PFTau.h"
-#include "DataFormats/TauReco/interface/PFTauDiscriminator.h"
-#include "DataFormats/Candidate/interface/LeafCandidate.h"
-#include "DataFormats/RecoCandidate/interface/RecoEcalCandidate.h"
-#include "DataFormats/TrackReco/interface/HitPattern.h"
-#include "DataFormats/MuonReco/interface/MuonSelectors.h"
-#include "DataFormats/TauReco/interface/PFTauTransverseImpactParameterAssociation.h"
-#include "DataFormats/TauReco/interface/PFTauTransverseImpactParameterFwd.h"
-#include "DataFormats/TauReco/interface/PFTauTransverseImpactParameter.h"
-#include "DataFormats/Common/interface/AssociationVector.h"
-#include "DataFormats/Common/interface/Association.h"
-#include "DataFormats/CaloTowers/interface/CaloTowerCollection.h"
-#include "DataFormats/TrackReco/interface/TrackFwd.h"
-#include "DataFormats/TrackReco/interface/Track.h"
-#include "DataFormats/JetReco/interface/CaloJetCollection.h"
-#include "DataFormats/CaloRecHit/interface/CaloRecHit.h"
-#include "DataFormats/HcalDetId/interface/HcalDetId.h"
+#include "Geometry/CaloGeometry/interface/CaloCellGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
-#include "Geometry/CaloTopology/interface/HcalTopology.h"
-#include "DataFormats/HcalRecHit/interface/HBHERecHit.h"
-#include "DataFormats/HcalRecHit/interface/HFRecHit.h"
-#include "DataFormats/HcalRecHit/interface/HORecHit.h"
-#include "DataFormats/HcalRecHit/interface/HcalRecHitDefs.h"
-#include "DataFormats/EcalRecHit/interface/EcalRecHit.h"
+#include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 #include "Geometry/CaloTopology/interface/CaloTowerTopology.h"
 #include "Geometry/CaloTopology/interface/CaloTowerConstituentsMap.h"
-#include "Geometry/CaloGeometry/interface/CaloCellGeometry.h"
-#include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
-#include "RecoLocalCalo/CaloTowersCreator/src/CaloTowersCreator.h"
-#include "Geometry/CaloGeometry/interface/CaloGeometry.h"
-#include "FWCore/Framework/interface/ESHandle.h"
 #include "Geometry/CaloTopology/interface/HcalTopology.h"
-#include "Geometry/CaloTopology/interface/CaloTowerTopology.h"
-#include "RecoLocalCalo/CaloTowersCreator/interface/EScales.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
-// severity level for ECAL
+
+#include "RecoLocalCalo/CaloTowersCreator/interface/EScales.h"
+#include "RecoLocalCalo/CaloTowersCreator/src/CaloTowersCreator.h"
 #include "RecoLocalCalo/EcalRecAlgos/interface/EcalSeverityLevelAlgoRcd.h"
-#include "DataFormats/HLTReco/interface/TriggerFilterObjectWithRefs.h"
 
 namespace tau_analysis {
 
@@ -73,6 +75,7 @@ struct TrainTupleProducerData {
 
     const clock::time_point start;
     train_tuple::TrainTuple trainTuple;
+    train_tuple::AuxPathTuple auxTuple;
     tau_tuple::SummaryTuple summaryTuple;
     std::mutex mutex;
 
@@ -82,6 +85,7 @@ private:
     TrainTupleProducerData(TFile& file) :
         start(clock::now()),
         trainTuple("taus", &file, false),
+        auxTuple("AuxPath", &file, false),
         summaryTuple("summary", &file, false),
         n_producers(0)
     {
@@ -120,6 +124,7 @@ public:
                       << "." << std::endl;
             if(!data->n_producers) {
                 data->trainTuple.Write();
+                data->auxTuple.Write();
                 const auto stop = clock::now();
                 data->summaryTuple().exeTime = static_cast<unsigned>(
                             std::chrono::duration_cast<std::chrono::seconds>(stop - data->start).count());
@@ -166,6 +171,7 @@ public:
         isMC(cfg.getParameter<bool>("isMC")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
         genParticles_token(mayConsume<std::vector<reco::GenParticle>>(cfg.getParameter<edm::InputTag>("genParticles"))),
+        TR_token(consumes<edm::TriggerResults>(cfg.getParameter<edm::InputTag>("TriggerResults"))),
         puInfo_token(mayConsume<std::vector<PileupSummaryInfo>>(cfg.getParameter<edm::InputTag>("puInfo"))),
         l1Taus_token(consumes<l1t::TauBxCollection>(cfg.getParameter<edm::InputTag>("l1taus"))), // --> VBor
         caloTowers_token(consumes<CaloTowerCollection>(cfg.getParameter<edm::InputTag>("caloTowers"))),
@@ -181,12 +187,15 @@ public:
         pataTracks_token(consumes<reco::TrackCollection>(cfg.getParameter<edm::InputTag>("pataTracks"))),
         data(TrainTupleProducerData::RequestGlobalData()),
         trainTuple(data->trainTuple),
+        auxTuple(data->auxTuple),
         summaryTuple(data->summaryTuple)
     {
       const auto& pSet = cfg.getParameterSet("l1Results");
       for (const auto& l1name : pSet.getParameterNames()){
           l1_token_map[l1name] = consumes<trigger::TriggerFilterObjectWithRefs>(pSet.getParameter<edm::InputTag>(l1name));
       }
+
+
       const unsigned nLabels = ecalLabels.size();
       for (unsigned i = 0; i != nLabels; i++)
         ecal_tokens.push_back(consumes<EcalRecHitCollection>(ecalLabels[i]));
@@ -225,10 +234,27 @@ private:
         edm::Handle<l1t::TauBxCollection> l1Taus;
         event.getByToken(l1Taus_token, l1Taus);
 
+        edm::Handle<edm::TriggerResults> Trigger_Results;
+        event.getByToken(TR_token, Trigger_Results);
+        const edm::TriggerNames& trigger_names = event.triggerNames(*Trigger_Results);
+        /*
+        for (const auto& par : names.triggerNames()){
+          std::cout << "trigger name = " << par << std::endl;
+        }
+        */
+        edm::ProcessConfiguration config;
+        event.processHistory().getConfigurationForProcess("tupleProduction", config);
+        const auto& pSet = event.parameterSet(config.parameterSetID());
+        /*
+        for (const auto& par : pSet->getParameterNames()){
+          std::cout << "module in reHLT name " << par << std::endl;
+        }
+        */
         std::map<std::string, edm::Handle<trigger::TriggerFilterObjectWithRefs>> l1_handle_map;
         for(const auto& element : l1_token_map){
           event.getByToken(element.second, l1_handle_map[element.first]);
         }
+
 
         edm::Handle<EcalRecHitCollection> ebHandle;
         edm::Handle<EcalRecHitCollection> eeHandle;
@@ -285,7 +311,7 @@ private:
         edm::Handle<std::vector<reco::GenParticle>> hGenParticles;
         if(isMC){
             event.getByToken(genParticles_token, hGenParticles);
-            static std::vector<reco_tau::gen_truth::GenLepton> GenLeptons = reco_tau::gen_truth::GenLepton::fromGenParticleCollection(*hGenParticles);
+            std::vector<reco_tau::gen_truth::GenLepton> GenLeptons = reco_tau::gen_truth::GenLepton::fromGenParticleCollection(*hGenParticles);
             FillGenLepton(GenLeptons);
           }
 
@@ -298,7 +324,8 @@ private:
         FillCaloRecHit(AllCaloRecHits);
         FillCaloTowers(*caloTowers);
         FillCaloTaus(*caloTaus);
-
+        FillHLTResults(*Trigger_Results, *pSet, trigger_names.triggerNames());
+        auxTuple.Fill();
         trainTuple.Fill();
     }
 
@@ -309,89 +336,113 @@ private:
 
 private:
 
+  void FillHLTResults(const edm::TriggerResults& Trigger_Results, const edm::ParameterSet& pSet, const std::vector<std::string>& trigger_names){
+    // 1 trovare la posizioe del nome del trigger nel vettore - per ora solo _v4
+    const int position_of_path  = std::distance(trigger_names.begin(), std::find( trigger_names.begin(), trigger_names.end(), "HLT_DoubleMediumChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_v4" )) ;
+    // 2 prendi da trigger results tramite la funzione at l'indice del TriggerResults
+    const edm::HLTPathStatus& hlt_path_status = Trigger_Results.at(position_of_path);
+    // 3 l'indice mi ritorna hltpathstatus che salvo , mi ritorna indice del modulo che ha preso la decisione (ultimo) e state numero che va da 0 a 3
+    const std::vector<std::string>& module_names = pSet.getParameter<std::vector<std::string>>("HLT_DoubleMediumChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_v4"); // ->  dopo devo fare module_names.at(hltpathstatus.index()), questo sara il nome
+    auxTuple().module_names = module_names;
+    trainTuple().path_state = hlt_path_status.state();
+    trainTuple().module_index = hlt_path_status.index();
+    // info che vogliamo : stato, per questo specifico modulo, booleano per capire se il modulo e' ultimo.
+    // nome modulo (nome branch) + booleano se e' ultimo (contenuto branch)
+    // N branch per i moduli + 1 per path intero
+    // stato per il risultato del path intero
 
-  void FillGenLepton(const std::vector<reco_tau::gen_truth::GenLepton>& genLeptons)
-  {
-      for(const auto& genLepton : genLeptons){
-        trainTuple().genLepton_nParticles.push_back(static_cast<int>(genLepton.allParticles().size()));
-        trainTuple().genLepton_kind.push_back(static_cast<int>(genLepton.kind()));
-        trainTuple().genLepton_charge.push_back(genLepton.charge());
-        trainTuple().genLepton_vis_pt.push_back(static_cast<float>(genLepton.visibleP4().pt()));
-        trainTuple().genLepton_vis_eta.push_back(static_cast<float>(genLepton.visibleP4().eta()));
-        trainTuple().genLepton_vis_phi.push_back(static_cast<float>(genLepton.visibleP4().phi()));
-        trainTuple().genLepton_vis_mass.push_back(static_cast<float>(genLepton.visibleP4().mass()));
-        //trainTuple().genLepton_lastMotherIndex default_int_value;
+  }
 
-        const auto ref_ptr = genLepton.allParticles().data();
+    void FillGenLepton(const std::vector<reco_tau::gen_truth::GenLepton>& genLeptons)
+    {
+        for(const auto& genLepton : genLeptons){
+            trainTuple().genLepton_nParticles.push_back(static_cast<int>(genLepton.allParticles().size()));
+            trainTuple().genLepton_kind.push_back(static_cast<int>(genLepton.kind()));
+            trainTuple().genLepton_charge.push_back(genLepton.charge());
+            trainTuple().genLepton_vis_pt.push_back(static_cast<float>(genLepton.visibleP4().pt()));
+            trainTuple().genLepton_vis_eta.push_back(static_cast<float>(genLepton.visibleP4().eta()));
+            trainTuple().genLepton_vis_phi.push_back(static_cast<float>(genLepton.visibleP4().phi()));
+            trainTuple().genLepton_vis_mass.push_back(static_cast<float>(genLepton.visibleP4().mass()));
+            //trainTuple().genLepton_lastMotherIndex default_int_value;
 
-        auto getIndex = [&](const reco_tau::gen_truth::GenParticle* particle) {
-              int pos = -1;
-              if(particle) {
-                  pos = static_cast<int>(particle - ref_ptr);
-                  if(pos < 0 || pos >= static_cast<int>(genLepton.allParticles().size()))
-                      throw cms::Exception("TrainTupleProducer") << "Unable to determine a gen particle index.";
+            const auto ref_ptr = genLepton.allParticles().data();
+
+            auto getIndex = [&](const reco_tau::gen_truth::GenParticle* particle) {
+                  int pos = -1;
+                  if(particle) {
+                      pos = static_cast<int>(particle - ref_ptr);
+                      if(pos < 0 || pos >= static_cast<int>(genLepton.allParticles().size()))
+                          throw cms::Exception("TrainTupleProducer") << "Unable to determine a gen particle index.";
+                  }
+                  return pos;
+              };
+
+              auto encodeMotherIndex = [&](const std::set<const reco_tau::gen_truth::GenParticle*>& mothers) {
+                  static constexpr int shift_scale =
+                          static_cast<Long64_t>(reco_tau::gen_truth::GenLepton::MaxNumberOfParticles);;
+
+                  if(mothers.empty()) return -1;
+                  if(mothers.size() > 6)
+                      throw cms::Exception("TrainTupleProducer") << "Gen particle with > 6 mothers.";
+                  if(mothers.size() > 1 && genLepton.allParticles().size() > static_cast<size_t>(shift_scale))
+                      throw cms::Exception("TrainTupleProducer") << "Too many gen particles per gen lepton.";
+                  int pos = 0;
+                  int shift = 1;
+                  std::set<int> mother_indices;
+                  for(auto mother : mothers)
+                      mother_indices.insert(getIndex(mother));
+                  for(int mother_idx : mother_indices) {
+                      pos = pos + shift * mother_idx;
+                      shift *= shift_scale;
+                  }
+                  return pos;
+              };
+
+              trainTuple().genLepton_lastMotherIndex.push_back(static_cast<int>(genLepton.mothers().size()) - 1);
+              for(const auto& p : genLepton.allParticles()) {
+                  trainTuple().genParticle_pdgId.push_back(p.pdgId);
+                  trainTuple().genParticle_mother.push_back(encodeMotherIndex(p.mothers));
+                  trainTuple().genParticle_charge.push_back(p.charge);
+                  trainTuple().genParticle_isFirstCopy.push_back(p.isFirstCopy);
+                  trainTuple().genParticle_isLastCopy.push_back(p.isLastCopy);
+                  trainTuple().genParticle_pt.push_back(p.p4.pt());
+                  trainTuple().genParticle_eta.push_back(p.p4.eta());
+                  trainTuple().genParticle_phi.push_back(p.p4.phi());
+                  trainTuple().genParticle_mass.push_back(p.p4.mass());
+                  trainTuple().genParticle_vtx_x.push_back(p.vertex.x());
+                  trainTuple().genParticle_vtx_y.push_back(p.vertex.y());
+                  trainTuple().genParticle_vtx_z.push_back(p.vertex.z());
               }
-              return pos;
-          };
-
-          auto encodeMotherIndex = [&](const std::set<const reco_tau::gen_truth::GenParticle*>& mothers) {
-              static constexpr int shift_scale = 1000;
-
-              if(mothers.empty()) return -1;
-              if(mothers.size() > 2)
-                  throw cms::Exception("TrainTupleProducer") << "Gen particle with >= 2 mothers.";
-              if(mothers.size() > 1 && genLepton.allParticles().size() > static_cast<size_t>(shift_scale))
-                  throw cms::Exception("TrainTupleProducer") << "Too many gen particles per gen lepton.";
-              int pos = 0;
-              int shift = 1;
-              for(auto mother : mothers) {
-                  pos = pos + shift * getIndex(mother);
-                  shift *= shift_scale;
-              }
-              return pos;
-          };
-
-          trainTuple().genLepton_lastMotherIndex.push_back(static_cast<int>(genLepton.mothers().size()) - 1);
-          for(const auto& p : genLepton.allParticles()) {
-              trainTuple().genParticle_pdgId.push_back(p.pdgId);
-              trainTuple().genParticle_mother.push_back(encodeMotherIndex(p.mothers));
-              trainTuple().genParticle_charge.push_back(p.charge);
-              trainTuple().genParticle_isFirstCopy.push_back(p.isFirstCopy);
-              trainTuple().genParticle_isLastCopy.push_back(p.isLastCopy);
-              trainTuple().genParticle_pt.push_back(p.p4.pt());
-              trainTuple().genParticle_eta.push_back(p.p4.eta());
-              trainTuple().genParticle_phi.push_back(p.p4.phi());
-              trainTuple().genParticle_mass.push_back(p.p4.mass());
-              trainTuple().genParticle_vtx_x.push_back(p.vertex.x());
-              trainTuple().genParticle_vtx_y.push_back(p.vertex.y());
-              trainTuple().genParticle_vtx_z.push_back(p.vertex.z());
-            }
-          }
+        }
     }
 
+
+    void FillL1Paths(const std::string& var_name, bool comparison){
+        trainTuple.get<std::vector<bool>>(var_name).push_back(comparison);
+    }
 
     void FillL1Objects(const l1t::TauBxCollection& l1Taus, const std::map<std::string, edm::Handle<trigger::TriggerFilterObjectWithRefs>>& l1_handle_map)
     {
         /* passa anche la mappa di l1Results -> per ogni oggetto salva come booleani*/
-        std::map<std::string, bool> boolean_map;
+        bool comparison = false;
+        // loop over l1taus
         for(auto iter = l1Taus.begin(0); iter != l1Taus.end(0); ++iter) {
-          const l1t::Tau * pointer_to_l1tau = &* iter;
-          for(const auto& element : l1_handle_map){
-            const trigger::TriggerFilterObjectWithRefs object = *element.second;
-            const std::vector<edm::Ref<BXVector<l1t::Tau>>> tau_vector = object.l1ttauRefs();
-            bool comparison = false;
-            for (const auto &k : tau_vector ){
-              const l1t::Tau * pointer_to_l1tau_in_map = &*k;
-              if(pointer_to_l1tau == pointer_to_l1tau_in_map){
-                  comparison = true ;
-                  break;
-              }
+            const l1t::Tau * pointer_to_l1tau = &* iter;
+            // loop over map
+            for(const auto& element : l1_handle_map){
+                const trigger::TriggerFilterObjectWithRefs * object = &*element.second;
+                const std::vector<edm::Ref<BXVector<l1t::Tau>>> tau_vector = object->l1ttauRefs();
+                // loop over map vector object
+                for (const auto &k : tau_vector ){
+                    const l1t::Tau * pointer_to_l1tau_in_map = &*k;
+                    // compare map vector elements with l1taus
+                    if(pointer_to_l1tau == pointer_to_l1tau_in_map){
+                        comparison = true ;
+                        break;
+                    }
+                }
+                FillL1Paths(element.first, comparison);
             }
-            boolean_map[element.first]=comparison;
-          }
-
-           /*punto anche all'altro oggetto nella mappa (loop su mappa!)  e vedere se diventano dello stesso tipo
-          poi confrontarli e restituire un booleano */
             trainTuple().l1Tau_pt.push_back(static_cast<float>(iter->polarP4().pt()));
             trainTuple().l1Tau_eta.push_back(static_cast<float>(iter->polarP4().eta()));
             trainTuple().l1Tau_phi.push_back(static_cast<float>(iter->polarP4().phi()));
@@ -406,37 +457,7 @@ private:
 
             trainTuple().l1Tau_hwIso.push_back(iter->hwIso());
             trainTuple().l1Tau_hwQual.push_back(iter->hwQual());
-            trainTuple().L1_LooseIsoEG22er2p1_IsoTau26er2p1_dR_Min0p3.push_back(boolean_map.at("L1_LooseIsoEG22er2p1_IsoTau26er2p1_dR_Min0p3"));
-            trainTuple().L1_LooseIsoEG24er2p1_IsoTau27er2p1_dR_Min0p3.push_back(boolean_map.at("L1_LooseIsoEG24er2p1_IsoTau27er2p1_dR_Min0p3"));
-            trainTuple().L1_LooseIsoEG22er2p1_Tau70er2p1_dR_Min0p3.push_back(boolean_map.at("L1_LooseIsoEG22er2p1_Tau70er2p1_dR_Min0p3"));
-            trainTuple().L1_SingleTau120er2p1.push_back(boolean_map.at("L1_SingleTau120er2p1"));
-            trainTuple().L1_SingleTau130er2p1.push_back(boolean_map.at("L1_SingleTau130er2p1"));
-            trainTuple().L1_DoubleTau70er2p1.push_back(boolean_map.at("L1_DoubleTau70er2p1"));
-            trainTuple().L1_DoubleIsoTau28er2p1.push_back(boolean_map.at("L1_DoubleIsoTau28er2p1"));
-            trainTuple().L1_DoubleIsoTau30er2p1.push_back(boolean_map.at("L1_DoubleIsoTau30er2p1"));
-            trainTuple().L1_DoubleIsoTau32er2p1.push_back(boolean_map.at("L1_DoubleIsoTau32er2p1"));
-            trainTuple().L1_DoubleIsoTau34er2p1.push_back(boolean_map.at("L1_DoubleIsoTau34er2p1"));
-            trainTuple().L1_DoubleIsoTau36er2p1.push_back(boolean_map.at("L1_DoubleIsoTau36er2p1"));
-            trainTuple().L1_DoubleIsoTau28er2p1_Mass_Max90.push_back(boolean_map.at("L1_DoubleIsoTau28er2p1_Mass_Max90"));
-            trainTuple().L1_DoubleIsoTau28er2p1_Mass_Max80.push_back(boolean_map.at("L1_DoubleIsoTau28er2p1_Mass_Max80"));
-            trainTuple().L1_DoubleIsoTau30er2p1_Mass_Max90.push_back(boolean_map.at("L1_DoubleIsoTau30er2p1_Mass_Max90"));
-            trainTuple().L1_DoubleIsoTau30er2p1_Mass_Max80.push_back(boolean_map.at("L1_DoubleIsoTau30er2p1_Mass_Max80"));
-            trainTuple().L1_Mu18er2p1_Tau24er2p1.push_back(boolean_map.at("L1_Mu18er2p1_Tau24er2p1"));
-            trainTuple().L1_Mu18er2p1_Tau26er2p1.push_back(boolean_map.at("L1_Mu18er2p1_Tau26er2p1"));
-            trainTuple().L1_Mu22er2p1_IsoTau28er2p1.push_back(boolean_map.at("L1_Mu22er2p1_IsoTau28er2p1"));
-            trainTuple().L1_Mu22er2p1_IsoTau30er2p1.push_back(boolean_map.at("L1_Mu22er2p1_IsoTau30er2p1"));
-            trainTuple().L1_Mu22er2p1_IsoTau32er2p1.push_back(boolean_map.at("L1_Mu22er2p1_IsoTau32er2p1"));
-            trainTuple().L1_Mu22er2p1_IsoTau34er2p1.push_back(boolean_map.at("L1_Mu22er2p1_IsoTau34er2p1"));
-            trainTuple().L1_Mu22er2p1_IsoTau36er2p1.push_back(boolean_map.at("L1_Mu22er2p1_IsoTau36er2p1"));
-            trainTuple().L1_Mu22er2p1_IsoTau40er2p1.push_back(boolean_map.at("L1_Mu22er2p1_IsoTau40er2p1"));
-            trainTuple().L1_Mu22er2p1_Tau70er2p1.push_back(boolean_map.at("L1_Mu22er2p1_Tau70er2p1"));
-            trainTuple().L1_IsoTau40er2p1_ETMHF80.push_back(boolean_map.at("L1_IsoTau40er2p1_ETMHF80"));
-            trainTuple().L1_IsoTau40er2p1_ETMHF90.push_back(boolean_map.at("L1_IsoTau40er2p1_ETMHF90"));
-            trainTuple().L1_IsoTau40er2p1_ETMHF100.push_back(boolean_map.at("L1_IsoTau40er2p1_ETMHF100"));
-            trainTuple().L1_IsoTau40er2p1_ETMHF110.push_back(boolean_map.at("L1_IsoTau40er2p1_ETMHF110"));
-            trainTuple().L1_QuadJet36er2p5_IsoTau52er2p1.push_back(boolean_map.at("L1_QuadJet36er2p5_IsoTau52er2p1"));
-            trainTuple().L1_DoubleJet35_Mass_Min450_IsoTau45_RmOvlp.push_back(boolean_map.at("L1_DoubleJet35_Mass_Min450_IsoTau45_RmOvlp"));
-            trainTuple().L1_DoubleJet_80_30_Mass_Min420_IsoTau40_RmOvlp.push_back(boolean_map.at("L1_DoubleJet_80_30_Mass_Min420_IsoTau40_RmOvlp"));
+
         }
     }
 
@@ -642,6 +663,7 @@ private:
     TauJetBuilderSetup builderSetup;
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;
     edm::EDGetTokenT<std::vector<reco::GenParticle>> genParticles_token;
+    edm::EDGetTokenT<edm::TriggerResults> TR_token;
     edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puInfo_token;
     edm::EDGetTokenT<l1t::TauBxCollection> l1Taus_token;
     edm::EDGetTokenT<CaloTowerCollection> caloTowers_token;
@@ -657,8 +679,10 @@ private:
     edm::EDGetTokenT<reco::TrackCollection> Tracks_token;
     edm::EDGetTokenT<reco::TrackCollection> pataTracks_token;
     std::map<std::string, edm::EDGetTokenT<trigger::TriggerFilterObjectWithRefs>> l1_token_map ;
+    std::map<std::string, edm::EDGetTokenT<trigger::TriggerFilterObjectWithRefs>> other_filters_token_map ;
     TrainTupleProducerData* data;
     train_tuple::TrainTuple& trainTuple;
+    train_tuple::AuxPathTuple& auxTuple;
     tau_tuple::SummaryTuple& summaryTuple;
 
 };
