@@ -190,7 +190,7 @@ public:
         : name(_name), directory(_directory), readMode(_readMode), disabled_branches(_disabled_branches),
           enabled_branches(_enabled_branches)
     {
-        static constexpr Long64_t maxVirtualSize = 200 * 1024 * 1024;
+        static constexpr Long64_t maxVirtualSize = 100 * 1024 * 1024;
         static constexpr Long64_t autoFlush = - 50 * 1024 * 1024;
         static constexpr Long64_t maxTreeSize = 1000000000000LL;
 
@@ -198,6 +198,7 @@ public:
             if(!directory)
                 throw std::runtime_error("Can't read tree from nonexistent directory.");
             tree = dynamic_cast<TTree*>(directory->Get(name.c_str()));
+            tree->SetMaxVirtualSize(maxVirtualSize);
             if(!tree)
                 throw std::runtime_error("Tree not found.");
             if(tree->GetNbranches())
