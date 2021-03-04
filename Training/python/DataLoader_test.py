@@ -6,10 +6,10 @@ import ctypes
 import time
 import sys
 import enumecg
-import json_parse
+import yaml_parse
 
 R.gROOT.ProcessLine(".include ../../..")
-R.gInterpreter.ProcessLine(json_parse.create_settings("../configs/training_v1.json"))
+R.gInterpreter.ProcessLine(yaml_parse.create_settings("../configs/training_v1.yaml",verbose=False))
 R.gInterpreter.ProcessLine('#include "../interface/DataLoader_main.h"')
 
 n_tau          = R.Setup.n_tau
@@ -28,13 +28,14 @@ tau_types   = R.Setup.tau_types
 data_loader = R.DataLoader()
 print("Number of all entries / batch size: ", data_loader.GetEntries()/n_tau)
 
-n_batches = 2000
-n_batches_store = 10
+n_batches = 1000
+n_batches_store = 5
 
 # To convert list to tensor
 def to_tensor(data_list):
 
-    length = len(data_list)
+    # length = len(data_list)
+    length = data_list.qsize()
 
     y = np.zeros((length,n_tau,tau_types))
     w = np.zeros((length,n_tau))
@@ -56,7 +57,7 @@ def to_tensor(data_list):
     x_inner_6 = np.zeros((length, n_tau, n_inner_cells, n_inner_cells, n_ele))
     x_inner_7 = np.zeros((length, n_tau, n_inner_cells, n_inner_cells, n_muon))
 
-    for i, data in enumerate(data_list):
+    for i, data in enumerate(data_list.queue):
 
         y[i] = np.frombuffer(data.y_onehot.data(), dtype=np.float32, count=data.y_onehot.size()).reshape((n_tau, tau_types))
         w[i] = np.frombuffer(data.weight.data(), dtype=np.float32, count=data.weight.size())
@@ -100,6 +101,9 @@ for i in range(n_batches):
     end = time.time()
     print(i, " end: ",end-start, ' s.')
     times.append(end-start)
+
+x = to_tensor(data_que)
+print(type(x))
 
 from statistics import mean
 print("Mean time: ", mean(times))
