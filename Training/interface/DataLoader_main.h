@@ -103,26 +103,27 @@ struct Data {
          x_tau(n_tau * tau_fn, 0), weight(n_tau, 0), y_onehot(n_tau * tau_labels, 0)
          {
           // pf electron
-           x_grid[CellObjectType::PfCand_electron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfelectron_fn,0);
-           x_grid[CellObjectType::PfCand_electron][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * pfelectron_fn,0);
+           // x_grid[CellObjectType::PfCand_electron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfelectron_fn,0);
+           x_grid[CellObjectType::PfCand_electron][0].resize(n_tau * n_outer_cells * n_outer_cells * pfelectron_fn,0);
+           x_grid[CellObjectType::PfCand_electron][1].resize(n_tau * n_inner_cells * n_inner_cells * pfelectron_fn,0);
            // pf muons
-           x_grid[CellObjectType::PfCand_muon][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfmuon_fn,0);
-           x_grid[CellObjectType::PfCand_muon][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * pfmuon_fn,0);
+           x_grid[CellObjectType::PfCand_muon][0].resize(n_tau * n_outer_cells * n_outer_cells * pfmuon_fn,0);
+           x_grid[CellObjectType::PfCand_muon][1].resize(n_tau * n_inner_cells * n_inner_cells * pfmuon_fn,0);
            // pf charged hadrons
-           x_grid[CellObjectType::PfCand_chargedHadron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfchargedhad_fn,0);
-           x_grid[CellObjectType::PfCand_chargedHadron][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * pfchargedhad_fn,0);
+           x_grid[CellObjectType::PfCand_chargedHadron][0].resize(n_tau * n_outer_cells * n_outer_cells * pfchargedhad_fn,0);
+           x_grid[CellObjectType::PfCand_chargedHadron][1].resize(n_tau * n_inner_cells * n_inner_cells * pfchargedhad_fn,0);
            // pf neutral hadrons
-           x_grid[CellObjectType::PfCand_neutralHadron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfneutralhad_fn,0);
-           x_grid[CellObjectType::PfCand_neutralHadron][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * pfneutralhad_fn,0);
+           x_grid[CellObjectType::PfCand_neutralHadron][0].resize(n_tau * n_outer_cells * n_outer_cells * pfneutralhad_fn,0);
+           x_grid[CellObjectType::PfCand_neutralHadron][1].resize(n_tau * n_inner_cells * n_inner_cells * pfneutralhad_fn,0);
            // pf gamma
-           x_grid[CellObjectType::PfCand_gamma][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfgamma_fn,0);
-           x_grid[CellObjectType::PfCand_gamma][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * pfgamma_fn,0);
+           x_grid[CellObjectType::PfCand_gamma][0].resize(n_tau * n_outer_cells * n_outer_cells * pfgamma_fn,0);
+           x_grid[CellObjectType::PfCand_gamma][1].resize(n_tau * n_inner_cells * n_inner_cells * pfgamma_fn,0);
            // electrons
-           x_grid[CellObjectType::Electron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * electron_fn,0);
-           x_grid[CellObjectType::Electron][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * electron_fn,0);
+           x_grid[CellObjectType::Electron][0].resize(n_tau * n_outer_cells * n_outer_cells * electron_fn,0);
+           x_grid[CellObjectType::Electron][1].resize(n_tau * n_inner_cells * n_inner_cells * electron_fn,0);
            // muons
-           x_grid[CellObjectType::Muon][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * muon_fn,0);
-           x_grid[CellObjectType::Muon][1] = std::vector<float>(n_tau * n_inner_cells * n_inner_cells * muon_fn,0);
+           x_grid[CellObjectType::Muon][0].resize(n_tau * n_outer_cells * n_outer_cells * muon_fn,0);
+           x_grid[CellObjectType::Muon][1].resize(n_tau * n_inner_cells * n_inner_cells * muon_fn,0);
          }
 
     std::vector<float> x_tau;
@@ -153,7 +154,7 @@ public:
 
       std::cout << "Number of files to process: " << input_files.size() << std::endl;
       tauTuple = std::make_shared<TauTuple>("taus", input_files);
-      end_entry = std::min(Setup::end_dataset, tauTuple->GetEntries());
+      end_entry = std::min((long long)end_dataset, tauTuple->GetEntries());
 
       // histogram to calculate weights
       // TH1::AddDirectory(kFALSE);
@@ -336,6 +337,7 @@ public:
         const bool tau_gj_angle_diff_valid = (std::isnormal(tau.tau_gj_angle_diff) || tau.tau_gj_angle_diff == 0)
             && tau.tau_gj_angle_diff >= 0;
         get_tau_branch(TauFlat_Features::tau_gj_angle_diff_valid) = tau_gj_angle_diff_valid;
+
         if(tau_gj_angle_diff_valid)
           get_tau_branch(TauFlat_Features::tau_gj_angle_diff) = tau.tau_gj_angle_diff;
 
