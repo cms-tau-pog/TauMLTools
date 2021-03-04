@@ -243,7 +243,7 @@ private:
         }
         */
         edm::ProcessConfiguration config;
-        event.processHistory().getConfigurationForProcess("tupleProduction", config);
+        event.processHistory().getConfigurationForProcess("reHLT", config);
         const auto& pSet = event.parameterSet(config.parameterSetID());
         /*
         for (const auto& par : pSet->getParameterNames()){

@@ -169,7 +169,10 @@ def update(process, isData):
     #process.HLTAnalyzerEndpath.insert(0, process.l1ExtremelyBigORSequence)
     # process.HLT_DoubleMediumChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_v4,
     process.schedule = cms.Schedule(*[ process.HLTriggerFirstPath, process.HLT_TauTupleProd, process.HLT_DoubleMediumChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_v4, process.HLTAnalyzerEndpath, process.HLTriggerFinalPath, process.endjob_step ], tasks=[process.patAlgosToolsTask])
-    process.TFileService = cms.Service('TFileService', fileName = cms.string("ntuple_prova_4.root") )
+    if isData:
+        process.TFileService = cms.Service('TFileService', fileName = cms.string("ntuple_prova_Data.root") )
+    else:
+        process.TFileService = cms.Service('TFileService', fileName = cms.string("ntuple_prova_MC.root") )
 
     process.options.wantSummary = cms.untracked.bool(False)
     return process
