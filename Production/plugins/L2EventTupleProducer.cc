@@ -48,7 +48,7 @@
 #include "TauMLTools/Analysis/interface/GenLepton.h"
 #include "TauMLTools/Analysis/interface/SummaryTuple.h"
 #include "TauMLTools/Analysis/interface/TauIdResults.h"
-#include "TauMLTools/Analysis/interface/TrainTuple.h"
+#include "TauMLTools/Analysis/interface/L2EventTuple.h"
 #include "TauMLTools/Core/interface/Tools.h"
 #include "TauMLTools/Core/interface/TextIO.h"
 #include "TauMLTools/Production/interface/GenTruthTools.h"
@@ -70,41 +70,39 @@
 
 namespace tau_analysis {
 
-struct TrainTupleProducerData {
+struct L2EventTupleProducerData {
     using clock = std::chrono::system_clock;
 
     const clock::time_point start;
     train_tuple::TrainTuple trainTuple;
-    train_tuple::AuxPathTuple auxTuple;
     tau_tuple::SummaryTuple summaryTuple;
     std::mutex mutex;
 
 private:
     size_t n_producers;
 
-    TrainTupleProducerData(TFile& file) :
+    L2EventTupleProducerData(TFile& file) :
         start(clock::now()),
         trainTuple("taus", &file, false),
-        auxTuple("AuxPath", &file, false),
         summaryTuple("summary", &file, false),
         n_producers(0)
     {
         summaryTuple().numberOfProcessedEvents = 0;
     }
 
-    ~TrainTupleProducerData() {}
+    ~L2EventTupleProducerData() {}
 
 public:
 
-    static TrainTupleProducerData* RequestGlobalData()
+    static L2EventTupleProducerData* RequestGlobalData()
     {
-        TrainTupleProducerData* data = GetGlobalData();
+        L2EventTupleProducerData* data = GetGlobalData();
         if(data == nullptr)
-            throw cms::Exception("TrainTupleProducerData") << "Request after all data copies were released.";
+            throw cms::Exception("L2EventTupleProducerData") << "Request after all data copies were released.";
         {
             std::lock_guard<std::mutex> lock(data->mutex);
             ++data->n_producers;
-            std::cout << "New request of TrainTupleProducerData. Total number of producers = " << data->n_producers
+            std::cout << "New request of L2EventTupleProducerData. Total number of producers = " << data->n_producers
                       << "." << std::endl;
         }
         return data;
@@ -112,19 +110,18 @@ public:
 
     static void ReleaseGlobalData()
     {
-        TrainTupleProducerData*& data = GetGlobalData();
+        L2EventTupleProducerData*& data = GetGlobalData();
         if(data == nullptr)
-            throw cms::Exception("TrainTupleProducerData") << "Another release after all data copies were released.";
+            throw cms::Exception("L2EventTupleProducerData") << "Another release after all data copies were released.";
         {
             std::lock_guard<std::mutex> lock(data->mutex);
             if(!data->n_producers)
-                throw cms::Exception("TrainTupleProducerData") << "Release before any request.";
+                throw cms::Exception("L2EventTupleProducerData") << "Release before any request.";
             --data->n_producers;
-            std::cout << "TrainTupleProducerData has been released. Total number of producers = " << data->n_producers
+            std::cout << "L2EventTupleProducerData has been released. Total number of producers = " << data->n_producers
                       << "." << std::endl;
             if(!data->n_producers) {
                 data->trainTuple.Write();
-                data->auxTuple.Write();
                 const auto stop = clock::now();
                 data->summaryTuple().exeTime = static_cast<unsigned>(
                             std::chrono::duration_cast<std::chrono::seconds>(stop - data->start).count());
@@ -132,31 +129,31 @@ public:
                 data->summaryTuple.Write();
                 delete data;
                 data = nullptr;
-                std::cout << "TrainTupleProducerData has been destroyed." << std::endl;
+                std::cout << "L2EventTupleProducerData has been destroyed." << std::endl;
             }
         }
 
     }
 
 private:
-    static TrainTupleProducerData*& GetGlobalData()
+    static L2EventTupleProducerData*& GetGlobalData()
     {
-        static TrainTupleProducerData* data = InitializeGlobalData();
+        static L2EventTupleProducerData* data = InitializeGlobalData();
         return data;
     }
 
-    static TrainTupleProducerData* InitializeGlobalData()
+    static L2EventTupleProducerData* InitializeGlobalData()
     {
         TFile& file = edm::Service<TFileService>()->file();
         file.SetCompressionAlgorithm(ROOT::kZLIB);
         file.SetCompressionLevel(9);
-        TrainTupleProducerData* data = new TrainTupleProducerData(file);
-        std::cout << "TrainTupleProducerData has been created." << std::endl;
+        L2EventTupleProducerData* data = new L2EventTupleProducerData(file);
+        std::cout << "L2EventTupleProducerData has been created." << std::endl;
         return data;
     }
 };
 
-class TrainTupleProducer : public edm::EDAnalyzer {
+class L2EventTupleProducer : public edm::EDAnalyzer {
 public:
     using TauDiscriminator = reco::PFTauDiscriminator;
     struct caloRecHitCollections{
@@ -167,8 +164,10 @@ public:
       const EcalRecHitCollection *ee;
       const CaloGeometry *Geometry;
     };
-    TrainTupleProducer(const edm::ParameterSet& cfg) :
+    L2EventTupleProducer(const edm::ParameterSet& cfg) :
         isMC(cfg.getParameter<bool>("isMC")),
+        processName(cfg.getParameter<std::string>("processName")),
+        defaultDiTauPath(cfg.getParameter<std::string>("defaultDiTauPath")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
         genParticles_token(mayConsume<std::vector<reco::GenParticle>>(cfg.getParameter<edm::InputTag>("genParticles"))),
         TR_token(consumes<edm::TriggerResults>(cfg.getParameter<edm::InputTag>("TriggerResults"))),
@@ -185,26 +184,22 @@ public:
         pataVertices_token(consumes<reco::VertexCollection>(cfg.getParameter<edm::InputTag>("pataVertices"))),
         Tracks_token(consumes<reco::TrackCollection>(cfg.getParameter<edm::InputTag>("Tracks"))),
         pataTracks_token(consumes<reco::TrackCollection>(cfg.getParameter<edm::InputTag>("pataTracks"))),
-        data(TrainTupleProducerData::RequestGlobalData()),
+        data(L2EventTupleProducerData::RequestGlobalData()),
         trainTuple(data->trainTuple),
-        auxTuple(data->auxTuple),
         summaryTuple(data->summaryTuple)
     {
-      const auto& pSet = cfg.getParameterSet("l1Results");
-      for (const auto& l1name : pSet.getParameterNames()){
-          l1_token_map[l1name] = consumes<trigger::TriggerFilterObjectWithRefs>(pSet.getParameter<edm::InputTag>(l1name));
+      const auto& processModulesSet = cfg.getParameterSet("l1Results");
+      for (const auto& l1name : processModulesSet.getParameterNames()){
+          l1_token_map[l1name] = consumes<trigger::TriggerFilterObjectWithRefs>(processModulesSet.getParameter<edm::InputTag>(l1name));
       }
 
 
       const unsigned nLabels = ecalLabels.size();
       for (unsigned i = 0; i != nLabels; i++)
         ecal_tokens.push_back(consumes<EcalRecHitCollection>(ecalLabels[i]));
-
+      std::cout<<processName<<std::endl;
     }
 private:
-    static constexpr float default_value = train_tuple::DefaultFillValue<float>();
-    static constexpr int default_int_value = train_tuple::DefaultFillValue<int>();
-    static constexpr int default_unsigned_value = train_tuple::DefaultFillValue<unsigned>();
 
     virtual void analyze(const edm::Event& event, const edm::EventSetup& eventsetup) override
     {
@@ -237,14 +232,17 @@ private:
         edm::Handle<edm::TriggerResults> Trigger_Results;
         event.getByToken(TR_token, Trigger_Results);
         const edm::TriggerNames& trigger_names = event.triggerNames(*Trigger_Results);
+
         /*
         for (const auto& par : names.triggerNames()){
           std::cout << "trigger name = " << par << std::endl;
         }
         */
         edm::ProcessConfiguration config;
-        event.processHistory().getConfigurationForProcess("reHLT", config);
+        event.processHistory().getConfigurationForProcess(processName, config);
         const auto& pSet = event.parameterSet(config.parameterSetID());
+        const std::vector<std::string> module_names = pSet->getParameter<std::vector<std::string>>(defaultDiTauPath);
+        summaryTuple().module_names=module_names;
         /*
         for (const auto& par : pSet->getParameterNames()){
           std::cout << "module in reHLT name " << par << std::endl;
@@ -324,38 +322,29 @@ private:
         FillCaloRecHit(AllCaloRecHits);
         FillCaloTowers(*caloTowers);
         FillCaloTaus(*caloTaus);
-        FillHLTResults(*Trigger_Results, *pSet, trigger_names.triggerNames());
-        auxTuple.Fill();
+        FillHLTResults(*Trigger_Results, module_names, trigger_names.triggerNames());
         trainTuple.Fill();
     }
 
     virtual void endJob() override
     {
-        TrainTupleProducerData::ReleaseGlobalData();
+        L2EventTupleProducerData::ReleaseGlobalData();
     }
 
 private:
 
-  void FillHLTResults(const edm::TriggerResults& Trigger_Results, const edm::ParameterSet& pSet, const std::vector<std::string>& trigger_names){
-    // 1 trovare la posizioe del nome del trigger nel vettore - per ora solo _v4
-    const int position_of_path  = std::distance(trigger_names.begin(), std::find( trigger_names.begin(), trigger_names.end(), "HLT_DoubleMediumChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_v4" )) ;
-    // 2 prendi da trigger results tramite la funzione at l'indice del TriggerResults
+  void FillHLTResults(const edm::TriggerResults& Trigger_Results, const std::vector<std::string>& module_names, const std::vector<std::string>& trigger_names){
+    const int position_of_path  = std::distance(trigger_names.begin(), std::find( trigger_names.begin(), trigger_names.end(), defaultDiTauPath)) ;
     const edm::HLTPathStatus& hlt_path_status = Trigger_Results.at(position_of_path);
-    // 3 l'indice mi ritorna hltpathstatus che salvo , mi ritorna indice del modulo che ha preso la decisione (ultimo) e state numero che va da 0 a 3
-    const std::vector<std::string>& module_names = pSet.getParameter<std::vector<std::string>>("HLT_DoubleMediumChargedIsoPFTauHPS35_Trk1_eta2p1_Reg_v4"); // ->  dopo devo fare module_names.at(hltpathstatus.index()), questo sara il nome
-    auxTuple().module_names = module_names;
-    trainTuple().path_state = hlt_path_status.state();
-    trainTuple().module_index = hlt_path_status.index();
-    // info che vogliamo : stato, per questo specifico modulo, booleano per capire se il modulo e' ultimo.
-    // nome modulo (nome branch) + booleano se e' ultimo (contenuto branch)
-    // N branch per i moduli + 1 per path intero
-    // stato per il risultato del path intero
+    trainTuple().defaultDiTauPath_result = hlt_path_status.state();
+    trainTuple().defaultDiTauPath_lastModuleIndex = hlt_path_status.index();
 
   }
 
     void FillGenLepton(const std::vector<reco_tau::gen_truth::GenLepton>& genLeptons)
     {
         for(const auto& genLepton : genLeptons){
+            if(genLepton.visibleP4().pt()<10 && fabs(genLepton.visibleP4().eta())>3) continue;
             trainTuple().genLepton_nParticles.push_back(static_cast<int>(genLepton.allParticles().size()));
             trainTuple().genLepton_kind.push_back(static_cast<int>(genLepton.kind()));
             trainTuple().genLepton_charge.push_back(genLepton.charge());
@@ -372,7 +361,7 @@ private:
                   if(particle) {
                       pos = static_cast<int>(particle - ref_ptr);
                       if(pos < 0 || pos >= static_cast<int>(genLepton.allParticles().size()))
-                          throw cms::Exception("TrainTupleProducer") << "Unable to determine a gen particle index.";
+                          throw cms::Exception("L2EventTupleProducer") << "Unable to determine a gen particle index.";
                   }
                   return pos;
               };
@@ -383,9 +372,9 @@ private:
 
                   if(mothers.empty()) return -1;
                   if(mothers.size() > 6)
-                      throw cms::Exception("TrainTupleProducer") << "Gen particle with > 6 mothers.";
+                      throw cms::Exception("L2EventTupleProducer") << "Gen particle with > 6 mothers.";
                   if(mothers.size() > 1 && genLepton.allParticles().size() > static_cast<size_t>(shift_scale))
-                      throw cms::Exception("TrainTupleProducer") << "Too many gen particles per gen lepton.";
+                      throw cms::Exception("L2EventTupleProducer") << "Too many gen particles per gen lepton.";
                   int pos = 0;
                   int shift = 1;
                   std::set<int> mother_indices;
@@ -416,17 +405,18 @@ private:
         }
     }
 
-
+    /* DA rimuovere
     void FillL1Paths(const std::string& var_name, bool comparison){
         trainTuple.get<std::vector<bool>>(var_name).push_back(comparison);
     }
+    */
 
     void FillL1Objects(const l1t::TauBxCollection& l1Taus, const std::map<std::string, edm::Handle<trigger::TriggerFilterObjectWithRefs>>& l1_handle_map)
     {
         /* passa anche la mappa di l1Results -> per ogni oggetto salva come booleani*/
-        bool comparison = false;
         // loop over l1taus
         for(auto iter = l1Taus.begin(0); iter != l1Taus.end(0); ++iter) {
+            bool comparison = false;
             const l1t::Tau * pointer_to_l1tau = &* iter;
             // loop over map
             for(const auto& element : l1_handle_map){
@@ -441,19 +431,20 @@ private:
                         break;
                     }
                 }
-                FillL1Paths(element.first, comparison);
+                trainTuple.get<std::vector<bool>>(element.first).push_back(comparison);
+                //FillL1Paths(element.first, comparison); // da rimuovere!!
             }
             trainTuple().l1Tau_pt.push_back(static_cast<float>(iter->polarP4().pt()));
             trainTuple().l1Tau_eta.push_back(static_cast<float>(iter->polarP4().eta()));
             trainTuple().l1Tau_phi.push_back(static_cast<float>(iter->polarP4().phi()));
             trainTuple().l1Tau_mass.push_back(static_cast<float>(iter->polarP4().mass()));
 
-            trainTuple().l1Tau_towerIEta.push_back(static_cast<short int>(iter->towerIEta()));
-            trainTuple().l1Tau_towerIPhi.push_back(static_cast<short int>(iter->towerIPhi()));
-            trainTuple().l1Tau_rawEt.push_back(static_cast<short int>(iter->rawEt()));
-            trainTuple().l1Tau_isoEt.push_back(static_cast<short int>(iter->isoEt()));
-            trainTuple().l1Tau_hasEM.push_back(static_cast<bool>(iter->hasEM()));
-            trainTuple().l1Tau_isMerged.push_back(static_cast<bool>(iter->isMerged()));
+            trainTuple().l1Tau_towerIEta.push_back(iter->towerIEta());
+            trainTuple().l1Tau_towerIPhi.push_back(iter->towerIPhi());
+            trainTuple().l1Tau_rawEt.push_back(iter->rawEt());
+            trainTuple().l1Tau_isoEt.push_back(iter->isoEt());
+            trainTuple().l1Tau_hasEM.push_back(iter->hasEM());
+            trainTuple().l1Tau_isMerged.push_back(iter->isMerged());
 
             trainTuple().l1Tau_hwIso.push_back(iter->hwIso());
             trainTuple().l1Tau_hwQual.push_back(iter->hwQual());
@@ -577,7 +568,7 @@ private:
     }
 
     template<typename C>
-    void FillCommonParts(C calopart, const caloRecHitCollections& caloRecHits, std::string prefix){
+    void FillCommonParts(const C& calopart, const caloRecHitCollections& caloRecHits, std::string prefix){
       const auto& position = caloRecHits.Geometry->getGeometry(calopart.id())->getPosition();
       trainTuple.get<std::vector<Float_t>>(prefix+"_rho").push_back(position.perp());
       trainTuple.get<std::vector<Float_t>>(prefix+"_eta").push_back(position.eta());
@@ -587,7 +578,7 @@ private:
       trainTuple.get<std::vector<ULong64_t>>(prefix+"_detId").push_back(static_cast<ULong64_t>(calopart.id().rawId()));
     }
     template<typename C>
-    void FillEcalParts(C calopart, std::string prefix){
+    void FillEcalParts(const C& calopart, std::string prefix){
         trainTuple.get<std::vector<uint32_t>>(prefix+"_flagsBits").push_back(static_cast<uint32_t>(calopart.flagsBits()));
         trainTuple.get<std::vector<Float_t>>(prefix+"_energyError").push_back(calopart.energyError());
         trainTuple.get<std::vector<Float_t>>(prefix+"_timeError").push_back(calopart.timeError());
@@ -597,18 +588,18 @@ private:
         trainTuple.get<std::vector<Bool_t>>(prefix+"_isTimeErrorValid").push_back(static_cast<Bool_t>(calopart.isTimeErrorValid()));
       }
     template<typename C>
-    void FillHcalParts(C calopart, std::string prefix){
+    void FillHcalParts(const C& calopart, std::string prefix){
       trainTuple.get<std::vector<ULong64_t>>(prefix+"_flags").push_back(static_cast<ULong64_t>(calopart.flags()));
       trainTuple.get<std::vector<ULong64_t>>(prefix+"_aux").push_back(static_cast<ULong64_t>(calopart.aux()));
 
     }
     template<typename C>
-    void FillHFParts(C calopart, std::string prefix){
+    void FillHFParts(const C& calopart, std::string prefix){
       trainTuple.get<std::vector<uint32_t>>(prefix+"_auxHF").push_back(static_cast<uint32_t>(calopart.getAuxHF()));
       trainTuple.get<std::vector<Float_t>>(prefix+"_timeFalling").push_back(calopart.timeFalling());
     }
     template<typename C>
-    void FillHBHEParts(C calopart, const caloRecHitCollections& caloRecHits, std::string prefix){
+    void FillHBHEParts(const C& calopart, const caloRecHitCollections& caloRecHits, std::string prefix){
       const auto& positionFront = caloRecHits.Geometry->getGeometry(calopart.idFront())->getPosition();
       trainTuple.get<std::vector<Float_t>>(prefix+"_eraw").push_back(calopart.eraw());
       trainTuple.get<std::vector<Float_t>>(prefix+"_eaux").push_back(calopart.eaux());
@@ -660,6 +651,8 @@ private:
 
 private:
     const bool isMC;
+    std::string processName;
+    std::string defaultDiTauPath;
     TauJetBuilderSetup builderSetup;
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;
     edm::EDGetTokenT<std::vector<reco::GenParticle>> genParticles_token;
@@ -680,9 +673,8 @@ private:
     edm::EDGetTokenT<reco::TrackCollection> pataTracks_token;
     std::map<std::string, edm::EDGetTokenT<trigger::TriggerFilterObjectWithRefs>> l1_token_map ;
     std::map<std::string, edm::EDGetTokenT<trigger::TriggerFilterObjectWithRefs>> other_filters_token_map ;
-    TrainTupleProducerData* data;
+    L2EventTupleProducerData* data;
     train_tuple::TrainTuple& trainTuple;
-    train_tuple::AuxPathTuple& auxTuple;
     tau_tuple::SummaryTuple& summaryTuple;
 
 };
@@ -690,5 +682,5 @@ private:
 } // namespace tau_analysis
 
 #include "FWCore/Framework/interface/MakerMacros.h"
-using TrainTupleProducer = tau_analysis::TrainTupleProducer;
-DEFINE_FWK_MODULE(TrainTupleProducer);
+using L2EventTupleProducer = tau_analysis::L2EventTupleProducer;
+DEFINE_FWK_MODULE(L2EventTupleProducer);

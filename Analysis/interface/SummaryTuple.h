@@ -9,6 +9,7 @@
     /* Run statistics */ \
     VAR(UInt_t, exeTime) \
     VAR(ULong64_t, numberOfProcessedEvents) \
+    VAR(std::vector<std::string>, module_names) \
     /**/
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)

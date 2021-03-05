@@ -3,11 +3,22 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 from Configuration.Eras.Era_Run3_cff import Run3
 import os
 
-# to keep sampleType, fileList, fileNamePrefix, tupleOutput, lumiFile, eventList and dumpPython
+txtList = {
+    "DY":["DYToLL_M-50_TuneCP5_14TeV-pythia8.txt"],
+    "QCD":["QCD_Pt-15to3000_TuneCP5_Flat_14TeV_pythia8.txt","QCD_Pt-15to7000_TuneCP5_Flat_14TeV_pythia8.txt","QCD_Pt-15to7000_TuneCP5_Flat_14TeV_pythia8_ext.txt","QCD_Pt_120to170_TuneCP5_14TeV_pythia8.txt","QCD_Pt_170to300_TuneCP5_14TeV_pythia8.txt","QCD_Pt_300to470_TuneCP5_14TeV_pythia8.txt","QCD_Pt_30to50_TuneCP5_14TeV_pythia8.txt","QCD_Pt_470to600_TuneCP5_14TeV_pythia8.txt","QCD_Pt_50to80_TuneCP5_14TeV_pythia8.txt","QCD_Pt_600oInf_TuneCP5_14TeV_pythia8.txt","QCD_Pt_80to120_TuneCP5_14TeV_pythia8.txt"],
+    "TT":["TTToSemiLeptonic_TuneCP5_14TeV-powheg-pythia8.txt","TT_TuneCP5_14TeV-powheg-pythia8.txt","TT_TuneCP5_14TeV-powheg-pythia8_ext.txt"],
+    "VBF":["VBFHToTauTau_M125_TuneCUETP8M1_14TeV_powheg_pythia80.txt"],
+    "WJets":["WJetsToLNu_TuneCP5_14TeV-amcatnloFXFX-pythia8.txt"],
+    "ZPrime":["ZprimeToTauTau_M-4000_TuneCP5_14TeV-pythia8-tauola.txt"]
+}
 
 options = VarParsing('analysis')
 options.register('sampleType', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "Indicates the sample type: Summer16MC, Run2016, ...")
+options.register('txtList', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                 "List of txt of list of root files to process.")
+options.register('txtListPrefix', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                 "Directory of list of txt of list of root files to process.")
 options.register('fileList', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "List of root files to process.")
 options.register('fileNamePrefix', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
@@ -22,10 +33,9 @@ options.register('dumpPython', False, VarParsing.multiplicity.singleton, VarPars
                  "Dump full config into stdout.")
 options.parseArguments()
 
-isData = False
-if 'Data' in options.sampleType:
-    isData = True
-print isData
+
+dataDict = {"Run3MC" : False, "Run2Data" : True}
+isData = dataDict[options.sampleType]
 processName = 'reHLT'
 process = cms.Process(processName, Run3)
 
@@ -43,11 +53,22 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 if not isData:
     process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 
+process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring())
+# Input source
+'''
+if isData:
+    process.source.fileNames = cms.untracked.vstring('/store/data/Run2018D/EphemeralHLTPhysics1/RAW/v1/000/325/113/00000/EA32A985-9BAF-D044-96FF-D59033C22A09.root')
+else:
+    process.source.fileNames = cms.untracked.vstring('file:/eos/home-v/vdamante/F2760E46-A3DB-DA4F-A6EC-525C10EDCBC7.root')
+'''
 from TauMLTools.Production.readFileList import *
 if len(options.fileList) > 0:
     readFileList(process.source.fileNames, options.fileList, options.fileNamePrefix)
 elif len(options.inputFiles) > 0:
     addFilesToList(process.source.fileNames, options.inputFiles, options.fileNamePrefix)
+elif len(options.txtList)>0:
+    readFilesFileList(process.source.fileNames, txtList[options.txtList], options.txtListPrefix, options.fileNamePrefix)
+
 
 if len(options.lumiFile) > 0:
     import FWCore.PythonUtilities.LumiList as LumiList
@@ -62,18 +83,6 @@ process.maxEvents = cms.untracked.PSet(
     output = cms.optional.untracked.allowed(cms.int32,cms.PSet)
 )
 
-# Input source
-if isData:
-    process.source = cms.Source("PoolSource",
-        fileNames = cms.untracked.vstring('/store/data/Run2018D/EphemeralHLTPhysics1/RAW/v1/000/325/113/00000/EA32A985-9BAF-D044-96FF-D59033C22A09.root'),
-        secondaryFileNames = cms.untracked.vstring()
-    )
-else:
-    process.source = cms.Source("PoolSource",
-        fileNames = cms.untracked.vstring('file:/eos/home-v/vdamante/F2760E46-A3DB-DA4F-A6EC-525C10EDCBC7.root'),
-        secondaryFileNames = cms.untracked.vstring()
-    )
-print process.source.fileNames
 
 process.options = cms.untracked.PSet(
     FailPath = cms.untracked.vstring(),
@@ -110,16 +119,6 @@ process.configurationMetadata = cms.untracked.PSet(
 )
 
 # Output definition
-if isData:
-    process.RECOSIMoutput = cms.OutputModule("PoolOutputModule",
-        dataset = cms.untracked.PSet(
-            dataTier = cms.untracked.string(''),
-            filterName = cms.untracked.string('')
-        ),
-        fileName = cms.untracked.string('tau_hlt_HLT.root'),
-        outputCommands = process.RECOSIMEventContent.outputCommands,
-        splitLevel = cms.untracked.int32(0)
-    )
 
 # Additional output definition
 
@@ -128,21 +127,16 @@ from HLTrigger.Configuration.CustomConfigs import ProcessName
 process = ProcessName(process)
 
 from Configuration.AlCa.GlobalTag import GlobalTag
-process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:run3_mc_GRun', '')
+GlobalTagName = 'auto:run3_data_GRun' if isData else 'auto:run3_mc_GRun'
+process.GlobalTag = GlobalTag(process.GlobalTag, GlobalTagName, '')
 
 # Path and EndPath definitions
 process.endjob_step = cms.EndPath(process.endOfProcess)
-if isData:
-    process.RECOSIMoutput_step = cms.EndPath(process.RECOSIMoutput)
-
 
 # Schedule definition
 process.schedule = cms.Schedule()
 process.schedule.extend(process.HLTSchedule)
-if isData:
-    process.schedule.extend([process.endjob_step,process.RECOSIMoutput_step])
-else:
-    process.schedule.extend([process.endjob_step])
+process.schedule.extend([process.endjob_step])
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
 
@@ -154,17 +148,15 @@ associatePatAlgosToolsTask(process)
 if isData:
     # Customisation from command line
     from HLTrigger.Configuration.customizeHLTforCMSSW import customisePixelGainForRun2Input,synchronizeHCALHLTofflineRun3on2018data
-    def customiseFor2018Input(process):
-        """Customise the HLT to run on Run 2 data/MC"""
-        process = customisePixelGainForRun2Input(process)
-        process = synchronizeHCALHLTofflineRun3on2018data(process)
-        return process
+    process = customisePixelGainForRun2Input(process)
+    process = synchronizeHCALHLTofflineRun3on2018data(process)
 else:
     from HLTrigger.Configuration.customizeHLTforMC import customizeHLTforMC
     process = customizeHLTforMC(process)
 
 from TauMLTools.Production.myHLT_Train import update
-process = update(process,True)
+process = update(process,isData, options.outputFile)
+print options.outputFile
 
 # End of customisation functions
 

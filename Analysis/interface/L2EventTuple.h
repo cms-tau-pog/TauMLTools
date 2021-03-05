@@ -24,10 +24,9 @@
     VAR(UInt_t, run) /* run number */ \
     VAR(UInt_t, lumi) /* lumi section */ \
     VAR(ULong64_t, evt) /* event number */ \
-    VAR(Int_t, module_index) /* number of primary patavertices */ \
-    VAR(Int_t, path_state) /* number of primary patavertices */ \
+    VAR(Int_t, defaultDiTauPath_lastModuleIndex) /*  */ \
+    VAR(Int_t, defaultDiTauPath_result) /*  */ \
     VAR(Float_t, genEventWeight) /* gen event weight */ \
-    /*VAR(Float_t, trainingWeight)  training weight */ \
     VAR(Int_t, sampleType) /* type of the sample (MC, Embedded or Data) */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
     /* Gen lepton with the full decay chain */ \
@@ -121,9 +120,9 @@
     CALO_TOWER_VAR(Float_t, ecalTime) /* caloTower ecalTime candidate*/ \
     CALO_TOWER_VAR(Float_t, hcalTime) /* caloTower hcalTime candidate*/ \
     CALO_TOWER_VAR(Float_t, hottestCellE) /* hottest caloTower cell Energy */ \
-    CALO_TOWER_VAR(Int_t, emLvl1) /* em energy at level 1 */ \
-    CALO_TOWER_VAR(Int_t, hadLv11) /* had energy at level 1 */ \
-    CALO_TOWER_VAR(Int_t, numCrystals) /* number of (fired) crystals */ \
+    CALO_TOWER_VAR(Int_t, emLvl1) /* caloTower em energy at level 1 */ \
+    CALO_TOWER_VAR(Int_t, hadLv11) /* caloTower had energy at level 1 */ \
+    CALO_TOWER_VAR(Int_t, numCrystals) /* caloTower number of (fired) crystals */ \
     /* CaloRecHits candidates */ \
     ECAL_VAR(Float_t, rho) /* */ \
     ECAL_VAR(Float_t, eta) /* */ \
@@ -185,7 +184,7 @@
     TRACK_VAR(UInt_t, quality) /* pixelTrack qualityMask candidate*/ \
     TRACK_VAR(Float_t, dxy) /* track dxy candidate*/ \
     TRACK_VAR(Float_t, dz) /* track dz candidate*/ \
-    TRACK_VAR(Int_t, vertex_id) /* track dz candidate*/ \
+    TRACK_VAR(Int_t, vertex_id) /* track associated vertex id candidate*/ \
     /* VERTICES */ \
     VERT(Float_t, z) /* x positions of vertices */ \
     VERT(Float_t, weight) /* output weight (1/error^2) on the above */ \
@@ -229,18 +228,7 @@ INITIALIZE_TREE(train_tuple, TrainTuple, TAU_DATA)
 #undef TRACK_VAR
 #undef VERT
 
-#define AUX_PATH() \
-    VAR(std::vector<std::string>, module_names) \
 
-
-#define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
-DECLARE_TREE(train_tuple, AuxPath, AuxPathTuple, AUX_PATH, "AuxPath")
-#undef VAR
-
-#define VAR(type, name) ADD_DATA_TREE_BRANCH(name)
-INITIALIZE_TREE(train_tuple, AuxPathTuple, AUX_PATH)
-#undef VAR
-#undef AUX_PATH
 
 
 namespace train_tuple {
