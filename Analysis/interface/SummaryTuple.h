@@ -8,7 +8,7 @@
 #define SUMMARY_DATA() \
     /* Run statistics */ \
     VAR(UInt_t, exeTime) \
-    VAR(ULong64_t, numberOfProcessedEvents) \ 
+    VAR(ULong64_t, numberOfProcessedEvents) \
     /**/
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)

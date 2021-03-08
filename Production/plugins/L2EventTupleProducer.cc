@@ -75,7 +75,7 @@ struct L2EventTupleProducerData {
 
     const clock::time_point start;
     train_tuple::TrainTuple trainTuple;
-    tau_tuple::SummaryTuple summaryTuple;
+    train_tuple::L2SummaryTuple L2SummaryTuple;
     std::mutex mutex;
 
 private:
@@ -84,10 +84,10 @@ private:
     L2EventTupleProducerData(TFile& file) :
         start(clock::now()),
         trainTuple("taus", &file, false),
-        summaryTuple("summary", &file, false),
+        L2SummaryTuple("L2Summary", &file, false),
         n_producers(0)
     {
-        summaryTuple().numberOfProcessedEvents = 0;
+        L2SummaryTuple().numberOfProcessedEvents = 0;
     }
 
     ~L2EventTupleProducerData() {}
@@ -123,10 +123,10 @@ public:
             if(!data->n_producers) {
                 data->trainTuple.Write();
                 const auto stop = clock::now();
-                data->summaryTuple().exeTime = static_cast<unsigned>(
+                data->L2SummaryTuple().exeTime = static_cast<unsigned>(
                             std::chrono::duration_cast<std::chrono::seconds>(stop - data->start).count());
-                data->summaryTuple.Fill();
-                data->summaryTuple.Write();
+                data->L2SummaryTuple.Fill();
+                data->L2SummaryTuple.Write();
                 delete data;
                 data = nullptr;
                 std::cout << "L2EventTupleProducerData has been destroyed." << std::endl;
@@ -186,7 +186,7 @@ public:
         pataTracks_token(consumes<reco::TrackCollection>(cfg.getParameter<edm::InputTag>("pataTracks"))),
         data(L2EventTupleProducerData::RequestGlobalData()),
         trainTuple(data->trainTuple),
-        summaryTuple(data->summaryTuple)
+        L2SummaryTuple(data->L2SummaryTuple)
     {
       const auto& processModulesSet = cfg.getParameterSet("l1Results");
       for (const auto& l1name : processModulesSet.getParameterNames()){
@@ -204,7 +204,7 @@ private:
     virtual void analyze(const edm::Event& event, const edm::EventSetup& eventsetup) override
     {
         std::lock_guard<std::mutex> lock(data->mutex);
-        summaryTuple().numberOfProcessedEvents++;
+        L2SummaryTuple().numberOfProcessedEvents++;
 
         trainTuple().run  = event.id().run();
         trainTuple().lumi = event.id().luminosityBlock();
@@ -242,7 +242,7 @@ private:
         event.processHistory().getConfigurationForProcess(processName, config);
         const auto& pSet = event.parameterSet(config.parameterSetID());
         const std::vector<std::string> module_names = pSet->getParameter<std::vector<std::string>>(defaultDiTauPath);
-        summaryTuple().module_names=module_names;
+        L2SummaryTuple().module_names=module_names;
         /*
         for (const auto& par : pSet->getParameterNames()){
           std::cout << "module in reHLT name " << par << std::endl;
@@ -675,7 +675,7 @@ private:
     std::map<std::string, edm::EDGetTokenT<trigger::TriggerFilterObjectWithRefs>> other_filters_token_map ;
     L2EventTupleProducerData* data;
     train_tuple::TrainTuple& trainTuple;
-    tau_tuple::SummaryTuple& summaryTuple;
+    train_tuple::L2SummaryTuple& L2SummaryTuple;
 
 };
 

@@ -229,9 +229,18 @@ INITIALIZE_TREE(train_tuple, TrainTuple, TAU_DATA)
 #undef VERT
 
 
+#define SUMMARY_L2_DATA() \
+    /* Run statistics */ \
+    VAR(UInt_t, exeTime) \
+    VAR(ULong64_t, numberOfProcessedEvents) \
+    VAR(std::vector<std::string>, module_names) \
+    /**/
+    
+#define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
+DECLARE_TREE(train_tuple, L2Summary, L2SummaryTuple, SUMMARY_L2_DATA, "L2Summary")
+#undef VAR
 
-
-namespace train_tuple {
-
-
-} // namespace train_tuple
+#define VAR(type, name) ADD_DATA_TREE_BRANCH(name)
+INITIALIZE_TREE(train_tuple, L2SummaryTuple, SUMMARY_L2_DATA)
+#undef VAR
+#undef SUMMARY_L2_DATA

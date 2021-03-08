@@ -55,12 +55,7 @@ if not isData:
 
 process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring())
 # Input source
-'''
-if isData:
-    process.source.fileNames = cms.untracked.vstring('/store/data/Run2018D/EphemeralHLTPhysics1/RAW/v1/000/325/113/00000/EA32A985-9BAF-D044-96FF-D59033C22A09.root')
-else:
-    process.source.fileNames = cms.untracked.vstring('file:/eos/home-v/vdamante/F2760E46-A3DB-DA4F-A6EC-525C10EDCBC7.root')
-'''
+
 from TauMLTools.Production.readFileList import *
 if len(options.fileList) > 0:
     readFileList(process.source.fileNames, options.fileList, options.fileNamePrefix)
@@ -68,7 +63,11 @@ elif len(options.inputFiles) > 0:
     addFilesToList(process.source.fileNames, options.inputFiles, options.fileNamePrefix)
 elif len(options.txtList)>0:
     readFilesFileList(process.source.fileNames, txtList[options.txtList], options.txtListPrefix, options.fileNamePrefix)
-
+else:
+    if isData:
+        process.source.fileNames = cms.untracked.vstring('/store/data/Run2018D/EphemeralHLTPhysics1/RAW/v1/000/325/113/00000/EA32A985-9BAF-D044-96FF-D59033C22A09.root')
+    else:
+        process.source.fileNames = cms.untracked.vstring('file:/eos/home-v/vdamante/F2760E46-A3DB-DA4F-A6EC-525C10EDCBC7.root')
 
 if len(options.lumiFile) > 0:
     import FWCore.PythonUtilities.LumiList as LumiList
