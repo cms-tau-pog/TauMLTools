@@ -230,8 +230,4 @@ INITIALIZE_TREE(train_tuple, TrainTuple, TAU_DATA)
 
 
 
-
-namespace train_tuple {
-
-
-} // namespace train_tuple
+ 
