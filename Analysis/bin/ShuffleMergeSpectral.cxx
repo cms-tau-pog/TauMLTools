@@ -27,7 +27,10 @@ ENUM_NAMES(MergeMode) = {
 
 struct Arguments {
     run::Argument<std::string> cfg{"cfg", "configuration file with the list of input sources"};
-    run::Argument<std::string> input{"input", "input path with tuples for all the samples"};
+    run::Argument<std::string> input{"input", "Input file with the list of files to read. "
+                                              "The --prefix argument will be placed in front of --input.", ""};
+    run::Argument<std::string> prefix{"prefix", "Prefix to place before the input file path read from --input. "
+                                                "It can include a remote server to use with xrootd.", ""};
     run::Argument<std::string> output{"output", "output, depending on the merging mode: MergeAll - file,"
                                                 " MergePerEntry - directory."};
     run::Argument<std::string> pt_bins{"pt-bins", "pt bins (last bin will be chosen as high-pt region, \
@@ -159,7 +162,6 @@ struct SourceDesc {
     Generator* gen;
   };
 
-
 struct EntryDesc {
 
     std::string name;
@@ -167,69 +169,75 @@ struct EntryDesc {
     std::vector<std::string> data_files;
     std::vector<std::string> data_set_names;
     std::vector<ULong64_t> data_set_names_hashes;
-    std::vector<std::string> spectrum_files;
+    std::set<std::string> spectrum_files;
     std::set<TauType> tau_types;
 
     EntryDesc(const PropertyConfigReader::Item& item,
-              const std::string& base_input_dir,
-              const std::string& base_spectrum_dir)
+              const std::string& base_spectrum_dir,
+              const std::string& input_paths,
+              const std::string& prefix)
     {
         using boost::regex;
         using boost::regex_match;
-        using boost::filesystem::path;
-        using boost::make_iterator_range;
-        using boost::filesystem::directory_iterator;
-        using boost::filesystem::is_directory;
-        using boost::filesystem::is_regular_file;
-        using boost::split;
 
         name = item.name;
         name_hash = std::hash<std::string>{}(name);
-        std::cout << name << std::endl;
-        const std::string dir_pattern_str = item.Get<std::string>("dir");
+
+        const std::string dir_pattern_str  = item.Get<std::string>("dir");
         const std::string file_pattern_str = item.Get<std::string>("file");
-        const std::string tau_types_str = item.Get<std::string>("types");
+        const std::string tau_types_str    = item.Get<std::string>("types");
+
+        const regex dir_pattern (dir_pattern_str );
+        const regex file_pattern(file_pattern_str);
+
         tau_types = SplitValueListT<TauType, std::set<TauType>>(tau_types_str, false, ",");
 
-        const path base_input_path(base_input_dir);
-        if(!is_directory(base_input_dir))
-          throw exception("The base directory '%1%' (--input) does not exists.") % base_input_dir;
-        const regex dir_pattern(base_input_dir + "/" + dir_pattern_str); // Patern for Big root-tuples
-        bool has_dir_match = false;
-
-        for(const auto& sample_dir_entry : make_iterator_range(directory_iterator(base_input_path))) {
-          if(!is_directory(sample_dir_entry) || !regex_match(sample_dir_entry.path().string(), dir_pattern)) continue;
-
-          std::cout << sample_dir_entry << " - dataset" << std::endl;
-          const std::string dir_name = sample_dir_entry.path().filename().string();
-          const path spectrum_file(base_spectrum_dir + "/" + dir_name + ".root");
-
-          if(!is_regular_file(spectrum_file))
-            throw exception("No spectrum file are founupperd for entry '%1%'") % sample_dir_entry;
-          std::cout << spectrum_file << " - spectrum" << std::endl;
-
-          has_dir_match = true;
-
-          const regex file_pattern(sample_dir_entry.path().string() + "/" + file_pattern_str + ".root");
-          bool has_file_match = false;
-          for(const auto& file_entry : make_iterator_range(directory_iterator(sample_dir_entry.path()))) {
-            if(is_directory(file_entry) || !regex_match(file_entry.path().string(), file_pattern)) continue;
-            has_file_match = true;
-            const std::string file_name = file_entry.path().string();
-            data_files.push_back(file_name);
-            data_set_names.push_back(dir_name);
-            data_set_names_hashes.push_back(std::hash<std::string>{}(dir_name));
-          }
-          spectrum_files.push_back(spectrum_file.string());
-
-          if(!has_file_match)
-            throw exception("No files are found for entry '%1%' sample %2% with pattern '%3%'")
-              % name % sample_dir_entry % file_pattern_str;
+        std::ifstream input_files (input_paths, std::ifstream::in);
+        if (!input_files){
+          throw exception("The input file %1% could not be opened")
+            %input_paths;
         }
 
-        if(!has_dir_match)
-            throw exception("No samples are found for entry '%1%' with pattern '%2%'")
-                  % name % dir_pattern_str;
+        bool is_matching = false;
+
+        std::string ifile;
+        std::string dir_name, file_name, spectrum_file, file_path;
+        while(std::getline(input_files, ifile)){
+          dir_name  = ifile.substr(0, ifile.rfind("/"));
+          file_name = ifile.substr(ifile.rfind("/")+1, ifile.length());
+
+          // remove "./" and the trailing "/" only from the dataset name, leave the file path unchanged
+          if (dir_name[0] == '.' && dir_name[1] == '/'){
+              dir_name.erase(0, 2);
+          }
+          if (dir_name[dir_name.length()-1] == '/'){
+            dir_name.pop_back();
+          }
+
+          if(!regex_match(dir_name , dir_pattern )) continue;
+          if(!regex_match(file_name, file_pattern)) continue;
+
+          is_matching = true;
+
+          spectrum_file = base_spectrum_dir + "/" + dir_name + ".root";
+
+          file_path = prefix + "/" + ifile;
+
+          data_files.push_back(file_path);
+          data_set_names.push_back(dir_name);
+          data_set_names_hashes.push_back(std::hash<std::string>{}(dir_name));
+          spectrum_files.insert(spectrum_file);
+        }
+
+        if(!is_matching){
+          throw exception("No files are found for entry '%1%' with pattern '%2%'")
+              % name % file_pattern_str;
+        }
+
+        std::cout << name << std::endl;
+        for (const auto spectrum_file : spectrum_files){
+          std::cout << spectrum_file << " - spectrum" << std::endl;
+        }
     }
 };
 
@@ -674,7 +682,7 @@ private:
         std::cout << cfg_file_name << std::endl;
         reader.Parse(cfg_file_name);
         for(const auto& item : reader.GetItems()){
-            entries.emplace_back(item.second, args.input(), args.path_spectrum());
+            entries.emplace_back(item.second,  args.path_spectrum(), args.input(), args.prefix());
         }
         return entries;
     }
