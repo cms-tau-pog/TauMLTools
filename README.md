@@ -184,7 +184,8 @@ python Analysis/python/CreateSpectralHists.py --input /path/to/input/dir/ \
 After spectrums are created for all datasets, the final procedure of Shuffle and Merge can be performed with:
 ```
 ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
-                     --input /eos/cms/store/group/phys_tau/TauML/prod_2018_v1/full_tuples
+                     --input input_files.txt
+                     --prefix prefix_string
                      --output <path_to_output_file.root>
                      --mode MergeAll
                      --n-threads 1
@@ -196,9 +197,18 @@ ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
                      --exp-disbalance 100
                      --start-entry 0.0 --end-entry 0.0008
 ```
+- `--input` is the file containing the list of input files (read line-by-line). Each entry (line) should be of the form "dataset/file" (no quotes). The rest of the path (the path to the dataset folders) should be specified in the `--prefix` argument.
+- `--prefix` is the prefix which will be placed before the path of each file read form `--input`. Please note that this prefix will *not* be placed before the `--input-spec` value. This value can include a remote path compatible with xrootd.
 - the last pt bin is taken as a high pt region, all entries from it are taken without rejection.
 - `--tau-ratio "jet:1, e:1, mu:1, tau:1"` defines proportion of TauTypes in final root-tuple.
 - `--start-entry 0.0 --end-entry 0.0008` defines from which percentage by which entries will be read within every input root file.
+
+The input files file can be generated as follows:
+```
+cd /path/to/datasets/folder
+find . -name '*.root' > file_list.txt
+```
+In this case, `--input` will be set to *file_list.txt* and `--prefix` will be set to */path/to/datasets/folder*.
 
 #### ShuffleMergeSpectral on HTCondor
 ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment 

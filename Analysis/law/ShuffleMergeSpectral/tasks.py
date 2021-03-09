@@ -14,7 +14,8 @@ import luigi
 class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   ## '_' will be converted to '-' for the shell command invocation
   cfg               = luigi.Parameter(description = 'configuration file with the list of input sources')
-  input_path        = luigi.Parameter(description = 'input path with tuples for all the samples')
+  input_path        = luigi.Parameter(description = 'Input file with the list of files to read. '
+                                                    'The --prefix argument will be placed in front of --input.')
   output_path       = luigi.Parameter(description = 'output directory')
   pt_bins           = luigi.Parameter(description = 'pt bins')
   eta_bins          = luigi.Parameter(description = 'eta bins')
@@ -22,7 +23,9 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   input_spec        = luigi.Parameter(description = '')
   tau_ratio         = luigi.Parameter(description = '')
   n_jobs            = luigi.IntParameter(description = 'number of HTCondor jobs to run')
-  ## optional arguments (default will be None: don't override ShuffleMergeSpectral.cxx default values)
+  ## optional arguments (default will be an empty string: don't override ShuffleMergeSpectral.cxx default values)
+  prefix            = luigi.Parameter(description = 'Prefix to place before the input file path read from --input.'
+                                                    'It can include a remote server to use with xrootd.', default = "")
   start_entry       = luigi.FloatParameter(description = 'starting point', default = 0)
   end_entry         = luigi.FloatParameter(description = 'ending point'  , default = 1)
   compression_algo  = luigi.Parameter(default = '', description = 'ZLIB, LZMA, LZ4')
@@ -72,6 +75,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
       '--tau-ratio'         , quote(str(self.tau_ratio))] +\
       ## optional arguments
       ['--seed'             , str(self.seed)                    ] * (not self.seed              is '') +\
+      ['--prefix'           , str(self.prefix)                  ] * (not self.prefix            is '') +\
       ['--n-threads'        , str(self.n_threads)               ] * (not self.n_threads         is '') +\
       ['--disabled-branches', quote(str(self.disabled_branches))] * (not self.disabled_branches is '') +\
       ['--exp-disbalance'   , str(self.exp_disbalance)          ] * (not self.exp_disbalance    is '') +\
@@ -92,8 +96,8 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     if retcode != 0:
       raise Exception('job {} return code is {}'.format(self.branch, retcode))
     elif retcode == 0 and self.mode == 'MergeAll':
-      shutil.move(output_name, '/'.join([self.output_dir, '..', file_name]))
-      shutil.move('./out', '/'.join([self.output_dir, '..', 'hashes', 'out_{}'.format(self.branch)]))
+      shutil.move(output_name, os.path.abspath('/'.join([self.output_dir, '..', file_name])))
+      shutil.move('./out', os.path.abspath('/'.join([self.output_dir, '..', 'hashes', 'out_{}'.format(self.branch)])))
       taskout = self.output()
       taskout.dump('Task ended with code %s\n' %retcode)
     else:
