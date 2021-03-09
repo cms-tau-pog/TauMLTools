@@ -208,10 +208,10 @@ struct EntryDesc {
           file_name = ifile.substr(ifile.rfind("/")+1, ifile.length());
 
           // remove "./" and the trailing "/" only from the dataset name, leave the file path unchanged
-          if (dir_name[0] == '.' && dir_name[1] == '/'){
+          if (dir_name.length() >= 2 && dir_name[0] == '.' && dir_name[1] == '/'){
               dir_name.erase(0, 2);
           }
-          if (dir_name[dir_name.length()-1] == '/'){
+          if (dir_name.length() > 0 && dir_name[dir_name.length()-1] == '/'){
             dir_name.pop_back();
           }
 
