@@ -3,22 +3,12 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 from Configuration.Eras.Era_Run3_cff import Run3
 import os
 
-txtList = {
-    "DY":["DYToLL_M-50_TuneCP5_14TeV-pythia8.txt"],
-    "QCD":["QCD_Pt-15to3000_TuneCP5_Flat_14TeV_pythia8.txt","QCD_Pt-15to7000_TuneCP5_Flat_14TeV_pythia8.txt","QCD_Pt-15to7000_TuneCP5_Flat_14TeV_pythia8_ext.txt","QCD_Pt_120to170_TuneCP5_14TeV_pythia8.txt","QCD_Pt_170to300_TuneCP5_14TeV_pythia8.txt","QCD_Pt_300to470_TuneCP5_14TeV_pythia8.txt","QCD_Pt_30to50_TuneCP5_14TeV_pythia8.txt","QCD_Pt_470to600_TuneCP5_14TeV_pythia8.txt","QCD_Pt_50to80_TuneCP5_14TeV_pythia8.txt","QCD_Pt_600oInf_TuneCP5_14TeV_pythia8.txt","QCD_Pt_80to120_TuneCP5_14TeV_pythia8.txt"],
-    "TT":["TTToSemiLeptonic_TuneCP5_14TeV-powheg-pythia8.txt","TT_TuneCP5_14TeV-powheg-pythia8.txt","TT_TuneCP5_14TeV-powheg-pythia8_ext.txt"],
-    "VBF":["VBFHToTauTau_M125_TuneCUETP8M1_14TeV_powheg_pythia80.txt"],
-    "WJets":["WJetsToLNu_TuneCP5_14TeV-amcatnloFXFX-pythia8.txt"],
-    "ZPrime":["ZprimeToTauTau_M-4000_TuneCP5_14TeV-pythia8-tauola.txt"]
-}
 
 options = VarParsing('analysis')
 options.register('sampleType', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "Indicates the sample type: Summer16MC, Run2016, ...")
-options.register('txtList', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
-                 "List of txt of list of root files to process.")
-options.register('txtListPrefix', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
-                 "Directory of list of txt of list of root files to process.")
+options.register('inputFile', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                 "File to process")
 options.register('fileList', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "List of root files to process.")
 options.register('fileNamePrefix', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
@@ -61,13 +51,8 @@ if len(options.fileList) > 0:
     readFileList(process.source.fileNames, options.fileList, options.fileNamePrefix)
 elif len(options.inputFiles) > 0:
     addFilesToList(process.source.fileNames, options.inputFiles, options.fileNamePrefix)
-elif len(options.txtList)>0:
-    readFilesFileList(process.source.fileNames, txtList[options.txtList], options.txtListPrefix, options.fileNamePrefix)
-else:
-    if isData:
-        process.source.fileNames = cms.untracked.vstring('/store/data/Run2018D/EphemeralHLTPhysics1/RAW/v1/000/325/113/00000/EA32A985-9BAF-D044-96FF-D59033C22A09.root')
-    else:
-        process.source.fileNames = cms.untracked.vstring('file:/eos/home-v/vdamante/F2760E46-A3DB-DA4F-A6EC-525C10EDCBC7.root')
+else :
+    process.source.fileNames = cms.untracked.vstring(options.inputFile)
 
 if len(options.lumiFile) > 0:
     import FWCore.PythonUtilities.LumiList as LumiList
@@ -154,8 +139,7 @@ else:
     process = customizeHLTforMC(process)
 
 from TauMLTools.Production.myHLT_Train import update
-process = update(process,isData, options.outputFile)
-print options.outputFile
+process = update(process,isData, isData, options.outputFile)
 
 # End of customisation functions
 

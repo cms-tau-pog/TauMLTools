@@ -13,11 +13,3 @@ def addFilesToList(fileList, inputFiles, fileNamePrefix):
     for name in inputFiles:
         if len(name) > 0 and name[0] != '#':
             fileList.append(fileNamePrefix + name)
-
-def readFilesFileList(fileList, txtList, txtListprefix, fileNamePrefix):
-    """read intput file list from a text file"""
-    for i in range(0, len(txtList)): 
-        with open(txtListprefix+txtList[i], 'r') as inputFile:
-            for name in inputFile.readlines():
-                if len(name) > 0 and name[0] != '#':
-                    fileList.append(fileNamePrefix + name.strip("\n"))

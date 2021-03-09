@@ -166,6 +166,7 @@ public:
     };
     L2EventTupleProducer(const edm::ParameterSet& cfg) :
         isMC(cfg.getParameter<bool>("isMC")),
+        applyGenTau(cfg.getParameter<bool>("applyGenTau")),
         processName(cfg.getParameter<std::string>("processName")),
         defaultDiTauPath(cfg.getParameter<std::string>("defaultDiTauPath")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
@@ -233,21 +234,14 @@ private:
         event.getByToken(TR_token, Trigger_Results);
         const edm::TriggerNames& trigger_names = event.triggerNames(*Trigger_Results);
 
-        /*
-        for (const auto& par : names.triggerNames()){
-          std::cout << "trigger name = " << par << std::endl;
+        if(L2SummaryTuple().module_names.empty()) {
+          edm::ProcessConfiguration config;
+          event.processHistory().getConfigurationForProcess(processName, config);
+          const auto& pSet = event.parameterSet(config.parameterSetID());
+          const std::vector<std::string> module_names = pSet->getParameter<std::vector<std::string>>(defaultDiTauPath);
+          L2SummaryTuple().module_names=module_names;
         }
-        */
-        edm::ProcessConfiguration config;
-        event.processHistory().getConfigurationForProcess(processName, config);
-        const auto& pSet = event.parameterSet(config.parameterSetID());
-        const std::vector<std::string> module_names = pSet->getParameter<std::vector<std::string>>(defaultDiTauPath);
-        L2SummaryTuple().module_names=module_names;
-        /*
-        for (const auto& par : pSet->getParameterNames()){
-          std::cout << "module in reHLT name " << par << std::endl;
-        }
-        */
+
         std::map<std::string, edm::Handle<trigger::TriggerFilterObjectWithRefs>> l1_handle_map;
         for(const auto& element : l1_token_map){
           event.getByToken(element.second, l1_handle_map[element.first]);
@@ -322,7 +316,7 @@ private:
         FillCaloRecHit(AllCaloRecHits);
         FillCaloTowers(*caloTowers);
         FillCaloTaus(*caloTaus);
-        FillHLTResults(*Trigger_Results, module_names, trigger_names.triggerNames());
+        FillHLTResults(*Trigger_Results, trigger_names.triggerNames());
         trainTuple.Fill();
     }
 
@@ -333,10 +327,16 @@ private:
 
 private:
 
-  void FillHLTResults(const edm::TriggerResults& Trigger_Results, const std::vector<std::string>& module_names, const std::vector<std::string>& trigger_names){
+  void FillHLTResults(const edm::TriggerResults& Trigger_Results, const std::vector<std::string>& trigger_names){
+    if(defaultDiTauPath.empty()){
+      throw cms::Exception("L2EventTupleProducer") << "DiTauPath not found!";
+    }
     const int position_of_path  = std::distance(trigger_names.begin(), std::find( trigger_names.begin(), trigger_names.end(), defaultDiTauPath)) ;
     const edm::HLTPathStatus& hlt_path_status = Trigger_Results.at(position_of_path);
-    trainTuple().defaultDiTauPath_result = hlt_path_status.state();
+    if(hlt_path_status.state() != 1 && hlt_path_status.state() != 2){
+      throw cms::Exception("L2EventTupleProducer") << "unknown hlt path status state! ";
+    }
+    trainTuple().defaultDiTauPath_result = hlt_path_status.accept();
     trainTuple().defaultDiTauPath_lastModuleIndex = hlt_path_status.index();
 
   }
@@ -344,9 +344,9 @@ private:
     void FillGenLepton(const std::vector<reco_tau::gen_truth::GenLepton>& genLeptons)
     {
         for(const auto& genLepton : genLeptons){
-            if(genLepton.visibleP4().pt()<10 && fabs(genLepton.visibleP4().eta())>3) continue;
-            trainTuple().genLepton_nParticles.push_back(static_cast<int>(genLepton.allParticles().size()));
-            trainTuple().genLepton_kind.push_back(static_cast<int>(genLepton.kind()));
+            if(applyGenTau && genLepton.visibleP4().pt()<10 && fabs(genLepton.visibleP4().eta())>3) continue;
+            trainTuple().genLepton_nParticles.push_back(static_cast<Long64_t>(genLepton.allParticles().size()));
+            trainTuple().genLepton_kind.push_back(static_cast<Long64_t>(genLepton.kind()));
             trainTuple().genLepton_charge.push_back(genLepton.charge());
             trainTuple().genLepton_vis_pt.push_back(static_cast<float>(genLepton.visibleP4().pt()));
             trainTuple().genLepton_vis_eta.push_back(static_cast<float>(genLepton.visibleP4().eta()));
@@ -360,7 +360,7 @@ private:
                   int pos = -1;
                   if(particle) {
                       pos = static_cast<int>(particle - ref_ptr);
-                      if(pos < 0 || pos >= static_cast<int>(genLepton.allParticles().size()))
+                      if(pos < 0 || pos >= static_cast<Long64_t>(genLepton.allParticles().size()))
                           throw cms::Exception("L2EventTupleProducer") << "Unable to determine a gen particle index.";
                   }
                   return pos;
@@ -387,7 +387,7 @@ private:
                   return pos;
               };
 
-              trainTuple().genLepton_lastMotherIndex.push_back(static_cast<int>(genLepton.mothers().size()) - 1);
+              trainTuple().genLepton_lastMotherIndex.push_back(static_cast<Long64_t>(genLepton.mothers().size()) - 1);
               for(const auto& p : genLepton.allParticles()) {
                   trainTuple().genParticle_pdgId.push_back(p.pdgId);
                   trainTuple().genParticle_mother.push_back(encodeMotherIndex(p.mothers));
@@ -405,34 +405,23 @@ private:
         }
     }
 
-    /* DA rimuovere
-    void FillL1Paths(const std::string& var_name, bool comparison){
-        trainTuple.get<std::vector<bool>>(var_name).push_back(comparison);
-    }
-    */
 
     void FillL1Objects(const l1t::TauBxCollection& l1Taus, const std::map<std::string, edm::Handle<trigger::TriggerFilterObjectWithRefs>>& l1_handle_map)
     {
-        /* passa anche la mappa di l1Results -> per ogni oggetto salva come booleani*/
-        // loop over l1taus
         for(auto iter = l1Taus.begin(0); iter != l1Taus.end(0); ++iter) {
-            bool comparison = false;
             const l1t::Tau * pointer_to_l1tau = &* iter;
-            // loop over map
             for(const auto& element : l1_handle_map){
+                bool comparison = false;
                 const trigger::TriggerFilterObjectWithRefs * object = &*element.second;
                 const std::vector<edm::Ref<BXVector<l1t::Tau>>> tau_vector = object->l1ttauRefs();
-                // loop over map vector object
                 for (const auto &k : tau_vector ){
                     const l1t::Tau * pointer_to_l1tau_in_map = &*k;
-                    // compare map vector elements with l1taus
                     if(pointer_to_l1tau == pointer_to_l1tau_in_map){
                         comparison = true ;
                         break;
                     }
                 }
                 trainTuple.get<std::vector<bool>>(element.first).push_back(comparison);
-                //FillL1Paths(element.first, comparison); // da rimuovere!!
             }
             trainTuple().l1Tau_pt.push_back(static_cast<float>(iter->polarP4().pt()));
             trainTuple().l1Tau_eta.push_back(static_cast<float>(iter->polarP4().eta()));
@@ -650,7 +639,7 @@ private:
     }
 
 private:
-    const bool isMC;
+    const bool isMC, applyGenTau;
     std::string processName;
     std::string defaultDiTauPath;
     TauJetBuilderSetup builderSetup;
