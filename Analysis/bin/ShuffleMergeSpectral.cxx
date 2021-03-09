@@ -33,8 +33,8 @@ struct Arguments {
                                                 "It can include a remote server to use with xrootd.", ""};
     run::Argument<std::string> output{"output", "output, depending on the merging mode: MergeAll - file,"
                                                 " MergePerEntry - directory."};
-    run::Argument<std::string> pt_bins{"pt-bins", "pt bins (last bin will be chosen as high-pt region, \
-                                                   lower pt edgeof the last bin will be choosen as pt_threshold)"};
+    run::Argument<std::string> pt_bins{"pt-bins", "pt bins (last bin will be chosen as high-pt region, "
+                                                  "lower pt edgeof the last bin will be choosen as pt_threshold)"};
     run::Argument<std::string> eta_bins{"eta-bins", "eta bins"};
     run::Argument<MergeMode> mode{"mode", "merging mode: MergeAll or MergePerEntry"};
     run::Argument<size_t> max_entries{"max-entries", "maximal number of entries in output train+test tuples",
@@ -43,9 +43,10 @@ struct Arguments {
     run::Argument<unsigned> seed{"seed", "random seed to initialize the generator used for sampling", 1234567};
     run::Argument<std::string> disabled_branches{"disabled-branches",
                                                  "list of branches to disabled in the input tuples", ""};
-    run::Argument<std::string> path_spectrum{"input-spec", "input path with spectrums for all the samples"};
-    run::Argument<std::string> tau_ratio{"tau-ratio", "ratio of tau types in the final spectrum \
-                                                      (if to take all taus of type e => e:-1 )"};
+    run::Argument<std::string> path_spectrum{"input-spec", "input path with spectrums for all the samples. "
+                                                           "A remote server can be specified to use with xrootd."};
+    run::Argument<std::string> tau_ratio{"tau-ratio", "ratio of tau types in the final spectrum "
+                                                      "(if to take all taus of type e => e:-1 )"};
     run::Argument<double> start_entry{"start-entry", "starting ratio from which file will be processed", 0};
     run::Argument<double> end_entry{"end-entry", "end ratio until which file will be processed", 1};
     run::Argument<double> exp_disbalance{"exp-disbalance", "maximal expected disbalance between low pt and high pt regions",0};
