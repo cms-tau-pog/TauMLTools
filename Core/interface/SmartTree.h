@@ -234,8 +234,7 @@ public:
         Int_t n_bytes = tree->Fill();
         if(n_bytes < 0)
             throw std::runtime_error("SmartTree: a write error occured during Fill.");
-        for(auto& entry : entries)
-              entry.second->clear();
+        ClearEntries();
         return n_bytes;
     }
 

@@ -1,0 +1,3 @@
+sampleType=Run3MC applyGenTau=True
+
+ZprimeToTauTau_M-4000 /ZprimeToTauTau_M-4000_TuneCP5_14TeV-pythia8-tauola/Run3Winter20DRMiniAOD-FlatPU0to80_110X_mcRun3_2021_realistic_v6-v3/GEN-SIM-RAW

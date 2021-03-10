@@ -1,0 +1,3 @@
+sampleType=Run3MC applyGenTau=True
+
+VBFHToTauTau /VBFHToTauTau_M125_TuneCUETP8M1_14TeV_powheg_pythia8/Run3Winter20DRPremixMiniAOD-110X_mcRun3_2021_realistic_v6-v1/GEN-SIM-RAW

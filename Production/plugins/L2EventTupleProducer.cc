@@ -330,12 +330,12 @@ private:
 private:
 
   void FillHLTResults(const edm::TriggerResults& Trigger_Results, const std::vector<std::string>& trigger_names){
-    if(defaultDiTauPath.empty()){
+    if(std::find(trigger_names.begin(), trigger_names.end(), defaultDiTauPath) == trigger_names.end()){
       throw cms::Exception("L2EventTupleProducer") << "DiTauPath not found!";
     }
     const int position_of_path  = std::distance(trigger_names.begin(), std::find( trigger_names.begin(), trigger_names.end(), defaultDiTauPath)) ;
     const edm::HLTPathStatus& hlt_path_status = Trigger_Results.at(position_of_path);
-    if(hlt_path_status.state() != 1 && hlt_path_status.state() != 2){
+    if(hlt_path_status.wasrun() || hlt_path_status.error()){
       throw cms::Exception("L2EventTupleProducer") << "unknown hlt path status state! ";
     }
     trainTuple().defaultDiTauPath_result = hlt_path_status.accept();
@@ -369,26 +369,26 @@ private:
                   return pos;
               };
 
-              auto encodeMotherIndex = [&](const std::set<const reco_tau::gen_truth::GenParticle*>& mothers) {
-                  static constexpr int shift_scale =
-                          static_cast<Int_t>(reco_tau::gen_truth::GenLepton::MaxNumberOfParticles);;
+              auto encodeMotherIndex = [&](const std::set<const reco_tau::gen_truth::GenParticle*>& mothers) -> Long64_t {
+                static constexpr Long64_t shift_scale =
+                        static_cast<Long64_t>(reco_tau::gen_truth::GenLepton::MaxNumberOfParticles);
 
-                  if(mothers.empty()) return -1;
-                  if(mothers.size() > 6)
-                      throw cms::Exception("L2EventTupleProducer") << "Gen particle with > 6 mothers.";
-                  if(mothers.size() > 1 && genLepton.allParticles().size() > static_cast<size_t>(shift_scale))
-                      throw cms::Exception("L2EventTupleProducer") << "Too many gen particles per gen lepton.";
-                  int pos = 0;
-                  int shift = 1;
-                  std::set<int> mother_indices;
-                  for(auto mother : mothers)
-                      mother_indices.insert(getIndex(mother));
-                  for(int mother_idx : mother_indices) {
-                      pos = pos + shift * mother_idx;
-                      shift *= shift_scale;
-                  }
-                  return pos;
-              };
+                if(mothers.empty()) return -1;
+                if(mothers.size() > 6)
+                    throw cms::Exception("L2EventTupleProducer") << "Gen particle with > 6 mothers.";
+                if(mothers.size() > 1 && genLepton.allParticles().size() > static_cast<size_t>(shift_scale))
+                    throw cms::Exception("L2EventTupleProducer") << "Too many gen particles per gen lepton.";
+                Long64_t pos = 0;
+                Long64_t shift = 1;
+                std::set<int> mother_indices;
+                for(auto mother : mothers)
+                    mother_indices.insert(getIndex(mother));
+                for(int mother_idx : mother_indices) {
+                    pos = pos + shift * mother_idx;
+                    shift *= shift_scale;
+                }
+                return pos;
+            };
 
               trainTuple().genLepton_lastMotherIndex.push_back(static_cast<Int_t>(genLepton.mothers().size()) - 1);
               for(const auto& p : genLepton.allParticles()) {

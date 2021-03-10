@@ -1,0 +1,5 @@
+sampleType=Run3MC applyGenTau=True
+
+TTToSemiLeptonic    /TTToSemiLeptonic_TuneCP5_14TeV-powheg-pythia8/Run3Winter20DRPremixMiniAOD-110X_mcRun3_2021_realistic_v6-v2/GEN-SIM-RAW
+TT_ext1     /TT_TuneCP5_14TeV-powheg-pythia8/Run3Winter20DRMiniAOD-DRFlatPU30to80_110X_mcRun3_2021_realistic_v6_ext1-v2/GEN-SIM-RAW
+TT    /TT_TuneCP5_14TeV-powheg-pythia8/Run3Winter20DRPremixMiniAOD-110X_mcRun3_2021_realistic_v6-v2/GEN-SIM-RAW 
