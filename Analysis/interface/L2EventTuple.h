@@ -30,18 +30,18 @@
     VAR(Int_t, sampleType) /* type of the sample (MC, Embedded or Data) */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
     /* Gen lepton with the full decay chain */ \
-    VAR(std::vector<Long64_t>, genLepton_nParticles) /* index of the gen lepton */ \
-    VAR(std::vector<Long64_t>, genLepton_kind) /* kind of the gen lepton:
+    VAR(std::vector<Int_t>, genLepton_nParticles) /* index of the gen lepton */ \
+    VAR(std::vector<Int_t>, genLepton_kind) /* kind of the gen lepton:
                                               Electron = 1, Muon = 2, TauElectron = 3, TauMuon = 4, Tau = 5, Other = 6 */\
-    VAR(std::vector<Long64_t>, genLepton_charge) /* charge of the gen lepton */ \
+    VAR(std::vector<Int_t>, genLepton_charge) /* charge of the gen lepton */ \
     VAR4(std::vector<Float_t>, genLepton_vis_pt, genLepton_vis_eta, genLepton_vis_phi, genLepton_vis_mass) /* visible 4-momentum of
                                                                                                  the gen lepton */ \
-    VAR(std::vector<Long64_t>, genLepton_lastMotherIndex) /* index of the last mother in genParticle_* vectors:
+    VAR(std::vector<Int_t>, genLepton_lastMotherIndex) /* index of the last mother in genParticle_* vectors:
                                              >= 0 if at least one mother is available, -1 otherwise */ \
-    VAR(std::vector<Long64_t>, genParticle_pdgId) /* PDG ID */ \
-    VAR(std::vector<Long64_t>, genParticle_mother) /* index of the mother */ \
-    VAR(std::vector<Long64_t>, genParticle_charge) /* charge */ \
-    VAR2(std::vector<Long64_t>, genParticle_isFirstCopy, genParticle_isLastCopy) /* indicator whatever a gen particle
+    VAR(std::vector<Int_t>, genParticle_pdgId) /* PDG ID */ \
+    VAR(std::vector<Int_t>, genParticle_mother) /* index of the mother */ \
+    VAR(std::vector<Int_t>, genParticle_charge) /* charge */ \
+    VAR2(std::vector<Int_t>, genParticle_isFirstCopy, genParticle_isLastCopy) /* indicator whatever a gen particle
                                                                                  is the first or the last copy */ \
     VAR4(std::vector<Float_t>, genParticle_pt, genParticle_eta, \
                                genParticle_phi, genParticle_mass) /* 4-momenta */ \

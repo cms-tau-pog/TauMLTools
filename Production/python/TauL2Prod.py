@@ -7,8 +7,6 @@ import os
 options = VarParsing('analysis')
 options.register('sampleType', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "Indicates the sample type: Summer16MC, Run2016, ...")
-options.register('inputFile', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
-                 "File to process")
 options.register('fileList', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "List of root files to process.")
 options.register('fileNamePrefix', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
@@ -21,6 +19,8 @@ options.register('eventList', '', VarParsing.multiplicity.singleton, VarParsing.
                  "List of events to process.")
 options.register('dumpPython', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Dump full config into stdout.")
+options.register('applyGenTau', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                  "Apply GenTau filter")
 options.parseArguments()
 
 
@@ -51,8 +51,6 @@ if len(options.fileList) > 0:
     readFileList(process.source.fileNames, options.fileList, options.fileNamePrefix)
 elif len(options.inputFiles) > 0:
     addFilesToList(process.source.fileNames, options.inputFiles, options.fileNamePrefix)
-else :
-    process.source.fileNames = cms.untracked.vstring(options.inputFile)
 
 if len(options.lumiFile) > 0:
     import FWCore.PythonUtilities.LumiList as LumiList
@@ -139,7 +137,7 @@ else:
     process = customizeHLTforMC(process)
 
 from TauMLTools.Production.myHLT_Train import update
-process = update(process,isData, isData, options.outputFile)
+process = update(process,isData, options.applyGenTau, options.outputFile)
 
 # End of customisation functions
 

@@ -173,7 +173,7 @@ public:
         genParticles_token(mayConsume<std::vector<reco::GenParticle>>(cfg.getParameter<edm::InputTag>("genParticles"))),
         TR_token(consumes<edm::TriggerResults>(cfg.getParameter<edm::InputTag>("TriggerResults"))),
         puInfo_token(mayConsume<std::vector<PileupSummaryInfo>>(cfg.getParameter<edm::InputTag>("puInfo"))),
-        l1Taus_token(consumes<l1t::TauBxCollection>(cfg.getParameter<edm::InputTag>("l1taus"))), // --> VBor
+        l1Taus_token(consumes<l1t::TauBxCollection>(cfg.getParameter<edm::InputTag>("l1taus"))),
         caloTowers_token(consumes<CaloTowerCollection>(cfg.getParameter<edm::InputTag>("caloTowers"))),
         caloTaus_token(consumes<reco::CaloJetCollection>(cfg.getParameter<edm::InputTag>("caloTaus"))),
         hbhe_token(consumes<HBHERecHitCollection>(cfg.getParameter<edm::InputTag>("hbheInput"))),
@@ -255,7 +255,6 @@ private:
           event.getByToken(*i, ec_tmp);
           if (ec_tmp->empty())
             continue;
-          // check if this is EB or EE
           if ((ec_tmp->begin()->detid()).subdetId() == EcalBarrel) {
             ebHandle = ec_tmp;
           }
@@ -304,7 +303,10 @@ private:
         if(isMC){
             event.getByToken(genParticles_token, hGenParticles);
             std::vector<reco_tau::gen_truth::GenLepton> GenLeptons = reco_tau::gen_truth::GenLepton::fromGenParticleCollection(*hGenParticles);
-            FillGenLepton(GenLeptons);
+            if(applyGenTau && !FillGenLepton(GenLeptons)) {
+              trainTuple.ClearEntries() ;
+              return;
+            }
           }
 
         //check inputs
@@ -341,10 +343,10 @@ private:
 
   }
 
-    void FillGenLepton(const std::vector<reco_tau::gen_truth::GenLepton>& genLeptons)
+    bool FillGenLepton(const std::vector<reco_tau::gen_truth::GenLepton>& genLeptons)
     {
         for(const auto& genLepton : genLeptons){
-            if(applyGenTau && genLepton.visibleP4().pt()<10 && fabs(genLepton.visibleP4().eta())>3) continue;
+            if(genLepton.visibleP4().pt()<10 && fabs(genLepton.visibleP4().eta())>3) return false;
             trainTuple().genLepton_nParticles.push_back(static_cast<Long64_t>(genLepton.allParticles().size()));
             trainTuple().genLepton_kind.push_back(static_cast<Long64_t>(genLepton.kind()));
             trainTuple().genLepton_charge.push_back(genLepton.charge());
@@ -352,8 +354,6 @@ private:
             trainTuple().genLepton_vis_eta.push_back(static_cast<float>(genLepton.visibleP4().eta()));
             trainTuple().genLepton_vis_phi.push_back(static_cast<float>(genLepton.visibleP4().phi()));
             trainTuple().genLepton_vis_mass.push_back(static_cast<float>(genLepton.visibleP4().mass()));
-            //trainTuple().genLepton_lastMotherIndex default_int_value;
-
             const auto ref_ptr = genLepton.allParticles().data();
 
             auto getIndex = [&](const reco_tau::gen_truth::GenParticle* particle) {
@@ -403,6 +403,7 @@ private:
                   trainTuple().genParticle_vtx_z.push_back(p.vertex.z());
               }
         }
+        return true;
     }
 
 
