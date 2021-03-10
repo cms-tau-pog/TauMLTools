@@ -345,10 +345,13 @@ private:
 
     bool FillGenLepton(const std::vector<reco_tau::gen_truth::GenLepton>& genLeptons)
     {
+        constexpr float Pt_threshold = 10;
+        constexpr float Eta_threshold = 3;
+        bool hadTaufound = false;
         for(const auto& genLepton : genLeptons){
-            if(genLepton.visibleP4().pt()<10 && fabs(genLepton.visibleP4().eta())>3) return false;
-            trainTuple().genLepton_nParticles.push_back(static_cast<Long64_t>(genLepton.allParticles().size()));
-            trainTuple().genLepton_kind.push_back(static_cast<Long64_t>(genLepton.kind()));
+          if(genLepton.kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToHadrons && genLepton.visibleP4().pt()>Pt_threshold && std::abs(genLepton.visibleP4().eta())<Eta_threshold) hadTaufound=true;
+            trainTuple().genLepton_nParticles.push_back(static_cast<Int_t>(genLepton.allParticles().size()));
+            trainTuple().genLepton_kind.push_back(static_cast<Int_t>(genLepton.kind()));
             trainTuple().genLepton_charge.push_back(genLepton.charge());
             trainTuple().genLepton_vis_pt.push_back(static_cast<float>(genLepton.visibleP4().pt()));
             trainTuple().genLepton_vis_eta.push_back(static_cast<float>(genLepton.visibleP4().eta()));
@@ -360,7 +363,7 @@ private:
                   int pos = -1;
                   if(particle) {
                       pos = static_cast<int>(particle - ref_ptr);
-                      if(pos < 0 || pos >= static_cast<Long64_t>(genLepton.allParticles().size()))
+                      if(pos < 0 || pos >= static_cast<Int_t>(genLepton.allParticles().size()))
                           throw cms::Exception("L2EventTupleProducer") << "Unable to determine a gen particle index.";
                   }
                   return pos;
@@ -368,7 +371,7 @@ private:
 
               auto encodeMotherIndex = [&](const std::set<const reco_tau::gen_truth::GenParticle*>& mothers) {
                   static constexpr int shift_scale =
-                          static_cast<Long64_t>(reco_tau::gen_truth::GenLepton::MaxNumberOfParticles);;
+                          static_cast<Int_t>(reco_tau::gen_truth::GenLepton::MaxNumberOfParticles);;
 
                   if(mothers.empty()) return -1;
                   if(mothers.size() > 6)
@@ -387,7 +390,7 @@ private:
                   return pos;
               };
 
-              trainTuple().genLepton_lastMotherIndex.push_back(static_cast<Long64_t>(genLepton.mothers().size()) - 1);
+              trainTuple().genLepton_lastMotherIndex.push_back(static_cast<Int_t>(genLepton.mothers().size()) - 1);
               for(const auto& p : genLepton.allParticles()) {
                   trainTuple().genParticle_pdgId.push_back(p.pdgId);
                   trainTuple().genParticle_mother.push_back(encodeMotherIndex(p.mothers));
@@ -403,7 +406,7 @@ private:
                   trainTuple().genParticle_vtx_z.push_back(p.vertex.z());
               }
         }
-        return true;
+        return hadTaufound;
     }
 
 
