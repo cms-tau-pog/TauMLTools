@@ -329,10 +329,11 @@ private:
 private:
 
   void FillHLTResults(const edm::TriggerResults& Trigger_Results, const std::vector<std::string>& trigger_names){
-    if(std::find(trigger_names.begin(), trigger_names.end(), defaultDiTauPath) == trigger_names.end()){
+    auto iter = std::find(trigger_names.begin(), trigger_names.end(), defaultDiTauPath);
+    if( iter == trigger_names.end()){
       throw cms::Exception("L2EventTupleProducer") << "DiTauPath not found!";
     }
-    const int position_of_path  = std::distance(trigger_names.begin(), std::find( trigger_names.begin(), trigger_names.end(), defaultDiTauPath)) ;
+    const int position_of_path  = std::distance(trigger_names.begin(), iter) ;
     const edm::HLTPathStatus& hlt_path_status = Trigger_Results.at(position_of_path);
     if(!hlt_path_status.wasrun() || hlt_path_status.error()){
       throw cms::Exception("L2EventTupleProducer") << "unknown hlt path status state! ";
