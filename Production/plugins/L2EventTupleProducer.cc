@@ -198,7 +198,6 @@ public:
       const unsigned nLabels = ecalLabels.size();
       for (unsigned i = 0; i != nLabels; i++)
         ecal_tokens.push_back(consumes<EcalRecHitCollection>(ecalLabels[i]));
-      std::cout<<processName<<std::endl;
     }
 private:
 
@@ -335,7 +334,7 @@ private:
     }
     const int position_of_path  = std::distance(trigger_names.begin(), std::find( trigger_names.begin(), trigger_names.end(), defaultDiTauPath)) ;
     const edm::HLTPathStatus& hlt_path_status = Trigger_Results.at(position_of_path);
-    if(hlt_path_status.wasrun() || hlt_path_status.error()){
+    if(!hlt_path_status.wasrun() || hlt_path_status.error()){
       throw cms::Exception("L2EventTupleProducer") << "unknown hlt path status state! ";
     }
     trainTuple().defaultDiTauPath_result = hlt_path_status.accept();
