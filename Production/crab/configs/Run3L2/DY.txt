@@ -1,0 +1,3 @@
+sampleType=Run3MC applyGenTau=True
+
+DYToLL_M-50 /DYToLL_M-50_TuneCP5_14TeV-pythia8/Run3Winter20DRMiniAOD-DRFlatPU30to80_110X_mcRun3_2021_realistic_v6-v2/GEN-SIM-RAW

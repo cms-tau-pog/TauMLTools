@@ -1,0 +1,11 @@
+lumiMask=TauMLTools/Production/crab/configs/Run3L2/lumisection_EphemeralHLTPhysics_json.txt
+sampleType=Run2Data applyGenTau=False
+
+EphemeralHLTPhysics1 /EphemeralHLTPhysics1/Run2018D-v1/RAW
+EphemeralHLTPhysics2 /EphemeralHLTPhysics2/Run2018D-v1/RAW
+EphemeralHLTPhysics3 /EphemeralHLTPhysics3/Run2018D-v1/RAW
+EphemeralHLTPhysics4 /EphemeralHLTPhysics4/Run2018D-v1/RAW
+EphemeralHLTPhysics5 /EphemeralHLTPhysics5/Run2018D-v1/RAW
+EphemeralHLTPhysics6 /EphemeralHLTPhysics6/Run2018D-v1/RAW
+EphemeralHLTPhysics7 /EphemeralHLTPhysics7/Run2018D-v1/RAW
+EphemeralHLTPhysics8 /EphemeralHLTPhysics8/Run2018D-v1/RAW

@@ -223,14 +223,18 @@ public:
         else delete tree;
     }
 
+    void ClearEntries(){
+      for(auto& entry : entries)
+          entry.second->clear();
+    }
+
     Int_t Fill()
     {
         std::lock_guard<Mutex> lock(mutex);
         Int_t n_bytes = tree->Fill();
         if(n_bytes < 0)
             throw std::runtime_error("SmartTree: a write error occured during Fill.");
-        for(auto& entry : entries)
-            entry.second->clear();
+        ClearEntries();
         return n_bytes;
     }
 

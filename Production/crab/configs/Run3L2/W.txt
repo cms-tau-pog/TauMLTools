@@ -1,0 +1,3 @@
+sampleType=Run3MC applyGenTau=True
+
+WJetsToLNu /WJetsToLNu_TuneCP5_14TeV-amcatnloFXFX-pythia8/Run3Winter20DRPremixMiniAOD-110X_mcRun3_2021_realistic_v6-v1/GEN-SIM-RAW
