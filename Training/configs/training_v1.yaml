@@ -7,22 +7,14 @@ Setup:
     n_outer_cells        :  21
     outer_cell_size      :  0.05
     n_threads            :  1
-    n_fe_tau             :  43
-    n_pf_el              :  22
-    n_pf_mu              :  23
-    n_pf_chHad           :  27
-    n_pf_nHad            :  7
-    n_pf_gamma           :  23
-    n_ele                :  37
-    n_muon               :  37
-    tau_types            :  4
-    tau_types_names      : {"e","mu","tau","jet"}
-    input_dirs           : {"/eos/user/m/myshched/LawTest_flush10_virt10_v3/"}
-    file_name_pattern    : "\"^.*_(1|2|3|4|5|6|7|8|9|10).root$\""
-    exclude_list         : "\"\""
-    exclude_dir_list     : "\"\""
-    input_spectrum       : "\"/eos/home-m/myshched/ShuffleSpectrum.root\""
-    target_spectrum      : "\"/eos/home-m/myshched/ShuffleSpectrum.root\""
+    # tau_types_names.keys are written in accordance with tauType in the tau tuple
+    tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
+    input_dirs           : ["/eos/user/m/myshched/LawTest_flush10_virt10_v3/"]
+    file_name_pattern    : "^.*_(1|2|3|4|5|6|7|8|9|10).root$"
+    exclude_list         : ""
+    exclude_dir_list     : ""
+    input_spectrum       : "/eos/home-m/myshched/ShuffleSpectrum.root"
+    target_spectrum      : "/eos/home-m/myshched/ShuffleSpectrum.root"
     n_pt_bins            : 49
     pt_min               : 20.0
     pt_max               : 1000.0
@@ -31,7 +23,7 @@ Setup:
     eta_max              : 2.3
     weight_thr           : 100000.0
 
-Features_enable :
+Features_all :
     TauFlat : [ "tau_pt",
                 "tau_eta",
                 "tau_phi",
