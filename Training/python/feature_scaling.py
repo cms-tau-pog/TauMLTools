@@ -1,0 +1,103 @@
+import uproot
+import awkward as ak
+import numpy as np
+
+import time
+import gc
+import argparse
+import yaml
+import json
+import collections
+from glob import glob
+from tqdm import tqdm
+
+from scaling_utils import Phi_mpi_pi, dR, dR_signal_cone, compute_mean, compute_std, fill_aggregators
+from scaling_utils import nested_dict, init_dictionaries, dump_to_json
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cfg", type=str, help="Path to yaml configuration file")
+    parser.add_argument('--var_types', nargs='+', help="Variable types for which to derive scaling constants. Defaults to -1 for running on all those specified in the config", default=-1)
+    args = parser.parse_args()
+    with open(args.cfg) as f:
+        scaling_dict = yaml.load(f, Loader=yaml.FullLoader)
+    # read cfg parameters
+    setup_dict = scaling_dict['Scaling_setup']
+    features_dict = scaling_dict['Features_all']
+    #
+    assert type(args.var_types) == list
+    if args.var_types[0] == "-1" and len(args.var_types) == 1:
+        var_types = features_dict.keys()
+    else:
+        var_types = args.var_types
+    file_path = setup_dict['file_path']
+    file_range = setup_dict['file_range']
+    tree_name = setup_dict['tree_name']
+    log_step = setup_dict['log_step']
+    version = setup_dict['version']
+    selection_dict = setup_dict['selection']
+    cone_definition_dict = setup_dict['cone_definition']
+    cone_selection_dict = setup_dict['cone_selection']
+    #
+    assert log_step > 0 and type(log_step) == int
+    assert len(file_range)==2 and file_range[0]<=file_range[1]
+    file_names = sorted(glob(file_path))[file_range[0]:file_range[1]]
+    sums, sums2, counts, scaling_params = init_dictionaries(features_dict, cone_selection_dict, len(file_names))
+    #
+    dR_tau_outer_cone = cone_definition_dict['outer']['dR']
+    tau_pt_name, tau_eta_name, tau_phi_name = cone_selection_dict['TauFlat']['var_names']['pt'], cone_selection_dict['TauFlat']['var_names']['eta'], cone_selection_dict['TauFlat']['var_names']['phi']
+    inner_cone_min_pt = cone_definition_dict['inner']['min_pt']
+    inner_cone_min_radius = cone_definition_dict['inner']['min_radius']
+    inner_cone_opening_coef = cone_definition_dict['inner']['opening_coef']
+    #
+    print(f'\n[INFO] will process {len(file_names)} input files from {file_path}')
+    print(f'[INFO] will dump scaling parameters to json after every {log_step} files')
+    print('[INFO] starting to accumulate sums & counts:\n')
+    #
+    skip_counter = 0
+    program_starts = time.time()
+    last_file_done = program_starts
+    # loop over input files
+    for file_i, file_name in enumerate(tqdm(file_names)):
+        log_scaling_params = not (file_i%log_step) or (file_i == len(file_names)-1)
+        with uproot.open(file_name, array_cache='5 GB') as f:
+            if len(f.keys()) == 0: # some input ROOT files can be corrupted and uproot can't recover for it. These files are skipped in computations
+                print(f'[WARNING] couldn\'t find any object in {file_name}: skipping the file')
+                skip_counter += 1
+            else:
+                tree = f[tree_name]
+                # NB: selection cut is not applied on tau branches
+                tau_pt_array, tau_eta_array, tau_phi_array = tree.arrays([tau_pt_name, tau_eta_name, tau_phi_name], cut=None, aliases=None, how=tuple)
+                for var_type in var_types:
+                    for var_dict in features_dict[var_type]:
+                        begin_var = time.time()
+                        (var, (selection_cut, aliases, scaling_type, *lim_params)), = var_dict.items()
+                        if scaling_type != 'normal': continue
+                        constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
+                        # NB: selection cut is applied, broadcasting with tau array (w/o cut) correctly handles the difference
+                        var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
+                        after_var = time.time()
+                        dR_tau_signal_cone = dR_signal_cone(tau_pt_array, inner_cone_min_pt, inner_cone_min_radius, inner_cone_opening_coef)
+                        after_dR_sc = time.time()
+                        for cone_type in cone_selection_dict[var_type]['cone_types']:
+                            fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
+                                             var, var_type, file_i, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
+                                             sums, sums2, counts, fill_scaling_params=log_scaling_params, scaling_params=scaling_params, lim_params=lim_params
+                                             )
+                        del(constituent_eta_array, constituent_phi_array, var_array)
+                        end_var = time.time()
+                        # print('var loop timing: ', round(after_var-begin_var, 2), round(after_dR_sc-after_var, 2), round(end_var-after_dR_sc, 2))
+                        # print(f'---> processed {var} in {end_var - begin_var:.2f} s\n')
+                del(tau_pt_array, tau_eta_array, tau_phi_array)
+        gc.collect()
+        if log_scaling_params:
+            if file_i == len(file_names)-1:
+                scaling_params_json_name = f'scaling_params_v{version}_dev'
+            else:
+                scaling_params_json_name = f'scaling_params_v{version}_log_{(file_i+1)//log_step}'
+            dump_to_json({scaling_params_json_name: scaling_params})
+        processed_file = time.time()
+        # print(f'---> processed {file_name} in {processed_file - last_file_done:.2f} s')
+        last_file_done = processed_file
+    if skip_counter > 0:
+        print(f'\n\n\n[WARNING] during the processing {skip_counter} files with no objects were skipped\n\n\n')
