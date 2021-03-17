@@ -404,6 +404,7 @@ public:
         // to be cahnged in c++20 version (auto fillGrid = []<typename ...Ts>(Ts&& ...ts) ...)
         // decltype(_feature_idx) -> Ts
         auto fillGrid = [&](auto _feature_idx, float value) -> void {
+          if(static_cast<int>(_feature_idx) < 0) return;
           if constexpr (std::is_same_v<decltype(_feature_idx), PfCand_electron_Features>) {
             data->x_grid.at(CellObjectType::PfCand_electron).at(inner)
                         .at(PfCand_electron_idx_start + static_cast<int>(_feature_idx))
