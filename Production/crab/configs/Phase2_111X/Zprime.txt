@@ -1,0 +1,14 @@
+sampleType=MC_Phase2_111X
+
+ZprimeToEE_M-6000_NoPU   /ZprimeToEE_M-6000_TuneCP5_14TeV-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-NoPU_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
+ZprimeToEE_M-6000_PU140  /ZprimeToEE_M-6000_TuneCP5_14TeV-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-PU140_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
+ZprimeToEE_M-6000_PU200  /ZprimeToEE_M-6000_TuneCP5_14TeV-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-PU200_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
+ZprimeToMuMu_M-6000_NoPU   /ZprimeToMuMu_M-6000_TuneCP5_14TeV-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-NoPU_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
+ZprimeToMuMu_M-6000_PU140  /ZprimeToMuMu_M-6000_TuneCP5_14TeV-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-PU140_111X_mcRun4_realistic_T15_v1-v1/FEVT
+ZprimeToMuMu_M-6000_PU200  /ZprimeToMuMu_M-6000_TuneCP5_14TeV-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-PU200_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
+ZprimeToTauTau_M-500_NoPU   /ZprimeToTauTau_M-500_TuneCP5_14TeV-pythia8-tauola/Phase2HLTTDRSummer20ReRECOMiniAOD-NoPU_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
+ZprimeToTauTau_M-500_PU140  /ZprimeToTauTau_M-500_TuneCP5_14TeV-pythia8-tauola/Phase2HLTTDRSummer20ReRECOMiniAOD-PU140_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
+ZprimeToTauTau_M-500_PU200  /ZprimeToTauTau_M-500_TuneCP5_14TeV-pythia8-tauola/Phase2HLTTDRSummer20ReRECOMiniAOD-PU200_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
+ZprimeToTauTau_M-1500_NoPU   /ZprimeToTauTau_M-1500_TuneCP5_14TeV-pythia8-tauola/Phase2HLTTDRSummer20ReRECOMiniAOD-NoPU_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
+ZprimeToTauTau_M-1500_PU140  /ZprimeToTauTau_M-1500_TuneCP5_14TeV-pythia8-tauola/Phase2HLTTDRSummer20ReRECOMiniAOD-PU140_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
+ZprimeToTauTau_M-1500_PU200  /ZprimeToTauTau_M-1500_TuneCP5_14TeV-pythia8-tauola/Phase2HLTTDRSummer20ReRECOMiniAOD-PU200_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
