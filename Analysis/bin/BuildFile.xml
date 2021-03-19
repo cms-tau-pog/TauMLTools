@@ -1,4 +1,3 @@
-<!--
 <bin name="ShuffleMergeSpectral" file="ShuffleMergeSpectral.cxx">
   <use name="boost_program_options"/>
   <use name="TauMLTools/Core"/>
@@ -31,9 +30,3 @@
     <use name="boost_program_options"/>
     <use name="TauMLTools/Core"/>
 </bin>
-<bin name="TrainingTupleProducer" file="TrainingTupleProducer.cxx">
-    <use name="boost_program_options"/>
-    <use name="rootmath"/>
-    <use name="TauMLTools/Core"/>
-</bin>
--->
