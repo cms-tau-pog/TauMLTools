@@ -105,7 +105,7 @@ struct SourceDesc {
               throw exception("Root file %1% is empty.") % file_name;
         }
         current_tuple->GetEntry(current_n_processed++);
-        const auto gen_match = static_cast<GenLeptonMatch>((*current_tuple)().lepton_gen_match);
+        const auto gen_match = static_cast<GenLeptonMatch>((*current_tuple)().genLepton_kind);
         const auto sample_type = static_cast<SampleType>((*current_tuple)().sampleType);
         current_tau_type = GenMatchToTauType(gen_match, sample_type);
       } while (tau_types.find(current_tau_type) == tau_types.end());

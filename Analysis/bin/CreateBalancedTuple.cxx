@@ -230,7 +230,7 @@ private:
                 if(args.take_only_odd_event_ids() && tau.evt % 2 == 0) continue;
                 if(args.take_only_even_event_ids() && tau.evt % 2 != 0) continue;
                 if(args.use_tau_p4() && tau.tau_index < 0) continue;
-                const GenLeptonMatch gen_match = static_cast<GenLeptonMatch>(tau.lepton_gen_match);
+                const GenLeptonMatch gen_match = static_cast<GenLeptonMatch>(tau.genLepton_kind);
                 const SampleType sample_type = static_cast<SampleType>(tau.sampleType);
                 const TauType tau_type = GenMatchToTauType(gen_match, sample_type);
                 if(!output_tuples.count(tau_type)) continue;
