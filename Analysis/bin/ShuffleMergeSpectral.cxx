@@ -609,12 +609,6 @@ public:
 
       if(args.mode() == MergeMode::MergeAll) {
         entries[args.output()] = all_entries;
-      } else if(args.mode() == MergeMode::MergePerEntry) {
-        for(const auto& entry : all_entries) {
-          const std::string output_name = args.output() + "/" + entry.name + ".root";
-          std::cout << output_name << std::endl;
-          entries[output_name].push_back(entry);
-          }
       } else {
         throw exception("Unsupported merging mode = '%1%'.") % args.mode();
       }
