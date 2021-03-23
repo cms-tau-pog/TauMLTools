@@ -16,6 +16,7 @@
 #include "TauMLTools/Core/interface/PropertyConfigReader.h"
 #include "TauMLTools/Core/interface/ProgressReporter.h"
 #include "TauMLTools/Analysis/interface/TauTuple.h"
+#include "TauMLTools/Analysis/interface/TauSelection.h"
 
 namespace analysis {
 
@@ -104,9 +105,13 @@ struct SourceDesc {
               throw exception("Root file %1% is empty.") % file_name;
         }
         current_tuple->GetEntry(current_n_processed++);
+
+        if (!PassGenLeptonCut((*current_tuple)())) return false;
+
         const auto gen_match = static_cast<GenLeptonMatch>((*current_tuple)().genLepton_kind);
         const auto sample_type = static_cast<SampleType>((*current_tuple)().sampleType);
         current_tau_type = GenMatchToTauType(gen_match, sample_type, (*current_tuple)().genLepton_index, (*current_tuple)().genJet_index);
+
       } while (tau_types.find(current_tau_type) == tau_types.end());
       ++total_n_processed;
       (*current_tuple)().tauType = static_cast<Int_t>(current_tau_type);

@@ -8,6 +8,7 @@
 
 #include "TauMLTools/Core/interface/AnalyzerData.h"
 #include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Analysis/interface/TauSelection.h"
 
 struct Arguments {
     run::Argument<std::string> outputfile{"outputfile", "output file name"};
@@ -81,7 +82,10 @@ public:
             auto file = root_ext::OpenRootFile(file_name);
 
             TauTuple input_tauTuple("taus", file.get(), true, {},
-                     {"tau_pt", "tau_eta", "sampleType", "lepton_gen_match", "tau_index"});
+                     {"tau_pt", "tau_eta", "sampleType", "genLepton_kind", "tau_index",
+                      "genLepton_index", "genJet_index",
+                      "genLepton_vis_pt", "genLepton_vis_eta", "genLepton_vis_phi", "genLepton_vis_mass",
+                      "tau_pt", "tau_eta", "tau_phi", "tau_mass", "evt"});
 
             for(const Tau& tau : input_tauTuple)
             {
@@ -138,7 +142,7 @@ private:
 
     bool PassSelection(const Tau& tau) const
     {
-      return (tau.tau_index >= 0);
+      return (tau.tau_index >= 0) && PassGenLeptonCut(tau);
     }
 
     double Integral() const
