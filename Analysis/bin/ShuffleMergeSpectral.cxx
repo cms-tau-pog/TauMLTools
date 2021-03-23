@@ -107,7 +107,7 @@ struct SourceDesc {
         current_tuple->GetEntry(current_n_processed++);
         const auto gen_match = static_cast<GenLeptonMatch>((*current_tuple)().genLepton_kind);
         const auto sample_type = static_cast<SampleType>((*current_tuple)().sampleType);
-        current_tau_type = GenMatchToTauType(gen_match, sample_type);
+        current_tau_type = GenMatchToTauType(gen_match, sample_type, (*current_tuple)().genLepton_index, (*current_tuple)().genJet_index);
       } while (tau_types.find(current_tau_type) == tau_types.end());
       ++total_n_processed;
       (*current_tuple)().tauType = static_cast<Int_t>(current_tau_type);

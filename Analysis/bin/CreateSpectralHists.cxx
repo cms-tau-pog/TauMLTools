@@ -128,7 +128,7 @@ private:
         if(PassSelection(tau)) {
             const auto gen_match = static_cast<analysis::GenLeptonMatch>(tau.genLepton_kind);
             const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
-            const TauType tau_type = analysis::GenMatchToTauType(gen_match, sample_type);
+            const TauType tau_type = analysis::GenMatchToTauType(gen_match, sample_type, tau.genLepton_index, tau.genJet_index);
             hists->eta_pt_hist(tau_type).Fill(std::abs(tau.tau_eta), tau.tau_pt);
             ttypes[tau_type] = true;
         } else {
