@@ -19,21 +19,20 @@
 
 namespace analysis {
 
-enum class MergeMode { MergeAll = 1, MergePerEntry = 2 };
+enum class MergeMode { MergeAll = 1 };
 ENUM_NAMES(MergeMode) = {
     { MergeMode::MergeAll, "MergeAll" },
-    { MergeMode::MergePerEntry, "MergePerEntry" }
 };
 
 struct Arguments {
     run::Argument<std::string> cfg{"cfg", "configuration file with the list of input sources"};
     run::Argument<std::string> input{"input", "input path with tuples for all the samples"};
-    run::Argument<std::string> output{"output", "output, depending on the merging mode: MergeAll - file,"
-                                                " MergePerEntry - directory."};
+    run::Argument<std::string> output{"output", "output, depending on the merging mode: MergeAll (by file) "
+                                                "is the only supported mode"};
     run::Argument<std::string> pt_bins{"pt-bins", "pt bins (last bin will be chosen as high-pt region, \
                                                    lower pt edgeof the last bin will be choosen as pt_threshold)"};
     run::Argument<std::string> eta_bins{"eta-bins", "eta bins"};
-    run::Argument<MergeMode> mode{"mode", "merging mode: MergeAll or MergePerEntry"};
+    run::Argument<MergeMode> mode{"mode", "merging mode: MergeAll is the only supported mode"};
     run::Argument<size_t> max_entries{"max-entries", "maximal number of entries in output train+test tuples",
                                             std::numeric_limits<size_t>::max()};
     run::Argument<unsigned> n_threads{"n-threads", "number of threads", 1};
