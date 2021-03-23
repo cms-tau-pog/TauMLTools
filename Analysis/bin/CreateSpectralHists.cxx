@@ -112,10 +112,10 @@ private:
         for(const std::string& bin_str : split_args_eta) std::cout << Parse<double>(bin_str) << "  ";
         std::cout << std::endl;
 
-        if(split_args_pt.size()!=3 || split_args_pt[0]<1 || split_args_pt[1]>=split_args_pt[2])
+        if(split_args_pt.size()!=3 || Parse<double>(split_args_pt[0])<1 || Parse<double>(split_args_pt[1])>=Parse<double>(split_args_pt[2]))
         throw exception("Invalid pt-hist arguments");
 
-        if(split_args_eta.size()!=3 || split_args_eta[0]<1 || split_args_eta[1]>=split_args_eta[2])
+        if(split_args_eta.size()!=3 || Parse<double>(split_args_eta[0])<1 || Parse<double>(split_args_eta[1])>=Parse<double>(split_args_eta[2]))
         throw exception("Invalid eta-hist arguments");
 
         HistArgs histarg(split_args_pt, split_args_eta);
