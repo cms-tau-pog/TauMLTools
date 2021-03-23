@@ -6,27 +6,7 @@
   <use name="boost_program_options"/>
   <use name="TauMLTools/Core"/>
 </bin>
-<bin name="CreateBalancedTuple" file="CreateBalancedTuple.cxx">
-    <use name="boost_program_options"/>
-    <use name="TauMLTools/Core"/>
-</bin>
-<bin name="CreateBinnedTuples" file="CreateBinnedTuples.cxx">
-    <use name="boost_program_options"/>
-    <use name="TauMLTools/Core"/>
-</bin>
 <bin name="MergeTuples" file="MergeTuples.cxx">
-    <use name="boost_program_options"/>
-    <use name="TauMLTools/Core"/>
-</bin>
-<bin name="ShuffleMerge" file="ShuffleMerge.cxx">
-    <use name="boost_program_options"/>
-    <use name="TauMLTools/Core"/>
-</bin>
-<bin name="ShuffleTuple" file="ShuffleTuple.cxx">
-    <use name="boost_program_options"/>
-    <use name="TauMLTools/Core"/>
-</bin>
-<bin name="ShuffleTupleEntries" file="ShuffleTupleEntries.cxx">
     <use name="boost_program_options"/>
     <use name="TauMLTools/Core"/>
 </bin>
