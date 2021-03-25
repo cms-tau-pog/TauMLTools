@@ -182,8 +182,10 @@ public:
                                                              n_eta_bins, eta_min, eta_max,
                                                              n_pt_bins, pt_min, pt_max);
         std::shared_ptr<TH2D> input_hist(dynamic_cast<TH2D*>(file_input->Get(("eta_pt_hist_"+tau_name).c_str())));
-        RebinAndFill(*hist_weights[tau_type], *target_hist);
-        RebinAndFill(*after_rebin_input_hist, *input_hist);
+        if(hist_weights[tau_type] && target_hist && after_rebin_input_hist && input_hist) {
+            RebinAndFill(*hist_weights[tau_type], *target_hist);
+            RebinAndFill(*after_rebin_input_hist, *input_hist);
+        } else throw std::runtime_error("Error: Spectrum hist is nullptr");
         hist_weights[tau_type]->Divide(after_rebin_input_hist.get());
       }
 
