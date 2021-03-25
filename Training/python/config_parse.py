@@ -8,11 +8,21 @@ def create_settings(input_file: str, verbose=False) -> str:
     2. The enume classes for TauFlat, PfCand_electron,
        PfCand_muon, PfCand_chHad, PfCand_nHad, pfCand_gamma,
        Electron, Muon
+    3. Create CellObjectTypes in enume:
+       enum class CellObjectType {
+         PfCand_electron,
+         PfCand_muon,
+         PfCand_chHad,
+         PfCand_nHad,
+         PfCand_gamma,
+         Electron,
+         Muon
+       };
     The following string onward is fed to R.gInterpreter
     to create the corresponding structures.
     '''
-
     import yaml
+
     def create_namestruc(content: dict) -> str:
         types_map = {
                 int   : "size_t",
@@ -57,10 +67,27 @@ def create_settings(input_file: str, verbose=False) -> str:
             string += key +" = " + "-1" + ",\n"
         return string[:-2] + "};\n"
 
+    def create_cellobjects(content: dict) -> str:
+        string  = "\nenum class CellObjectType {\n"
+        string += ",\n".join(content["CellObjectType"])
+        string += "};\n\n"
+
+        string +="template<typename T> struct FeaturesHelper;\n"
+
+        for celltype in content["CellObjectType"]:
+            number = len(content["Features_all"][celltype]) - len(content["Features_disable"][celltype])
+            string += "template<> struct FeaturesHelper<{0}_Features> ".format(celltype) + "{\n"
+            string += "static constexpr CellObjectType object_type = CellObjectType::{0};\n".format(celltype)
+            string += "static constexpr size_t size = {0};\n".format(number)
+            string += "using scaler_type = Scaling::{0};\n".format(celltype) + "};\n\n"
+
+        return string
+
     with open(input_file) as file:
         data = yaml.load(file)
     settings  = create_namestruc(data)
     settings  += "\n".join([create_enum(k,data) for k in data["Features_all"]])
+    settings += create_cellobjects(data)
     if verbose:
         print(settings)
     return settings
@@ -73,6 +100,8 @@ def create_scaling_input(input_file: str, verbose=False) -> str:
     The following string onward is fed to R.gInterpreter
     to interpret the corresponding c++ vectors in machinary code.
     '''
+    import json
+
     groups = [ 'outer', 'inner' ]
     subgroups = [ 'mean', 'std', 'lim_min', 'lim_max' ]
 
@@ -89,7 +118,6 @@ def create_scaling_input(input_file: str, verbose=False) -> str:
             return 1 + (max(map(depth, d.values())) if d else 0)
         return 0
 
-    import json
     def create_scaling(content: dict) -> str:
         string = "namespace Scaling {\n"
         for FeatureT in content:
