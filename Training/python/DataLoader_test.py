@@ -36,54 +36,29 @@ data_loader = R.DataLoader()
 print("Number of all entries / batch size: ", data_loader.GetEntries()/n_tau)
 
 n_batches = 500
-n_batches_store = 5
+n_batches_store = 1
 
-# To convert list to tensor
 def to_tensor(data):
 
-    y = np.zeros((n_tau,tau_types))
-    w = np.zeros((n_tau))
-    x_tau = np.zeros((n_tau,n_fe_tau))
-
-    x_outer_1 = np.zeros((n_tau, n_outer_cells, n_outer_cells, n_pf_el))
-    x_outer_2 = np.zeros((n_tau, n_outer_cells, n_outer_cells, n_pf_mu))
-    x_outer_3 = np.zeros((n_tau, n_outer_cells, n_outer_cells, n_pf_chHad))
-    x_outer_4 = np.zeros((n_tau, n_outer_cells, n_outer_cells, n_pf_nHad))
-    x_outer_5 = np.zeros((n_tau, n_outer_cells, n_outer_cells, n_pf_gamma))
-    x_outer_6 = np.zeros((n_tau, n_outer_cells, n_outer_cells, n_ele))
-    x_outer_7 = np.zeros((n_tau, n_outer_cells, n_outer_cells, n_muon))
-
-    x_inner_1 = np.zeros((n_tau, n_inner_cells, n_inner_cells, n_pf_el))
-    x_inner_2 = np.zeros((n_tau, n_inner_cells, n_inner_cells, n_pf_mu))
-    x_inner_3 = np.zeros((n_tau, n_inner_cells, n_inner_cells, n_pf_chHad))
-    x_inner_4 = np.zeros((n_tau, n_inner_cells, n_inner_cells, n_pf_nHad))
-    x_inner_5 = np.zeros((n_tau, n_inner_cells, n_inner_cells, n_pf_gamma))
-    x_inner_6 = np.zeros((n_tau, n_inner_cells, n_inner_cells, n_ele))
-    x_inner_7 = np.zeros((n_tau, n_inner_cells, n_inner_cells, n_muon))
-
-    y = np.frombuffer(data.y_onehot.data(), dtype=np.float32, count=data.y_onehot.size()).reshape((n_tau, tau_types))
-    w = np.frombuffer(data.weight.data(), dtype=np.float32, count=data.weight.size())
-    x_tau = np.frombuffer(data.x_tau.data(), dtype=np.float32, count=data.x_tau.size()).reshape((n_tau,n_fe_tau))
-
-    x_outer_1 = np.frombuffer(data.x_grid[0][0].data(), dtype=np.float32, count=data.x_grid[0][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_pf_el))
-    x_outer_2 = np.frombuffer(data.x_grid[1][0].data(), dtype=np.float32, count=data.x_grid[1][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_pf_mu))
-    x_outer_3 = np.frombuffer(data.x_grid[2][0].data(), dtype=np.float32, count=data.x_grid[2][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_pf_chHad))
-    x_outer_4 = np.frombuffer(data.x_grid[3][0].data(), dtype=np.float32, count=data.x_grid[3][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_pf_nHad))
-    x_outer_5 = np.frombuffer(data.x_grid[4][0].data(), dtype=np.float32, count=data.x_grid[4][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_pf_gamma))
-    x_outer_6 = np.frombuffer(data.x_grid[5][0].data(), dtype=np.float32, count=data.x_grid[5][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_ele))
-    x_outer_7 = np.frombuffer(data.x_grid[6][0].data(), dtype=np.float32, count=data.x_grid[6][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_muon))
-
-    x_inner_1 = np.frombuffer(data.x_grid[0][1].data(), dtype=np.float32, count=data.x_grid[0][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_pf_el))
-    x_inner_2 = np.frombuffer(data.x_grid[1][1].data(), dtype=np.float32, count=data.x_grid[1][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_pf_mu))
-    x_inner_3 = np.frombuffer(data.x_grid[2][1].data(), dtype=np.float32, count=data.x_grid[2][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_pf_chHad))
-    x_inner_4 = np.frombuffer(data.x_grid[3][1].data(), dtype=np.float32, count=data.x_grid[3][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_pf_nHad))
-    x_inner_5 = np.frombuffer(data.x_grid[4][1].data(), dtype=np.float32, count=data.x_grid[4][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_pf_gamma))
-    x_inner_6 = np.frombuffer(data.x_grid[5][1].data(), dtype=np.float32, count=data.x_grid[5][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_ele))
-    x_inner_7 = np.frombuffer(data.x_grid[6][1].data(), dtype=np.float32, count=data.x_grid[6][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_muon))
-
-    return  y, w, x_tau, \
-            x_outer_1, x_outer_2, x_outer_3, x_outer_4, x_outer_5, x_outer_6, x_outer_7, \
-            x_inner_1, x_inner_2, x_inner_3, x_inner_4, x_inner_5, x_inner_6, x_inner_7
+    return [
+        np.frombuffer(data.y_onehot.data(), dtype=np.float32, count=data.y_onehot.size()).reshape((n_tau, tau_types)),
+        np.frombuffer(data.weight.data(), dtype=np.float32, count=data.weight.size()),
+        np.frombuffer(data.x_tau.data(), dtype=np.float32, count=data.x_tau.size()).reshape((n_tau,n_fe_tau)),
+        np.frombuffer(data.x_grid[0][0].data(), dtype=np.float32, count=data.x_grid[0][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_pf_el)),
+        np.frombuffer(data.x_grid[1][0].data(), dtype=np.float32, count=data.x_grid[1][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_pf_mu)),
+        np.frombuffer(data.x_grid[2][0].data(), dtype=np.float32, count=data.x_grid[2][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_pf_chHad)),
+        np.frombuffer(data.x_grid[3][0].data(), dtype=np.float32, count=data.x_grid[3][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_pf_nHad)),
+        np.frombuffer(data.x_grid[4][0].data(), dtype=np.float32, count=data.x_grid[4][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_pf_gamma)),
+        np.frombuffer(data.x_grid[5][0].data(), dtype=np.float32, count=data.x_grid[5][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_ele)),
+        np.frombuffer(data.x_grid[6][0].data(), dtype=np.float32, count=data.x_grid[6][0].size()).reshape((n_tau, n_outer_cells, n_outer_cells, n_muon)),
+        np.frombuffer(data.x_grid[0][1].data(), dtype=np.float32, count=data.x_grid[0][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_pf_el)),
+        np.frombuffer(data.x_grid[1][1].data(), dtype=np.float32, count=data.x_grid[1][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_pf_mu)),
+        np.frombuffer(data.x_grid[2][1].data(), dtype=np.float32, count=data.x_grid[2][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_pf_chHad)),
+        np.frombuffer(data.x_grid[3][1].data(), dtype=np.float32, count=data.x_grid[3][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_pf_nHad)),
+        np.frombuffer(data.x_grid[4][1].data(), dtype=np.float32, count=data.x_grid[4][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_pf_gamma)),
+        np.frombuffer(data.x_grid[5][1].data(), dtype=np.float32, count=data.x_grid[5][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_ele)),
+        np.frombuffer(data.x_grid[6][1].data(), dtype=np.float32, count=data.x_grid[6][1].size()).reshape((n_tau, n_inner_cells, n_inner_cells, n_muon))
+    ]
 
 from queue import Queue
 data_que = Queue(maxsize = n_batches_store)
@@ -106,14 +81,14 @@ for i in range(n_batches):
     times.append(end-start)
 
     for n in range(17):
-        if not len(np.argwhere(np.isnan(data_que.queue[0][1][n])))==0:
-            print("Nan detected! tuple=",n)
+        if np.isnan(data_que.queue[0][1][n]).any():
+            print("Nan detected! element=",n)
             print(np.argwhere(np.isnan(data_que.queue[0][1][n])))
-        if not len(np.argwhere(np.isinf(data_que.queue[0][1][n])))==0:
-            print("Inf detected! tuple=",n)
+        if np.isinf(data_que.queue[0][1][n]).any():
+            print("Inf detected! element=",n)
             print(np.argwhere(np.isinf(data_que.queue[0][1][n])))
         if np.amax(data_que.queue[0][1][n])==0:
-            print("Empty tuple detected! tuple=",n)
+            print("Empty tuple detected! element=",n)
 
 from statistics import mean
 print("Mean time: ", mean(times))
