@@ -11,7 +11,7 @@ Setup:
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
     input_dirs           : ["/eos/user/m/myshched/LawTest_flush10_virt10_v3/"]
-    file_name_pattern    : "^.*_(5|6|7|8|9|10).root$"
+    file_name_pattern    : "^.*_(21|22|23|24|25|26|27|28|29).root$"
     exclude_list         : ""
     exclude_dir_list     : ""
     input_spectrum       : "/eos/home-m/myshched/ShuffleSpectrum.root"
@@ -24,6 +24,15 @@ Setup:
     eta_max              : 2.3
     weight_thr           : 100000.0
 
+CellObjectType : [
+                 PfCand_electron,
+                 PfCand_muon,
+                 PfCand_chHad,
+                 PfCand_nHad,
+                 PfCand_gamma,
+                 Electron,
+                 Muon
+                 ]
 Features_all :
     TauFlat : [ "tau_pt",
                 "tau_eta",
@@ -161,7 +170,7 @@ Features_all :
               "pfCand_nHad_hcalFraction"
               ]
 
-    pfCand_gamma : [
+    PfCand_gamma : [
               "pfCand_gamma_valid",
               "pfCand_gamma_rel_pt",
               "pfCand_gamma_deta",
@@ -273,6 +282,6 @@ Features_disable :
     PfCand_muon : [ ]
     PfCand_chHad : [ ]
     PfCand_nHad : [ ]
-    pfCand_gamma : [ ]
+    PfCand_gamma : [ ]
     Electron : [ ]
     Muon : [ ]

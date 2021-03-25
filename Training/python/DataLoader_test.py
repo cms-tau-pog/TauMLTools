@@ -3,16 +3,18 @@
 import ROOT as R
 import numpy as np
 import time
-import sys
 import config_parse
+import os
 
 R.gROOT.ProcessLine(".include ../../..")
 
-print("Compiling DatLoader enume and setup classes...")
-R.gInterpreter.ProcessLine(config_parse.create_settings("../configs/training_v1.yaml",verbose=False))
-
-print("Compiling scaling params classes...")
-R.gInterpreter.ProcessLine(config_parse.create_scaling_input("../configs/scaling_test.json",verbose=False))
+print("Compiling Setup classes...")
+temp_file = open("Setup_tmp.h", "w")
+temp_file.write(config_parse.create_scaling_input("../configs/scaling_test.json",verbose=False))
+temp_file.write(config_parse.create_settings("../configs/training_v1.yaml",verbose=False))
+temp_file.close()
+R.gInterpreter.ProcessLine('#include "Setup_tmp.h"')
+os.remove("Setup_tmp.h")
 
 print("Compiling DataLoader_main...")
 R.gInterpreter.ProcessLine('#include "../interface/DataLoader_main.h"')
@@ -25,7 +27,7 @@ n_pf_el     = R.Setup.n_PfCand_electron
 n_pf_mu     = R.Setup.n_PfCand_muon
 n_pf_chHad  = R.Setup.n_PfCand_chHad
 n_pf_nHad   = R.Setup.n_PfCand_nHad
-n_pf_gamma  = R.Setup.n_pfCand_gamma
+n_pf_gamma  = R.Setup.n_PfCand_gamma
 n_ele       = R.Setup.n_Electron
 n_muon      = R.Setup.n_Muon
 tau_types   = R.Setup.tau_types_names.size()

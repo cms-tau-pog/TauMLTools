@@ -5,18 +5,26 @@
 #include "TROOT.h"
 #include "TLorentzVector.h"
 
-using namespace std;
+template <typename T, typename Tuple>
+struct ElementIndex;
 
-enum class CellObjectType {
-  PfCand_electron,
-  PfCand_muon,
-  PfCand_chargedHadron,
-  PfCand_neutralHadron,
-  PfCand_gamma,
-  Electron,
-  Muon
+template <typename T, typename... Args>
+struct ElementIndex<T, std::tuple<T, Args...>> {
+    static constexpr std::size_t value = 0;
 };
 
+template <typename T, typename U, typename... Args>
+struct ElementIndex<T, std::tuple<U, Args...>> {
+    static constexpr std::size_t value = 1 + ElementIndex<T, std::tuple<Args...>>::value;
+};
+
+using FeatureTuple = std::tuple<PfCand_electron_Features,
+                                PfCand_muon_Features,
+                                PfCand_chHad_Features,
+                                PfCand_nHad_Features,
+                                PfCand_gamma_Features,
+                                Electron_Features,
+                                Muon_Features>;
 
 using Cell = std::map<CellObjectType, std::set<size_t>>;
 struct CellIndex {
@@ -111,11 +119,11 @@ struct Data {
            x_grid[CellObjectType::PfCand_muon][0].resize(n_tau * n_outer_cells * n_outer_cells * pfmuon_fn,0);
            x_grid[CellObjectType::PfCand_muon][1].resize(n_tau * n_inner_cells * n_inner_cells * pfmuon_fn,0);
            // pf charged hadrons
-           x_grid[CellObjectType::PfCand_chargedHadron][0].resize(n_tau * n_outer_cells * n_outer_cells * pfchargedhad_fn,0);
-           x_grid[CellObjectType::PfCand_chargedHadron][1].resize(n_tau * n_inner_cells * n_inner_cells * pfchargedhad_fn,0);
+           x_grid[CellObjectType::PfCand_chHad][0].resize(n_tau * n_outer_cells * n_outer_cells * pfchargedhad_fn,0);
+           x_grid[CellObjectType::PfCand_chHad][1].resize(n_tau * n_inner_cells * n_inner_cells * pfchargedhad_fn,0);
            // pf neutral hadrons
-           x_grid[CellObjectType::PfCand_neutralHadron][0].resize(n_tau * n_outer_cells * n_outer_cells * pfneutralhad_fn,0);
-           x_grid[CellObjectType::PfCand_neutralHadron][1].resize(n_tau * n_inner_cells * n_inner_cells * pfneutralhad_fn,0);
+           x_grid[CellObjectType::PfCand_nHad][0].resize(n_tau * n_outer_cells * n_outer_cells * pfneutralhad_fn,0);
+           x_grid[CellObjectType::PfCand_nHad][1].resize(n_tau * n_inner_cells * n_inner_cells * pfneutralhad_fn,0);
            // pf gamma
            x_grid[CellObjectType::PfCand_gamma][0].resize(n_tau * n_outer_cells * n_outer_cells * pfgamma_fn,0);
            x_grid[CellObjectType::PfCand_gamma][1].resize(n_tau * n_inner_cells * n_inner_cells * pfgamma_fn,0);
@@ -190,7 +198,7 @@ public:
 
         data = std::make_shared<Data>(n_tau, n_TauFlat, n_inner_cells, n_outer_cells,
                                       n_PfCand_electron, n_PfCand_muon, n_PfCand_chHad, n_PfCand_nHad,
-                                      n_pfCand_gamma, n_Electron, n_Muon, tau_types_names.size()
+                                      n_PfCand_gamma, n_Electron, n_Muon, tau_types_names.size()
                                       );
 
         const Long64_t end_point = current_entry + n_tau;
@@ -384,64 +392,31 @@ public:
               throw std::runtime_error("Not all cell indices are processed in FillCellGrid.");
       }
 
+      template<size_t... I>
+      std::vector<size_t> CreateStartIndices(const CellGrid& cellGridRef, const CellIndex& cellIndex, size_t tau_i, std::index_sequence<I...> idx_seq)
+      {
+         auto getStartIndex = [&](size_t n_total) {
+              return tau_i * cellGridRef.GetnTotal() * n_total
+                     + cellGridRef.GetFlatIndex(cellIndex) * n_total;
+              };
+        std::vector<size_t> start(idx_seq.size());
+        ((start[I] = getStartIndex(FeaturesHelper<std::tuple_element_t<I, FeatureTuple>>::size)), ...);
+        return start;
+      }
 
       void FillCellBranches(const Tau& tau, Long64_t tau_i,  const CellGrid& cellGridRef, const CellIndex& cellIndex,
                             Cell& cell, std::shared_ptr<Data>& data, bool inner)
       {
-        auto getStartIndex = [&](size_t n_total) {
-          return tau_i * cellGridRef.GetnTotal() * n_total
-                 + cellGridRef.GetFlatIndex(cellIndex) * n_total;
-        };
+        static constexpr size_t nFeaturesTypes = std::tuple_size_v<FeatureTuple>;
+        const auto start_indices = CreateStartIndices(cellGridRef, cellIndex, tau_i,
+                                    std::make_index_sequence<nFeaturesTypes>{});
 
-        size_t PfCand_electron_idx_start = getStartIndex(n_PfCand_electron);
-        size_t PfCand_muon_idx_start = getStartIndex(n_PfCand_muon);
-        size_t PfCand_chHad_idx_start = getStartIndex(n_PfCand_chHad);
-        size_t PfCand_nHad_idx_start = getStartIndex(n_PfCand_nHad);
-        size_t pfCand_gamma_idx_start = getStartIndex(n_pfCand_gamma);
-        size_t Electron_idx_start = getStartIndex(n_Electron);
-        size_t Muon_idx_start = getStartIndex(n_Muon);
-
-        // to be cahnged in c++20 version (auto fillGrid = []<typename ...Ts>(Ts&& ...ts) ...)
-        // decltype(_feature_idx) -> Ts
-        auto fillGrid = [&](auto _feature_idx, float value) -> void {
+        auto fillGrid = [&](auto _feature_idx, float value) {
           if(static_cast<int>(_feature_idx) < 0) return;
-          if constexpr (std::is_same_v<decltype(_feature_idx), PfCand_electron_Features>) {
-            data->x_grid.at(CellObjectType::PfCand_electron).at(inner)
-                        .at(PfCand_electron_idx_start + static_cast<int>(_feature_idx))
-                         = Scale<Scaling::PfCand_electron>(static_cast<int> (_feature_idx), value, inner);
-          }
-          else if constexpr (std::is_same_v<decltype(_feature_idx), PfCand_muon_Features>) {
-            data->x_grid.at(CellObjectType::PfCand_muon).at(inner)
-                        .at(PfCand_muon_idx_start + static_cast<int>(_feature_idx))
-                         = Scale<Scaling::PfCand_muon>(static_cast<int> (_feature_idx), value, inner);
-          }
-          else if constexpr (std::is_same_v<decltype(_feature_idx), PfCand_chHad_Features>) {
-            data->x_grid.at(CellObjectType::PfCand_chargedHadron).at(inner)
-                        .at(PfCand_chHad_idx_start + static_cast<int>(_feature_idx))
-                         = Scale<Scaling::PfCand_chHad>(static_cast<int> (_feature_idx), value, inner);
-          }
-          else if constexpr (std::is_same_v<decltype(_feature_idx), PfCand_nHad_Features>) {
-            data->x_grid.at(CellObjectType::PfCand_neutralHadron).at(inner)
-                        .at(PfCand_nHad_idx_start + static_cast<int>(_feature_idx))
-                         = Scale<Scaling::PfCand_nHad>(static_cast<int> (_feature_idx), value, inner);
-          }
-          else if constexpr (std::is_same_v<decltype(_feature_idx), pfCand_gamma_Features>) {
-            data->x_grid.at(CellObjectType::PfCand_gamma).at(inner)
-                        .at(pfCand_gamma_idx_start + static_cast<int>(_feature_idx))
-                         = Scale<Scaling::pfCand_gamma>(static_cast<int> (_feature_idx), value, inner);
-          }
-          else if constexpr (std::is_same_v<decltype(_feature_idx), Electron_Features>) {
-            data->x_grid.at(CellObjectType::Electron).at(inner)
-                        .at(Electron_idx_start + static_cast<int>(_feature_idx))
-                         = Scale<Scaling::Electron>(static_cast<int> (_feature_idx), value, inner);
-          }
-          else if constexpr (std::is_same_v<decltype(_feature_idx), Muon_Features>) {
-            data->x_grid.at(CellObjectType::Muon).at(inner)
-                        .at(Muon_idx_start + static_cast<int>(_feature_idx))
-                         = Scale<Scaling::Muon>(static_cast<int> (_feature_idx), value, inner);
-          }
-          else throw std::runtime_error("Error: Wrong Feature type is given to fillGrid function!");
-
+          const CellObjectType obj_type = FeaturesHelper<decltype(_feature_idx)>::object_type;
+          const size_t start = start_indices.at(ElementIndex<decltype(_feature_idx), FeatureTuple>::value);
+          data->x_grid.at(obj_type).at(inner).at(start + static_cast<int>(_feature_idx))
+                  = Scale<typename  FeaturesHelper<decltype(_feature_idx)>::scaler_type>(static_cast<int> (_feature_idx), value, inner);
         };
 
         const auto getPt = [&](CellObjectType type, size_t index) {
@@ -555,12 +530,12 @@ public:
             }
         }
 
-        { // CellObjectType::PfCand_chargedHadron
+        { // CellObjectType::PfCand_chHad
 
           typedef PfCand_chHad_Features Br;
 
           size_t n_pfCand, pfCand_idx;
-          getBestObj(CellObjectType::PfCand_chargedHadron, n_pfCand, pfCand_idx);
+          getBestObj(CellObjectType::PfCand_chHad, n_pfCand, pfCand_idx);
           const bool valid = n_pfCand != 0;
           fillGrid(Br::pfCand_chHad_valid, static_cast<float>(valid));
 
@@ -602,12 +577,12 @@ public:
           }
         }
 
-        { // CellObjectType::PfCand_neutralHadron
+        { // CellObjectType::PfCand_nHad
 
           typedef PfCand_nHad_Features Br;
 
           size_t n_pfCand, pfCand_idx;
-          getBestObj(CellObjectType::PfCand_neutralHadron, n_pfCand, pfCand_idx);
+          getBestObj(CellObjectType::PfCand_nHad, n_pfCand, pfCand_idx);
           const bool valid = n_pfCand != 0;
           fillGrid(Br::pfCand_nHad_valid, static_cast<float>(valid));
 
@@ -623,7 +598,7 @@ public:
 
         { // CellObjectType::PfCand_gamma
 
-          typedef pfCand_gamma_Features Br;
+          typedef PfCand_gamma_Features Br;
 
           size_t n_pfCand, pfCand_idx;
           getBestObj(CellObjectType::PfCand_gamma, n_pfCand, pfCand_idx);
@@ -804,8 +779,8 @@ public:
               { 11, CellObjectType::PfCand_electron },
               { 13, CellObjectType::PfCand_muon },
               { 22, CellObjectType::PfCand_gamma },
-              { 130, CellObjectType::PfCand_neutralHadron },
-              { 211, CellObjectType::PfCand_chargedHadron }
+              { 130, CellObjectType::PfCand_nHad },
+              { 211, CellObjectType::PfCand_chHad }
           };
 
           auto iter = obj_types.find(std::abs(pdgId));
@@ -842,8 +817,8 @@ public:
 
           fillGrid(CellObjectType::PfCand_electron, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
           fillGrid(CellObjectType::PfCand_muon, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
-          fillGrid(CellObjectType::PfCand_chargedHadron, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
-          fillGrid(CellObjectType::PfCand_neutralHadron, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
+          fillGrid(CellObjectType::PfCand_chHad, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
+          fillGrid(CellObjectType::PfCand_nHad, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
           fillGrid(CellObjectType::PfCand_gamma, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
           fillGrid(CellObjectType::Electron, tau.ele_eta, tau.ele_phi);
           fillGrid(CellObjectType::Muon, tau.muon_eta, tau.muon_phi);

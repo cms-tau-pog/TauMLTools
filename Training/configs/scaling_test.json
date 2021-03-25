@@ -135,7 +135,7 @@
             "pfCand_nHad_hcalFraction" : {"inner": {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"}, "outer": {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"} }
           },
 
-  "pfCand_gamma" : {
+  "PfCand_gamma" : {
             "pfCand_gamma_valid" : {"inner": {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"}, "outer": {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"} },
             "pfCand_gamma_rel_pt" : {"inner": {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"}, "outer": {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"} },
             "pfCand_gamma_deta" : {"inner": {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"}, "outer": {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"} },
