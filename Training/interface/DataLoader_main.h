@@ -303,12 +303,15 @@ public:
         fill_tau(TauFlat_Features::tau_n_charged_prongs, tau.tau_decayMode / 5);
         fill_tau(TauFlat_Features::tau_n_neutral_prongs, tau.tau_decayMode % 5);
         fill_tau(TauFlat_Features::chargedIsoPtSum, tau.chargedIsoPtSum);
-        fill_tau(TauFlat_Features::chargedIsoPtSumdR03_over_dR05, tau.chargedIsoPtSumdR03 / tau.chargedIsoPtSum);
+        if(tau.chargedIsoPtSum!=0)
+          fill_tau(TauFlat_Features::chargedIsoPtSumdR03_over_dR05, tau.chargedIsoPtSumdR03 / tau.chargedIsoPtSum);
         fill_tau(TauFlat_Features::footprintCorrection, tau.footprintCorrection);
         fill_tau(TauFlat_Features::neutralIsoPtSum, tau.neutralIsoPtSum);
-        fill_tau(TauFlat_Features::neutralIsoPtSumWeight_over_neutralIsoPtSum, tau.neutralIsoPtSumWeight / tau.neutralIsoPtSum);
-        fill_tau(TauFlat_Features::neutralIsoPtSumWeightdR03_over_neutralIsoPtSum,tau.neutralIsoPtSumWeightdR03 / tau.neutralIsoPtSum);
-        fill_tau(TauFlat_Features::neutralIsoPtSumdR03_over_dR05, tau.neutralIsoPtSumdR03 / tau.neutralIsoPtSum);
+        if(tau.neutralIsoPtSum!=0) {
+          fill_tau(TauFlat_Features::neutralIsoPtSumWeight_over_neutralIsoPtSum, tau.neutralIsoPtSumWeight / tau.neutralIsoPtSum);
+          fill_tau(TauFlat_Features::neutralIsoPtSumWeightdR03_over_neutralIsoPtSum,tau.neutralIsoPtSumWeightdR03 / tau.neutralIsoPtSum);
+          fill_tau(TauFlat_Features::neutralIsoPtSumdR03_over_dR05, tau.neutralIsoPtSumdR03 / tau.neutralIsoPtSum);
+        }
         fill_tau(TauFlat_Features::photonPtSumOutsideSignalCone, tau.photonPtSumOutsideSignalCone);
         fill_tau(TauFlat_Features::puCorrPtSum, tau.puCorrPtSum);
 
@@ -563,12 +566,11 @@ public:
             fillGrid(Br::pfCand_chHad_hasTrackDetails, static_cast<float>(hasTrackDetails));
             if(hasTrackDetails) {
               fillGrid(Br::pfCand_chHad_dxy, tau.pfCand_dxy.at(pfCand_idx));
-              fillGrid(Br::pfCand_chHad_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) /
-                                                      tau.pfCand_dxy_error.at(pfCand_idx));
+              fillGrid(Br::pfCand_chHad_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) / tau.pfCand_dxy_error.at(pfCand_idx));
               fillGrid(Br::pfCand_chHad_dz, tau.pfCand_dz.at(pfCand_idx));
-              fillGrid(Br::pfCand_chHad_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) /
-                                                     tau.pfCand_dz_error.at(pfCand_idx));
-              fillGrid(Br::pfCand_chHad_track_chi2_ndof, tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx));
+              fillGrid(Br::pfCand_chHad_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
+              if(tau.pfCand_track_ndof.at(pfCand_idx)!=0)
+                fillGrid(Br::pfCand_chHad_track_chi2_ndof, tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx));
               fillGrid(Br::pfCand_chHad_track_ndof, tau.pfCand_track_ndof.at(pfCand_idx));
             }
 
@@ -726,8 +728,8 @@ public:
             fillGrid(Br::muon_normalizedChi2_valid, static_cast<float>(normalizedChi2_valid));
 
             if(normalizedChi2_valid){
-              fillGrid(Br::muon_normalizedChi2, normalizedChi2_valid ? tau.muon_normalizedChi2.at(idx) : 0);
-              fillGrid(Br::muon_numberOfValidHits, normalizedChi2_valid ? tau.muon_numberOfValidHits.at(idx) : 0);
+              fillGrid(Br::muon_normalizedChi2, tau.muon_normalizedChi2.at(idx)); //goes to Inf in some very rare cases
+              fillGrid(Br::muon_numberOfValidHits, tau.muon_numberOfValidHits.at(idx));
             }
 
             fillGrid(Br::muon_segmentCompatibility, tau.muon_segmentCompatibility.at(idx));
