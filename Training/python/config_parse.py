@@ -3,22 +3,26 @@ def create_settings(input_file: str, verbose=False) -> str:
     '''
     The following subroutine parses the yaml config file and
     returns the following structures in the string format:
-    1. The setup namespace where general global variables
-       forDataLoader are specified.
-    2. The enume classes for TauFlat, PfCand_electron,
-       PfCand_muon, PfCand_chHad, PfCand_nHad, pfCand_gamma,
-       Electron, Muon
-    3. Create CellObjectTypes in enume:
-       enum class CellObjectType {
-         PfCand_electron,
-         PfCand_muon,
-         PfCand_chHad,
-         PfCand_nHad,
-         PfCand_gamma,
-         Electron,
-         Muon
-       };
+    1.  The setup namespace where general global variables
+        forDataLoader are specified.
+    2.  The enume classes for TauFlat, PfCand_electron,
+        PfCand_muon, PfCand_chHad, PfCand_nHad, pfCand_gamma,
+        Electron, Muon
+    3.  Create CellObjectTypes in enume:
+        e.g:
+        enum class CellObjectType {
+          PfCand_electron,
+          PfCand_muon,
+          ...};
+    4.  FeaturesHelper explicit templated structures:
+        e.g:
+        template<typename T> struct FeaturesHelper;
+        template<> struct FeaturesHelper<PfCand_electron_Features> {...
+        template<> struct FeaturesHelper<PfCand_muon_Features> {...
+        ...
+    5.  FeatureTuple (std::tuple<>) with grid feature types.
     The following string onward is fed to R.gInterpreter
+    (alternatively Setup_tmp.h is created)
     to create the corresponding structures.
     '''
     import yaml
@@ -67,13 +71,12 @@ def create_settings(input_file: str, verbose=False) -> str:
             string += key +" = " + "-1" + ",\n"
         return string[:-2] + "};\n"
 
-    def create_cellobjects(content: dict) -> str:
+    def create_gridobjects(content: dict) -> str:
         string  = "\nenum class CellObjectType {\n"
         string += ",\n".join(content["CellObjectType"])
         string += "};\n\n"
 
         string +="template<typename T> struct FeaturesHelper;\n"
-
         for celltype in content["CellObjectType"]:
             number = len(content["Features_all"][celltype]) - len(content["Features_disable"][celltype])
             string += "template<> struct FeaturesHelper<{0}_Features> ".format(celltype) + "{\n"
@@ -81,13 +84,17 @@ def create_settings(input_file: str, verbose=False) -> str:
             string += "static constexpr size_t size = {0};\n".format(number)
             string += "using scaler_type = Scaling::{0};\n".format(celltype) + "};\n\n"
 
+        string += "using FeatureTuple = std::tuple<" \
+               + "_Features,\n".join(content["CellObjectType"])\
+               + "_Features>;\n"
+
         return string
 
     with open(input_file) as file:
         data = yaml.load(file)
     settings  = create_namestruc(data)
     settings  += "\n".join([create_enum(k,data) for k in data["Features_all"]])
-    settings += create_cellobjects(data)
+    settings += create_gridobjects(data)
     if verbose:
         print(settings)
     return settings
@@ -99,6 +106,18 @@ def create_scaling_input(input_file: str, verbose=False) -> str:
     all the scaling parameters are specified.
     The following string onward is fed to R.gInterpreter
     to interpret the corresponding c++ vectors in machinary code.
+
+    e.g:
+    namespace Scaling {
+        struct TauFlat{
+            inline static const std::vector<std::vector<float>> mean = {{0},{0},{0},...
+            inline static const std::vector<std::vector<float>> std = {{1},{1},{1},...
+            ...
+        struct PfCand_electron{
+            inline static const std::vector<std::vector<float>> mean = {{0,0},{0,0},...
+            inline static const std::vector<std::vector<float>> std = {{1,1},{1,1},....
+            ...
+        ...
     '''
     import json
 

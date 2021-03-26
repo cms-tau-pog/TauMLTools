@@ -18,14 +18,6 @@ struct ElementIndex<T, std::tuple<U, Args...>> {
     static constexpr std::size_t value = 1 + ElementIndex<T, std::tuple<Args...>>::value;
 };
 
-using FeatureTuple = std::tuple<PfCand_electron_Features,
-                                PfCand_muon_Features,
-                                PfCand_chHad_Features,
-                                PfCand_nHad_Features,
-                                PfCand_gamma_Features,
-                                Electron_Features,
-                                Muon_Features>;
-
 using Cell = std::map<CellObjectType, std::set<size_t>>;
 struct CellIndex {
     int eta, phi;
@@ -730,7 +722,8 @@ public:
             fillGrid(Br::muon_normalizedChi2_valid, static_cast<float>(normalizedChi2_valid));
 
             if(normalizedChi2_valid){
-              fillGrid(Br::muon_normalizedChi2, tau.muon_normalizedChi2.at(idx)); //goes to Inf in some very rare cases
+              if(std::isfinite(tau.muon_normalizedChi2.at(idx)))
+                fillGrid(Br::muon_normalizedChi2, tau.muon_normalizedChi2.at(idx));
               fillGrid(Br::muon_numberOfValidHits, tau.muon_numberOfValidHits.at(idx));
             }
 
