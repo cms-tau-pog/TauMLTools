@@ -10,7 +10,6 @@ namespace analysis {
     {   
         using GTGenLeptonKind = reco_tau::gen_truth::GenLepton::Kind;
         const GTGenLeptonKind genLepton_kind = static_cast<GTGenLeptonKind> (tau.genLepton_kind);
-        GenLeptonMatch match;
 
         if (tau.genLepton_index >= 0){
             LorentzVectorM genv(tau.tau_pt, tau.tau_eta, tau.tau_phi, tau.tau_mass);
@@ -25,23 +24,23 @@ namespace analysis {
 
             if (genLepton_kind == GTGenLeptonKind::PromptElectron){
                 if (tau.genLepton_vis_pt < 8.0) return boost::none;
-                match = GenLeptonMatch::Electron;
+                return GenLeptonMatch::Electron;
             }
             else if (genLepton_kind == GTGenLeptonKind::PromptMuon){
                 if (tau.genLepton_vis_pt < 8.0) return boost::none;
-                match = GenLeptonMatch::Muon;
+                return GenLeptonMatch::Muon;
             }
             else if (genLepton_kind == GTGenLeptonKind::TauDecayedToElectron){
                 if (tau.genLepton_vis_pt < 8.0) return boost::none;
-                match = GenLeptonMatch::TauElectron;
+                return GenLeptonMatch::TauElectron;
             }
             else if (genLepton_kind == GTGenLeptonKind::TauDecayedToMuon){
                 if (tau.genLepton_vis_pt < 8.0) return boost::none;
-                match = GenLeptonMatch::TauMuon;
+                return GenLeptonMatch::TauMuon;
             }
             else if (genLepton_kind == GTGenLeptonKind::TauDecayedToHadrons){
                 if (tau.genLepton_vis_pt < 15.0) return boost::none;
-                match = GenLeptonMatch::Tau;
+                return GenLeptonMatch::Tau;
             }
             else {
                 throw exception("genLepton_kind = %1% should not happend when genLepton_index is %2%")
@@ -49,12 +48,10 @@ namespace analysis {
             }
         }
         else if (tau.genJet_index >= 0){
-            match = GenLeptonMatch::NoMatch;
+            return GenLeptonMatch::NoMatch;
         }
         else {
             return boost::none;
         }
-
-        return match;
     }
 } // namespace analysis
