@@ -16,24 +16,24 @@
 #include "TauMLTools/Core/interface/PropertyConfigReader.h"
 #include "TauMLTools/Core/interface/ProgressReporter.h"
 #include "TauMLTools/Analysis/interface/TauTuple.h"
+#include "TauMLTools/Analysis/interface/TauSelection.h"
 
 namespace analysis {
 
-enum class MergeMode { MergeAll = 1, MergePerEntry = 2 };
+enum class MergeMode { MergeAll = 1 };
 ENUM_NAMES(MergeMode) = {
     { MergeMode::MergeAll, "MergeAll" },
-    { MergeMode::MergePerEntry, "MergePerEntry" }
 };
 
 struct Arguments {
     run::Argument<std::string> cfg{"cfg", "configuration file with the list of input sources"};
     run::Argument<std::string> input{"input", "input path with tuples for all the samples"};
-    run::Argument<std::string> output{"output", "output, depending on the merging mode: MergeAll - file,"
-                                                " MergePerEntry - directory."};
+    run::Argument<std::string> output{"output", "output, depending on the merging mode: MergeAll (by file) "
+                                                "is the only supported mode"};
     run::Argument<std::string> pt_bins{"pt-bins", "pt bins (last bin will be chosen as high-pt region, \
                                                    lower pt edgeof the last bin will be choosen as pt_threshold)"};
     run::Argument<std::string> eta_bins{"eta-bins", "eta bins"};
-    run::Argument<MergeMode> mode{"mode", "merging mode: MergeAll or MergePerEntry"};
+    run::Argument<MergeMode> mode{"mode", "merging mode: MergeAll is the only supported mode", MergeMode::MergeAll};
     run::Argument<size_t> max_entries{"max-entries", "maximal number of entries in output train+test tuples",
                                             std::numeric_limits<size_t>::max()};
     run::Argument<unsigned> n_threads{"n-threads", "number of threads", 1};
@@ -71,7 +71,6 @@ struct SourceDesc {
           throw exception("Empty list of files for the source '%1%'.") % name;
         if(!files_n_total)
           throw exception("Empty source '%1%'.") % name;
-        ShuffleFiles(_file_names, _name_hashes);
     }
 
     SourceDesc(const SourceDesc&) = delete;
@@ -105,9 +104,14 @@ struct SourceDesc {
               throw exception("Root file %1% is empty.") % file_name;
         }
         current_tuple->GetEntry(current_n_processed++);
-        const auto gen_match = static_cast<GenLeptonMatch>((*current_tuple)().lepton_gen_match);
+
+        const auto gen_match = GetGenLeptonMatch((*current_tuple)());
         const auto sample_type = static_cast<SampleType>((*current_tuple)().sampleType);
-        current_tau_type = GenMatchToTauType(gen_match, sample_type);
+
+        if (!gen_match) continue;
+
+        current_tau_type = GenMatchToTauType(*gen_match, sample_type);
+
       } while (tau_types.find(current_tau_type) == tau_types.end());
       ++total_n_processed;
       (*current_tuple)().tauType = static_cast<Int_t>(current_tau_type);
@@ -121,19 +125,6 @@ struct SourceDesc {
     const TauType GetType() { return current_tau_type; }
 
   private:
-    void ShuffleFiles(const std::vector<std::string>& _file_names,
-                      const std::vector<ULong64_t>& _name_hashes)
-    {
-      std::vector<int> indexes;
-      indexes.reserve(_file_names.size());
-      for (UInt_t i = 0; i < _file_names.size(); ++i) indexes.push_back(i);
-      std::shuffle(indexes.begin(), indexes.end(), *gen);
-      for (UInt_t i = 0; i < _file_names.size(); ++i) {
-        file_names.push_back(_file_names[indexes[i]]);
-        dataset_hash_arr.push_back(_name_hashes[indexes[i]]);
-      }
-    }
-
     const std::string name;
     const ULong64_t group_hash;
     std::vector<std::string> file_names;
@@ -609,12 +600,6 @@ public:
 
       if(args.mode() == MergeMode::MergeAll) {
         entries[args.output()] = all_entries;
-      } else if(args.mode() == MergeMode::MergePerEntry) {
-        for(const auto& entry : all_entries) {
-          const std::string output_name = args.output() + "/" + entry.name + ".root";
-          std::cout << output_name << std::endl;
-          entries[output_name].push_back(entry);
-          }
       } else {
         throw exception("Unsupported merging mode = '%1%'.") % args.mode();
       }

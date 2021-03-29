@@ -8,6 +8,7 @@
 
 #include "TauMLTools/Core/interface/AnalyzerData.h"
 #include "TauMLTools/Core/interface/RootExt.h"
+#include "TauMLTools/Analysis/interface/TauSelection.h"
 
 struct Arguments {
     run::Argument<std::string> outputfile{"outputfile", "output file name"};
@@ -81,7 +82,10 @@ public:
             auto file = root_ext::OpenRootFile(file_name);
 
             TauTuple input_tauTuple("taus", file.get(), true, {},
-                     {"tau_pt", "tau_eta", "sampleType", "lepton_gen_match", "tau_index"});
+                     {"tau_pt", "tau_eta", "sampleType", "genLepton_kind", "tau_index",
+                      "genLepton_index", "genJet_index",
+                      "genLepton_vis_pt", "genLepton_vis_eta", "genLepton_vis_phi", "genLepton_vis_mass",
+                      "tau_pt", "tau_eta", "tau_phi", "tau_mass", "evt"});
 
             for(const Tau& tau : input_tauTuple)
             {
@@ -112,10 +116,10 @@ private:
         for(const std::string& bin_str : split_args_eta) std::cout << Parse<double>(bin_str) << "  ";
         std::cout << std::endl;
 
-        if(split_args_pt.size()!=3 || split_args_pt[0]<1 || split_args_pt[1]>=split_args_pt[2])
+        if(split_args_pt.size()!=3 || Parse<double>(split_args_pt[0])<1 || Parse<double>(split_args_pt[1])>=Parse<double>(split_args_pt[2]))
         throw exception("Invalid pt-hist arguments");
 
-        if(split_args_eta.size()!=3 || split_args_eta[0]<1 || split_args_eta[1]>=split_args_eta[2])
+        if(split_args_eta.size()!=3 || Parse<double>(split_args_eta[0])<1 || Parse<double>(split_args_eta[1])>=Parse<double>(split_args_eta[2]))
         throw exception("Invalid eta-hist arguments");
 
         HistArgs histarg(split_args_pt, split_args_eta);
@@ -125,10 +129,10 @@ private:
 
     void AddTau(const Tau& tau)
     {
-        if(PassSelection(tau)) {
-            const auto gen_match = static_cast<analysis::GenLeptonMatch>(tau.lepton_gen_match);
-            const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
-            const TauType tau_type = analysis::GenMatchToTauType(gen_match, sample_type);
+        const auto gen_match = GetGenLeptonMatch(tau);
+        if(PassSelection(tau) && gen_match) {
+            const auto sample_type = static_cast<SampleType>(tau.sampleType);
+            const TauType tau_type = analysis::GenMatchToTauType(*gen_match, sample_type);
             hists->eta_pt_hist(tau_type).Fill(std::abs(tau.tau_eta), tau.tau_pt);
             ttypes[tau_type] = true;
         } else {
