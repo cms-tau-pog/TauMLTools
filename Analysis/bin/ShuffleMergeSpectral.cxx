@@ -71,7 +71,6 @@ struct SourceDesc {
           throw exception("Empty list of files for the source '%1%'.") % name;
         if(!files_n_total)
           throw exception("Empty source '%1%'.") % name;
-        ShuffleFiles(_file_names, _name_hashes);
     }
 
     SourceDesc(const SourceDesc&) = delete;
@@ -126,19 +125,6 @@ struct SourceDesc {
     const TauType GetType() { return current_tau_type; }
 
   private:
-    void ShuffleFiles(const std::vector<std::string>& _file_names,
-                      const std::vector<ULong64_t>& _name_hashes)
-    {
-      std::vector<int> indexes;
-      indexes.reserve(_file_names.size());
-      for (UInt_t i = 0; i < _file_names.size(); ++i) indexes.push_back(i);
-      std::shuffle(indexes.begin(), indexes.end(), *gen);
-      for (UInt_t i = 0; i < _file_names.size(); ++i) {
-        file_names.push_back(_file_names[indexes[i]]);
-        dataset_hash_arr.push_back(_name_hashes[indexes[i]]);
-      }
-    }
-
     const std::string name;
     const ULong64_t group_hash;
     std::vector<std::string> file_names;
