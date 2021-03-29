@@ -33,7 +33,7 @@ struct Arguments {
     run::Argument<std::string> pt_bins{"pt-bins", "pt bins (last bin will be chosen as high-pt region, \
                                                    lower pt edgeof the last bin will be choosen as pt_threshold)"};
     run::Argument<std::string> eta_bins{"eta-bins", "eta bins"};
-    run::Argument<MergeMode> mode{"mode", "merging mode: MergeAll is the only supported mode"};
+    run::Argument<MergeMode> mode{"mode", "merging mode: MergeAll is the only supported mode", MergeMode::MergeAll};
     run::Argument<size_t> max_entries{"max-entries", "maximal number of entries in output train+test tuples",
                                             std::numeric_limits<size_t>::max()};
     run::Argument<unsigned> n_threads{"n-threads", "number of threads", 1};
@@ -106,11 +106,12 @@ struct SourceDesc {
         }
         current_tuple->GetEntry(current_n_processed++);
 
-        if (!PassGenLeptonCut((*current_tuple)())) return false;
-
-        const auto gen_match = static_cast<GenLeptonMatch>((*current_tuple)().genLepton_kind);
+        const auto gen_match = GetGenLeptonMatch((*current_tuple)());
         const auto sample_type = static_cast<SampleType>((*current_tuple)().sampleType);
-        current_tau_type = GenMatchToTauType(gen_match, sample_type, (*current_tuple)().genLepton_index, (*current_tuple)().genJet_index);
+
+        if (!gen_match) continue;
+
+        current_tau_type = GenMatchToTauType(*gen_match, sample_type);
 
       } while (tau_types.find(current_tau_type) == tau_types.end());
       ++total_n_processed;

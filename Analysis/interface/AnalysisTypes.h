@@ -62,12 +62,8 @@ ENUM_NAMES(SampleType) = {
     { SampleType::Data, "Data" }, { SampleType::MC, "MC" }, { SampleType::Embedded, "Embedded" }
 };
 
-inline TauType GenMatchToTauType(GenLeptonMatch gen_match, SampleType sample_type, const int genLepton_index, const int genJet_index)
+inline TauType GenMatchToTauType(GenLeptonMatch gen_match, SampleType sample_type)
 {
-    if (genLepton_index < 0 && genJet_index >= 0){
-        gen_match = GenLeptonMatch::NoMatch;
-    }
-
     if(sample_type == SampleType::MC && (gen_match == GenLeptonMatch::Electron
             || gen_match == GenLeptonMatch::TauElectron)) {
         return TauType::e;

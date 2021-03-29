@@ -1,43 +1,60 @@
-#include "TauMLTools/Analysis/interface/TauTuple.h"
+#pragma once
+
+#include "TauMLTools/Analysis/interface/GenLepton.h"
+#include "TauMLTools/Analysis/interface/AnalysisTypes.h"
+#include "TauMLTools/Core/interface/AnalysisMath.h"
 #include "TauMLTools/Core/interface/exception.h"
 
-#include "TLorentzVector.h"
-
 namespace analysis {
-    bool PassGenLeptonCut(const tau_tuple::Tau& tau)
+    boost::optional<GenLeptonMatch> GetGenLeptonMatch(const tau_tuple::Tau& tau)
     {   
-        if (tau.genLepton_index >= 0){
-            TLorentzVector genv;
-            TLorentzVector tauv;
+        using GTGenLeptonKind = reco_tau::gen_truth::GenLepton::Kind;
+        const GTGenLeptonKind genLepton_kind = static_cast<GTGenLeptonKind> (tau.genLepton_kind);
+        GenLeptonMatch match;
 
-            tauv.SetPtEtaPhiM(tau.tau_pt, tau.tau_eta, tau.tau_phi, tau.tau_mass);
-            genv.SetPtEtaPhiM(  tau.genLepton_vis_pt   ,
-                                tau.genLepton_vis_eta  ,
-                                tau.genLepton_vis_phi  ,
-                                tau.genLepton_vis_mass );
-            
-            if (tauv.DeltaR(genv) > 0.2){
-                return false;
+        if (tau.genLepton_index >= 0){
+            LorentzVectorM genv(tau.tau_pt, tau.tau_eta, tau.tau_phi, tau.tau_mass);
+            LorentzVectorM tauv(  tau.genLepton_vis_pt  ,
+                                tau.genLepton_vis_eta ,
+                                tau.genLepton_vis_phi ,
+                                tau.genLepton_vis_mass);
+
+            if (ROOT::Math::VectorUtil::DeltaR(tauv, genv) > 0.2){
+                return boost::none;
             }
 
-            if (tau.genLepton_kind > 0 && tau.genLepton_kind < 5){
-                return tau.genLepton_vis_pt >= 8.0;
-            } 
-            else if (tau.genLepton_kind == 5){
-                return tau.genLepton_vis_pt >= 15.0;
-            } 
-            else{
+            if (genLepton_kind == GTGenLeptonKind::PromptElectron){
+                if (tau.genLepton_vis_pt < 8.0) return boost::none;
+                match = GenLeptonMatch::Electron;
+            }
+            else if (genLepton_kind == GTGenLeptonKind::PromptMuon){
+                if (tau.genLepton_vis_pt < 8.0) return boost::none;
+                match = GenLeptonMatch::Muon;
+            }
+            else if (genLepton_kind == GTGenLeptonKind::TauDecayedToElectron){
+                if (tau.genLepton_vis_pt < 8.0) return boost::none;
+                match = GenLeptonMatch::TauElectron;
+            }
+            else if (genLepton_kind == GTGenLeptonKind::TauDecayedToMuon){
+                if (tau.genLepton_vis_pt < 8.0) return boost::none;
+                match = GenLeptonMatch::TauMuon;
+            }
+            else if (genLepton_kind == GTGenLeptonKind::TauDecayedToHadrons){
+                if (tau.genLepton_vis_pt < 15.0) return boost::none;
+                match = GenLeptonMatch::Tau;
+            }
+            else {
                 throw exception("genLepton_kind = %1% should not happend when genLepton_index is %2%")
                     %tau.genLepton_kind %tau.genLepton_index;
             }
-        } 
-        else if (tau.genLepton_index < 0 && tau.genJet_index >= 0){
-            return true;
-        } 
-        else {
-            return false;
         }
-        throw exception("Invalid execution. tau.genLepton_index = %1% tau.genLepton_kind = %2%")
-            %tau.genLepton_index %tau.genLepton_kind;
+        else if (tau.genJet_index >= 0){
+            match = GenLeptonMatch::NoMatch;
+        }
+        else {
+            return boost::none;
+        }
+
+        return match;
     }
 } // namespace analysis

@@ -1,3 +1,4 @@
+<Flags LDFLAGS="-lGenVector"/>
 <bin name="ShuffleMergeSpectral" file="ShuffleMergeSpectral.cxx">
   <use name="boost_program_options"/>
   <use name="TauMLTools/Core"/>

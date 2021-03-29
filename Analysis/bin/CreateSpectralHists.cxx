@@ -129,10 +129,10 @@ private:
 
     void AddTau(const Tau& tau)
     {
-        if(PassSelection(tau)) {
-            const auto gen_match = static_cast<analysis::GenLeptonMatch>(tau.genLepton_kind);
-            const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
-            const TauType tau_type = analysis::GenMatchToTauType(gen_match, sample_type, tau.genLepton_index, tau.genJet_index);
+        const auto gen_match = GetGenLeptonMatch(tau);
+        if(PassSelection(tau) && gen_match) {
+            const auto sample_type = static_cast<SampleType>(tau.sampleType);
+            const TauType tau_type = analysis::GenMatchToTauType(*gen_match, sample_type);
             hists->eta_pt_hist(tau_type).Fill(std::abs(tau.tau_eta), tau.tau_pt);
             ttypes[tau_type] = true;
         } else {
@@ -142,7 +142,7 @@ private:
 
     bool PassSelection(const Tau& tau) const
     {
-      return (tau.tau_index >= 0) && PassGenLeptonCut(tau);
+      return (tau.tau_index >= 0);
     }
 
     double Integral() const
