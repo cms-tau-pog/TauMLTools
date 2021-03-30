@@ -54,12 +54,11 @@ struct Arguments {
 struct SourceDesc {
     using Tau = tau_tuple::Tau;
     using TauTuple = tau_tuple::TauTuple;
-    using Generator = std::mt19937_64;
 
     SourceDesc(const std::string& name_, const ULong64_t&  _group_hash,
                const std::vector<std::string>& _file_names, const std::vector<ULong64_t>& _name_hashes,
                const std::set<std::string>& _disabled_branches, const double& _begin_rel, const double& _end_rel,
-               const std::set<TauType>& _tautypes, Generator& _gen) :
+               const std::set<TauType>& _tautypes) :
         name(name_),  group_hash(_group_hash),
         disabled_branches(_disabled_branches), entry_begin_rel(_begin_rel), entry_end_rel(_end_rel),
         tau_types(_tautypes), current_n_processed(0), files_n_total(_file_names.size()),
@@ -71,6 +70,9 @@ struct SourceDesc {
           throw exception("Empty list of files for the source '%1%'.") % name;
         if(!files_n_total)
           throw exception("Empty source '%1%'.") % name;
+
+        file_names  = _file_names;
+        name_hashes = _name_hashes;
     }
 
     SourceDesc(const SourceDesc&) = delete;
