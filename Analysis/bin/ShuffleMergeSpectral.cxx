@@ -59,10 +59,10 @@ struct SourceDesc {
                const std::vector<std::string>& _file_names, const std::vector<ULong64_t>& _name_hashes,
                const std::set<std::string>& _disabled_branches, const double& _begin_rel, const double& _end_rel,
                const std::set<TauType>& _tautypes) :
-        name(name_),  group_hash(_group_hash),
+        name(name_),  group_hash(_group_hash), file_names(_file_names), dataset_hash_arr(_name_hashes),
         disabled_branches(_disabled_branches), entry_begin_rel(_begin_rel), entry_end_rel(_end_rel),
         tau_types(_tautypes), current_n_processed(0), files_n_total(_file_names.size()),
-        entries_end(std::numeric_limits<size_t>::max()), total_n_processed(0), gen(&_gen)
+        entries_end(std::numeric_limits<size_t>::max()), total_n_processed(0)
     {
         if(_file_names.size()!=_name_hashes.size())
           throw exception("file_names and names vectors have different size.");
@@ -70,9 +70,6 @@ struct SourceDesc {
           throw exception("Empty list of files for the source '%1%'.") % name;
         if(!files_n_total)
           throw exception("Empty source '%1%'.") % name;
-
-        file_names  = _file_names;
-        name_hashes = _name_hashes;
     }
 
     SourceDesc(const SourceDesc&) = delete;
@@ -145,8 +142,6 @@ struct SourceDesc {
     size_t total_n_processed;
     TauType current_tau_type;
     Int_t dataset_hash;
-
-    Generator* gen;
   };
 
 
@@ -493,7 +488,7 @@ private:
 
         std::shared_ptr<SourceDesc> source = std::make_shared<SourceDesc>(dsc.name,dsc.name_hash,
                             dsc.data_files, dsc.data_set_names_hashes,disabled_branches,
-                            start_, end_, dsc.tau_types, *gen);
+                            start_, end_, dsc.tau_types);
         sources[dsc.name] = source;
 
         spectrums[dsc.name] = std::make_shared<SpectrumHists>(dsc.name, pt_bins,
