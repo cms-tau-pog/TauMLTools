@@ -34,7 +34,7 @@ struct Arguments {
     run::Argument<std::string> output{"output", "output, depending on the merging mode: MergeAll - file,"
                                                 " MergePerEntry - directory."};
     run::Argument<std::string> pt_bins{"pt-bins", "pt bins (last bin will be chosen as high-pt region, "
-                                                  "lower pt edgeof the last bin will be choosen as pt_threshold)"};
+                                                  "lower pt edge of the last bin will be choosen as pt_threshold)"};
     run::Argument<std::string> eta_bins{"eta-bins", "eta bins"};
     run::Argument<MergeMode> mode{"mode", "merging mode: MergeAll is the only supported mode", MergeMode::MergeAll};
     run::Argument<size_t> max_entries{"max-entries", "maximal number of entries in output train+test tuples",
@@ -398,7 +398,7 @@ public:
       if(verbose) std::cout << "Loading Data Groups..." << std::endl;
       LoadDataGroups(entries, pt_bins, eta_bins, disabled_branches, start_entry, end_entry);
 
-      if(verbose) std::cout << "Calculating probabilitis..." << std::endl;
+      if(verbose) std::cout << "Calculating probabilities..." << std::endl;
       for(auto spectrum: spectrums)
         spectrum.second->CalculateProbability();
 
@@ -522,20 +522,35 @@ private:
         for(TauType type: spectrum.second->ttypes)
           accumulated_entries[type] += entries_.at(type);
       }
+
+      // Added control over the ratio of tau types
+      // Step 1: for non-"-1"(take all) types:
+      // <expected ration>/<entries_per_type> is calc.
       for(auto tauR_: tau_ratio){
         if(tauR_.second!=-1){
           if(accumulated_entries.at(tauR_.first)==0)
             throw exception("No taus of the type '%1%' are found in the tuples") % tauR_.first;
+          else if(tauR_.second<0)
+            throw exception("Available --tau_ratio arguments should be > 0 or -1");
+
           std::cout << "tau: " << ToString(tauR_.first) << " Prob: " << tauR_.second
                     << " " << accumulated_entries.at(tauR_.first) << "\n";
           probab[tauR_.first] = tauR_.second/accumulated_entries.at(tauR_.first);
         }
       }
-      auto pr = std::max_element(std::begin(probab), std::end(probab),
-                [] (const auto& p1, const auto& p2) {return p1.second < p2.second; });
-      Double_t max_ = pr->second;
-      std::cout << "max element: " << max_ << std::endl;
-      for(auto tau_prob_: probab) probab.at(tau_prob_.first) = tau_prob_.second/max_;
+      // Step 2: if we have for non-"-1"(take all) types
+      // to take maximum possible number of taus
+      // max[<expected ration>/<entries_per_type>] 
+      // should be normalized to 1.0 (means take all taus of the type)
+      if(!probab.empty()) {
+        auto pr = std::max_element(std::begin(probab), std::end(probab),
+                  [] (const auto& p1, const auto& p2) {return p1.second < p2.second; });
+        Double_t max_ = pr->second;
+        std::cout << "max element: " << max_ << std::endl;
+        for(auto tau_prob_: probab) probab.at(tau_prob_.first) = tau_prob_.second/max_;
+      }
+      // Step 3: Probability to take the rest types
+      // which were defined with -1 are set to 100% (1.0)
       for(auto tauR_: tau_ratio){
         if(tauR_.second==-1){
           if(accumulated_entries.at(tauR_.first)==0)
@@ -543,6 +558,7 @@ private:
           probab[tauR_.first] = 1.0;
         }
       }
+
       std::cout << "tau type probabilities:" << std::endl;
       for(auto tau_prob: probab)
         std::cout << "P(" << tau_prob.first << ")=" << tau_prob.second << " ";
