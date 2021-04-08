@@ -165,6 +165,7 @@ struct EntryDesc {
     {
         using boost::regex;
         using boost::regex_match;
+        using boost::filesystem::is_regular_file;
 
         name = item.name;
         name_hash = std::hash<std::string>{}(name);
@@ -222,6 +223,8 @@ struct EntryDesc {
 
         std::cout << name << std::endl;
         for (const auto spectrum_file : spectrum_files){
+          if(!is_regular_file(spectrum_file))
+            throw exception("No spectrum file are found: '%1%'") % spectrum_file;
           std::cout << spectrum_file << " - spectrum" << std::endl;
         }
     }
