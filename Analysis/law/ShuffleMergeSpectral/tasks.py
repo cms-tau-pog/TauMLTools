@@ -103,5 +103,6 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     else:
       self.move(os.path.abspath(output_name), os.path.abspath('/'.join([self.output_dir, '..', file_name])))
       self.move(os.path.abspath('./out'    ), os.path.abspath('/'.join([self.output_dir, '..', 'hashes', 'out_{}'.format(self.branch)])))
+      print('Output file and hash tables moved to {}\n'.format(os.path.abspath('/'.join([self.output_dir, '..']))))
       taskout = self.output()
       taskout.dump('Task ended with code %s\n' %retcode)
