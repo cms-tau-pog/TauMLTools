@@ -526,6 +526,15 @@ private:
       // Added control over the ratio of tau types
       // Step 1: for non-"-1"(take all) types:
       // <expected ration>/<entries_per_type> is calc.
+
+      // First, check that the ratio type exists within the entries
+      for(auto tauR_: tau_ratio){
+        if (accumulated_entries.find(tauR_.first) == accumulated_entries.end()){
+          throw exception("Tau type %1% was specified in tau ratios, but no %1% is present in the input")
+            %tauR_.first; 
+        }
+      }
+
       for(auto tauR_: tau_ratio){
         if(tauR_.second!=-1){
           if(accumulated_entries.at(tauR_.first)==0)
