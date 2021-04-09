@@ -53,6 +53,12 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   def output(self):
     return self.local_target("empty_file_{}.txt".format(self.branch))
 
+  def move(self, src, dest):
+    if os.path.exists(dest):
+      if os.path.isdir(dest): shutil.rmtree(dest)
+      else: os.remove(dest)
+    shutil.move(src, dest)
+
   def run(self):
     self.output_dir = '/'.join([self.output_path, 'tmp'])
     file_name   = '_'.join(['ShuffleMergeSpectral', str(self.branch)]) + '.root'
@@ -96,8 +102,8 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     if retcode != 0:
       raise Exception('job {} return code is {}'.format(self.branch, retcode))
     elif retcode == 0 and self.mode == 'MergeAll':
-      shutil.move(output_name, os.path.abspath('/'.join([self.output_dir, '..', file_name])))
-      shutil.move('./out', os.path.abspath('/'.join([self.output_dir, '..', 'hashes', 'out_{}'.format(self.branch)])))
+      self.move(output_name, '/'.join([self.output_dir, '..', file_name]))
+      self.move('./out'    , '/'.join([self.output_dir, '..', 'hashes', 'out_{}'.format(self.branch)]))
       taskout = self.output()
       taskout.dump('Task ended with code %s\n' %retcode)
     else:
