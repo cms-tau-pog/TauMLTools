@@ -40,12 +40,11 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   def create_branch_map(self):
     self.output_dir = '/'.join([self.output_path, 'tmp'])
     ## create the .root file output directory
-    if not os.path.exists(self.output_dir):
-      os.makedirs(self.output_dir)
+    if not os.path.exists(os.path.abspath(self.output_dir)):
+      os.makedirs(os.path.abspath(self.output_dir))
     ## this directory will store the json has dictionaries
-    if not os.path.exists('/'.join([self.output_dir, '..', 'hashes'])):
-      os.makedirs('/'.join([self.output_dir, '..', 'hashes']))
-
+    if not os.path.exists(os.path.abspath('/'.join([self.output_dir, '..', 'hashes']))):
+      os.makedirs(os.path.abspath('/'.join([self.output_dir, '..', 'hashes'])))
 
     step = 1. * (self.end_entry - self.start_entry) / self.n_jobs
     return {i: (round(self.start_entry + i*step, 6), round(self.start_entry + (i+1)*step, 6)) for i in range(self.n_jobs)}
