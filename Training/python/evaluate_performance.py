@@ -28,6 +28,7 @@ args = parser.parse_args()
 
 import os
 import sys
+import math
 import pandas
 import numpy as np
 import json
@@ -142,8 +143,23 @@ with PdfPages(args.output) as pdf:
         names = [ disc.name for disc in discriminators ]
 
         roc_json_entry = {
-            'pt_min': pt_bins[pt_index], 'pt_max': pt_bins[pt_index], 'discr': [],
+            'pt_min': pt_bins[pt_index], 'pt_max': pt_bins[pt_index + 1], 'discriminators': [], 'plot_setup': { },
         }
+
+        for param_name in [ 'ylabel', 'yscale', 'ratio_yscale', 'legend_loc', 'ratio_ylabel_pad']:
+            val = getattr(plot_setup, param_name)
+            if val is not None:
+                roc_json_entry['plot_setup'][param_name] = val
+
+        x_range = 1
+        for lim_name in [ 'x', 'y', 'ratio_y' ]:
+            lim = getattr(plot_setup, lim_name + 'lim')
+            if lim is not None:
+                lim = lim[pt_index] if type(lim[0]) == list else lim
+                roc_json_entry['plot_setup'][lim_name + '_min'] = lim[0]
+                roc_json_entry['plot_setup'][lim_name + '_max'] = lim[1]
+                if lim_name == 'x':
+                    x_range = lim[1] - lim[0]
 
         for n in reversed(range(n_discr)):
             ref_roc = rocs[-1]
@@ -154,13 +170,32 @@ with PdfPages(args.output) as pdf:
                 print('[{}, {}] {} roc_auc = {}'.format(pt_bins[pt_index], pt_bins[pt_index + 1], names[n],
                                                         rocs[n].auc_score))
                 #print(thrs)
-            roc_json_entry['discr'].append({
-                'name': discriminators[n].name,
-                'false_positive_rate': rocs[n].pr[0, :].tolist(),
-                'true_positive_rate': rocs[n].pr[1, :].tolist(),
-                'thresholds': rocs[n].thresholds.tolist(),
-            })
-        roc_json.append(roc_json_entry)
+            #print(discriminators[n].name)
+            name_suffix = ''
+            for roc in [ rocs[n].Prune(tpr_decimals=max(0, round(math.log10(1000 / x_range)))), wp_rocs[n] ]:
+                if roc is None: continue
+
+                discr_data = {
+                    'name': discriminators[n].name + name_suffix,
+                    'false_positive_rate': eval_tools.FloatList(roc.pr[0, :].tolist()),
+                    'true_positive_rate': eval_tools.FloatList(roc.pr[1, :].tolist()),
+                    'is_ref': n == n_discr - 1,
+                    'color': roc.color,
+                    'auc_score': roc.auc_score,
+                    'dots_only': roc.dots_only,
+                    'dashed': roc.dashed,
+                    'marker_size': roc.marker_size,
+                }
+                if roc.thresholds is not None:
+                    discr_data['thresholds'] = eval_tools.FloatList(roc.thresholds.tolist())
+                if roc.pr_err is not None:
+                    discr_data['false_positive_rate_up'] = eval_tools.FloatList(roc.pr_err[0, 0, :].tolist())
+                    discr_data['false_positive_rate_down'] = eval_tools.FloatList(roc.pr_err[0, 1, :].tolist())
+                    discr_data['true_positive_rate_up'] = eval_tools.FloatList(roc.pr_err[1, 0, :].tolist())
+                    discr_data['true_positive_rate_down'] = eval_tools.FloatList(roc.pr_err[1, 1, :].tolist())
+                roc_json_entry['discriminators'].insert(0, discr_data)
+                name_suffix = ' WP'
+
 
         fig, (ax, ax_ratio) = plt.subplots(2, 1, figsize=(7, 7), sharex=True,
                                            gridspec_kw = {'height_ratios':[3, 1]})
@@ -176,6 +211,8 @@ with PdfPages(args.output) as pdf:
         ratio_title = 'MVA/DeepTau' if args.other_type != 'mu' else 'cut based/DeepTau'
         plot_setup.Apply(names, plot_entries, pt_index, ratio_title, ax, ax_ratio)
 
+        roc_json_entry['plot_setup']['ratio_title'] = ratio_title
+        roc_json_entry['period'] = '2017 (13 TeV)'
         if args.public_plots:
             header_y = 1.02
             # ax.text(0.03, 0.90, r'$p_T\in ({}, {})$ GeV'.format(pt_bins[pt_index], pt_bins[pt_index + 1]),
@@ -186,6 +223,7 @@ with PdfPages(args.output) as pdf:
                 pt_text = r'$p_T < {}$ GeV'.format(pt_bins[pt_index + 1])
             else:
                 pt_text = r'$p_T\in ({}, {})$ GeV'.format(pt_bins[pt_index], pt_bins[pt_index + 1])
+            roc_json_entry['pt_text'] = pt_text
             ax.text(0.03, 0.92 - n_discr * 0.10, pt_text, fontsize=14, transform=ax.transAxes)
             ax.text(0.01, header_y, 'CMS', fontsize=14, transform=ax.transAxes, fontweight='bold',
                     fontfamily='sans-serif')
@@ -203,10 +241,12 @@ with PdfPages(args.output) as pdf:
             else:
                 title_str = 'tau vs {}. pt range ({}, {}) GeV'.format(args.other_type, pt_bins[pt_index],
                                                                       pt_bins[pt_index + 1])
+            roc_json_entry['pt_text'] = title_str
             ax.set_title(title_str, fontsize=18, y=1.04)
         plt.subplots_adjust(hspace=0)
         pdf.savefig(fig, bbox_inches='tight')
+        roc_json.append(roc_json_entry)
 
 if args.store_json:
     with open(os.path.splitext(args.output)[0] + '.json', 'w') as json_file:
-        json.dump(roc_json, json_file)
+        json_file.write(json.dumps(roc_json, indent=4, cls=eval_tools.CustomJsonEncoder))

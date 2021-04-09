@@ -202,7 +202,7 @@ def GetPlotSetup(other_type):
                          ratio_ylim=[ [0.5, 20], [0.5, 20], [0.5, 20], [0.5, 20], [0.5, 20],
                                       [0.5, 20], [0.5, 20], [0.5, 50], [0.5, 50], [0.5, 50] ] )
     elif other_type == 'jet':
-        return PlotSetup(ylabel='Jet mis-id probability', ratio_ylable_pad=30, xlim=[0.3, 1],
+        return PlotSetup(ylabel='Jet mis-id probability', ratio_ylabel_pad=30, xlim=[0.3, 1],
                          # ylim=[ [2e-3, 1], [3e-4, 1], [8e-5, 1], [2e-5, 1], [2e-5, 1],
                          #        [5e-6, 1], [5e-6, 1], [5e-6, 1], [5e-6, 1], [2e-6, 1] ],
                          ylim=[ [1e-3, 1], [2e-4, 1], [8e-5, 1], [2e-5, 1], [2e-5, 1],
