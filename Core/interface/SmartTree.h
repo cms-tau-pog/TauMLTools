@@ -15,6 +15,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <TFile.h>
 #include <TTree.h>
 #include <Rtypes.h>
+#include <TChain.h>
 
 #define DECLARE_BRANCH_VARIABLE(type, name) type name;
 #define ADD_DATA_TREE_BRANCH(name) AddBranch(#name, _data->name);
@@ -220,8 +221,8 @@ public:
 
     SmartTree(const std::string& _name, const std::vector<std::string>& list,
               const std::set<std::string>& _disabled_branches = {}, const std::set<std::string>& _enabled_branches ={})
-        : name(_name), disabled_branches(_disabled_branches),
-          enabled_branches(_enabled_branches), directory(nullptr)
+        : name(_name), directory(nullptr), disabled_branches(_disabled_branches),
+          enabled_branches(_enabled_branches)
     {
         static constexpr Long64_t maxVirtualSize = 200 * 1024 * 1024;
 

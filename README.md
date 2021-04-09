@@ -10,10 +10,11 @@ Tools to perform machine learning studies for tau lepton reconstruction and iden
 Root-tuples production steps (both big-tuple and training tuple) require CMSSW environment
 ```sh
 export SCRAM_ARCH=slc7_amd64_gcc700
-cmsrel CMSSW_10_6_13
-cd CMSSW_10_6_13/src
+cmsrel CMSSW_10_6_20
+cd CMSSW_10_6_20/src
 cmsenv
-git clone -o cms-tau-pog git@github.com:cms-tau-pog/TauMLTools.git
+git cms-merge-topic -u cms-tau-pog:CMSSW_10_6_X_tau-pog_boostedTausMiniFix
+git clone -o cms-tau-pog -b prod2018_v2 git@github.com:cms-tau-pog/TauMLTools.git
 scram b -j8
 ```
 
@@ -56,7 +57,7 @@ These branches are filled in CMSSW module [Production/plugins/TauTupleProducer.c
 [Production/python/Production.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Production/python/Production.py) contains the configuration that allows to run `TauTupleProducer` with `cmsRun`.
 Here is an example how to run `TauTupleProducer` on 1000 DY events using one MiniAOD file as an input:
 ```sh
-cmsRun TauMLTools/Production/python/Production.py sampleType=MC_18 inputFiles=/store/mc/RunIIAutumn18MiniAOD/DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8/MINIAODSIM/102X_upgrade2018_realistic_v15-v1/00000/A788C40A-03F7-4547-B5BA-C1E01CEBB8D8.root maxEvents=1000 rerunTauReco=True
+cmsRun TauMLTools/Production/python/Production.py sampleType=MC_18 inputFiles=/store/mc/RunIIAutumn18MiniAOD/DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8/MINIAODSIM/102X_upgrade2018_realistic_v15-v1/00000/A788C40A-03F7-4547-B5BA-C1E01CEBB8D8.root maxEvents=1000
 ```
 
 In order to run a large-scale production for the entire datasets, the CMS computing grid should be used via CRAB interface.
@@ -76,7 +77,7 @@ Submission and status control can be performed using [crab_submit.py](https://gi
    ```
 1. Submit task in a config file (or a set of config files) using `crab_submit.py`:
    ```sh
-   crab_submit.py --workArea work-area --cfg TauMLTools/Production/python/Production.py --site T2_CH_CERN --output /store/group/phys_tau/TauML/prod_2018_v1/crab_output TauMLTools/Production/crab/configs/2018/CONFIG1.txt TauMLTools/Production/crab/configs/2018/CONFIG2.txt ...
+   crab_submit.py --workArea work-area --cfg TauMLTools/Production/python/Production.py --site T2_CH_CERN --output /store/group/phys_tau/TauML/prod_2018_v2/crab_output TauMLTools/Production/crab/configs/2018/CONFIG1.txt TauMLTools/Production/crab/configs/2018/CONFIG2.txt ...
    ```
    * For more command line options use `crab_submit.py --help`.
    * For big dataset file-based splitting should be used
@@ -87,7 +88,7 @@ Submission and status control can be performed using [crab_submit.py](https://gi
    ```
 1. Once all jobs within a given task are finished you can move it from `work-area` to `finished` folder (to avoid rerunning status each time) and set `done` for the dataset in the production google-doc.
 1. If some jobs are failed: try to understand the reason and use standard crab tools to solve the problem (e.g. `crab resubmit` with additional arguments). In very problematic cases a recovery task could be created.
-1. Once production is over, all produced `TauTuples` will be moved in `/eos/cms/store/group/phys_tau/TauML/prod_2018_v1/full_tuples`.
+1. Once production is over, all produced `TauTuples` will be moved in `/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/full_tuples`.
 
 
 
@@ -264,11 +265,11 @@ python TauMLTools/Production/scripts/validation_tool.py  --input input_directory
                                                          --n_threads n_threads \
                                                          --legend > results.txt
 ```
-The *id_json*  (*group_id_json*) points to a json file containing the list of datasets names (dataset group names) and their hash values, used to identify them inside the shuffled ROOT tuples. These files are needed in order to create a unique identifier which can be handled by ROOT. These files are produced at the shuffle and merge step. 
+The *id_json*  (*group_id_json*) points to a json file containing the list of datasets names (dataset group names) and their hash values, used to identify them inside the shuffled ROOT tuples. These files are needed in order to create a unique identifier which can be handled by ROOT. These files are produced at the shuffle and merge step.
 The script will create the directory "output_directory" containing the results of the test.
 Validation is run on the following ditributions with a Kolmogorov-Smirnov test:
 
-- dataset_id, dataset_group_id, lepton_gen_match, sampleType 
+- dataset_id, dataset_group_id, lepton_gen_match, sampleType
 - tau_pt and tau_eta for each bin of the previous
 - dataset_id for each bin of dataset_group_id
 
