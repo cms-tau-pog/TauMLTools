@@ -19,7 +19,6 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   output_path       = luigi.Parameter(description = 'output directory')
   pt_bins           = luigi.Parameter(description = 'pt bins')
   eta_bins          = luigi.Parameter(description = 'eta bins')
-  mode              = luigi.Parameter(description = 'merging mode: MergeAll or MergePerEntry')
   input_spec        = luigi.Parameter(description = '')
   tau_ratio         = luigi.Parameter(description = '')
   n_jobs            = luigi.IntParameter(description = 'number of HTCondor jobs to run')
@@ -28,6 +27,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
                                                     'It can include a remote server to use with xrootd.', default = "")
   start_entry       = luigi.FloatParameter(description = 'starting point', default = 0)
   end_entry         = luigi.FloatParameter(description = 'ending point'  , default = 1)
+  mode              = luigi.Parameter(default = '', description = 'merging mode: MergeAll or MergePerEntry')
   compression_algo  = luigi.Parameter(default = '', description = 'ZLIB, LZMA, LZ4')
   compression_level = luigi.Parameter(default = '', description = 'compression level of output file')
   disabled_branches = luigi.Parameter(default = '', description = 'disabled-branches list of branches to disabled in the input tuples')
@@ -62,10 +62,10 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   def run(self):
     self.output_dir = '/'.join([self.output_path, 'tmp'])
     file_name   = '_'.join(['ShuffleMergeSpectral', str(self.branch)]) + '.root'
-    output_name = '/'.join([self.output_dir, file_name]) if self.mode == 'MergeAll' else self.output_dir
+    output_name = '/'.join([self.output_dir, file_name])
 
-    if not self.mode == 'MergeAll':
-      raise Exception('Only --mode MergeAll is supported by the law tool for now')
+    if not (self.mode == 'MergeAll' or self.mode == ''):
+      raise Exception('Only --mode MergeAll is supported by the law tool')
 
     quote = lambda x: str('\"{}\"'.format(str(x)))
     command = ' '.join(['ShuffleMergeSpectral',
@@ -74,12 +74,12 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
       '--output'            , output_name               ,
       '--pt-bins'           , quote(str(self.pt_bins))  ,
       '--eta-bins'          , quote(str(self.eta_bins)) ,
-      '--mode'              , str(self.mode)            ,
       '--input-spec'        , str(self.input_spec)      ,
       '--start-entry'       , str(self.branch_data[0])  ,
       '--end-entry'         , str(self.branch_data[1])  ,
       '--tau-ratio'         , quote(str(self.tau_ratio))] +\
       ## optional arguments
+      ['--mode'             , str(self.mode)                    ] * (not self.mode              is '') +\
       ['--seed'             , str(self.seed)                    ] * (not self.seed              is '') +\
       ['--prefix'           , str(self.prefix)                  ] * (not self.prefix            is '') +\
       ['--n-threads'        , str(self.n_threads)               ] * (not self.n_threads         is '') +\
@@ -101,11 +101,8 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
 
     if retcode != 0:
       raise Exception('job {} return code is {}'.format(self.branch, retcode))
-    elif retcode == 0 and self.mode == 'MergeAll':
-      self.move(output_name, '/'.join([self.output_dir, '..', file_name]))
-      self.move('./out'    , '/'.join([self.output_dir, '..', 'hashes', 'out_{}'.format(self.branch)]))
+    else:
+      self.move(os.path.abspath(output_name), os.path.abspath('/'.join([self.output_dir, '..', file_name])))
+      self.move(os.path.abspath('./out'    ), os.path.abspath('/'.join([self.output_dir, '..', 'hashes', 'out_{}'.format(self.branch)])))
       taskout = self.output()
       taskout.dump('Task ended with code %s\n' %retcode)
-    else:
-      ## TODO: what happens if not MergeAll?
-      pass
