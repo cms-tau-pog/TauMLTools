@@ -85,8 +85,8 @@ private:
                 output_tuple().gen_jet = gen_match == GenLeptonMatch::NoMatch;
             }
 
-            output_tuple().byDeepTau2017v2VSeraw = tau.tauID("byDeepTau2017v2VSeraw");
-            output_tuple().byDeepTau2017v2VSmuraw = tau.tauID("byDeepTau2017v2VSmuraw");
+            output_tuple().byDeepTau2017v2VSeraw   = ( tau.isTauIDAvailable("byDeepTau2017v2VSeraw")  ) ? tau.tauID("byDeepTau2017v2VSeraw")  : 0.;
+            output_tuple().byDeepTau2017v2VSmuraw  = ( tau.isTauIDAvailable("byDeepTau2017v2VSmuraw") ) ? tau.tauID("byDeepTau2017v2VSmuraw") : 0.;
             output_tuple().byDeepTau2017v2VSjetraw = tau.tauID("byDeepTau2017v2VSjetraw");
 
             output_tuple.Fill();

@@ -42,6 +42,7 @@ private:
     BitsContainer results;
 };
 
+/*
 #define TAU_IDS() \
     TAU_ID(byCombinedIsolationDeltaBetaCorr3Hits, "by{wp}CombinedIsolationDeltaBetaCorr{Raw}3Hits", true, \
            "Loose Medium Tight") \
@@ -57,9 +58,10 @@ private:
         "VVLoose VLoose Loose Medium Tight VTight VVTight") \
     TAU_ID(byIsolationMVArun2017v2DBoldDMdR0p3wLT2017, "by{wp}IsolationMVArun2017v2DBoldDMdR0p3wLT{raw}2017", true, \
         "VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byIsolationMVADBnewDMwLTPhase2, "by{wp}IsolationMVADBnewDMwLTPhase2{raw}", true, \
-        "VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    /**/
+ */
+#define TAU_IDS() \
+    TAU_ID(byCombinedIsolationDeltaBetaCorr3Hits, "byCombinedIsolationDeltaBetaCorr{Raw}3Hits", true, \
+           "") \
 
 #define TAU_ID(name, pattern, has_raw, wp_list) name,
 enum class TauIdDiscriminator { TAU_IDS() };

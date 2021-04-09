@@ -225,9 +225,13 @@ private:
 
         out.tau_index = tau.tau_index;
         out.tau_pt = GetValueLinear(tau.tau_pt, 20.f, 1000.f, true);
+        out.spectator_tau_pt = tau.tau_pt;
         out.tau_eta = GetValueLinear(tau.tau_eta, -2.3f, 2.3f, false);
+        out.spectator_tau_eta = tau.tau_eta;
         out.tau_phi = GetValueLinear(tau.tau_phi, -pi, pi, false);
+        out.spectator_tau_phi = tau.tau_phi;
         out.tau_mass = GetValueNorm(tau.tau_mass, 0.6669f, 0.6553f);
+        out.spectator_tau_mass = tau.tau_mass;
         const LorentzVectorM tau_p4(tau.tau_pt, tau.tau_eta, tau.tau_phi, tau.tau_mass);
         out.tau_E_over_pt = GetValueLinear(tau_p4.energy() / tau.tau_pt, 1.f, 5.2f, true);
         out.tau_charge = GetValue(tau.tau_charge);
@@ -237,15 +241,20 @@ private:
                     qcd_gen_match, qcd_gen_charge, qcd_gen_pt, qcd_gen_eta, qcd_gen_phi, qcd_gen_mass,
                     tau_decayMode, tau_decayModeFinding, tau_decayModeFindingNewDMs)
 
-
         out.chargedIsoPtSum = GetValueNorm(tau.chargedIsoPtSum, 47.78f, 123.5f);
+        out.chargedIsoPtSumHGCalFix = GetValueNorm(tau.chargedIsoPtSumHGCalFix, 47.78f, 123.5f);
+        out.spectator_chargedIsoPtSum = tau.chargedIsoPtSum;
+        out.spectator_chargedIsoPtSumHGCalFix = tau.chargedIsoPtSumHGCalFix;
         out.chargedIsoPtSumdR03_over_dR05 = GetValue(tau.chargedIsoPtSumdR03 / tau.chargedIsoPtSum);
+        out.chargedIsoPtSumdR03_over_dR05HGCalFix = GetValue(tau.chargedIsoPtSumdR03HGCalFix / tau.chargedIsoPtSumHGCalFix);
         out.footprintCorrection = GetValueNorm(tau.footprintCorrection, 9.029f, 26.42f);
         out.neutralIsoPtSum = GetValueNorm(tau.neutralIsoPtSum, 57.59f, 155.3f);
+        out.neutralIsoPtSumHGCalFix = GetValueNorm(tau.neutralIsoPtSumHGCalFix, 57.59f, 155.3f);
         out.neutralIsoPtSumWeight_over_neutralIsoPtSum = GetValue(tau.neutralIsoPtSumWeight / tau.neutralIsoPtSum);
         out.neutralIsoPtSumWeightdR03_over_neutralIsoPtSum =
             GetValue(tau.neutralIsoPtSumWeightdR03 / tau.neutralIsoPtSum);
         out.neutralIsoPtSumdR03_over_dR05 = GetValue(tau.neutralIsoPtSumdR03 / tau.neutralIsoPtSum);
+        out.neutralIsoPtSumdR03_over_dR05HGCalFix = GetValue(tau.neutralIsoPtSumdR03HGCalFix / tau.neutralIsoPtSumHGCalFix);
         out.photonPtSumOutsideSignalCone = GetValueNorm(tau.photonPtSumOutsideSignalCone, 1.731f, 6.846f);
         out.puCorrPtSum = GetValueNorm(tau.puCorrPtSum, 22.38f, 16.34f);
 
@@ -767,8 +776,8 @@ private:
         };
 
         auto iter = obj_types.find(std::abs(pdgId));
-        if(iter == obj_types.end())
-            throw exception("Unknown object pdg id = %1%.") % pdgId;
+        //if(iter == obj_types.end())
+        //    throw exception("Unknown object pdg id = %1%.") % pdgId;
         return iter->second;
     }
 

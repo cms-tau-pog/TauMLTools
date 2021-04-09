@@ -311,7 +311,7 @@ The script to that performs conversion is defined in [TauMLTools/Analysis/script
    ```
 1. Once training is finished, the model can be converted to the constant graph suitable for inference:
    ```sh
-   python TauMLTools/Analysis/python/deploy_model.py --input MODEL_FILE.hdf5
+   python TauMLTools/Training/python/deploy_model.py --input MODEL_FILE.hdf5
    ```
 
 ## Testing NN performance

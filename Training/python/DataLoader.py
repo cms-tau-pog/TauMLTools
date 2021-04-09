@@ -6,8 +6,8 @@ from threading import Thread, Lock
 import numpy as np
 import pandas
 import uproot
-from common import *
-from fill_grid import FillGrid, FillSequence
+from TauMLTools.Training.common import *
+from TauMLTools.Training.fill_grid import FillGrid, FillSequence
 
 read_hdf_lock = Lock()
 def read_hdf(file_name, key, columns, start, stop):
@@ -37,7 +37,6 @@ def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return
             taus_tree = root_file['taus']
             taus_tree._recover()
             cells_tree = {}
-
             for loc in net_config.cell_locations:
                 cells_tree[loc] = root_file[loc + '_cells']
                 cells_tree[loc]._recover()
@@ -96,7 +95,7 @@ def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return
                 if return_weights:
                     weights = np.empty(b_size, dtype=np.float32)
                     weights[:] = df_taus[weight_branches[0]].values[b_tau_begin:b_tau_end]
-                    X_all.append(weights)
+                    ##X_all.append(weights)
 
                 if return_truth and return_weights:
                     item = (X_all, Y, weights)
@@ -181,7 +180,9 @@ class DataLoader:
         self.steps_per_epoch = 0
         self.validation_steps = 0
         for file_name in all_files:
+            print("Opening input file = '%s...'" % file_name)
             file_size = DataLoader.GetNumberOfEntries(file_name, 'taus')
+            print("Input file contains %i entries." % file_size)
             file_entry = FileEntry(file_name, file_size, batch_size, evt_left, val_evt_left)
             if evt_left is not None:
                 evt_left -= file_entry.size
@@ -193,6 +194,8 @@ class DataLoader:
             self.validation_steps += file_entry.val_steps
             self.file_entries.append(file_entry)
         self.total_size = self.data_size + self.validation_size
+        print(" Using %i entries for training set." % self.data_size)
+        print(" Using %i entries for validation set." % self.validation_size)
 
         if val_evt_left is not None and val_evt_left != 0:
             raise RuntimeError("Insufficient number of events to create validation set.")
