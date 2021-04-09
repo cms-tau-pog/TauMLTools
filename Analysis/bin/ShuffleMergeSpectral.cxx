@@ -261,6 +261,9 @@ public:
       std::shared_ptr<TFile> current_file = std::make_shared<TFile>(path_spectrum_file.c_str());
       for (TauType type: ttypes){
         std::shared_ptr<TH2D> hist_ttype((TH2D*)current_file->Get(("eta_pt_hist_"+ToString(type)).c_str()));
+        if (!hist_ttype)
+          throw exception("TauType: '%1%' is not available at '%2%'")
+          % ToString(type) % path_spectrum_file;
         root_ext::RebinAndFill(*ttype_entries[type], *hist_ttype);
         n_entries += hist_ttype->GetEntries();
       }
