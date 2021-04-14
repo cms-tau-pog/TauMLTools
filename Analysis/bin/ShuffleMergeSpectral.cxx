@@ -34,7 +34,7 @@ struct Arguments {
     run::Argument<std::string> output{"output", "output, depending on the merging mode: MergeAll - file,"
                                                 " MergePerEntry - directory."};
     run::Argument<std::string> pt_bins{"pt-bins", "pt bins (last bin will be chosen as high-pt region, "
-                                                  "lower pt edgeof the last bin will be choosen as pt_threshold)"};
+                                                  "lower pt edge of the last bin will be choosen as pt_threshold)"};
     run::Argument<std::string> eta_bins{"eta-bins", "eta bins"};
     run::Argument<MergeMode> mode{"mode", "merging mode: MergeAll is the only supported mode", MergeMode::MergeAll};
     run::Argument<size_t> max_entries{"max-entries", "maximal number of entries in output train+test tuples",
@@ -58,16 +58,15 @@ struct Arguments {
 struct SourceDesc {
     using Tau = tau_tuple::Tau;
     using TauTuple = tau_tuple::TauTuple;
-    using Generator = std::mt19937_64;
 
     SourceDesc(const std::string& name_, const ULong64_t&  _group_hash,
                const std::vector<std::string>& _file_names, const std::vector<ULong64_t>& _name_hashes,
                const std::set<std::string>& _disabled_branches, const double& _begin_rel, const double& _end_rel,
-               const std::set<TauType>& _tautypes, Generator& _gen) :
-        name(name_),  group_hash(_group_hash),
+               const std::set<TauType>& _tautypes) :
+        name(name_),  group_hash(_group_hash), file_names(_file_names), dataset_hash_arr(_name_hashes),
         disabled_branches(_disabled_branches), entry_begin_rel(_begin_rel), entry_end_rel(_end_rel),
         tau_types(_tautypes), current_n_processed(0), files_n_total(_file_names.size()),
-        entries_end(std::numeric_limits<size_t>::max()), total_n_processed(0), gen(&_gen)
+        entries_end(std::numeric_limits<size_t>::max()), total_n_processed(0)
     {
         if(_file_names.size()!=_name_hashes.size())
           throw exception("file_names and names vectors have different size.");
@@ -150,8 +149,6 @@ struct SourceDesc {
     size_t total_n_processed;
     TauType current_tau_type;
     Int_t dataset_hash;
-
-    Generator* gen;
   };
 
 struct EntryDesc {
@@ -171,6 +168,7 @@ struct EntryDesc {
     {
         using boost::regex;
         using boost::regex_match;
+        using boost::filesystem::is_regular_file;
 
         name = item.name;
         name_hash = std::hash<std::string>{}(name);
@@ -228,6 +226,9 @@ struct EntryDesc {
 
         std::cout << name << std::endl;
         for (const auto spectrum_file : spectrum_files){
+          if(!is_regular_file(spectrum_file))
+            throw exception("No spectrum file are found: '%1%'") % spectrum_file;
+          
           std::cout << spectrum_file << " - spectrum" << std::endl;
         }
     }
@@ -264,6 +265,9 @@ public:
       std::shared_ptr<TFile> current_file = std::make_shared<TFile>(path_spectrum_file.c_str());
       for (TauType type: ttypes){
         std::shared_ptr<TH2D> hist_ttype((TH2D*)current_file->Get(("eta_pt_hist_"+ToString(type)).c_str()));
+        if (!hist_ttype)
+          throw exception("TauType: '%1%' is not available at '%2%'")
+          % ToString(type) % path_spectrum_file;
         root_ext::RebinAndFill(*ttype_entries[type], *hist_ttype);
         n_entries += hist_ttype->GetEntries();
       }
@@ -401,7 +405,7 @@ public:
       if(verbose) std::cout << "Loading Data Groups..." << std::endl;
       LoadDataGroups(entries, pt_bins, eta_bins, disabled_branches, start_entry, end_entry);
 
-      if(verbose) std::cout << "Calculating probabilitis..." << std::endl;
+      if(verbose) std::cout << "Calculating probabilities..." << std::endl;
       for(auto spectrum: spectrums)
         spectrum.second->CalculateProbability();
 
@@ -503,7 +507,7 @@ private:
 
         std::shared_ptr<SourceDesc> source = std::make_shared<SourceDesc>(dsc.name,dsc.name_hash,
                             dsc.data_files, dsc.data_set_names_hashes,disabled_branches,
-                            start_, end_, dsc.tau_types, *gen);
+                            start_, end_, dsc.tau_types);
         sources[dsc.name] = source;
 
         spectrums[dsc.name] = std::make_shared<SpectrumHists>(dsc.name, pt_bins,
@@ -525,20 +529,44 @@ private:
         for(TauType type: spectrum.second->ttypes)
           accumulated_entries[type] += entries_.at(type);
       }
+
+      // Added control over the ratio of tau types
+      // Step 1: for non-"-1"(take all) types:
+      // <expected ration>/<entries_per_type> is calc.
+
+      // First, check that the ratio type exists within the entries
+      for(auto tauR_: tau_ratio){
+        if (accumulated_entries.find(tauR_.first) == accumulated_entries.end()){
+          throw exception("Tau type %1% was specified in tau ratios, but no %1% is present in the input")
+            %tauR_.first; 
+        }
+      }
+
       for(auto tauR_: tau_ratio){
         if(tauR_.second!=-1){
           if(accumulated_entries.at(tauR_.first)==0)
             throw exception("No taus of the type '%1%' are found in the tuples") % tauR_.first;
+          else if(tauR_.second<0)
+            throw exception("Available --tau_ratio arguments should be > 0 or -1");
+
           std::cout << "tau: " << ToString(tauR_.first) << " Prob: " << tauR_.second
                     << " " << accumulated_entries.at(tauR_.first) << "\n";
           probab[tauR_.first] = tauR_.second/accumulated_entries.at(tauR_.first);
         }
       }
-      auto pr = std::max_element(std::begin(probab), std::end(probab),
-                [] (const auto& p1, const auto& p2) {return p1.second < p2.second; });
-      Double_t max_ = pr->second;
-      std::cout << "max element: " << max_ << std::endl;
-      for(auto tau_prob_: probab) probab.at(tau_prob_.first) = tau_prob_.second/max_;
+      // Step 2: if we have for non-"-1"(take all) types
+      // to take maximum possible number of taus
+      // max[<expected ration>/<entries_per_type>] 
+      // should be normalized to 1.0 (means take all taus of the type)
+      if(!probab.empty()) {
+        auto pr = std::max_element(std::begin(probab), std::end(probab),
+                  [] (const auto& p1, const auto& p2) {return p1.second < p2.second; });
+        Double_t max_ = pr->second;
+        std::cout << "max element: " << max_ << std::endl;
+        for(auto tau_prob_: probab) probab.at(tau_prob_.first) = tau_prob_.second/max_;
+      }
+      // Step 3: Probability to take the rest types
+      // which were defined with -1 are set to 100% (1.0)
       for(auto tauR_: tau_ratio){
         if(tauR_.second==-1){
           if(accumulated_entries.at(tauR_.first)==0)
@@ -546,6 +574,7 @@ private:
           probab[tauR_.first] = 1.0;
         }
       }
+
       std::cout << "tau type probabilities:" << std::endl;
       for(auto tau_prob: probab)
         std::cout << "P(" << tau_prob.first << ")=" << tau_prob.second << " ";
