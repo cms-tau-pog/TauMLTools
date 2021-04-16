@@ -10,8 +10,12 @@
 #include "TauMLTools/Core/interface/RootExt.h"
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 
+#include <iostream>
+#include <fstream>
+
 struct Arguments {
     run::Argument<std::string> outputfile{"outputfile", "output file name"};
+    run::Argument<std::string> output_entries{"output_entries", "txt output file with filenames and number of entries"};
     run::Argument<std::vector<std::string>> input_dirs{"input-dir", "input directory"};
     run::Argument<std::string> pt_hist{"pt-hist", "pt hist setup: (number of bins, pt_min, pt_max)", "200, 0.0, 1000"};
     run::Argument<std::string> eta_hist{"eta-hist", "eta hist setup: (number of bins, abs(eta)_min, abs(eta)_max)","4, 0.0, 2.3"};
@@ -65,6 +69,8 @@ public:
                                                   args.exclude_dir_list())),
       outputfile(root_ext::CreateRootFile(args.outputfile()))
     {
+      output_txt.open(args.output_entries(), std::ios::trunc);
+
       ROOT::EnableThreadSafety();
       if(args.n_threads() > 1) ROOT::EnableImplicitMT(args.n_threads());
 
@@ -86,6 +92,8 @@ public:
                       "genLepton_index", "genJet_index",
                       "genLepton_vis_pt", "genLepton_vis_eta", "genLepton_vis_phi", "genLepton_vis_mass",
                       "tau_pt", "tau_eta", "tau_phi", "tau_mass", "evt"});
+            
+            output_txt << file_name << " " << input_tauTuple.GetEntries() << "\n";
 
             for(const Tau& tau : input_tauTuple)
             {
@@ -100,6 +108,7 @@ public:
                   << "Number of taus within the ranges of histogram = " << Integral()
                   << " (" << Integral()/total_size*100 << "%)" << std::endl
                   << "Number of not Valid taus = " << hists->not_valid().GetEntries() << std::endl;
+        output_txt.close();
     }
 
 private:
@@ -156,6 +165,7 @@ private:
   private:
       std::vector<std::string> input_files;
       std::shared_ptr<TFile> outputfile;
+      std::ofstream output_txt;
       std::shared_ptr<HistSpectrum> hists;
       std::map<TauType,bool> ttypes;
       Int_t total_size=0;
