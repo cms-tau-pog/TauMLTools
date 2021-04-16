@@ -1,4 +1,4 @@
-/*! Sheffle and merge datasets using Histograms created with CreateSpectralHists.cxx
+/*! Shuffle and merge datasets using Histograms created with CreateSpectralHists.cxx
 */
 
 #include <fstream>
@@ -19,6 +19,30 @@
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 
 namespace analysis {
+
+void sumBasedSplit(const std::vector<size_t>& files_entries, const size_t job_idx, const size_t n_job,
+                  std::pair<size_t, size_t>& point_entry,  std::pair<size_t, size_t>& point_exit, size_t& step)
+{ 
+  // sumBasedSplit splits files into n_job sub-intervals
+  // the entry events for the job number job_idx are [point_entry, point_exit]...
+  // if sum(files_entries) % n_job != 0 some events will be lost in datagroup
+
+  step = std::accumulate(files_entries.begin(), files_entries.end(), 0) / n_job;
+  auto find_idx = [&](const size_t index, const bool isExit) -> std::pair<size_t, size_t>{
+    size_t sum_accumulate = 0;
+    for(size_t f_i = 0; f_i < files_entries.size(); f_i++) {
+      if(step*(index+isExit) - sum_accumulate - isExit < files_entries[f_i])
+        return std::make_pair(f_i, step*(index+isExit) - sum_accumulate  - isExit);
+      sum_accumulate+=files_entries[f_i];
+    }
+    throw exception("Sum-based splitting error!");
+  };
+
+   // .first - index of file in file list
+   // .second - index of last event
+  point_entry = find_idx(job_idx, false);
+  point_exit = find_idx(job_idx, true);
+};
 
 enum class MergeMode { MergeAll = 1 };
 ENUM_NAMES(MergeMode) = {
