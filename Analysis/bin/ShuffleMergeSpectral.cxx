@@ -83,14 +83,15 @@ struct SourceDesc {
     using Tau = tau_tuple::Tau;
     using TauTuple = tau_tuple::TauTuple;
 
-    SourceDesc(const std::string& name_, const ULong64_t&  _group_hash,
+    SourceDesc(const std::string& _name, const size_t _total_entries, const ULong64_t  _group_hash,
                const std::vector<std::string>& _file_names, const std::vector<ULong64_t>& _name_hashes,
-               const std::set<std::string>& _disabled_branches, const double& _begin_rel, const double& _end_rel,
-               const std::set<TauType>& _tautypes) :
-        name(name_),  group_hash(_group_hash), file_names(_file_names), dataset_hash_arr(_name_hashes),
-        disabled_branches(_disabled_branches), entry_begin_rel(_begin_rel), entry_end_rel(_end_rel),
-        tau_types(_tautypes), current_n_processed(0), files_n_total(_file_names.size()),
-        entries_end(std::numeric_limits<size_t>::max()), total_n_processed(0)
+               const std::set<std::string>& _disabled_branches,  const std::pair<size_t, size_t> _point_entry,
+               const std::pair<size_t, size_t> _point_exit, const std::set<TauType>& _tautypes) :
+
+        name(_name), total_entries(_total_entries), group_hash(_group_hash), file_names(_file_names), dataset_hash_arr(_name_hashes),
+        disabled_branches(_disabled_branches), point_entry(_point_entry), point_exit(_point_exit),
+        tau_types(_tautypes), files_n_total(_file_names.size()), entries_end(std::numeric_limits<size_t>::max()),
+        current_entry(0), total_n_processed(0)
     {
         if(_file_names.size()!=_name_hashes.size())
           throw exception("file_names and names vectors have different size.");
@@ -106,34 +107,31 @@ struct SourceDesc {
     bool DoNextStep()
     {
       do {
-        if(current_file_index == files_n_total-1 && current_n_processed >= entries_end) return false;
-        while(!current_file_index || current_n_processed == entries_end) {
+        
+        if(current_file_index == point_exit.first && current_entry > entries_end ) return false;
+        while(!current_file_index || current_entry > entries_end) {
             if(!current_file_index)
-                current_file_index = 0;
+                current_file_index = point_entry.first;
             else
                 ++(*current_file_index);
-            if(current_file_index == files_n_total) {
-              std::cout << "WARNING: The current file index = " << current_file_index
-                        << " is bigger than the actual number of files" << std::endl;
-              return false;
-            }
+            if(*current_file_index >= file_names.size())
+                throw exception("File index: %1% is out of file_names array '%2%', DataGroup: '%3%'")
+                      % current_file_index % file_names.size() % name;
             const std::string& file_name = file_names.at(*current_file_index);
             std::cout << "Opening: " << name << " " << file_name << std::endl;
             dataset_hash = dataset_hash_arr.at(*current_file_index);
             current_tuple.reset();
+            if(current_file) current_file->Close();
             current_file = root_ext::OpenRootFile(file_name);
             current_tuple = std::make_shared<TauTuple>("taus", current_file.get(), true, disabled_branches);
             entries_file = current_tuple->GetEntries();
-            current_n_processed =  std::floor(entry_begin_rel * entries_file);
-            entries_end = std::floor(entry_end_rel * entries_file);
-
+            current_entry = current_file_index == point_entry.first ? point_entry.second : 0; 
+            entries_end = current_file_index == point_exit.first ? point_exit.second : entries_file - 1;
             if(!entries_file)
               throw exception("Root file %1% is empty.") % file_name;
-            if(entries_end-current_n_processed==0)
-              std::cout << "WARNING: The reading ranges are small, no entries are taken. "
-                        << "Dataset hash: " << dataset_hash << " Data group: " << name << std::endl;
         }
-        current_tuple->GetEntry(current_n_processed++);
+        current_tuple->GetEntry(current_entry++);
+        ++total_n_processed;
 
         const auto gen_match = GetGenLeptonMatch((*current_tuple)());
         const auto sample_type = static_cast<SampleType>((*current_tuple)().sampleType);
@@ -143,7 +141,7 @@ struct SourceDesc {
         current_tau_type = GenMatchToTauType(*gen_match, sample_type);
 
       } while (tau_types.find(current_tau_type) == tau_types.end());
-      ++total_n_processed;
+
       (*current_tuple)().tauType = static_cast<Int_t>(current_tau_type);
       (*current_tuple)().dataset_id = dataset_hash;
       (*current_tuple)().dataset_group_id = group_hash;
@@ -152,27 +150,29 @@ struct SourceDesc {
 
     const Tau& GetNextTau() { return current_tuple->data(); }
     const size_t GetNumberOfProcessed() const { return total_n_processed; }
+    const size_t GetTotalEntries() const { return total_entries; }
     const TauType GetType() { return current_tau_type; }
 
   private:
     const std::string name;
+    const size_t total_entries;
     const ULong64_t group_hash;
     std::vector<std::string> file_names;
     std::vector<ULong64_t> dataset_hash_arr;
     const std::set<std::string> disabled_branches;
-    const double entry_begin_rel;
-    const double entry_end_rel;
+    const std::pair<size_t, size_t> point_entry;
+    const std::pair<size_t, size_t> point_exit;
     const std::set<TauType> tau_types;
     std::shared_ptr<TFile> current_file;
     std::shared_ptr<TauTuple> current_tuple;
-    boost::optional<ULong64_t> current_file_index;
-    size_t current_n_processed;
-    ULong64_t files_n_total;;
+    boost::optional<size_t> current_file_index;
+    size_t files_n_total;;
     size_t entries_file;
     size_t entries_end;
+    size_t current_entry;
     size_t total_n_processed;
     TauType current_tau_type;
-    Int_t dataset_hash;
+    ULong64_t dataset_hash;
   };
 
 struct EntryDesc {
@@ -440,13 +440,12 @@ public:
     DataSetProcessor(const std::vector<EntryDesc>& entries, const std::vector<double>& pt_bins,
                      const std::vector<double>& eta_bins, Generator& _gen,
                      const std::set<std::string>& disabled_branches, bool verbose,
-                     const std::map<TauType, Double_t>& tau_ratio, const Double_t start_entry,
-                     const Double_t end_entry, const Double_t exp_disbalance_) :
+                     const std::map<TauType, Double_t>& tau_ratio, const Double_t exp_disbalance_) :
                      pt_max(pt_bins.back()), pt_min(pt_bins[0]), eta_max(eta_bins.back()),
                      pt_threshold(pt_bins.end()[-2]), exp_disbalance(exp_disbalance_), gen(&_gen)
     {
       if(verbose) std::cout << "Loading Data Groups..." << std::endl;
-      LoadDataGroups(entries, pt_bins, eta_bins, disabled_branches, start_entry, end_entry);
+      LoadDataGroups(entries, pt_bins, eta_bins, disabled_branches);
 
       if(verbose) std::cout << "Calculating probabilities..." << std::endl;
       for(auto spectrum: spectrums)
@@ -463,8 +462,8 @@ public:
       ttype_prob = TauTypeProb(spectrums, tau_ratio);
 
       // Probability of data group
-      // is taken proportionally number
-      // of entries per considered TauTypes
+      // is taken proportionally to number
+      // of entries per considered (for DataGroups) TauTypes
       for(auto spectrum: spectrums){
         datagroup_probs.push_back((double)spectrum.second->GetEntries());
         datagroup_names.push_back(spectrum.second->GetGroupName());
@@ -491,13 +490,14 @@ public:
 
     const Tau& GetNextTau() { return sources.at(current_datagroup)->GetNextTau(); }
 
-    void PrintStatusReport(const Double_t& read_proc) const
+    void PrintStatusReport() const
     {
-      size_t input_entries=0;
-      std::cout << "Status report ->";
-      for(auto source: sources) input_entries+=source.second->GetNumberOfProcessed();
-      std::cout << " init: " << (long)(read_proc*n_entries);
-      std::cout << " processed: " << input_entries << " (" << (float)input_entries/(read_proc*n_entries)*100 << "%)";
+      std::cout << "Status report -> ";
+      for(auto source: sources) {
+        size_t n_processed = source.second->GetNumberOfProcessed();
+        size_t n_total = source.second->GetTotalEntries();
+        std::cout << source.first << ":" << (float)n_processed/n_total*100 <<"% ";
+      }
       std::cout << std::endl;
     }
 
@@ -544,19 +544,18 @@ private:
 
     void LoadDataGroups(const std::vector<EntryDesc>& entries,
                         const std::vector<double>& pt_bins, const std::vector<double>& eta_bins,
-                        const std::set<std::string>& disabled_branches, double start_, double end_)
+                        const std::set<std::string>& disabled_branches)
     {
       for(const EntryDesc& dsc: entries) {
 
-        std::shared_ptr<SourceDesc> source = std::make_shared<SourceDesc>(dsc.name,dsc.name_hash,
+        std::shared_ptr<SourceDesc> source = std::make_shared<SourceDesc>(dsc.name,
+                            dsc.total_entries, dsc.name_hash,
                             dsc.data_files, dsc.data_set_names_hashes,disabled_branches,
-                            start_, end_, dsc.tau_types);
+                            dsc.point_entry, dsc.point_exit, dsc.tau_types);
         sources[dsc.name] = source;
-
         spectrums[dsc.name] = std::make_shared<SpectrumHists>(dsc.name, pt_bins,
                                                               eta_bins, exp_disbalance,
                                                               dsc.tau_types);
-
         for(const std::string& spectrum: dsc.spectrum_files)
           spectrums[dsc.name]->AddHist(spectrum);
       }
@@ -716,7 +715,7 @@ public:
           if(parity == 3 || (tau.evt % 2 == parity)) output_tuple->Fill();
       	  if(n_processed % 1000 == 0){
             std::cout << n_processed << " is selected" << std::endl;
-            processor.PrintStatusReport(args.end_entry()-args.start_entry());
+            processor.PrintStatusReport();
           }
           if(n_processed>=max_entries){
             std::cout << "stop: number of entries exceeded max_entries" << std::endl;
