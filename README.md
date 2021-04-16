@@ -14,7 +14,7 @@ cmsrel CMSSW_10_6_20
 cd CMSSW_10_6_20/src
 cmsenv
 git cms-merge-topic -u cms-tau-pog:CMSSW_10_6_X_tau-pog_boostedTausMiniFix
-git clone -o cms-tau-pog -b prod2018_v2 git@github.com:cms-tau-pog/TauMLTools.git
+git clone -o cms-tau-pog -b master git@github.com:cms-tau-pog/TauMLTools.git
 scram b -j8
 ```
 
@@ -165,9 +165,10 @@ ShuffleMerge --cfg TauML/Analysis/config/testing_inputs.cfg --input tuples-v2 --
 
 This step represents alternative Shuffle and Merge procedure that aims to minimize usage of physicical memory as well as provide direct control over the shape of final (pt,eta) spectrum.
 
-To generate the specturum histograms of a dataset, run:
-```
+To generate the specturum histograms for a dataset and lists with number of entries per datafile, run:
+```sh
 CreateSpectralHists --output "spectrum_file.root" \
+                    --output_entries "entires_file.txt" \
                     --input-dir "path/to/dataset/dir" \
                     --pt-hist "n_bins_pt, pt_min, pt_max" \
                     --eta-hist "n_bins_eta, |eta|_min, |eta|_max" \
@@ -175,15 +176,23 @@ CreateSpectralHists --output "spectrum_file.root" \
 ```
 
 Alternatively, if one wants to process several datasets the following python script can be used (parameters of pt and eta binning to be hardcoded in the script):
-```
+```sh
 python Analysis/python/CreateSpectralHists.py --input /path/to/input/dir/ \
                                               --output /path/to/output/dir/ \
                                               --filter ".*(DY).*" \
                                               --rewrite
 ```
+After following step is executed, to create common file with datafile names and entries:
+```sh
+for i in <path_to_spectrums>/*.txt; do cat $i >> filelist.txt ; done
 
-After spectrums are created for all datasets, the final procedure of Shuffle and Merge can be performed with:
 ```
+To mix the file names:
+```sh
+shuf ./filelist.txt > ./filelist_mix.txt
+```
+After spectrums are created for all datasets, the final procedure of Shuffle and Merge can be performed with:
+```sh
 ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
                      --input input_files.txt
                      --prefix prefix_string
