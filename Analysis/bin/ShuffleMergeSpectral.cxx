@@ -71,8 +71,8 @@ struct Arguments {
                                                            "A remote server can be specified to use with xrootd."};
     run::Argument<std::string> tau_ratio{"tau-ratio", "ratio of tau types in the final spectrum "
                                                       "(if to take all taus of type e => e:-1 )"};
-    run::Argument<double> start_entry{"start-entry", "starting ratio from which file will be processed", 0};
-    run::Argument<double> end_entry{"end-entry", "end ratio until which file will be processed", 1};
+    run::Argument<unsigned> job_idx{"job-idx", "index of the job (starts from 0)"};
+    run::Argument<unsigned> n_jobs{"n-jobs", "the number by which to divide all files"};
     run::Argument<double> exp_disbalance{"exp-disbalance", "maximal expected disbalance between low pt and high pt regions",0};
     run::Argument<std::string> compression_algo{"compression-algo","ZLIB, LZMA, LZ4","LZMA"};
     run::Argument<unsigned> compression_level{"compression-level", "compression level of output file", 9};
@@ -185,10 +185,16 @@ struct EntryDesc {
     std::set<std::string> spectrum_files;
     std::set<TauType> tau_types;
 
+    // <file idx, event> for entry and exit point
+    std::pair<size_t, size_t> point_entry;
+    std::pair<size_t, size_t> point_exit;
+    size_t total_entries;
+
     EntryDesc(const PropertyConfigReader::Item& item,
               const std::string& base_spectrum_dir,
               const std::string& input_paths,
-              const std::string& prefix)
+              const std::string& prefix,
+              const size_t job_idx, const size_t n_jobs)
     {
         using boost::regex;
         using boost::regex_match;
@@ -216,28 +222,32 @@ struct EntryDesc {
 
         std::string ifile;
         std::string dir_name, file_name, spectrum_file, file_path;
-        while(std::getline(input_files, ifile)){
-          dir_name  = ifile.substr(0, ifile.rfind("/"));
-          file_name = ifile.substr(ifile.rfind("/")+1, ifile.length());
+        std::vector<size_t> files_entries;
 
-          // remove "./" and the trailing "/" only from the dataset name, leave the file path unchanged
-          if (dir_name.length() >= 2 && dir_name[0] == '.' && dir_name[1] == '/'){
-              dir_name.erase(0, 2);
-          }
-          if (dir_name.length() > 0 && dir_name[dir_name.length()-1] == '/'){
-            dir_name.pop_back();
-          }
+        // For every datagroup in cfg file EntryDesc iterates
+        // through filelist.txt and for matched (to datagroup):
+        // 1) fill an array of pathes to data_files
+        // 2) fill an array of pathes spectrum_files 
+        // 3) fill an array with number of entries per file
+        while(std::getline(input_files, ifile)){
+	      
+          size_t n_entries = analysis::Parse<double>(ifile.substr(ifile.rfind(" ")));
+
+          file_name = ifile.substr(ifile.find_last_of("/") + 1,
+                                   ifile.rfind(" ")-ifile.find_last_of("/")-1);
+          dir_name = ifile.substr(0,ifile.find_last_of("/"));
+          dir_name  = dir_name.substr(dir_name.find_last_of("/")+1);
 
           if(!regex_match(dir_name , dir_pattern )) continue;
           if(!regex_match(file_name, file_pattern)) continue;
 
-          is_matching = true;
+          is_matching = true; //at least one file is found
 
           spectrum_file = base_spectrum_dir + "/" + dir_name + ".root";
-
-          file_path = prefix + "/" + ifile;
+          file_path = prefix + "/" + dir_name + "/" + file_name;
 
           data_files.push_back(file_path);
+          files_entries.push_back(n_entries);
           data_set_names.push_back(dir_name);
           data_set_names_hashes.push_back(std::hash<std::string>{}(dir_name));
           spectrum_files.insert(spectrum_file);
@@ -252,9 +262,18 @@ struct EntryDesc {
         for (const auto spectrum_file : spectrum_files){
           if(!is_regular_file(spectrum_file))
             throw exception("No spectrum file are found: '%1%'") % spectrum_file;
-          
           std::cout << spectrum_file << " - spectrum" << std::endl;
         }
+
+        if(job_idx >= n_jobs)
+          throw exception("Wrong job_idx! The index should be > 0 and < n_jobs");
+        
+        sumBasedSplit(files_entries, job_idx, n_jobs,point_entry, point_exit, total_entries);
+        
+        std::cout <<  name << ": " <<
+                     "Entry point-> " << point_entry.first << " " << point_entry.second << ", " <<
+                     "Exit point-> " << point_exit.first << " " << point_exit.second << ", " <<
+                     "Total entries-> " << total_entries << std::endl; 
     }
 };
 
@@ -686,7 +705,6 @@ public:
 
         DataSetProcessor processor(entry_list, pt_bins, eta_bins,
                                    gen, disabled_branches, true, tau_ratio,
-                                   args.start_entry(),args.end_entry(),
                                    args.exp_disbalance());
 
         size_t n_processed = 0;
@@ -721,7 +739,8 @@ private:
         std::cout << cfg_file_name << std::endl;
         reader.Parse(cfg_file_name);
         for(const auto& item : reader.GetItems()){
-            entries.emplace_back(item.second,  args.path_spectrum(), args.input(), args.prefix());
+            entries.emplace_back(item.second,  args.path_spectrum(), args.input(),
+                                 args.prefix(), args.job_idx(), args.n_jobs());
         }
         return entries;
     }
