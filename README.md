@@ -205,13 +205,14 @@ ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
                      --eta-bins "0., 0.6, 1.2, 1.8, 2.4"
                      --tau-ratio "jet:1, e:1, mu:1, tau:1"
                      --exp-disbalance 100
-                     --start-entry 0.0 --end-entry 0.0008
+                     --job-idx 0 --n-jobs 500
 ```
 - `--input` is the file containing the list of input files (read line-by-line). Each entry (line) should be of the form "dataset/file" (no quotes). The rest of the path (the path to the dataset folders) should be specified in the `--prefix` argument.
 - `--prefix` is the prefix which will be placed before the path of each file read form `--input`. Please note that this prefix will *not* be placed before the `--input-spec` value. This value can include a remote path compatible with xrootd.
 - the last pt bin is taken as a high pt region, all entries from it are taken without rejection.
 - `--tau-ratio "jet:1, e:1, mu:1, tau:1"` defines proportion of TauTypes in final root-tuple.
 - `--start-entry 0.0 --end-entry 0.0008` defines from which percentage by which entries will be read within every input root file.
+- `--n-jobs 500 --job-idx 0` defines into how many parts to split the input files and the index of corresponding job
 
 #### ShuffleMergeSpectral on HTCondor
 ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment 
