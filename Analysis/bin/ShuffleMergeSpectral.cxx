@@ -73,7 +73,8 @@ struct Arguments {
                                                       "(if to take all taus of type e => e:-1 )"};
     run::Argument<unsigned> job_idx{"job-idx", "index of the job (starts from 0)"};
     run::Argument<unsigned> n_jobs{"n-jobs", "the number by which to divide all files"};
-    run::Argument<double> exp_disbalance{"exp-disbalance", "maximal expected disbalance between low pt and high pt regions",0};
+    run::Argument<double> lastbin_disbalance{"lastbin-disbalance", "maximal acceptable disbalance between low pt and high pt region " 
+                                             "(default=0 - last bin will be taken with the same amount of events as every other bins",0};
     run::Argument<std::string> compression_algo{"compression-algo","ZLIB, LZMA, LZ4","LZMA"};
     run::Argument<unsigned> compression_level{"compression-level", "compression level of output file", 9};
     run::Argument<unsigned> parity{"parity","take only even:0, take only odd:1, take all entries:3", 3};
@@ -283,7 +284,7 @@ public:
 
     SpectrumHists(const std::string& groupname_, const std::vector<double>& pt_bins,
                   const std::vector<double>& eta_bins,
-                  const Double_t& exp_disbalance_,
+                  const Double_t exp_disbalance_,
                   const std::set<TauType>& tau_types_):
                   groupname(groupname_), pt_threshold(pt_bins.end()[-2]),
                   exp_disbalance(exp_disbalance_), ttypes(tau_types_)
@@ -291,8 +292,13 @@ public:
       std::cout << "Initialization of group SpectrumHists..." << std::endl;
       for(TauType type: ttypes){
         const char *name = (groupname+"_"+ToString(type)).c_str();
-        ttype_prob[type] = std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0],
-                                                   pt_bins.size()-2,&pt_bins[0]);
+
+        // option 1: last pt bin will be taken into account for probability calculations (exp_disbalance==0)
+        // option 2: all events from the last bin will be taken up to acceptable disbalance
+        ttype_prob[type] = 
+          std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0], 
+          exp_disbalance==0 ? pt_bins.size()-1 : pt_bins.size()-2, &pt_bins[0]);
+
         ttype_entries[type] = std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0],
                                                   pt_bins.size()-1,&pt_bins[0]);
       }
@@ -333,23 +339,27 @@ public:
         Int_t x,y,z;
         ttype_prob.at(type)->GetBinXYZ(MaxBin, x, y, z);
 
-        // Adding constraints on disbalance
-        // last pt bin of ttype_entries.at(type)
-        // is taken as a high-Pt region
-        Int_t binNx = ttype_entries.at(type)->GetNbinsX();
-        Int_t binNy = ttype_entries.at(type)->GetNbinsY();
-        double dis_scale = 1.0;
-        if(exp_disbalance!=0)
-          dis_scale = std::min(1.0, exp_disbalance*
-                            ttype_entries.at(type)->Integral(0,binNx,binNy-1,binNy)*
-                            ttype_prob.at(type)->GetBinContent(x,y));
-        if(dis_scale!=1.0)
-          std::cout << "WARNING: Disbalance for "<< ToString(type)
-                    <<" is bigger, scale factor will be applied" << std::endl;
-        std::cout << "max pt_bin eta_bin: " << y << " " << x
-                  << " MaxBin: " << ttype_prob.at(type)->GetBinContent(x,y)
-                  << " scale factor: " << dis_scale << "\n";
-        ttype_prob.at(type)->Scale(dis_scale/ttype_prob.at(type)->GetBinContent(x,y));
+        if(exp_disbalance==0) { // option 1: last pt bin will be taken into account for probability calculations
+          ttype_prob.at(type)->Scale(1.0/ttype_prob.at(type)->GetBinContent(x,y));
+        }
+        else { // option 2: all events from the last bin will be taken up to acceptable disbalance
+          // Adding constraints on disbalance
+          // last pt bin of ttype_entries.at(type)
+          // is taken as a high-pt region
+          // from which all events are taken (up to acceptable disbalance)
+          Int_t binNx = ttype_entries.at(type)->GetNbinsX();
+          Int_t binNy = ttype_entries.at(type)->GetNbinsY();
+          double dis_scale = std::min(1.0, exp_disbalance*
+                             ttype_entries.at(type)->Integral(0,binNx,binNy-1,binNy)*
+                             ttype_prob.at(type)->GetBinContent(x,y));
+          if(dis_scale!=1.0)
+            std::cout << "WARNING: Disbalance for "<< ToString(type)
+                      <<" is bigger, scale factor will be applied" << std::endl;
+          std::cout << "max pt_bin eta_bin: " << y << " " << x
+                    << " MaxBin: " << ttype_prob.at(type)->GetBinContent(x,y)
+                    << " scale factor: " << dis_scale << "\n";
+          ttype_prob.at(type)->Scale(dis_scale/ttype_prob.at(type)->GetBinContent(x,y));
+        }
       }
     }
 
@@ -397,9 +407,13 @@ private:
                                            const std::vector<double>& pt_bins,
                                            const std::vector<double>& eta_bins)
   {
-    std::shared_ptr<TH2D> tartget_hist = std::make_shared<TH2D>("tartget","tartget",
-                                          eta_bins.size()-1,&eta_bins[0],
-                                          pt_bins.size()-2,&pt_bins[0]);
+    // option 1: last pt bin will be taken into account for probability calculations (exp_disbalance==0)
+    // option 2: all events from the last bin will be taken up to acceptable disbalance
+    std::shared_ptr<TH2D> tartget_hist = 
+      std::make_shared<TH2D>("tartget","tartget", eta_bins.size()-1,&eta_bins[0],
+                              exp_disbalance==0 ? pt_bins.size()-1 : pt_bins.size()-2,
+                              &pt_bins[0]);
+
     for(Int_t i_pt = 1; i_pt <= tartget_hist->GetNbinsY(); i_pt++)
       for(Int_t i_eta = 1; i_eta <= tartget_hist->GetNbinsX(); i_eta++)
         tartget_hist->SetBinContent(i_eta,i_pt,1.0);
@@ -536,7 +550,7 @@ private:
       Double_t pt = tuple.tau_pt;
       Double_t abs_eta = abs(tuple.tau_eta);
       if( pt<=pt_min || pt>=pt_max || abs_eta>=eta_max) return false;
-      else if(pt>=pt_threshold) return true;
+      if( exp_disbalance!=0 && pt>=pt_threshold) return true;
       if(dist_uniform(*gen) <= spectrums.at(current_datagroup)
                           ->GetProbability(currentType, pt, abs_eta)) return true;
       return false;
@@ -704,7 +718,7 @@ public:
 
         DataSetProcessor processor(entry_list, pt_bins, eta_bins,
                                    gen, disabled_branches, true, tau_ratio,
-                                   args.exp_disbalance());
+                                   args.lastbin_disbalance());
 
         size_t n_processed = 0;
         std::cout << "starting loops:" <<std::endl;
