@@ -25,8 +25,6 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   ## optional arguments (default will be an empty string: don't override ShuffleMergeSpectral.cxx default values)
   prefix            = luigi.Parameter(description = 'Prefix to place before the input file path read from --input.'
                                                     'It can include a remote server to use with xrootd.', default = "")
-  start_entry       = luigi.FloatParameter(description = 'starting point', default = 0)
-  end_entry         = luigi.FloatParameter(description = 'ending point'  , default = 1)
   mode              = luigi.Parameter(default = '', description = 'merging mode: MergeAll or MergePerEntry')
   compression_algo  = luigi.Parameter(default = '', description = 'ZLIB, LZMA, LZ4')
   compression_level = luigi.Parameter(default = '', description = 'compression level of output file')
@@ -34,7 +32,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   parity            = luigi.Parameter(default = '', description = 'take only even:0, take only odd:1, take all entries:3')
   max_entries       = luigi.Parameter(default = '', description = 'maximal number of entries in output train+test tuples')
   n_threads         = luigi.Parameter(default = '', description = 'number of threads')
-  exp_disbalance    = luigi.Parameter(default = '', description = 'maximal expected disbalance between low pt and high pt regions')
+  lastbin_disbalance= luigi.Parameter(default = '', description = 'maximal acceptable disbalance between low pt and high pt region')
   seed              = luigi.Parameter(default = '', description = 'random seed to initialize the generator used for sampling')
 
   def create_branch_map(self):
@@ -46,8 +44,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     if not os.path.exists(os.path.abspath('/'.join([self.output_dir, '..', 'hashes']))):
       os.makedirs(os.path.abspath('/'.join([self.output_dir, '..', 'hashes'])))
 
-    step = 1. * (self.end_entry - self.start_entry) / self.n_jobs
-    return {i: (round(self.start_entry + i*step, 6), round(self.start_entry + (i+1)*step, 6)) for i in range(self.n_jobs)}
+    return {i: i for i in range(self.n_jobs)}
 
   def output(self):
     return self.local_target("empty_file_{}.txt".format(self.branch))
@@ -74,20 +71,20 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
       '--pt-bins'           , quote(str(self.pt_bins))  ,
       '--eta-bins'          , quote(str(self.eta_bins)) ,
       '--input-spec'        , str(self.input_spec)      ,
-      '--start-entry'       , str(self.branch_data[0])  ,
-      '--end-entry'         , str(self.branch_data[1])  ,
+      '--n-jobs'            , str(self.n_jobs)          ,
+      '--job-idx'           , str(self.branch_data)     ,
       '--tau-ratio'         , quote(str(self.tau_ratio))] +\
       ## optional arguments
-      ['--mode'             , str(self.mode)                    ] * (not self.mode              is '') +\
-      ['--seed'             , str(self.seed)                    ] * (not self.seed              is '') +\
-      ['--prefix'           , str(self.prefix)                  ] * (not self.prefix            is '') +\
-      ['--n-threads'        , str(self.n_threads)               ] * (not self.n_threads         is '') +\
-      ['--disabled-branches', quote(str(self.disabled_branches))] * (not self.disabled_branches is '') +\
-      ['--exp-disbalance'   , str(self.exp_disbalance)          ] * (not self.exp_disbalance    is '') +\
-      ['--compression-algo' , str(self.compression_algo)        ] * (not self.compression_algo  is '') +\
-      ['--compression_level', str(self.compression_level)       ] * (not self.compression_level is '') +\
-      ['--parity'           , str(self.parity)                  ] * (not self.parity            is '') +\
-      ['--max-entries'      , str(self.max_entries)             ] * (not self.max_entries       is '')  )
+      ['--mode'             , str(self.mode)                    ] * (not self.mode               is '') +\
+      ['--seed'             , str(self.seed)                    ] * (not self.seed               is '') +\
+      ['--prefix'           , str(self.prefix)                  ] * (not self.prefix             is '') +\
+      ['--n-threads'        , str(self.n_threads)               ] * (not self.n_threads          is '') +\
+      ['--disabled-branches', quote(str(self.disabled_branches))] * (not self.disabled_branches  is '') +\
+      ['--lastbin-disbalance',str(self.lastbin_disbalance)      ] * (not self.lastbin_disbalance is '') +\
+      ['--compression-algo' , str(self.compression_algo)        ] * (not self.compression_algo   is '') +\
+      ['--compression-level', str(self.compression_level)       ] * (not self.compression_level  is '') +\
+      ['--parity'           , str(self.parity)                  ] * (not self.parity             is '') +\
+      ['--max-entries'      , str(self.max_entries)             ] * (not self.max_entries        is '')  )
 
     print ('>> {}'.format(command))
     proc = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
