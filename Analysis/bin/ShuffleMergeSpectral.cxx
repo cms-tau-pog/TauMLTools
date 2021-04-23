@@ -1,4 +1,4 @@
-/*! Sheffle and merge datasets using Histograms created with CreateSpectralHists.cxx
+/*! Shuffle and merge datasets using Histograms created with CreateSpectralHists.cxx
 */
 
 #include <fstream>
@@ -19,6 +19,30 @@
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 
 namespace analysis {
+
+void sumBasedSplit(const std::vector<size_t>& files_entries, const size_t job_idx, const size_t n_job,
+                  std::pair<size_t, size_t>& point_entry,  std::pair<size_t, size_t>& point_exit, size_t& step)
+{ 
+  // sumBasedSplit splits files into n_job sub-intervals
+  // the entry events for the job number job_idx are [point_entry, point_exit]...
+  // if sum(files_entries) % n_job != 0 some events will be lost in datagroup
+
+  step = std::accumulate(files_entries.begin(), files_entries.end(), 0) / n_job;
+  auto find_idx = [&](const size_t index, const bool isExit) -> std::pair<size_t, size_t>{
+    size_t sum_accumulate = 0;
+    for(size_t f_i = 0; f_i < files_entries.size(); f_i++) {
+      if(step*(index+isExit) - sum_accumulate - isExit < files_entries[f_i])
+        return std::make_pair(f_i, step*(index+isExit) - sum_accumulate  - isExit);
+      sum_accumulate+=files_entries[f_i];
+    }
+    throw exception("Sum-based splitting error!");
+  };
+
+   // .first - index of file in file list
+   // .second - index of last event
+  point_entry = find_idx(job_idx, false);
+  point_exit = find_idx(job_idx, true);
+};
 
 enum class MergeMode { MergeAll = 1 };
 ENUM_NAMES(MergeMode) = {
@@ -47,9 +71,10 @@ struct Arguments {
                                                            "A remote server can be specified to use with xrootd."};
     run::Argument<std::string> tau_ratio{"tau-ratio", "ratio of tau types in the final spectrum "
                                                       "(if to take all taus of type e => e:-1 )"};
-    run::Argument<double> start_entry{"start-entry", "starting ratio from which file will be processed", 0};
-    run::Argument<double> end_entry{"end-entry", "end ratio until which file will be processed", 1};
-    run::Argument<double> exp_disbalance{"exp-disbalance", "maximal expected disbalance between low pt and high pt regions",0};
+    run::Argument<unsigned> job_idx{"job-idx", "index of the job (starts from 0)"};
+    run::Argument<unsigned> n_jobs{"n-jobs", "the number by which to divide all files"};
+    run::Argument<double> lastbin_disbalance{"lastbin-disbalance", "maximal acceptable disbalance between low pt and high pt region " 
+                                             "(default=0 - last bin will be taken with the same amount of events as every other bins",0};
     run::Argument<std::string> compression_algo{"compression-algo","ZLIB, LZMA, LZ4","LZMA"};
     run::Argument<unsigned> compression_level{"compression-level", "compression level of output file", 9};
     run::Argument<unsigned> parity{"parity","take only even:0, take only odd:1, take all entries:3", 3};
@@ -59,14 +84,15 @@ struct SourceDesc {
     using Tau = tau_tuple::Tau;
     using TauTuple = tau_tuple::TauTuple;
 
-    SourceDesc(const std::string& name_, const ULong64_t&  _group_hash,
+    SourceDesc(const std::string& _name, const size_t _total_entries, const ULong64_t  _group_hash,
                const std::vector<std::string>& _file_names, const std::vector<ULong64_t>& _name_hashes,
-               const std::set<std::string>& _disabled_branches, const double& _begin_rel, const double& _end_rel,
-               const std::set<TauType>& _tautypes) :
-        name(name_),  group_hash(_group_hash), file_names(_file_names), dataset_hash_arr(_name_hashes),
-        disabled_branches(_disabled_branches), entry_begin_rel(_begin_rel), entry_end_rel(_end_rel),
-        tau_types(_tautypes), current_n_processed(0), files_n_total(_file_names.size()),
-        entries_end(std::numeric_limits<size_t>::max()), total_n_processed(0)
+               const std::set<std::string>& _disabled_branches,  const std::pair<size_t, size_t> _point_entry,
+               const std::pair<size_t, size_t> _point_exit, const std::set<TauType>& _tautypes) :
+
+        name(_name), total_entries(_total_entries), group_hash(_group_hash), file_names(_file_names), dataset_hash_arr(_name_hashes),
+        disabled_branches(_disabled_branches), point_entry(_point_entry), point_exit(_point_exit),
+        tau_types(_tautypes), files_n_total(_file_names.size()), entries_end(std::numeric_limits<size_t>::max()),
+        current_entry(0), total_n_processed(0)
     {
         if(_file_names.size()!=_name_hashes.size())
           throw exception("file_names and names vectors have different size.");
@@ -82,34 +108,31 @@ struct SourceDesc {
     bool DoNextStep()
     {
       do {
-        if(current_file_index == files_n_total-1 && current_n_processed >= entries_end) return false;
-        while(!current_file_index || current_n_processed == entries_end) {
+        
+        if(current_file_index == point_exit.first && current_entry > entries_end ) return false;
+        while(!current_file_index || current_entry > entries_end) {
             if(!current_file_index)
-                current_file_index = 0;
+                current_file_index = point_entry.first;
             else
                 ++(*current_file_index);
-            if(current_file_index == files_n_total) {
-              std::cout << "WARNING: The current file index = " << current_file_index
-                        << " is bigger than the actual number of files" << std::endl;
-              return false;
-            }
+            if(*current_file_index >= file_names.size())
+                throw exception("File index: %1% is out of file_names array '%2%', DataGroup: '%3%'")
+                      % current_file_index % file_names.size() % name;
             const std::string& file_name = file_names.at(*current_file_index);
             std::cout << "Opening: " << name << " " << file_name << std::endl;
             dataset_hash = dataset_hash_arr.at(*current_file_index);
             current_tuple.reset();
+            if(current_file) current_file->Close();
             current_file = root_ext::OpenRootFile(file_name);
             current_tuple = std::make_shared<TauTuple>("taus", current_file.get(), true, disabled_branches);
             entries_file = current_tuple->GetEntries();
-            current_n_processed =  std::floor(entry_begin_rel * entries_file);
-            entries_end = std::floor(entry_end_rel * entries_file);
-
+            current_entry = current_file_index == point_entry.first ? point_entry.second : 0; 
+            entries_end = current_file_index == point_exit.first ? point_exit.second : entries_file - 1;
             if(!entries_file)
               throw exception("Root file %1% is empty.") % file_name;
-            if(entries_end-current_n_processed==0)
-              std::cout << "WARNING: The reading ranges are small, no entries are taken. "
-                        << "Dataset hash: " << dataset_hash << " Data group: " << name << std::endl;
         }
-        current_tuple->GetEntry(current_n_processed++);
+        current_tuple->GetEntry(current_entry++);
+        ++total_n_processed;
 
         const auto gen_match = GetGenLeptonMatch((*current_tuple)());
         const auto sample_type = static_cast<SampleType>((*current_tuple)().sampleType);
@@ -119,7 +142,7 @@ struct SourceDesc {
         current_tau_type = GenMatchToTauType(*gen_match, sample_type);
 
       } while (tau_types.find(current_tau_type) == tau_types.end());
-      ++total_n_processed;
+
       (*current_tuple)().tauType = static_cast<Int_t>(current_tau_type);
       (*current_tuple)().dataset_id = dataset_hash;
       (*current_tuple)().dataset_group_id = group_hash;
@@ -128,27 +151,29 @@ struct SourceDesc {
 
     const Tau& GetNextTau() { return current_tuple->data(); }
     const size_t GetNumberOfProcessed() const { return total_n_processed; }
+    const size_t GetTotalEntries() const { return total_entries; }
     const TauType GetType() { return current_tau_type; }
 
   private:
     const std::string name;
+    const size_t total_entries;
     const ULong64_t group_hash;
     std::vector<std::string> file_names;
     std::vector<ULong64_t> dataset_hash_arr;
     const std::set<std::string> disabled_branches;
-    const double entry_begin_rel;
-    const double entry_end_rel;
+    const std::pair<size_t, size_t> point_entry;
+    const std::pair<size_t, size_t> point_exit;
     const std::set<TauType> tau_types;
     std::shared_ptr<TFile> current_file;
     std::shared_ptr<TauTuple> current_tuple;
-    boost::optional<ULong64_t> current_file_index;
-    size_t current_n_processed;
-    ULong64_t files_n_total;;
+    boost::optional<size_t> current_file_index;
+    size_t files_n_total;;
     size_t entries_file;
     size_t entries_end;
+    size_t current_entry;
     size_t total_n_processed;
     TauType current_tau_type;
-    Int_t dataset_hash;
+    ULong64_t dataset_hash;
   };
 
 struct EntryDesc {
@@ -161,10 +186,16 @@ struct EntryDesc {
     std::set<std::string> spectrum_files;
     std::set<TauType> tau_types;
 
+    // <file idx, event> for entry and exit point
+    std::pair<size_t, size_t> point_entry;
+    std::pair<size_t, size_t> point_exit;
+    size_t total_entries;
+
     EntryDesc(const PropertyConfigReader::Item& item,
               const std::string& base_spectrum_dir,
               const std::string& input_paths,
-              const std::string& prefix)
+              const std::string& prefix,
+              const size_t job_idx, const size_t n_jobs)
     {
         using boost::regex;
         using boost::regex_match;
@@ -192,28 +223,32 @@ struct EntryDesc {
 
         std::string ifile;
         std::string dir_name, file_name, spectrum_file, file_path;
-        while(std::getline(input_files, ifile)){
-          dir_name  = ifile.substr(0, ifile.rfind("/"));
-          file_name = ifile.substr(ifile.rfind("/")+1, ifile.length());
+        std::vector<size_t> files_entries;
 
-          // remove "./" and the trailing "/" only from the dataset name, leave the file path unchanged
-          if (dir_name.length() >= 2 && dir_name[0] == '.' && dir_name[1] == '/'){
-              dir_name.erase(0, 2);
-          }
-          if (dir_name.length() > 0 && dir_name[dir_name.length()-1] == '/'){
-            dir_name.pop_back();
-          }
+        // For every datagroup in cfg file EntryDesc iterates
+        // through filelist.txt and for matched (to datagroup):
+        // 1) fill an array of pathes to data_files
+        // 2) fill an array of pathes spectrum_files 
+        // 3) fill an array with number of entries per file
+        while(std::getline(input_files, ifile)){
+	      
+          size_t n_entries = analysis::Parse<double>(ifile.substr(ifile.rfind(" ")));
+
+          file_name = ifile.substr(ifile.find_last_of("/") + 1,
+                                   ifile.rfind(" ")-ifile.find_last_of("/")-1);
+          dir_name = ifile.substr(0,ifile.find_last_of("/"));
+          dir_name  = dir_name.substr(dir_name.find_last_of("/")+1);
 
           if(!regex_match(dir_name , dir_pattern )) continue;
           if(!regex_match(file_name, file_pattern)) continue;
 
-          is_matching = true;
+          is_matching = true; //at least one file is found
 
           spectrum_file = base_spectrum_dir + "/" + dir_name + ".root";
-
-          file_path = prefix + "/" + ifile;
+          file_path = prefix + "/" + dir_name + "/" + file_name;
 
           data_files.push_back(file_path);
+          files_entries.push_back(n_entries);
           data_set_names.push_back(dir_name);
           data_set_names_hashes.push_back(std::hash<std::string>{}(dir_name));
           spectrum_files.insert(spectrum_file);
@@ -228,9 +263,18 @@ struct EntryDesc {
         for (const auto spectrum_file : spectrum_files){
           if(!is_regular_file(spectrum_file))
             throw exception("No spectrum file are found: '%1%'") % spectrum_file;
-          
           std::cout << spectrum_file << " - spectrum" << std::endl;
         }
+
+        if(job_idx >= n_jobs)
+          throw exception("Wrong job_idx! The index should be > 0 and < n_jobs");
+        
+        sumBasedSplit(files_entries, job_idx, n_jobs,point_entry, point_exit, total_entries);
+        
+        std::cout <<  name << ": " <<
+                     "Entry point-> " << point_entry.first << " " << point_entry.second << ", " <<
+                     "Exit point-> " << point_exit.first << " " << point_exit.second << ", " <<
+                     "Total entries-> " << total_entries << std::endl; 
     }
 };
 
@@ -240,7 +284,7 @@ public:
 
     SpectrumHists(const std::string& groupname_, const std::vector<double>& pt_bins,
                   const std::vector<double>& eta_bins,
-                  const Double_t& exp_disbalance_,
+                  const Double_t exp_disbalance_,
                   const std::set<TauType>& tau_types_):
                   groupname(groupname_), pt_threshold(pt_bins.end()[-2]),
                   exp_disbalance(exp_disbalance_), ttypes(tau_types_)
@@ -248,8 +292,13 @@ public:
       std::cout << "Initialization of group SpectrumHists..." << std::endl;
       for(TauType type: ttypes){
         const char *name = (groupname+"_"+ToString(type)).c_str();
-        ttype_prob[type] = std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0],
-                                                   pt_bins.size()-2,&pt_bins[0]);
+
+        // option 1: last pt bin will be taken into account for probability calculations (exp_disbalance==0)
+        // option 2: all events from the last bin will be taken up to acceptable disbalance
+        ttype_prob[type] = 
+          std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0], 
+          exp_disbalance==0 ? pt_bins.size()-1 : pt_bins.size()-2, &pt_bins[0]);
+
         ttype_entries[type] = std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0],
                                                   pt_bins.size()-1,&pt_bins[0]);
       }
@@ -290,23 +339,27 @@ public:
         Int_t x,y,z;
         ttype_prob.at(type)->GetBinXYZ(MaxBin, x, y, z);
 
-        // Adding constraints on disbalance
-        // last pt bin of ttype_entries.at(type)
-        // is taken as a high-Pt region
-        Int_t binNx = ttype_entries.at(type)->GetNbinsX();
-        Int_t binNy = ttype_entries.at(type)->GetNbinsY();
-        double dis_scale = 1.0;
-        if(exp_disbalance!=0)
-          dis_scale = std::min(1.0, exp_disbalance*
-                            ttype_entries.at(type)->Integral(0,binNx,binNy-1,binNy)*
-                            ttype_prob.at(type)->GetBinContent(x,y));
-        if(dis_scale!=1.0)
-          std::cout << "WARNING: Disbalance for "<< ToString(type)
-                    <<" is bigger, scale factor will be applied" << std::endl;
-        std::cout << "max pt_bin eta_bin: " << y << " " << x
-                  << " MaxBin: " << ttype_prob.at(type)->GetBinContent(x,y)
-                  << " scale factor: " << dis_scale << "\n";
-        ttype_prob.at(type)->Scale(dis_scale/ttype_prob.at(type)->GetBinContent(x,y));
+        if(exp_disbalance==0) { // option 1: last pt bin will be taken into account for probability calculations
+          ttype_prob.at(type)->Scale(1.0/ttype_prob.at(type)->GetBinContent(x,y));
+        }
+        else { // option 2: all events from the last bin will be taken up to acceptable disbalance
+          // Adding constraints on disbalance
+          // last pt bin of ttype_entries.at(type)
+          // is taken as a high-pt region
+          // from which all events are taken (up to acceptable disbalance)
+          Int_t binNx = ttype_entries.at(type)->GetNbinsX();
+          Int_t binNy = ttype_entries.at(type)->GetNbinsY();
+          double dis_scale = std::min(1.0, exp_disbalance*
+                             ttype_entries.at(type)->Integral(0,binNx,binNy-1,binNy)*
+                             ttype_prob.at(type)->GetBinContent(x,y));
+          if(dis_scale!=1.0)
+            std::cout << "WARNING: Disbalance for "<< ToString(type)
+                      <<" is bigger, scale factor will be applied" << std::endl;
+          std::cout << "max pt_bin eta_bin: " << y << " " << x
+                    << " MaxBin: " << ttype_prob.at(type)->GetBinContent(x,y)
+                    << " scale factor: " << dis_scale << "\n";
+          ttype_prob.at(type)->Scale(dis_scale/ttype_prob.at(type)->GetBinContent(x,y));
+        }
       }
     }
 
@@ -354,9 +407,13 @@ private:
                                            const std::vector<double>& pt_bins,
                                            const std::vector<double>& eta_bins)
   {
-    std::shared_ptr<TH2D> tartget_hist = std::make_shared<TH2D>("tartget","tartget",
-                                          eta_bins.size()-1,&eta_bins[0],
-                                          pt_bins.size()-2,&pt_bins[0]);
+    // option 1: last pt bin will be taken into account for probability calculations (exp_disbalance==0)
+    // option 2: all events from the last bin will be taken up to acceptable disbalance
+    std::shared_ptr<TH2D> tartget_hist = 
+      std::make_shared<TH2D>("tartget","tartget", eta_bins.size()-1,&eta_bins[0],
+                              exp_disbalance==0 ? pt_bins.size()-1 : pt_bins.size()-2,
+                              &pt_bins[0]);
+
     for(Int_t i_pt = 1; i_pt <= tartget_hist->GetNbinsY(); i_pt++)
       for(Int_t i_eta = 1; i_eta <= tartget_hist->GetNbinsX(); i_eta++)
         tartget_hist->SetBinContent(i_eta,i_pt,1.0);
@@ -397,13 +454,12 @@ public:
     DataSetProcessor(const std::vector<EntryDesc>& entries, const std::vector<double>& pt_bins,
                      const std::vector<double>& eta_bins, Generator& _gen,
                      const std::set<std::string>& disabled_branches, bool verbose,
-                     const std::map<TauType, Double_t>& tau_ratio, const Double_t start_entry,
-                     const Double_t end_entry, const Double_t exp_disbalance_) :
+                     const std::map<TauType, Double_t>& tau_ratio, const Double_t exp_disbalance_) :
                      pt_max(pt_bins.back()), pt_min(pt_bins[0]), eta_max(eta_bins.back()),
                      pt_threshold(pt_bins.end()[-2]), exp_disbalance(exp_disbalance_), gen(&_gen)
     {
       if(verbose) std::cout << "Loading Data Groups..." << std::endl;
-      LoadDataGroups(entries, pt_bins, eta_bins, disabled_branches, start_entry, end_entry);
+      LoadDataGroups(entries, pt_bins, eta_bins, disabled_branches);
 
       if(verbose) std::cout << "Calculating probabilities..." << std::endl;
       for(auto spectrum: spectrums)
@@ -420,8 +476,8 @@ public:
       ttype_prob = TauTypeProb(spectrums, tau_ratio);
 
       // Probability of data group
-      // is taken proportionally number
-      // of entries per considered TauTypes
+      // is taken proportionally to number
+      // of entries per considered (for DataGroups) TauTypes
       for(auto spectrum: spectrums){
         datagroup_probs.push_back((double)spectrum.second->GetEntries());
         datagroup_names.push_back(spectrum.second->GetGroupName());
@@ -448,13 +504,14 @@ public:
 
     const Tau& GetNextTau() { return sources.at(current_datagroup)->GetNextTau(); }
 
-    void PrintStatusReport(const Double_t& read_proc) const
+    void PrintStatusReport() const
     {
-      size_t input_entries=0;
-      std::cout << "Status report ->";
-      for(auto source: sources) input_entries+=source.second->GetNumberOfProcessed();
-      std::cout << " init: " << (long)(read_proc*n_entries);
-      std::cout << " processed: " << input_entries << " (" << (float)input_entries/(read_proc*n_entries)*100 << "%)";
+      std::cout << "Status report -> ";
+      for(auto source: sources) {
+        size_t n_processed = source.second->GetNumberOfProcessed();
+        size_t n_total = source.second->GetTotalEntries();
+        std::cout << source.first << ":" << (float)n_processed/n_total*100 <<"% ";
+      }
       std::cout << std::endl;
     }
 
@@ -493,7 +550,7 @@ private:
       Double_t pt = tuple.tau_pt;
       Double_t abs_eta = abs(tuple.tau_eta);
       if( pt<=pt_min || pt>=pt_max || abs_eta>=eta_max) return false;
-      else if(pt>=pt_threshold) return true;
+      if( exp_disbalance!=0 && pt>=pt_threshold) return true;
       if(dist_uniform(*gen) <= spectrums.at(current_datagroup)
                           ->GetProbability(currentType, pt, abs_eta)) return true;
       return false;
@@ -501,19 +558,18 @@ private:
 
     void LoadDataGroups(const std::vector<EntryDesc>& entries,
                         const std::vector<double>& pt_bins, const std::vector<double>& eta_bins,
-                        const std::set<std::string>& disabled_branches, double start_, double end_)
+                        const std::set<std::string>& disabled_branches)
     {
       for(const EntryDesc& dsc: entries) {
 
-        std::shared_ptr<SourceDesc> source = std::make_shared<SourceDesc>(dsc.name,dsc.name_hash,
+        std::shared_ptr<SourceDesc> source = std::make_shared<SourceDesc>(dsc.name,
+                            dsc.total_entries, dsc.name_hash,
                             dsc.data_files, dsc.data_set_names_hashes,disabled_branches,
-                            start_, end_, dsc.tau_types);
+                            dsc.point_entry, dsc.point_exit, dsc.tau_types);
         sources[dsc.name] = source;
-
         spectrums[dsc.name] = std::make_shared<SpectrumHists>(dsc.name, pt_bins,
                                                               eta_bins, exp_disbalance,
                                                               dsc.tau_types);
-
         for(const std::string& spectrum: dsc.spectrum_files)
           spectrums[dsc.name]->AddHist(spectrum);
       }
@@ -662,8 +718,7 @@ public:
 
         DataSetProcessor processor(entry_list, pt_bins, eta_bins,
                                    gen, disabled_branches, true, tau_ratio,
-                                   args.start_entry(),args.end_entry(),
-                                   args.exp_disbalance());
+                                   args.lastbin_disbalance());
 
         size_t n_processed = 0;
         std::cout << "starting loops:" <<std::endl;
@@ -674,7 +729,7 @@ public:
           if(parity == 3 || (tau.evt % 2 == parity)) output_tuple->Fill();
       	  if(n_processed % 1000 == 0){
             std::cout << n_processed << " is selected" << std::endl;
-            processor.PrintStatusReport(args.end_entry()-args.start_entry());
+            processor.PrintStatusReport();
           }
           if(n_processed>=max_entries){
             std::cout << "stop: number of entries exceeded max_entries" << std::endl;
@@ -697,7 +752,8 @@ private:
         std::cout << cfg_file_name << std::endl;
         reader.Parse(cfg_file_name);
         for(const auto& item : reader.GetItems()){
-            entries.emplace_back(item.second,  args.path_spectrum(), args.input(), args.prefix());
+            entries.emplace_back(item.second,  args.path_spectrum(), args.input(),
+                                 args.prefix(), args.job_idx(), args.n_jobs());
         }
         return entries;
     }

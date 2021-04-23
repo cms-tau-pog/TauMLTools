@@ -14,7 +14,7 @@ cmsrel CMSSW_10_6_20
 cd CMSSW_10_6_20/src
 cmsenv
 git cms-merge-topic -u cms-tau-pog:CMSSW_10_6_X_tau-pog_boostedTausMiniFix
-git clone -o cms-tau-pog -b prod2018_v2 git@github.com:cms-tau-pog/TauMLTools.git
+git clone -o cms-tau-pog -b master git@github.com:cms-tau-pog/TauMLTools.git
 scram b -j8
 ```
 
@@ -165,9 +165,10 @@ ShuffleMerge --cfg TauML/Analysis/config/testing_inputs.cfg --input tuples-v2 --
 
 This step represents alternative Shuffle and Merge procedure that aims to minimize usage of physicical memory as well as provide direct control over the shape of final (pt,eta) spectrum.
 
-To generate the specturum histograms of a dataset, run:
-```
+To generate the specturum histograms for a dataset and lists with number of entries per datafile, run:
+```sh
 CreateSpectralHists --output "spectrum_file.root" \
+                    --output_entries "entires_file.txt" \
                     --input-dir "path/to/dataset/dir" \
                     --pt-hist "n_bins_pt, pt_min, pt_max" \
                     --eta-hist "n_bins_eta, |eta|_min, |eta|_max" \
@@ -175,17 +176,25 @@ CreateSpectralHists --output "spectrum_file.root" \
 ```
 
 Alternatively, if one wants to process several datasets the following python script can be used (parameters of pt and eta binning to be hardcoded in the script):
-```
+```sh
 python Analysis/python/CreateSpectralHists.py --input /path/to/input/dir/ \
                                               --output /path/to/output/dir/ \
                                               --filter ".*(DY).*" \
                                               --rewrite
 ```
+After following step is executed, to create common file with datafile names and entries:
+```sh
+for i in <path_to_spectrums>/*.txt; do cat $i >> filelist.txt ; done
 
-After spectrums are created for all datasets, the final procedure of Shuffle and Merge can be performed with:
 ```
+To mix the file names:
+```sh
+shuf ./filelist.txt > ./filelist_mix.txt
+```
+After spectrums are created for all datasets, the final procedure of Shuffle and Merge can be performed with:
+```sh
 ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
-                     --input input_files.txt
+                     --input filelist_mix.txt
                      --prefix prefix_string
                      --output <path_to_output_file.root>
                      --mode MergeAll
@@ -196,20 +205,14 @@ ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
                      --eta-bins "0., 0.6, 1.2, 1.8, 2.4"
                      --tau-ratio "jet:1, e:1, mu:1, tau:1"
                      --exp-disbalance 100
-                     --start-entry 0.0 --end-entry 0.0008
+                     --job-idx 0 --n-jobs 500
 ```
 - `--input` is the file containing the list of input files (read line-by-line). Each entry (line) should be of the form "dataset/file" (no quotes). The rest of the path (the path to the dataset folders) should be specified in the `--prefix` argument.
 - `--prefix` is the prefix which will be placed before the path of each file read form `--input`. Please note that this prefix will *not* be placed before the `--input-spec` value. This value can include a remote path compatible with xrootd.
 - the last pt bin is taken as a high pt region, all entries from it are taken without rejection.
 - `--tau-ratio "jet:1, e:1, mu:1, tau:1"` defines proportion of TauTypes in final root-tuple.
 - `--start-entry 0.0 --end-entry 0.0008` defines from which percentage by which entries will be read within every input root file.
-
-The input files file can be generated as follows:
-```
-cd /path/to/datasets/folder
-find . -name '*.root' > file_list.txt
-```
-In this case, `--input` will be set to *file_list.txt* and `--prefix` will be set to */path/to/datasets/folder*.
+- `--n-jobs 500 --job-idx 0` defines into how many parts to split the input files and the index of corresponding job
 
 #### ShuffleMergeSpectral on HTCondor
 ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment 
