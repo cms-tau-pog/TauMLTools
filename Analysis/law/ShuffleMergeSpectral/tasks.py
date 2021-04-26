@@ -87,7 +87,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
       ['--compression-level', str(self.compression_level)       ] * (not self.compression_level  is '') +\
       ['--parity'           , str(self.parity)                  ] * (not self.parity             is '') +\
       ['--max-entries'      , str(self.max_entries)             ] * (not self.max_entries        is '') +\
-      ['--enable-emptybin'] , str(self.enable_emptybin)         ] * (not self.enable_emptybin    is '') +\
+      ['--enable-emptybin'  , str(self.enable_emptybin)         ] * (not self.enable_emptybin    is '') +\
       ['--refill-spectrum"' , str(self.refill_spectrum)         ] * (not self.refill_spectrum    is '')  )
 
     print ('>> {}'.format(command))
