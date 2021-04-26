@@ -204,14 +204,17 @@ ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
                      --pt-bins "20, 30, 40, 50, 60, 70, 80, 90, 100, 1000"
                      --eta-bins "0., 0.6, 1.2, 1.8, 2.4"
                      --tau-ratio "jet:1, e:1, mu:1, tau:1"
-                     --exp-disbalance 100
+                     --lastbin-disbalance 0.0
+                     --refill-spectrum true
+                     --enable-emptybin true
                      --job-idx 0 --n-jobs 500
 ```
 - `--input` is the file containing the list of input files (read line-by-line). Each entry (line) should be of the form "dataset/file" (no quotes). The rest of the path (the path to the dataset folders) should be specified in the `--prefix` argument.
 - `--prefix` is the prefix which will be placed before the path of each file read form `--input`. Please note that this prefix will *not* be placed before the `--input-spec` value. This value can include a remote path compatible with xrootd.
 - the last pt bin is taken as a high pt region, all entries from it are taken without rejection.
 - `--tau-ratio "jet:1, e:1, mu:1, tau:1"` defines proportion of TauTypes in final root-tuple.
-- `--start-entry 0.0 --end-entry 0.0008` defines from which percentage by which entries will be read within every input root file.
+- `--refill-spectrum` to recalculated spectrums of the input data on flight (only events that are corresponds to the current job `--job-idx` will be considered)
+- `--enable-emptybin` in case of empty pt-eta bin, the probability in this bin will be set to 0 (that is needed in cases when datasets are not big or the number of jobs(`--n-jobs`) is big)
 - `--n-jobs 500 --job-idx 0` defines into how many parts to split the input files and the index of corresponding job
 
 #### ShuffleMergeSpectral on HTCondor
