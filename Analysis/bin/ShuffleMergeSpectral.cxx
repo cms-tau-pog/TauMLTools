@@ -366,10 +366,11 @@ public:
                 throw exception("Empty bin (pt_i:'%1%', eta_i:'%2%') for tau type '%3%' in '%4%'.")
                 % i_x % i_y % ToString(type) % groupname;
               }
-            }
+            } else {
             ratio_h->SetBinContent(i_x,i_y,
               target_hist->GetBinContent(i_x,i_y)/ttype_entries.at(type)->GetBinContent(i_x,i_y));
-          }
+            }
+	  }
         }
         ttype_prob.at(type) = ratio_h;
         Int_t MaxBin = ttype_prob.at(type)->GetMaximumBin();
