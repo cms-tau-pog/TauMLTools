@@ -330,7 +330,7 @@ public:
       for (TauType type: ttypes){
         std::shared_ptr<TH2D> hist_ttype((TH2D*)current_file->Get(("eta_pt_hist_"+ToString(type)).c_str()));
         if (!hist_ttype)
-          throw exception("TauType: '%1%' is not available at enable_emptybin'%2%'")
+          throw exception("TauType: '%1%' is not available at '%2%'")
           % ToString(type) % path_spectrum_file;
         root_ext::RebinAndFill(*ttype_entries[type], *hist_ttype);
         n_entries += hist_ttype->GetEntries();
@@ -376,6 +376,10 @@ public:
         Int_t MaxBin = ttype_prob.at(type)->GetMaximumBin();
         Int_t x,y,z;
         ttype_prob.at(type)->GetBinXYZ(MaxBin, x, y, z);
+
+        if(ttype_prob.at(type)->GetBinContent(x,y)==0)
+          throw exception("Histogram '%1%' in '%4%' is empty.")
+          % ToString(type) % groupname;
 
         if(exp_disbalance==0) { // option 1: last pt bin will be taken into account for probability calculations
           ttype_prob.at(type)->Scale(1.0/ttype_prob.at(type)->GetBinContent(x,y));
