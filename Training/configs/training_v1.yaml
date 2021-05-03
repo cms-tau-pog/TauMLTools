@@ -33,6 +33,117 @@ CellObjectType : [
                  Electron,
                  Muon
                  ]
+
+Scaling_setup:
+    # --------------------------------------------------------
+    file_path: '/eos/cms/store/group/phys_tau/TauML/prod_2018_v1/ShuffleMergeSpectral_v0/ShuffleMergeSpectral*.root'
+    file_range: [400, 500] # range in sorted file list
+    tree_name: taus
+    log_step: 10
+    version: 4
+
+    # --------------------------------------------------------
+    # aliases for selection cuts
+    selection:
+      - &mpi -3.141592653589793
+      - &pi 3.141592653589793
+      # ----------------------------
+      - &tau_dxy_valid '(tau_dxy > -10) & (tau_dxy_error > 0)'
+      - &tau_dz_sig_valid 'tau_dz_error > 0'
+      - &tau_ip3d_valid '(tau_ip3d > - 10) & (tau_ip3d_error > 0)'
+      - &tau_e_ratio_valid 'tau_e_ratio > 0'
+      - &tau_gj_angle_diff_valid 'tau_gj_angle_diff >= 0'
+      # ----------------------------
+      - &is_pfElectron 'abs(pfCand_pdgId) == 11'
+      - &is_pfElectron_hasTrackDetails '(abs(pfCand_pdgId) == 11) & (pfCand_hasTrackDetails == 1)'
+      - &is_pfElectron_hasTrackDetails_track_ndof '(abs(pfCand_pdgId) == 11) & (pfCand_hasTrackDetails == 1) & (pfCand_track_ndof > 0)'
+      # ----------------------------
+      - &is_pfMuon 'abs(pfCand_pdgId) == 13'
+      - &is_pfMuon_hasTrackDetails '(abs(pfCand_pdgId) == 13) & (pfCand_hasTrackDetails == 1)'
+      - &is_pfMuon_hasTrackDetails_track_ndof '(abs(pfCand_pdgId) == 13) & (pfCand_hasTrackDetails == 1) & (pfCand_track_ndof > 0)'
+      # ----------------------------
+      - &is_pfGamma 'abs(pfCand_pdgId) == 22'
+      - &is_pfGamma_hasTrackDetails '(abs(pfCand_pdgId) == 22) & (pfCand_hasTrackDetails == 1)'
+      - &is_pfGamma_hasTrackDetails_track_ndof '(abs(pfCand_pdgId) == 22) & (pfCand_hasTrackDetails == 1) & (pfCand_track_ndof > 0)'
+      # ----------------------------
+      - &is_neutralHadron 'abs(pfCand_pdgId) == 130'
+      # ----------------------------
+      - &is_chargedHadron 'abs(pfCand_pdgId) == 211'
+      - &is_chargedHadron_hasTrackDetails '(abs(pfCand_pdgId) == 211) & (pfCand_hasTrackDetails == 1)'
+      - &is_chargedHadron_hasTrackDetails_track_ndof '(abs(pfCand_pdgId) == 211) & (pfCand_hasTrackDetails == 1) & (pfCand_track_ndof > 0)'
+      # ----------------------------
+      - &muon_normalizedChi2_valid 'muon_normalizedChi2 >= 0'
+      - &muon_pfEcalEnergy_valid 'muon_pfEcalEnergy >= 0'
+      # ----------------------------
+      - &ele_has_closestCtfTrack 'ele_closestCtfTrack_normalizedChi2 >= 0'
+      - &ele_cc_valid 'ele_cc_ele_energy >= 0'
+
+    # --------------------------------------------------------
+    # parameters for inner/outer tau cones
+    cone_definition:
+      inner:
+        min_pt: 30.
+        min_radius: 0.05
+        opening_coef: 3.
+      outer:
+        dR: 0.5
+
+    # --------------------------------------------------------
+    # per feature types configuration for cone splitting
+    cone_selection:
+      TauFlat:
+        var_names: # used to derive dR selection query
+          pt: tau_pt
+          eta: tau_eta
+          phi: tau_phi
+        cone_types: [null] # [null] in case of no split into cones
+      # ----------------------------
+      PfCand_electron:
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [inner, outer]
+      # ----------------------------
+      PfCand_muon:
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [inner, outer]
+      # ----------------------------
+      PfCand_chHad:
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [inner, outer]
+      # ----------------------------
+      PfCand_nHad:
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [inner, outer]
+      # ----------------------------
+      PfCand_gamma:
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [inner, outer]
+      # ----------------------------
+      Electron:
+        var_names:
+          eta: ele_eta
+          phi: ele_phi
+        cone_types: [inner, outer]
+      # ----------------------------
+      Muon:
+        var_names:
+          eta: muon_eta
+          phi: muon_phi
+        cone_types: [inner, outer]
+    # --------------------------------------------------------
+
+# "linear": clamping to [left, right] range and linear scaling to [0,1]: [selection, aliases, "linear", left, right]
+# "normal": normalising by mean and std and clamping to [left, right] range in sigmas : [selection, aliases, left (in sigmas), right (in sigmas)]
+# "no scaling": [selection, aliases, "no_scaling"]
 Features_all :
     TauFlat :
                 - tau_pt: [null, null, "linear", 20, 1000]
