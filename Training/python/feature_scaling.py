@@ -31,6 +31,7 @@ if __name__ == '__main__':
     else:
         var_types = args.var_types
     file_path = setup_dict['file_path']
+    output_json_folder = setup_dict['output_json_folder']
     file_range = setup_dict['file_range']
     tree_name = setup_dict['tree_name']
     log_step = setup_dict['log_step']
@@ -92,10 +93,10 @@ if __name__ == '__main__':
         gc.collect()
         if log_scaling_params:
             if file_i == len(file_names)-1:
-                scaling_params_json_name = f'scaling_params_v{version}_dev'
+                scaling_params_json_path = f'{output_json_folder}/scaling_params_v{version}_dev'
             else:
-                scaling_params_json_name = f'scaling_params_v{version}_log_{(file_i+1)//log_step}'
-            dump_to_json({scaling_params_json_name: scaling_params})
+                scaling_params_json_path = f'{output_json_folder}/scaling_params_v{version}_log_{(file_i+1)//log_step}'
+            dump_to_json({scaling_params_json_path: scaling_params})
         processed_file = time.time()
         # print(f'---> processed {file_name} in {processed_file - last_file_done:.2f} s')
         last_file_done = processed_file

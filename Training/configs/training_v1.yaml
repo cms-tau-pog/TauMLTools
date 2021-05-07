@@ -36,11 +36,12 @@ CellObjectType : [
 
 Scaling_setup:
     # --------------------------------------------------------
-    file_path: '/eos/cms/store/group/phys_tau/TauML/prod_2018_v1/ShuffleMergeSpectral_v0/ShuffleMergeSpectral*.root'
-    file_range: [400, 500] # range in sorted file list
+    file_path: '/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_v1/ShuffleMergeSpectral*.root'
+    output_json_folder: 'output_json'
+    file_range: [0, 100] # range in sorted file list
     tree_name: taus
     log_step: 10
-    version: 4
+    version: 5
 
     # --------------------------------------------------------
     # aliases for selection cuts
