@@ -12,7 +12,8 @@ namespace analysis {
         const GTGenLeptonKind genLepton_kind = static_cast<GTGenLeptonKind> (tau.genLepton_kind);
 
         if (tau.genLepton_index >= 0){
-            LorentzVectorM genv(tau.tau_pt, tau.tau_eta, tau.tau_phi, tau.tau_mass);
+	  //LorentzVectorM genv(tau.tau_pt, tau.tau_eta, tau.tau_phi, tau.tau_mass);
+	  LorentzVectorM genv(tau.boostedTau_pt, tau.boostedTau_eta, tau.boostedTau_phi, tau.boostedTau_mass);
             LorentzVectorM tauv(  tau.genLepton_vis_pt  ,
                                 tau.genLepton_vis_eta ,
                                 tau.genLepton_vis_phi ,
