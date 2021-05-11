@@ -36,6 +36,8 @@ if __name__ == '__main__':
     tree_name = setup_dict['tree_name']
     log_step = setup_dict['log_step']
     version = setup_dict['version']
+    scaling_params_json_prefix = f'{output_json_folder}/scaling_params_v{version}'
+    #
     selection_dict = setup_dict['selection']
     cone_definition_dict = setup_dict['cone_definition']
     cone_selection_dict = setup_dict['cone_selection']
@@ -52,12 +54,11 @@ if __name__ == '__main__':
     inner_cone_opening_coef = cone_definition_dict['inner']['opening_coef']
     #
     print(f'\n[INFO] will process {len(file_names)} input files from {file_path}')
-    print(f'[INFO] will dump scaling parameters to json after every {log_step} files')
+    print(f'[INFO] will dump scaling parameters to {scaling_params_json_prefix}_*.json after every {log_step} files')
     print('[INFO] starting to accumulate sums & counts:\n')
     #
     skip_counter = 0
-    program_starts = time.time()
-    last_file_done = program_starts
+    processed_last_file = time.time()
     # loop over input files
     for file_i, file_name in enumerate(tqdm(file_names)):
         log_scaling_params = not (file_i%log_step) or (file_i == len(file_names)-1)
@@ -77,9 +78,7 @@ if __name__ == '__main__':
                         constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
                         # NB: selection cut is applied, broadcasting with tau array (w/o cut) correctly handles the difference
                         var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
-                        after_var = time.time()
                         dR_tau_signal_cone = dR_signal_cone(tau_pt_array, inner_cone_min_pt, inner_cone_min_radius, inner_cone_opening_coef)
-                        after_dR_sc = time.time()
                         for cone_type in cone_selection_dict[var_type]['cone_types']:
                             fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
                                              var, var_type, file_i, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
@@ -87,18 +86,18 @@ if __name__ == '__main__':
                                              )
                         del(constituent_eta_array, constituent_phi_array, var_array)
                         end_var = time.time()
-                        # print('var loop timing: ', round(after_var-begin_var, 2), round(after_dR_sc-after_var, 2), round(end_var-after_dR_sc, 2))
                         # print(f'---> processed {var} in {end_var - begin_var:.2f} s\n')
                 del(tau_pt_array, tau_eta_array, tau_phi_array)
         gc.collect()
         if log_scaling_params:
             if file_i == len(file_names)-1:
-                scaling_params_json_path = f'{output_json_folder}/scaling_params_v{version}_dev'
+                scaling_params_json_name = f'{scaling_params_json_prefix}_dev'
             else:
-                scaling_params_json_path = f'{output_json_folder}/scaling_params_v{version}_log_{(file_i+1)//log_step}'
-            dump_to_json({scaling_params_json_path: scaling_params})
-        processed_file = time.time()
-        # print(f'---> processed {file_name} in {processed_file - last_file_done:.2f} s')
-        last_file_done = processed_file
+                scaling_params_json_name = f'{scaling_params_json_prefix}_log_{(file_i+1)//log_step}'
+            dump_to_json({scaling_params_json_name: scaling_params})
+        processed_current_file = time.time()
+        # print(f'---> processed {file_name} in {processed_current_file - processed_last_file:.2f} s')
+        processed_last_file = processed_current_file
     if skip_counter > 0:
         print(f'\n\n\n[WARNING] during the processing {skip_counter} files with no objects were skipped\n\n\n')
+    print('\nDone!')

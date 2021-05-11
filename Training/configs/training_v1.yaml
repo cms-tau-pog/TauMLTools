@@ -195,8 +195,8 @@ Features_all :
     PfCand_electron :
                 - pfCand_ele_valid: [*is_pfElectron, null, "no_scaling"]
                 - pfCand_ele_rel_pt: [*is_pfElectron, {"pfCand_ele_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
-                # - pfCand_ele_deta:
-                # - pfCand_ele_dphi:
+                - pfCand_ele_deta: [*is_pfElectron, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+                - pfCand_ele_dphi: [*is_pfElectron, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
                 - pfCand_ele_pvAssociationQuality: [*is_pfElectron, null, "linear", 0, 7]
                 - pfCand_ele_puppiWeight: [*is_pfElectron, null, "no_scaling"]
                 - pfCand_ele_charge: [*is_pfElectron, null, "no_scaling"]
@@ -219,8 +219,8 @@ Features_all :
     PfCand_muon :
               - pfCand_muon_valid: [*is_pfMuon, null, "no_scaling"]
               - pfCand_muon_rel_pt: [*is_pfMuon, {"pfCand_muon_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
-              # - pfCand_muon_deta:
-              # - pfCand_muon_dphi:
+              - pfCand_muon_deta: [*is_pfMuon, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - pfCand_muon_dphi: [*is_pfMuon, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
               - pfCand_muon_pvAssociationQuality: [*is_pfMuon, null, "linear", 0, 7]
               - pfCand_muon_fromPV: [*is_pfMuon, null, "linear", 0, 3]
               - pfCand_muon_puppiWeight: [*is_pfMuon, null, "no_scaling"]
@@ -244,8 +244,8 @@ Features_all :
     PfCand_chHad :
               - pfCand_chHad_valid: [*is_chargedHadron, null, "no_scaling"]
               - pfCand_chHad_rel_pt: [*is_chargedHadron, {"pfCand_chHad_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
-              # - pfCand_chHad_deta:
-              # - pfCand_chHad_dphi:
+              - pfCand_chHad_deta: [*is_chargedHadron, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - pfCand_chHad_dphi: [*is_chargedHadron, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
               - pfCand_chHad_leadChargedHadrCand: [*is_chargedHadron, null, "no_scaling"]
               - pfCand_chHad_pvAssociationQuality: [*is_chargedHadron, null, "linear", 0, 7]
               - pfCand_chHad_fromPV: [*is_chargedHadron, null, "linear", 0, 3]
@@ -273,8 +273,8 @@ Features_all :
     PfCand_nHad :
               - pfCand_nHad_valid: [*is_neutralHadron, null, "no_scaling"]
               - pfCand_nHad_rel_pt: [*is_neutralHadron, {"pfCand_nHad_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
-              # - pfCand_nHad_deta:
-              # - pfCand_nHad_dphi:
+              - pfCand_nHad_deta: [*is_neutralHadron, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - pfCand_nHad_dphi: [*is_neutralHadron, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
               - pfCand_nHad_puppiWeight: [*is_neutralHadron, null, "no_scaling"]
               - pfCand_nHad_puppiWeightNoLep: [*is_neutralHadron, null, "no_scaling"]
               - pfCand_nHad_hcalFraction: [*is_neutralHadron, null, "no_scaling"]
@@ -282,8 +282,8 @@ Features_all :
     PfCand_gamma :
               - pfCand_gamma_valid: [*is_pfGamma, null, "no_scaling"]
               - pfCand_gamma_rel_pt: [*is_pfGamma, {"pfCand_gamma_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
-              # - pfCand_gamma_deta:
-              # - pfCand_gamma_dphi:
+              - pfCand_gamma_deta: [*is_pfGamma, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - pfCand_gamma_dphi: [*is_pfGamma, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
               - pfCand_gamma_pvAssociationQuality: [*is_pfGamma, null, "linear", 0, 7]
               - pfCand_gamma_fromPV: [*is_pfGamma, null, "linear", 0, 3]
               - pfCand_gamma_puppiWeight: [*is_pfGamma, null, "no_scaling"]
@@ -307,8 +307,8 @@ Features_all :
     Electron :
               - ele_valid: [null, null, "no_scaling"]
               - ele_rel_pt: [null, {"ele_rel_pt": "ele_pt/tau_pt"}, "normal", -5, 5]
-              # - ele_deta:
-              # - ele_dphi:
+              - ele_deta: [null, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - ele_dphi: [null, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
               - ele_cc_valid: [null, null, "no_scaling"]
               - ele_cc_ele_rel_energy: [*ele_cc_valid, {"ele_cc_ele_rel_energy": "ele_cc_ele_energy/ele_pt"}, "normal", -5, 5]
               - ele_cc_gamma_rel_energy: [*ele_cc_valid, {"ele_cc_gamma_rel_energy": "ele_cc_gamma_energy/ele_cc_ele_energy"}, "normal", -5, 5]
@@ -346,8 +346,8 @@ Features_all :
     Muon :
               - muon_valid: [null, null, "no_scaling"]
               - muon_rel_pt: [null, {"muon_rel_pt": "muon_pt/tau_pt"}, "normal", -5, 5]
-              # - muon_deta:
-              # - muon_dphi:
+              - muon_deta: [null, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - muon_dphi: [null, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
               - muon_dxy: [null, null, "normal", -5, 5]
               - muon_dxy_sig: [null, {"muon_dxy_sig": "abs(muon_dxy)/muon_dxy_error"}, "normal", -5, 5]
               - muon_normalizedChi2_valid: [null, null, "no_scaling"]

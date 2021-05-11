@@ -13,6 +13,7 @@ def Phi_mpi_pi(array_phi):
     return array_phi
 
 def dR(deta, dphi):
+    ### TODO: use https://github.com/scikit-hep/vector instead of custom implementation
     return np.sqrt(deta**2 + Phi_mpi_pi(dphi)**2)
 
 def dR_signal_cone(pt_tau, min_pt, min_radius, opening_coef):
@@ -25,12 +26,26 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
     sums, sums2, counts, scaling_params = nested_dict(), nested_dict(), nested_dict(), nested_dict()
     for var_type in features_dict.keys():
         for var_dict in features_dict[var_type]:
+            assert len(var_dict) == 1
             (var, (_, _, scaling_type, *lim_params)), = var_dict.items()
             if scaling_type == 'no_scaling':
                 scaling_params[var_type][var] = {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"}
             elif scaling_type == 'linear':
-                assert len(lim_params) == 2 and lim_params[0] <= lim_params[1]
-                scaling_params[var_type][var] = {"mean": (lim_params[0]+lim_params[1])/2, "std": (lim_params[1]-lim_params[0])/2., "lim_min": -1., "lim_max": 1.} # NB: parameters for [-1, 1] clamping in DataLoader downstream
+                # NB: initialisation below assumes clamping on [-1, 1] range downstream in DataLoader
+                if len(lim_params) == 2:
+                    assert lim_params[0] <= lim_params[1]
+                    scaling_params[var_type][var] = {"mean": (lim_params[0]+lim_params[1])/2,
+                                                     "std": (lim_params[1]-lim_params[0])/2., "lim_min": -1., "lim_max": 1.}
+                elif len(lim_params) == 1:
+                    cone_dict = lim_params[0]
+                    assert type(cone_dict) == dict
+                    for cone_type, cone_lim_params in cone_dict.items():
+                        assert cone_type in cone_selection_dict[var_type]['cone_types']
+                        assert len(cone_lim_params)==2 and cone_lim_params[0] <= cone_lim_params[1]
+                        scaling_params[var_type][var][cone_type] = {"mean": (cone_lim_params[0]+cone_lim_params[1])/2,
+                                                                    "std": (cone_lim_params[1]-cone_lim_params[0])/2., "lim_min": -1., "lim_max": 1.}
+                else:
+                    raise ValueError(f"In variable {var}: lim_params should be either pair numbers (min & max), or dictionary (min & max as values, cone types as keys)")
             elif scaling_type == 'normal':
                 for cone_type in cone_selection_dict[var_type]['cone_types']:
                     if cone_type is not None:
@@ -42,7 +57,7 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
                         sums2[var_type][var] = np.zeros(n_files, dtype='float64')
                         counts[var_type][var] = np.zeros(n_files, dtype='int64')
             else:
-                raise ValueError(f"in variable {var}: scaling_type should be either no_scaling, or linear, or normal")
+                raise ValueError(f"In variable {var}: scaling_type should be either no_scaling, or linear, or normal")
     return sums, sums2, counts, scaling_params
 
 def compute_mean(sums, counts, aggregate=True, *file_range):
