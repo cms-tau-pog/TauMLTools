@@ -91,7 +91,7 @@ if __name__ == '__main__':
         gc.collect()
         if log_scaling_params:
             if file_i == len(file_names)-1:
-                scaling_params_json_name = f'{scaling_params_json_prefix}_dev'
+                scaling_params_json_name = scaling_params_json_prefix
             else:
                 scaling_params_json_name = f'{scaling_params_json_prefix}_log_{(file_i+1)//log_step}'
             dump_to_json({scaling_params_json_name: scaling_params})
@@ -99,5 +99,5 @@ if __name__ == '__main__':
         # print(f'---> processed {file_name} in {processed_current_file - processed_last_file:.2f} s')
         processed_last_file = processed_current_file
     if skip_counter > 0:
-        print(f'\n\n\n[WARNING] during the processing {skip_counter} files with no objects were skipped\n\n\n')
+        print(f'\n\n\n[WARNING] during the processing {skip_counter} files with no objects were skipped')
     print('\nDone!')

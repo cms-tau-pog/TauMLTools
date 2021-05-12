@@ -1,7 +1,6 @@
 import awkward as ak
 import numpy as np
 
-import time
 import gc
 import json
 import collections
@@ -13,7 +12,7 @@ def Phi_mpi_pi(array_phi):
     return array_phi
 
 def dR(deta, dphi):
-    ### TODO: use https://github.com/scikit-hep/vector instead of custom implementation
+    ### TODO: use https://github.com/scikit-hep/vector instead of this custom implementation
     return np.sqrt(deta**2 + Phi_mpi_pi(dphi)**2)
 
 def dR_signal_cone(pt_tau, min_pt, min_radius, opening_coef):
@@ -31,7 +30,7 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
             if scaling_type == 'no_scaling':
                 scaling_params[var_type][var] = {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"}
             elif scaling_type == 'linear':
-                # NB: initialisation below assumes clamping on [-1, 1] range downstream in DataLoader
+                # NB: initialisation below assumes shift by mean, scaling by std and then clamping on lim_min, lim_max = [-1, 1] range downstream in DataLoader
                 if len(lim_params) == 2:
                     assert lim_params[0] <= lim_params[1]
                     scaling_params[var_type][var] = {"mean": (lim_params[0]+lim_params[1])/2,
@@ -41,7 +40,7 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
                     assert type(cone_dict) == dict
                     for cone_type, cone_lim_params in cone_dict.items():
                         assert cone_type in cone_selection_dict[var_type]['cone_types']
-                        assert len(cone_lim_params)==2 and cone_lim_params[0] <= cone_lim_params[1]
+                        assert len(cone_lim_params)==2 and cone_lim_params[0]<=cone_lim_params[1]
                         scaling_params[var_type][var][cone_type] = {"mean": (cone_lim_params[0]+cone_lim_params[1])/2,
                                                                     "std": (cone_lim_params[1]-cone_lim_params[0])/2., "lim_min": -1., "lim_max": 1.}
                 else:
@@ -49,10 +48,33 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
             elif scaling_type == 'normal':
                 for cone_type in cone_selection_dict[var_type]['cone_types']:
                     if cone_type is not None:
+                        if len(lim_params) == 2:
+                            assert lim_params[0] <= lim_params[1]
+                            scaling_params[var_type][var][cone_type] = {'mean': None, 'std': None, "lim_min": lim_params[0], "lim_max": lim_params[1]}
+                        elif len(lim_params) == 1:
+                            cone_dict = lim_params[0]
+                            assert type(cone_dict) == dict
+                            assert cone_type in cone_dict.keys()
+                            cone_lim_params = cone_dict[cone_type]
+                            assert len(cone_lim_params)==2 and cone_lim_params[0]<=cone_lim_params[1]
+                            scaling_params[var_type][var][cone_type] = {'mean': None, 'std': None, "lim_min": cone_lim_params[0], "lim_max": cone_lim_params[1]}
+                        elif len(lim_params) == 0:
+                            # if no clamping range specified, default to [-inf, inf]
+                            scaling_params[var_type][var][cone_type] = {'mean': None, 'std': None, "lim_min": "-inf", "lim_max": "inf"}
+                        else:
+                            raise ValueError(f'In variable {var}: too many lim_params specified, expect either None, or 1 (dictionary with min/max values for various cone types), or 2 (min/max values)')
                         sums[var_type][var][cone_type] = np.zeros(n_files, dtype='float64')
                         sums2[var_type][var][cone_type] = np.zeros(n_files, dtype='float64')
                         counts[var_type][var][cone_type] = np.zeros(n_files, dtype='int64')
                     else:
+                        if len(lim_params) == 2:
+                            assert lim_params[0] <= lim_params[1]
+                            scaling_params[var_type][var] = {'mean': None, 'std': None, "lim_min": lim_params[0], "lim_max": lim_params[1]}
+                        elif len(lim_params) == 0:
+                            # if no clamping range specified, default to [-inf, inf]
+                            scaling_params[var_type][var] = {'mean': None, 'std': None, "lim_min": "-inf", "lim_max": "inf"}
+                        else:
+                            raise ValueError(f'In variable {var}: too many lim_params specified, expect either None, or 2 (min/max values)')
                         sums[var_type][var] = np.zeros(n_files, dtype='float64')
                         sums2[var_type][var] = np.zeros(n_files, dtype='float64')
                         counts[var_type][var] = np.zeros(n_files, dtype='int64')
@@ -90,35 +112,20 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
         sums2[var_type][var][file_i] += ak.sum(var_array**2)
         counts[var_type][var][file_i] += ak.count(var_array)
         if fill_scaling_params:
-            mean = compute_mean(sums[var_type][var], counts[var_type][var], aggregate=True)
-            std = compute_std(sums[var_type][var], sums2[var_type][var], counts[var_type][var], aggregate=True)
-            if lim_params:
-                assert len(lim_params) == 2 and lim_params[0] <= lim_params[1]
-                scaling_params[var_type][var] = {'mean': mean, 'std': std, "lim_min": lim_params[0], "lim_max": lim_params[1]}
-            else:
-                scaling_params[var_type][var] = {'mean': mean, 'std': std, "lim_min": "-inf", "lim_max": "inf"}
+            scaling_params[var_type][var]['mean'] = compute_mean(sums[var_type][var], counts[var_type][var], aggregate=True)
+            scaling_params[var_type][var]['std'] = compute_std(sums[var_type][var], sums2[var_type][var], counts[var_type][var], aggregate=True)
     elif cone_type == 'inner' or cone_type == 'outer':
-        before_dR = time.time()
         constituent_dR = dR(tau_eta_array - constituent_eta_array, tau_phi_array - constituent_phi_array)
-        after_dR = time.time()
         if cone_type == 'inner':
             cone_mask = constituent_dR <= dR_tau_signal_cone
         elif cone_type == 'outer':
             cone_mask = (constituent_dR > dR_tau_signal_cone) & (constituent_dR < dR_tau_outer_cone)
-        after_cone_mask = time.time()
         sums[var_type][var][cone_type][file_i] += ak.sum(var_array[cone_mask])
         sums2[var_type][var][cone_type][file_i] += ak.sum(var_array[cone_mask]**2)
         counts[var_type][var][cone_type][file_i] += ak.count(var_array[cone_mask])
-        after_agg = time.time()
         if fill_scaling_params:
-            mean = compute_mean(sums[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
-            std = compute_std(sums[var_type][var][cone_type], sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
-            if lim_params:
-                assert len(lim_params) == 2 and lim_params[0] <= lim_params[1]
-                scaling_params[var_type][var][cone_type] = {'mean': mean, 'std': std, "lim_min": lim_params[0], "lim_max": lim_params[1]}
-            else:
-                scaling_params[var_type][var][cone_type] = {'mean': mean, 'std': std, "lim_min": "-inf", "lim_max": "inf"} # if no clamping range specified, default to [-inf, inf]
-        # print('fill_aggregators timing: ', round(after_dR-before_dR, 2), round(after_cone_mask-after_dR, 2), round(after_agg-after_cone_mask, 2))
+            scaling_params[var_type][var][cone_type]['mean'] = compute_mean(sums[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
+            scaling_params[var_type][var][cone_type]['std'] = compute_std(sums[var_type][var][cone_type], sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
     else:
         raise ValueError(f'cone_type for {var_type} should be either inner, or outer')
 
