@@ -547,8 +547,10 @@ private:
     {
       // check if we are taking this tau type
       if(dist_uniform(*gen) >= ttype_prob.at(currentType)) return false;
-      Double_t pt = tuple.tau_pt;
-      Double_t abs_eta = abs(tuple.tau_eta);
+      //Double_t pt = tuple.tau_pt;
+      Double_t pt = tuple.boostedTau_pt;
+      //Double_t abs_eta = abs(tuple.tau_eta);
+      Double_t abs_eta = abs(tuple.boostedTau_eta);
       if( pt<=pt_min || pt>=pt_max || abs_eta>=eta_max) return false;
       if( exp_disbalance!=0 && pt>=pt_threshold) return true;
       if(dist_uniform(*gen) <= spectrums.at(current_datagroup)
