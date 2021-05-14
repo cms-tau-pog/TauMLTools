@@ -82,7 +82,7 @@ if __name__ == '__main__':
                         for cone_type in cone_selection_dict[var_type]['cone_types']:
                             fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
                                              var, var_type, file_i, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
-                                             sums, sums2, counts, fill_scaling_params=log_scaling_params, scaling_params=scaling_params, lim_params=lim_params
+                                             sums, sums2, counts, fill_scaling_params=log_scaling_params, scaling_params=scaling_params
                                              )
                         del(constituent_eta_array, constituent_phi_array, var_array)
                         end_var = time.time()
