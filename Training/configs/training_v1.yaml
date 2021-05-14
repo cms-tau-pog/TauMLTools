@@ -80,7 +80,7 @@ Scaling_setup:
       - &ele_cc_valid 'ele_cc_ele_energy >= 0'
 
     # --------------------------------------------------------
-    # parameters for inner/outer tau cones
+    # parameters for inner/outer tau cones' definition
     cone_definition:
       inner:
         min_pt: 30.
@@ -97,13 +97,13 @@ Scaling_setup:
           pt: tau_pt
           eta: tau_eta
           phi: tau_phi
-        cone_types: [null] # [null] in case of no split into cones
+        cone_types: [null] # [null] in case of no split into cones (i.e. inclusive computation)
       # ----------------------------
       PfCand_electron:
         var_names:
           eta: pfCand_eta
           phi: pfCand_phi
-        cone_types: [inner, outer]
+        cone_types: [inner, outer] # list of cone types for which to compute scaling params
       # ----------------------------
       PfCand_muon:
         var_names:
@@ -142,10 +142,27 @@ Scaling_setup:
         cone_types: [inner, outer]
     # --------------------------------------------------------
 
-##### In the feature scaling code assume the following operations to be performed in DataLoader:
-# "linear": clamping to [left, right] range followed by linear scaling to [-1,1]: [selection, aliases, "linear", left, right]
-# "normal": normalising by mean and std and clamping to [left, right] range in sigmas : [selection, aliases, left (in sigmas), right (in sigmas)]
-# "no scaling": [selection, aliases, "no_scaling"]
+##### Note 1:
+#####   The goal of the scaling code is to derive 4 parameters for each specified feature below: mean, std, lim_min, lim_max
+#####   It is assumed that in the DataLoader step each input feature will be *firstly* shifted by "mean", *then* divided by "std", *then* clamped to the range ["lim_min", "lim_max"]
+#####   This notation affects the way lim_min/lim_max are filled for linear scaling type, see function init_dictionaries() in scaling_utils.py for exact implementation and more details
+
+##### Note 2:
+#####   Below each feature is augmented with additional list of parameters of the form [selection, aliases, scaling_type, *lim_params], where:
+#####     - selection: string, cuts to be passed and applied on-the-fly by uproot when loading data (done on feature-by-feature basis) into awkward array
+#####     - aliases: dictionary, definitions of variables not present in original file but needed for e.g. applying cuts. Added on-the-fly by uproot when loading data.
+#####     - scaling_type: string, one of ["no scaling", "linear", "normal"]
+#####     - lim_params: if passed, should be either a list of two numbers or a dictionary. Specifies the range to which each variable will be limitted downstream - see Note 3 for more details.
+
+##### Note 3:
+#####   - Firstly, "no scaling" case doesn't require passing lim_params since it automatically fills lim_min=-inf, lim_max=inf (no clamping)
+#####   - Then, for the "linear" case, one should pass as lim_params those range, for which they would want to clamp the data *first* (recall that in DataLoader it is done as the last step).
+#####       The corresponding lim_min and lim_max to meet the DataLoader notation are derived automatically in the function `init_dictionaries()`` of scaling_utils.py
+#####   - Furthermore, for the "normal" case, one should pass lim_params as the number of sigmas to which they want to clamp the data after being scaled by mean and std (e.g. [-5, 5])
+#####       It is also possible to skip lim_params argument. In that case, it is automatically filled lim_min=-inf, lim_max=inf
+#####   - Lastly, lim_params (for both linear and normal cases) can be a dictionary with keys "inner" and/or "outer" and values as lists of two elements as before.
+#####       In that case lim_min/lim_max will be derived separately for each specified cone.
+
 Features_all :
     TauFlat :
                 - tau_pt: [null, null, "linear", 20, 1000]
