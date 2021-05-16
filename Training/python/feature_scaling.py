@@ -61,7 +61,7 @@ if __name__ == '__main__':
     print(f'[INFO] will dump scaling parameters to {scaling_params_json_prefix}_*.json after every {log_step} files')
     print('[INFO] starting to accumulate sums & counts:\n')
     #
-    skip_counter = 0
+    skip_counter = 0 # counter of files which were skipped during processing
     processed_last_file = time.time()
 
     # loop over input files

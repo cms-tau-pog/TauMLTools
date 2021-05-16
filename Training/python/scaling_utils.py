@@ -22,7 +22,7 @@ def Phi_mpi_pi(array_phi):
 
 def dR(deta, dphi):
     """
-    Calculate dR= np.sqrt(deta**2 + dphi_shifted**2) between two vectors given differences of their eta and phi coordinates.
+    Calculate dR=np.sqrt(deta**2 + dphi_shifted**2) between two vectors given differences of their eta and phi coordinates.
     Internally call Phi_mpi_pi() to bring delta eta values into [-pi, pi] range.
 
     Arguments:
@@ -156,7 +156,7 @@ def compute_mean(sums, counts, aggregate=True, *file_range):
     Arguments:
         - sums: np.array, summed values for a given feature per processed files
         - counts: np.array, counts of a given feature per processed files
-        - aggregate (optional, default=True): bool, whether to aggregate sums and counts for the mean computation. If no `file_range` specified, do that for all the input array, otherwise other a specified range in `file_range`.
+        - aggregate (optional, default=True): bool, whether to aggregate sums and counts for the mean computation. If no `file_range` specified, do that for all the input array, otherwise over a specified range in `file_range`.
         - file_range (optional): if passed, assume to be a list with the range of file ids to run aggregation and mean computation on.
 
     Returns:
@@ -179,7 +179,7 @@ def compute_std(sums, sums2, counts, aggregate=True, *file_range):
         - sums: np.array, summed values for a given feature per processed files
         - sums2: np.array, squared summed values for a given feature per processed files
         - counts: np.array, counts of a given feature per processed files
-        - aggregate (optional, default=True): bool, whether to aggregate sums, sums2 and counts for the std computation. If no `file_range` specified, do that for all the input array, otherwise other a specified range in `file_range`.
+        - aggregate (optional, default=True): bool, whether to aggregate sums, sums2 and counts for the std computation. If no `file_range` specified, do that for all the input array, otherwise over a specified range in `file_range`.
         - file_range (optional): if passed, assume to be a list with the range of file ids to run aggregation and std computation on.
 
     Returns:
@@ -253,7 +253,7 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
 
 def dump_to_json(dict_map):
     """
-    For each entry in the input `dict_map` write the corresponding dictionary into a json file to the specified path.
+    For each entry in the input `dict_map` write the corresponding dictionary into a json file with the specified path.
 
     Arguments:
         - dict_map: dict, mapping of the string containg path with filename to write to (without .json extension) and corresponding dictionary

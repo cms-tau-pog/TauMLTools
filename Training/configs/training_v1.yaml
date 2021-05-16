@@ -36,12 +36,12 @@ CellObjectType : [
 
 Scaling_setup:
     # --------------------------------------------------------
-    file_path: '/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_v1/ShuffleMergeSpectral*.root'
-    output_json_folder: 'output_json'
-    file_range: [0, 100] # range in sorted file list
-    tree_name: taus
-    log_step: 10
-    version: 5
+    file_path: '/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_v1/ShuffleMergeSpectral*.root' # input files to be used for computation of scaling params
+    output_json_folder: 'output_json' # directory where json files with scaling params will be stored
+    file_range: [0, 100] # range of files in the sorted `file_path` to be processed
+    tree_name: taus # TTree name in input files to be read
+    log_step: 10 # will make a snapshot of scaling parameters per this number of input files
+    version: 5 # string to be added to a json filename
 
     # --------------------------------------------------------
     # aliases for selection cuts
@@ -82,12 +82,12 @@ Scaling_setup:
     # --------------------------------------------------------
     # parameters for inner/outer tau cones' definition
     cone_definition:
-      inner:
+      inner: # parameters for `dR_tau_signal_cone`
         min_pt: 30.
         min_radius: 0.05
         opening_coef: 3.
       outer:
-        dR: 0.5
+        dR: 0.5 # `dR_tau_outer_cone`
 
     # --------------------------------------------------------
     # per feature types configuration for cone splitting
@@ -143,25 +143,25 @@ Scaling_setup:
     # --------------------------------------------------------
 
 ##### Note 1:
-#####   The goal of the scaling code is to derive 4 parameters for each specified feature below: mean, std, lim_min, lim_max
+#####   The goal of the scaling code is to derive 4 parameters (mean, std, lim_min, lim_max) for each specified feature below.
 #####   It is assumed that in the DataLoader step each input feature will be *firstly* shifted by "mean", *then* divided by "std", *then* clamped to the range ["lim_min", "lim_max"]
-#####   This notation affects the way lim_min/lim_max are filled for linear scaling type, see function init_dictionaries() in scaling_utils.py for exact implementation and more details
+#####   This notation affects the way lim_min/lim_max are filled for linear scaling type, see function `init_dictionaries()` in scaling_utils.py for exact implementation and more details
 
 ##### Note 2:
 #####   Below each feature is augmented with additional list of parameters of the form [selection, aliases, scaling_type, *lim_params], where:
-#####     - selection: string, cuts to be passed and applied on-the-fly by uproot when loading data (done on feature-by-feature basis) into awkward array
+#####     - selection: string, cuts to be applied on-the-fly by uproot when loading (done on feature-by-feature basis) data into awkward array
 #####     - aliases: dictionary, definitions of variables not present in original file but needed for e.g. applying cuts. Added on-the-fly by uproot when loading data.
 #####     - scaling_type: string, one of ["no scaling", "linear", "normal"]
 #####     - lim_params: if passed, should be either a list of two numbers or a dictionary. Specifies the range to which each variable will be limitted downstream - see Note 3 for more details.
 
 ##### Note 3:
-#####   - Firstly, "no scaling" case doesn't require passing lim_params since it automatically fills lim_min=-inf, lim_max=inf (no clamping)
-#####   - Then, for the "linear" case, one should pass as lim_params those range, for which they would want to clamp the data *first* (recall that in DataLoader it is done as the last step).
-#####       The corresponding lim_min and lim_max to meet the DataLoader notation are derived automatically in the function `init_dictionaries()`` of scaling_utils.py
-#####   - Furthermore, for the "normal" case, one should pass lim_params as the number of sigmas to which they want to clamp the data after being scaled by mean and std (e.g. [-5, 5])
-#####       It is also possible to skip lim_params argument. In that case, it is automatically filled lim_min=-inf, lim_max=inf
-#####   - Lastly, lim_params (for both linear and normal cases) can be a dictionary with keys "inner" and/or "outer" and values as lists of two elements as before.
-#####       In that case lim_min/lim_max will be derived separately for each specified cone.
+#####   - Firstly, "no scaling" case doesn't require passing `lim_params` since it automatically fills `lim_min=-inf`, `lim_max=inf` (no clamping)
+#####   - Then, for the "linear" case, one should pass as `lim_params` those range, for which they would want to clamp the data *first* (recall that in DataLoader it is done as the last step).
+#####       The corresponding `lim_min` and `lim_max` to meet the DataLoader notation are derived automatically in the function `init_dictionaries()`` of scaling_utils.py
+#####   - Furthermore, for the "normal" case, one should pass `lim_params` as the number of sigmas to which they want to clamp the data after being scaled by mean and std (e.g. [-5, 5])
+#####       It is also possible to skip `lim_params` argument. In that case, it is automatically filled `lim_min=-inf`, `lim_max=inf`
+#####   - Lastly, `lim_params` (for both linear and normal cases) can be a dictionary with keys "inner" and/or "outer" and values as lists of two elements as before.
+#####       In that case `lim_min`/`lim_max` will be derived separately for each specified cone.
 
 Features_all :
     TauFlat :
@@ -218,7 +218,7 @@ Features_all :
                 - pfCand_ele_puppiWeight: [*is_pfElectron, null, "no_scaling"]
                 - pfCand_ele_charge: [*is_pfElectron, null, "no_scaling"]
                 - pfCand_ele_lostInnerHits: [*is_pfElectron, null, "no_scaling"]
-                - pfCand_ele_numberOfPixelHits: [*is_pfElectron, null, "linear", 0, 10]
+                - pfCand_ele_nPixelHits: [*is_pfElectron, null, "linear", 0, 10]
                 - pfCand_ele_vertex_dx: [*is_pfElectron, {"pfCand_ele_vertex_dx": "pfCand_vertex_x-pv_x"}, "normal", -5, 5]
                 - pfCand_ele_vertex_dy: [*is_pfElectron, {"pfCand_ele_vertex_dy": "pfCand_vertex_y-pv_y"}, "normal", -5, 5]
                 - pfCand_ele_vertex_dz: [*is_pfElectron, {"pfCand_ele_vertex_dz": "pfCand_vertex_z-pv_z"}, "normal", -5, 5]
@@ -243,7 +243,7 @@ Features_all :
               - pfCand_muon_puppiWeight: [*is_pfMuon, null, "no_scaling"]
               - pfCand_muon_charge: [*is_pfMuon, null, "no_scaling"]
               - pfCand_muon_lostInnerHits: [*is_pfMuon, null, "no_scaling"]
-              - pfCand_muon_numberOfPixelHits: [*is_pfMuon, null, "linear", 0, 11]
+              - pfCand_muon_nPixelHits: [*is_pfMuon, null, "linear", 0, 11]
               - pfCand_muon_vertex_dx: [*is_pfMuon, {"pfCand_muon_vertex_dx": "pfCand_vertex_x-pv_x"}, "normal", -5, 5]
               - pfCand_muon_vertex_dy: [*is_pfMuon, {"pfCand_muon_vertex_dy": "pfCand_vertex_y-pv_y"}, "normal", -5, 5]
               - pfCand_muon_vertex_dz: [*is_pfMuon, {"pfCand_muon_vertex_dz": "pfCand_vertex_z-pv_z"}, "normal", -5, 5]
@@ -263,14 +263,14 @@ Features_all :
               - pfCand_chHad_rel_pt: [*is_chargedHadron, {"pfCand_chHad_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
               - pfCand_chHad_deta: [*is_chargedHadron, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
               - pfCand_chHad_dphi: [*is_chargedHadron, null, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
-              - pfCand_chHad_leadChargedHadrCand: [*is_chargedHadron, null, "no_scaling"]
+              - pfCand_chHad_tauLeadChargedHadrCand: [*is_chargedHadron, null, "no_scaling"]
               - pfCand_chHad_pvAssociationQuality: [*is_chargedHadron, null, "linear", 0, 7]
               - pfCand_chHad_fromPV: [*is_chargedHadron, null, "linear", 0, 3]
               - pfCand_chHad_puppiWeight: [*is_chargedHadron, null, "no_scaling"]
               - pfCand_chHad_puppiWeightNoLep: [*is_chargedHadron, null, "no_scaling"]
               - pfCand_chHad_charge: [*is_chargedHadron, null, "no_scaling"]
               - pfCand_chHad_lostInnerHits: [*is_chargedHadron, null, "no_scaling"]
-              - pfCand_chHad_numberOfPixelHits: [*is_chargedHadron, null, "linear", 0, 12]
+              - pfCand_chHad_nPixelHits: [*is_chargedHadron, null, "linear", 0, 12]
               - pfCand_chHad_vertex_dx: [*is_chargedHadron, {"pfCand_chHad_vertex_dx": "pfCand_vertex_x - pv_x"}, "normal", -5, 5]
               - pfCand_chHad_vertex_dy: [*is_chargedHadron, {"pfCand_chHad_vertex_dy": "pfCand_vertex_y - pv_y"}, "normal", -5, 5]
               - pfCand_chHad_vertex_dz: [*is_chargedHadron, {"pfCand_chHad_vertex_dz": "pfCand_vertex_z - pv_z"}, "normal", -5, 5]
@@ -306,7 +306,7 @@ Features_all :
               - pfCand_gamma_puppiWeight: [*is_pfGamma, null, "no_scaling"]
               - pfCand_gamma_puppiWeightNoLep: [*is_pfGamma, null, "no_scaling"]
               - pfCand_gamma_lostInnerHits: [*is_pfGamma, null, "no_scaling"]
-              - pfCand_gamma_numberOfPixelHits: [*is_pfGamma, null, "linear", 0, 7]
+              - pfCand_gamma_nPixelHits: [*is_pfGamma, null, "linear", 0, 7]
               - pfCand_gamma_vertex_dx: [*is_pfGamma, {"pfCand_gamma_vertex_dx": "pfCand_vertex_x - pv_x"}, "normal", -5, 5]
               - pfCand_gamma_vertex_dy: [*is_pfGamma, {"pfCand_gamma_vertex_dy": "pfCand_vertex_y - pv_y"}, "normal", -5, 5]
               - pfCand_gamma_vertex_dz: [*is_pfGamma, {"pfCand_gamma_vertex_dz": "pfCand_vertex_z - pv_z"}, "normal", -5, 5]
