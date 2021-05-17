@@ -53,7 +53,7 @@ struct Arguments {
     run::Argument<std::string> cfg{"cfg", "configuration file with the list of input sources"};
     run::Argument<std::string> input{"input", "Input file with the list of files to read. "
                                               "The --prefix argument will be placed in front of --input.", ""};
-    run::Argument<std::string> prefix{"prefix", "Prefix to place before the input file path read from --input. "
+    run::Argument<std::string> prefix{"prefix", "prefix to place before the input file path read from --input. "
                                                 "It can include a remote server to use with xrootd.", ""};
     run::Argument<std::string> output{"output", "output, depending on the merging mode: MergeAll - file,"
                                                 " MergePerEntry - directory."};
@@ -73,13 +73,16 @@ struct Arguments {
                                                       "(if to take all taus of type e => e:-1 )"};
     run::Argument<unsigned> job_idx{"job-idx", "index of the job (starts from 0)"};
     run::Argument<unsigned> n_jobs{"n-jobs", "the number by which to divide all files"};
-    run::Argument<double> lastbin_disbalance{"lastbin-disbalance", "maximal acceptable disbalance between low pt and high pt region " 
-                                             "(default=0 - last bin will be taken with the same amount of events as every other bins",0};
+    run::Argument<double> lastbin_disbalance{"lastbin-disbalance", "maximal acceptable disbalance between low pt (all bins up to last one)"
+                                             "and high pt region (last pt bin) " 
+                                             "(option is relevant only for the case of `--lastbin-takeall True`)",1.0};
+    run::Argument<bool> lastbin_takeall{"lastbin-takeall", "to take all events from the last bin up to acceptable disbalance,"
+                                        "specified with `--lastbin-disbalance`",false};
     run::Argument<std::string> compression_algo{"compression-algo","ZLIB, LZMA, LZ4","LZMA"};
     run::Argument<unsigned> compression_level{"compression-level", "compression level of output file", 9};
     run::Argument<unsigned> parity{"parity","take only even:0, take only odd:1, take all entries:3", 3};
     run::Argument<bool> refill_spectrum{"refill-spectrum", "If true - spectrums of the input data will be recalculated on flight, "
-                                        "only events that are corresponds to the current job will be considered.", false};
+                                        "only events that correspond to the current job will be considered.", false};
     run::Argument<bool> enable_emptybin{"enable-emptybin", "In case of empty pt-eta bin, the probability in this bin will be set to 0", false};
 };
 
@@ -297,11 +300,12 @@ public:
     SpectrumHists(const std::string& groupname_, const std::vector<double>& pt_bins,
                   const std::vector<double>& eta_bins,
                   const Double_t exp_disbalance_,
+                  const bool lastbin_takeall_,
                   const bool enable_emptybin_,
                   const std::set<TauType>& tau_types_):
                   groupname(groupname_), pt_threshold(pt_bins.end()[-2]),
-                  exp_disbalance(exp_disbalance_), enable_emptybin(enable_emptybin_),
-                  ttypes(tau_types_)
+                  exp_disbalance(exp_disbalance_), lastbin_takeall(lastbin_takeall_),
+                  enable_emptybin(enable_emptybin_), ttypes(tau_types_)
     {
       std::cout << "Initialization of group SpectrumHists..." << std::endl;
       for(TauType type: ttypes){
@@ -311,7 +315,7 @@ public:
         // option 2: all events from the last bin will be taken up to acceptable disbalance
         ttype_prob[type] = 
           std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0], 
-          exp_disbalance==0 ? pt_bins.size()-1 : pt_bins.size()-2, &pt_bins[0]);
+          lastbin_takeall==false ? pt_bins.size()-1 : pt_bins.size()-2, &pt_bins[0]);
 
         ttype_entries[type] = std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0],
                                                   pt_bins.size()-1,&pt_bins[0]);
@@ -381,7 +385,7 @@ public:
           throw exception("Histogram '%1%' in '%4%' is empty.")
           % ToString(type) % groupname;
 
-        if(exp_disbalance==0) { // option 1: last pt bin will be taken into account for probability calculations
+        if(lastbin_takeall==false) { // option 1: last pt bin will be taken into account for probability calculations
           ttype_prob.at(type)->Scale(1.0/ttype_prob.at(type)->GetBinContent(x,y));
         }
         else { // option 2: all events from the last bin will be taken up to acceptable disbalance
@@ -449,11 +453,11 @@ private:
                                            const std::vector<double>& pt_bins,
                                            const std::vector<double>& eta_bins)
   {
-    // option 1: last pt bin will be taken into account for probability calculations (exp_disbalance==0)
+    // option 1: last pt bin will be taken into account for probability calculations (lastbin_takeall==0)
     // option 2: all events from the last bin will be taken up to acceptable disbalance
     std::shared_ptr<TH2D> tartget_hist = 
       std::make_shared<TH2D>("tartget","tartget", eta_bins.size()-1,&eta_bins[0],
-                              exp_disbalance==0 ? pt_bins.size()-1 : pt_bins.size()-2,
+                              lastbin_takeall==false ? pt_bins.size()-1 : pt_bins.size()-2,
                               &pt_bins[0]);
 
     for(Int_t i_pt = 1; i_pt <= tartget_hist->GetNbinsY(); i_pt++)
@@ -479,7 +483,7 @@ private:
   size_t n_entries; // needed for monitoring
   std::shared_ptr<TH2D> target_hist;
   const Double_t pt_threshold, exp_disbalance;
-  const bool enable_emptybin;
+  const bool lastbin_takeall, enable_emptybin;
 
 public:
   const std::set<TauType> ttypes; // vector of tau types e.g: e,tau...
@@ -497,13 +501,14 @@ public:
     DataSetProcessor(const std::vector<EntryDesc>& entries, const std::vector<double>& pt_bins,
                      const std::vector<double>& eta_bins, Generator& _gen,
                      const std::set<std::string>& disabled_branches, bool verbose,
-                     const std::map<TauType, Double_t>& tau_ratio, const Double_t exp_disbalance_,
-                     const bool refill_spectrum, const bool enable_emptybin) :
+                     const std::map<TauType, Double_t>& tau_ratio, const Double_t exp_disbalance,
+                     const bool lastbin_takeall_, const bool refill_spectrum, const bool enable_emptybin) :
                      pt_max(pt_bins.back()), pt_min(pt_bins[0]), eta_max(eta_bins.back()),
-                     pt_threshold(pt_bins.end()[-2]), exp_disbalance(exp_disbalance_), gen(&_gen)
+                     pt_threshold(pt_bins.end()[-2]), lastbin_takeall(lastbin_takeall_), gen(&_gen)
     {
       if(verbose) std::cout << "Loading Data Groups..." << std::endl;
-      LoadDataGroups(entries, pt_bins, eta_bins, disabled_branches, refill_spectrum, enable_emptybin);
+      LoadDataGroups(entries, pt_bins, eta_bins, disabled_branches, exp_disbalance,
+                     refill_spectrum, enable_emptybin);
 
       if(verbose) std::cout << "Calculating probabilities..." << std::endl;
       for(auto spectrum: spectrums)
@@ -594,7 +599,7 @@ private:
       Double_t pt = tuple.tau_pt;
       Double_t abs_eta = abs(tuple.tau_eta);
       if( pt<=pt_min || pt>=pt_max || abs_eta>=eta_max) return false;
-      if( exp_disbalance!=0 && pt>=pt_threshold) return true;
+      if( lastbin_takeall==true && pt>=pt_threshold) return true;
       if(dist_uniform(*gen) <= spectrums.at(current_datagroup)
                           ->GetProbability(currentType, pt, abs_eta)) return true;
       return false;
@@ -602,8 +607,8 @@ private:
 
     void LoadDataGroups(const std::vector<EntryDesc>& entries,
                         const std::vector<double>& pt_bins, const std::vector<double>& eta_bins,
-                        const std::set<std::string>& disabled_branches, const bool refill_spectrum,
-                        const bool enable_emptybin)
+                        const std::set<std::string>& disabled_branches, const double exp_disbalance,
+                        const bool refill_spectrum, const bool enable_emptybin)
     {
       for(const EntryDesc& dsc: entries) {
 
@@ -614,7 +619,7 @@ private:
                             disabled_branches);
         sources[dsc.name] = source;
         spectrums[dsc.name] = std::make_shared<SpectrumHists>(dsc.name, pt_bins,
-                                                              eta_bins, exp_disbalance,
+                                                              eta_bins, exp_disbalance, lastbin_takeall,
                                                               enable_emptybin, dsc.tau_types);
         if(refill_spectrum) {
           std::cout << "ReFilling spectrums for - " <<  dsc.name << std::endl;
@@ -669,8 +674,8 @@ private:
           else if(tauR_.second<0)
             throw exception("Available --tau_ratio arguments should be > 0 or -1");
 
-          std::cout << "tau: " << ToString(tauR_.first) << " Prob: " << tauR_.second
-                    << " " << accumulated_entries.at(tauR_.first) << "\n";
+          std::cout << "tau type: " << ToString(tauR_.first) << ", Entries: " 
+                    << accumulated_entries.at(tauR_.first) << "\n";
           probab[tauR_.first] = tauR_.second/accumulated_entries.at(tauR_.first);
         }
       }
@@ -715,7 +720,7 @@ private:
     const Double_t pt_max,pt_min;
     const Double_t eta_max;
     const Double_t pt_threshold;
-    const Double_t exp_disbalance;
+    const bool lastbin_takeall;
     size_t n_entries;
 
     Generator* gen;
@@ -783,8 +788,8 @@ public:
 
         DataSetProcessor processor(entry_list, pt_bins, eta_bins,
                                    gen, disabled_branches, true, tau_ratio,
-                                   args.lastbin_disbalance(), args.refill_spectrum(),
-                                   args.enable_emptybin());
+                                   args.lastbin_disbalance(), args.lastbin_takeall(),
+                                   args.refill_spectrum(), args.enable_emptybin());
 
         size_t n_processed = 0;
         std::cout << "starting loops:" <<std::endl;
