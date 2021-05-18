@@ -161,11 +161,11 @@ ShuffleMerge --cfg TauML/Analysis/config/testing_inputs.cfg --input tuples-v2 --
              --calc-weights false --ensure-uniformity false --max-bin-occupancy 20000 \
              --n-threads 12 --disabled-branches "trainingWeight"
 ```
-#### ShuffleMergeSpectral (Alternative Shuffle and merge)
+### ShuffleMergeSpectral (Alternative shuffle and merge)
 
-This step represents alternative Shuffle and Merge procedure that aims to minimize usage of physicical memory as well as provide direct control over the shape of final (pt,eta) spectrum.
+This step represents alternative Shuffle and Merge procedure that aims to minimize usage of physicical memory as well as provide direct control over the shape of final (pt,eta) spectrum in a stochastic manner. Before running the following step on HTCondor for all the samples it is essential to analyze and tune the parameters of ShuffleMergeSpectral.
 
-To generate the specturum histograms for a dataset and lists with number of entries per datafile, run:
+Spectrum of the initial data is needed to calculate the probability to take tau candidate of some genuine tau-type and from some pt-eta bin. To generate the specturum histograms for a dataset and lists with number of entries per datafile, run:
 ```sh
 CreateSpectralHists --output "spectrum_file.root" \
                     --output_entries "entires_file.txt" \
@@ -174,6 +174,7 @@ CreateSpectralHists --output "spectrum_file.root" \
                     --eta-hist "n_bins_eta, |eta|_min, |eta|_max" \
                     --n-threads 1
 ```
+on this step it is important to have high granularity binning to be able later to re-bin into custom, non-uniform pt-eta bins on the next step.
 
 Alternatively, if one wants to process several datasets the following python script can be used (parameters of pt and eta binning to be hardcoded in the script):
 ```sh
@@ -182,14 +183,17 @@ python Analysis/python/CreateSpectralHists.py --input /path/to/input/dir/ \
                                               --filter ".*(DY).*" \
                                               --rewrite
 ```
-After following step is executed, to create common file with datafile names and entries:
-```sh
-for i in <path_to_spectrums>/*.txt; do cat $i >> filelist.txt ; done
-
+After the following step spectrums and .txt files with the number of entries will be created in the output folder. To merge all the .txt files into one and mix the lines:
 ```
-To mix the file names:
-```sh
-shuf ./filelist.txt > ./filelist_mix.txt
+cat <path_to_spectrums>/*.txt | shuf - > filelist_mix.txt
+```
+Mixing is needed to have shuffled files within one data group. After this step, filelist_mix.txt should contain filenames and the number of entries in the corresponding files:
+```
+./DYJetsToLL_M-50/eventTuple_1-70.root 249243
+./TTJets_ext1/eventTuple_1-308.root 59414
+./TTToHadronic/eventTuple_467.root 142781
+./WJetsToLNu/eventTuple_25.root 400874
+...
 ```
 After spectrums are created for all datasets, the final procedure of Shuffle and Merge can be performed with:
 ```sh
@@ -204,18 +208,24 @@ ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
                      --pt-bins "20, 30, 40, 50, 60, 70, 80, 90, 100, 1000"
                      --eta-bins "0., 0.6, 1.2, 1.8, 2.4"
                      --tau-ratio "jet:1, e:1, mu:1, tau:1"
-                     --lastbin-disbalance 0.0
+                     --lastbin-disbalance 100.0
+                     --lastbin-takeall true
                      --refill-spectrum true
                      --enable-emptybin true
                      --job-idx 0 --n-jobs 500
 ```
-- `--input` is the file containing the list of input files (read line-by-line). Each entry (line) should be of the form "dataset/file" (no quotes). The rest of the path (the path to the dataset folders) should be specified in the `--prefix` argument.
+- `--cfg` is a configuration file where data groups are constructed, each line represents data group in the format of (name, dataset_dir_regexp, file_regexp, tau_types to consider in this group), e.g: `Analysis/config/2018/training_inputs_MC.cfg`
+- `--input` is the file containing the list of input files and entries (read line-by-line). The abdolute path is not taken from this file, only `../dataset/datafile.root n_events` is read. The rest of the path (the path to the dataset folders) should be specified in the `--prefix` argument.
 - `--prefix` is the prefix which will be placed before the path of each file read form `--input`. Please note that this prefix will *not* be placed before the `--input-spec` value. This value can include a remote path compatible with xrootd.
 - the last pt bin is taken as a high pt region, all entries from it are taken without rejection.
 - `--tau-ratio "jet:1, e:1, mu:1, tau:1"` defines proportion of TauTypes in final root-tuple.
-- `--refill-spectrum` to recalculated spectrums of the input data on flight (only events that are corresponds to the current job `--job-idx` will be considered)
-- `--enable-emptybin` in case of empty pt-eta bin, the probability in this bin will be set to 0 (that is needed in cases when datasets are not big or the number of jobs(`--n-jobs`) is big)
+- `--refill-spectrum` to recalculated spectrums of the input data on flight, only events and files that correspond to the current job `--job-idx` will be considered. It was studied that in case of heterogeneity within a data group, the common spectrum of the whole data group poorly represents the spectrum of the sub-chunk of this data group if we use `--n-jobs 500`, so it is needed to fill spectrum histograms in the beginning of every job, to obtain required uniformity of the output. 
+- `--lastbin-takeall` due to the poor statistic in the high-pt region the option to take all candidates from last pt-bin is included (contrary to `--lastbin-takeall false`, in this case we put the requirement on n_entries in the last bin to be equal to n_entries in other bins)
+- `--lastbin-disbalance` the argument is relevant in case of `-lastbin-takeall true`, it put the requirement on the ratio of (all entries up to the last bin) to the (number of entries in the last bin) not to be greater than required number, otherwise less events will be taken from all bins up to the last.
+- `--enable-emptybin` in case of empty pt-eta bin, the probability in this bin will be set to 0 (that is needed in cases when datasets are statistically poor or the number of jobs `--n-jobs` is big in case of `--refill-spectrum true` mode)
 - `--n-jobs 500 --job-idx 0` defines into how many parts to split the input files and the index of corresponding job
+
+In order to find appropriate binning and `--tau-ratio` in correspondence to the present statistics it might be useful to execute one job in `--refill-spectrum false --lastbin-takeall false` mode and study the output of `./out/*.root` files. In the \<DataGroupName>_n.root files the number of entries in required  `--pt-bins --eta-bins` can be found. \<DataGroupName>.root files show the probability of accepting candidate from corresponding pt-eta bin. 
 
 #### ShuffleMergeSpectral on HTCondor
 ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment 
