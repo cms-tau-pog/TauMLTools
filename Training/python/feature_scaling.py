@@ -10,6 +10,7 @@ import json
 import collections
 from glob import glob
 from tqdm import tqdm
+from collections import defaultdict
 
 from scaling_utils import Phi_mpi_pi, dR, dR_signal_cone, compute_mean, compute_std, fill_aggregators
 from scaling_utils import nested_dict, init_dictionaries, dump_to_json
@@ -62,6 +63,7 @@ if __name__ == '__main__':
     print('[INFO] starting to accumulate sums & counts:\n')
     #
     skip_counter = 0 # counter of files which were skipped during processing
+    inf_counter = defaultdict(list) # counter of features with inf values and their fraction
     processed_last_file = time.time()
 
     # loop over input files
@@ -85,6 +87,10 @@ if __name__ == '__main__':
                         constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
                         # NB: selection cut is applied, broadcasting with tau array (w/o cut) correctly handles the difference
                         var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
+                        if np.sum(np.isinf(var_array)) > 0:
+                            inf_mask = np.isinf(var_array)
+                            inf_counter[var].append(np.sum(inf_mask) / ak.count(var_array))
+                            var_array = ak.mask(var_array, inf_mask) # mask inf values with None
                         dR_tau_signal_cone = dR_signal_cone(tau_pt_array, inner_cone_min_pt, inner_cone_min_radius, inner_cone_opening_coef)
                         # loop over cone types specified for a given var_type in the cfg file
                         for cone_type in cone_selection_dict[var_type]['cone_types']:
@@ -107,6 +113,9 @@ if __name__ == '__main__':
         processed_current_file = time.time()
         # print(f'---> processed {file_name} in {processed_current_file - processed_last_file:.2f} s')
         processed_last_file = processed_current_file
+    print('\n\n')
     if skip_counter > 0:
-        print(f'\n\n\n[WARNING] during the processing {skip_counter} files with no objects were skipped')
+        print(f'[WARNING] during the processing {skip_counter} files with no objects were skipped\n')
+    for inf_feature, inf_frac_counts in inf_counter.items():
+        print(f'[WARNING] in {inf_feature} encountered inf values with average count fraction: {np.mean(inf_frac_counts)}')
     print('\nDone!')
