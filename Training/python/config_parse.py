@@ -59,14 +59,18 @@ def create_settings(input_file: str, verbose=False) -> str:
         return string
 
     def create_enum(key_name: str, content: dict) -> str:
+        key_list = []
+        for key_dict in content["Features_all"][key_name]:
+            assert len(key_dict) == 1 and type(key_dict) == dict
+            key_list.append(list(key_dict)[0])
         string = "enum class " + key_name +"_Features " + "{\n"
         # enabled features:
-        for i, key in enumerate(content["Features_all"][key_name]):
+        for i, key in enumerate(key_list):
             if key not in content["Features_disable"][key_name]:
                 string += key +" = " + str(i) + ",\n"
         # disabled features:
         for i, key in enumerate(content["Features_disable"][key_name]):
-            if key not in content["Features_all"][key_name]:
+            if key not in key_list:
                 raise Exception("Disabled feature {0} is not listed in \"Features_all\" section of cofig file".format(key))
             string += key +" = " + "-1" + ",\n"
         return string[:-2] + "};\n"
