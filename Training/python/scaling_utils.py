@@ -262,4 +262,4 @@ def dump_to_json(dict_map):
     """
     for fout_name, dict in dict_map.items():
         with open(f'{fout_name}.json', 'w') as fout:
-            json.dump(dict, fout)
+            json.dump(dict, fout, indent=4, allow_nan=False, sort_keys=False)
