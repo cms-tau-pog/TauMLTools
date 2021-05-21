@@ -88,9 +88,9 @@ if __name__ == '__main__':
                         # NB: selection cut is applied, broadcasting with tau array (w/o cut) correctly handles the difference
                         var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
                         if np.sum(np.isinf(var_array)) > 0:
-                            inf_mask = np.isinf(var_array)
-                            inf_counter[var].append(np.sum(inf_mask) / ak.count(var_array))
-                            var_array = ak.mask(var_array, inf_mask) # mask inf values with None
+                            is_inf_mask = np.isinf(var_array)
+                            inf_counter[var].append(np.sum(is_inf_mask) / ak.count(var_array))
+                            var_array = ak.mask(var_array, is_inf_mask, valid_when=False) # mask inf values with None
                         dR_tau_signal_cone = dR_signal_cone(tau_pt_array, inner_cone_min_pt, inner_cone_min_radius, inner_cone_opening_coef)
                         # loop over cone types specified for a given var_type in the cfg file
                         for cone_type in cone_selection_dict[var_type]['cone_types']:
@@ -113,7 +113,7 @@ if __name__ == '__main__':
         processed_current_file = time.time()
         # print(f'---> processed {file_name} in {processed_current_file - processed_last_file:.2f} s')
         processed_last_file = processed_current_file
-    print('\n\n')
+    print()
     if skip_counter > 0:
         print(f'[WARNING] during the processing {skip_counter} files with no objects were skipped\n')
     for inf_feature, inf_frac_counts in inf_counter.items():
