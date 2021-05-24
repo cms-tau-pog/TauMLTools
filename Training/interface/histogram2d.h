@@ -22,6 +22,7 @@ class Histogram_2D{
 
     void th2d_add (const TH2D& histo);
     void divide   (const Histogram_2D& histo);
+    void reset();
 
     void add_y_binning_by_index(const int index, const std::vector<double> yaxis);
 
@@ -197,8 +198,18 @@ void Histogram_2D::print(const char* dir){
   }
 }
 
+void Histogram_2D::reset(){
+  for (int ix = 0; ix < xaxis_content_.size(); ix++){
+    auto yhisto = xaxis_content_[ix].get();
+    for (int iy = 0; iy <= yhisto->GetXaxis()->GetNbins()+1; iy++){
+      yhisto->SetBinContent(iy, 0);
+    }
+  }
+}
+
 void load_axis_into_vector(const TAxis* axis, std::vector<double>& vector){
   for(int i = 1; i <= axis->GetNbins() + 1; i++) vector.push_back(axis->GetBinLowEdge(i));
-};
+}
+
 
 #endif
