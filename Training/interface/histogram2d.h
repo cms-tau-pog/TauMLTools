@@ -104,12 +104,13 @@ int Histogram_2D::find_bin_by_value_(const double& x){
   for(int ix = 0; ix < xaxis_.size() - 1; ix++){
     if(x >= xaxis_[ix] && x < xaxis_[ix+1]) return ix;
   }
-  std::cerr << "Value " << x << " is not in x range of histogram" << std::endl;
-  throw false;
+  throw std::range_error("Value "+std::to_string(x)+" is not in the range of the x axis");
 }
 
 void Histogram_2D::th2d_add (const TH2D& histo){
-  if(!can_be_imported(histo)) throw false;
+  if(!can_be_imported(histo)){
+    throw std::invalid_argument("Input TH2D "+std::string(histo.GetName())+" can not be imported");
+  }
   
   auto input_yaxis = histo.GetYaxis();
   auto input_xaxis = histo.GetXaxis();
@@ -132,8 +133,7 @@ void Histogram_2D::divide(const Histogram_2D& histo){
   };
 
   if (!check_axis(xaxis_, histo.xaxis_)){
-    std::cerr << "Invalid x binning detected on denominator" << std::endl;
-    throw false;
+    throw std::logic_error("Invalid x binning detected on denominator for Histogram_2D "+histo.name_);
   }
   
   std::vector<double> thisyaxis;
@@ -145,8 +145,7 @@ void Histogram_2D::divide(const Histogram_2D& histo){
     load_axis_into_vector(yhisto->GetXaxis()    , yaxis    );
 
     if(!check_axis(thisyaxis, yaxis)){
-      std::cerr << "Invalid y-axis binning found for denominator in x bin n. " << ix << std::endl; 
-      throw false;
+      throw std::logic_error("Invalid y-axis binning found for denominator in x bin n. "+std::to_string(ix)+" for Histogram_2D "+histo.name_);
     }
 
     (*thisyhisto).Divide(yhisto.get());
