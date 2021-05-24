@@ -1,6 +1,7 @@
 #include "TauMLTools/Core/interface/AnalysisMath.h"
 #include "TauMLTools/Analysis/interface/TauTuple.h"
 #include "TauMLTools/Training/interface/DataLoader_tools.h"
+#include "TauMLTools/Training/interface/histogram2d.h"
 
 #include "TROOT.h"
 #include "TLorentzVector.h"
@@ -147,9 +148,14 @@ public:
         outerCellGridRef(n_outer_cells, n_outer_cells, outer_cell_size, outer_cell_size),
         input_files(FindInputFiles(input_dirs,file_name_pattern,
                                    exclude_list, exclude_dir_list)),
-        hasData(false)
+        hasData(false),
+        xaxis(xaxis_vec), yaxis_list(yaxis_list_vec), ymin(ymin_val), ymax(ymax_val)
     {
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
+
+      if (xaxis.size() != (yaxis_list.size() + 1)){
+        throw std::invalid_argument("Y binning list does not match X binning length");
+      }
 
       // file = OpenRootFile(file_name);
       // tauTuple = std::make_shared<tau_tuple::TauTuple>(file.get(), true);
@@ -161,28 +167,34 @@ public:
       // histogram to calculate weights
       auto file_input = std::make_shared<TFile>(input_spectrum.c_str());
       auto file_target = std::make_shared<TFile>(target_spectrum.c_str());
-      std::shared_ptr<TH2D> target_hist(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
 
-      for( auto const& [tau_type, tau_name] : tau_types_names)
-      {
-        hist_weights[tau_type] = std::make_shared<TH2D>(("w_1_"+tau_name).c_str(),
-                                                        ("w_1_"+tau_name).c_str(),
-                                                        n_eta_bins, eta_min, eta_max,
-                                                        n_pt_bins, pt_min, pt_max);
-        hist_weights[tau_type]->SetDirectory(0); // disabling the file referencing
-        auto after_rebin_input_hist = std::make_shared<TH2D>("input_hist", "input_hist",
-                                                             n_eta_bins, eta_min, eta_max,
-                                                             n_pt_bins, pt_min, pt_max);
-        std::shared_ptr<TH2D> input_hist(dynamic_cast<TH2D*>(file_input->Get(("eta_pt_hist_"+tau_name).c_str())));
-        if(hist_weights[tau_type] && target_hist && after_rebin_input_hist && input_hist) {
-            RebinAndFill(*hist_weights[tau_type], *target_hist);
-            RebinAndFill(*after_rebin_input_hist, *input_hist);
-        } else throw std::runtime_error("Error: Spectrum hist is nullptr");
-        hist_weights[tau_type]->Divide(after_rebin_input_hist.get());
+      Histogram_2D target_histogram("target", xaxis, ymin, ymax);
+      Histogram_2D input_histogram ("input" , xaxis, ymin, ymax);
+      for (int i = 0; i < yaxis_list.size(); i++){
+          target_histogram.add_y_binning_by_index(i, yaxis_list[i]);
+          input_histogram .add_y_binning_by_index(i, yaxis_list[i]);
       }
 
-      MaxDisbCheck(hist_weights, weight_thr);
+      auto target_th2d = dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau"));
+      if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
+      
+      for( auto const& [tau_type, tau_name] : tau_types_names)
+      {
+        auto input_th2d  = dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str()));
+        if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+tau_name);
+        target_histogram.th2d_add(*target_th2d);
+        input_histogram .th2d_add(*input_th2d );
 
+        target_histogram.divide(input_histogram);
+        hist_weights[tau_type] = std::make_shared<TH2D>(target_histogram.get_weights_th2d(
+            ("w_1_"+tau_name).c_str(),
+            ("w_1_"+tau_name).c_str()
+        ));
+
+        target_histogram.reset();
+        input_histogram .reset();
+      }
+      MaxDisbCheck(hist_weights, weight_thr);
     }
 
     bool MoveNext() {
@@ -831,6 +843,11 @@ private:
   const std::vector<std::string> input_files;
 
   bool hasData;
+
+  std::vector<double> xaxis;
+  std::vector<std::vector<double>> yaxis_list;
+  Double_t ymin;
+  Double_t ymax;
 
   // std::shared_ptr<TFile> file; // to open with one file
   std::shared_ptr<TauTuple> tauTuple;
