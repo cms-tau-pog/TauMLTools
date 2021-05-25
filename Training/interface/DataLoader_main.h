@@ -142,16 +142,17 @@ public:
     using TauTuple = tau_tuple::TauTuple;
     using LorentzVectorM = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>;
 
-    DataLoader() : current_entry(start_dataset),
+    DataLoader(const std::vector<std::string> file_name) :
+        current_entry(start_dataset),
         innerCellGridRef(n_inner_cells, n_inner_cells, inner_cell_size, inner_cell_size),
         outerCellGridRef(n_outer_cells, n_outer_cells, outer_cell_size, outer_cell_size),
-        input_files(FindInputFiles(input_dirs,file_name_pattern,
-                                   exclude_list, exclude_dir_list)),
+        input_files(file_name),
         hasData(false)
-    {
+    { 
+      ROOT::EnableThreadSafety();
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
 
-      // file = OpenRootFile(file_name);
+      // file = OpenRootFile(input_files.at(0));
       // tauTuple = std::make_shared<tau_tuple::TauTuple>(file.get(), true);
 
       std::cout << "Number of files to process: " << input_files.size() << std::endl;
@@ -187,6 +188,9 @@ public:
       MaxDisbCheck(hist_weights, weight_thr);
 
     }
+
+    DataLoader(const DataLoader&) = delete;
+    DataLoader& operator=(const DataLoader&) = delete;
 
     bool MoveNext() {
 
