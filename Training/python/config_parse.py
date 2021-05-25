@@ -45,12 +45,24 @@ def create_settings(input_file: str, verbose=False) -> str:
                 return "\"" + str(input) + "\""
             else:
                 return str(input)
+        def items_float(input):
+            return "{"+','.join([str(k)  for k in input])+"}"
+        def items_float_vector(input):
+            return "{"+','.join([items_float(it) for it in input])+"}"
 
         string = "namespace Setup {\n"
         # variables from Setup section:
         for key in content["Setup"]:
-            string += "const inline " + types_map[type(content["Setup"][key])] \
-                   + " " + key + " = " + items_str(content["Setup"][key]) + ";\n"
+            value = content["Setup"][key]
+            if type(value) == list and (type(value[0]) == float or type(value[0]) == int):
+                string += "const inline std::vector<Double_t>" \
+                       + " " + key + " = " + items_float(value) + ";\n"
+            elif type(value) == list and type(value[0]) == list and (type(value[0][0]) == float or type(value[0][0]) == int):
+                string += "const inline std::vector<std::vector<Double_t>>"\
+                       + " " + key + " = " + items_float_vector(value) + ";\n"
+            else:
+                string += "const inline " + types_map[type(value)] \
+                       + " " + key + " = " + items_str(value) + ";\n"
         # variables that define the length of feature lists:
         for features in content["Features_all"]:
             number = len(content["Features_all"][features]) -  len(content["Features_disable"][features])
