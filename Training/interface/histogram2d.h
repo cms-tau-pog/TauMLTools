@@ -29,10 +29,11 @@ class Histogram_2D{
     bool can_be_imported(const TH2D& histo);
     void print(const char* dir);
 
+    //use this function only for weights, not for counts
     TH2D& get_weights_th2d(const char* name, const char* title);
 
   private:
-    int  find_bin_by_value_(const double& x);
+    int find_bin_by_value_(const double& x);
 
     std::string name_;
 
@@ -201,9 +202,7 @@ void Histogram_2D::print(const char* dir){
 void Histogram_2D::reset(){
   for (int ix = 0; ix < xaxis_content_.size(); ix++){
     auto yhisto = xaxis_content_[ix].get();
-    for (int iy = 0; iy <= yhisto->GetXaxis()->GetNbins()+1; iy++){
-      yhisto->SetBinContent(iy, 0);
-    }
+    yhisto->Reset();
   }
 }
 
