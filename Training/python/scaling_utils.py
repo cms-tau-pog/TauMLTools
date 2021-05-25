@@ -97,12 +97,12 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
             assert len(var_dict) == 1
             (var, (_, _, scaling_type, *lim_params)), = var_dict.items()
             if scaling_type == 'no_scaling':
-                scaling_params[var_type][var] = {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"}
+                scaling_params[var_type][var]['global'] = {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"}
             elif scaling_type == 'linear':
                 # NB: initialisation below assumes shift by mean, scaling by std and then clamping on lim_min, lim_max = [-1, 1] range downstream in DataLoader
                 if len(lim_params) == 2:
                     assert lim_params[0] <= lim_params[1]
-                    scaling_params[var_type][var] = {"mean": (lim_params[0]+lim_params[1])/2.,
+                    scaling_params[var_type][var]['global'] = {"mean": (lim_params[0]+lim_params[1])/2.,
                                                      "std": (lim_params[1]-lim_params[0])/2., "lim_min": -1., "lim_max": 1.}
                 elif len(lim_params) == 1:
                     cone_dict = lim_params[0]
@@ -137,9 +137,9 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
                     else:
                         if len(lim_params) == 2:
                             assert lim_params[0] <= lim_params[1]
-                            scaling_params[var_type][var] = {'mean': None, 'std': None, "lim_min": lim_params[0], "lim_max": lim_params[1]}
+                            scaling_params[var_type][var]['global'] = {'mean': None, 'std': None, "lim_min": lim_params[0], "lim_max": lim_params[1]}
                         elif len(lim_params) == 0:
-                            scaling_params[var_type][var] = {'mean': None, 'std': None, "lim_min": "-inf", "lim_max": "inf"}
+                            scaling_params[var_type][var]['global'] = {'mean': None, 'std': None, "lim_min": "-inf", "lim_max": "inf"}
                         else:
                             raise ValueError(f'In variable {var}: too many lim_params specified, expect either None, or 2 (min/max values)')
                         sums[var_type][var] = np.zeros(n_files, dtype='float64')
@@ -236,8 +236,8 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
         if fill_scaling_params:
             mean_ = compute_mean(sums[var_type][var], counts[var_type][var], aggregate=True)
             std_ = compute_std(sums[var_type][var], sums2[var_type][var], counts[var_type][var], aggregate=True)
-            scaling_params[var_type][var]['mean'] = float(format(mean_, '.4g')) # round to 4 significant digits 
-            scaling_params[var_type][var]['std'] = float(format(std_, '.4g'))
+            scaling_params[var_type][var]['global']['mean'] = float(format(mean_, '.4g')) # round to 4 significant digits
+            scaling_params[var_type][var]['global']['std'] = float(format(std_, '.4g'))
     elif cone_type == 'inner' or cone_type == 'outer':
         constituent_dR = dR(tau_eta_array - constituent_eta_array, tau_phi_array - constituent_phi_array)
         if cone_type == 'inner':
