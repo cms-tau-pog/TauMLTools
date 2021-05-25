@@ -234,8 +234,10 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
         sums2[var_type][var][file_i] += ak.sum(var_array**2)
         counts[var_type][var][file_i] += ak.count(var_array)
         if fill_scaling_params:
-            scaling_params[var_type][var]['mean'] = compute_mean(sums[var_type][var], counts[var_type][var], aggregate=True)
-            scaling_params[var_type][var]['std'] = compute_std(sums[var_type][var], sums2[var_type][var], counts[var_type][var], aggregate=True)
+            mean_ = compute_mean(sums[var_type][var], counts[var_type][var], aggregate=True)
+            std_ = compute_std(sums[var_type][var], sums2[var_type][var], counts[var_type][var], aggregate=True)
+            scaling_params[var_type][var]['mean'] = float(format(mean_, '.4g')) # round to 4 significant digits 
+            scaling_params[var_type][var]['std'] = float(format(std_, '.4g'))
     elif cone_type == 'inner' or cone_type == 'outer':
         constituent_dR = dR(tau_eta_array - constituent_eta_array, tau_phi_array - constituent_phi_array)
         if cone_type == 'inner':
@@ -246,8 +248,10 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
         sums2[var_type][var][cone_type][file_i] += ak.sum(var_array[cone_mask]**2)
         counts[var_type][var][cone_type][file_i] += ak.count(var_array[cone_mask])
         if fill_scaling_params:
-            scaling_params[var_type][var][cone_type]['mean'] = compute_mean(sums[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
-            scaling_params[var_type][var][cone_type]['std'] = compute_std(sums[var_type][var][cone_type], sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
+            mean_ = compute_mean(sums[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
+            std_ = compute_std(sums[var_type][var][cone_type], sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
+            scaling_params[var_type][var][cone_type]['mean'] = float(format(mean_, '.4g'))
+            scaling_params[var_type][var][cone_type]['std'] = float(format(std_, '.4g'))
     else:
         raise ValueError(f'cone_type for {var_type} should be either inner, or outer')
 
