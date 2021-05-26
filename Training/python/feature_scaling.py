@@ -117,5 +117,5 @@ if __name__ == '__main__':
     if skip_counter > 0:
         print(f'[WARNING] during the processing {skip_counter} files with no objects were skipped\n')
     for inf_feature, inf_frac_counts in inf_counter.items():
-        print(f'[WARNING] in {inf_feature} encountered inf values with average count fraction: {np.mean(inf_frac_counts)}')
+        print(f"[WARNING] in {inf_feature} encountered inf values with average per file fraction: {format(np.mean(inf_frac_counts), '.2g')}")
     print('\nDone!')

@@ -103,7 +103,7 @@ def create_settings(input_file: str, verbose=False) -> str:
         print(settings)
     return settings
 
-def create_scaling_input(input_file: str, verbose=False) -> str:
+def create_scaling_input(input_scaling_file: str, input_cfg_file: str, verbose=False) -> str:
     '''
     The following subroutine parses the json config file and
     returns the string with Scaling namespace, where
@@ -124,8 +124,10 @@ def create_scaling_input(input_file: str, verbose=False) -> str:
         ...
     '''
     import json
+    import yaml
 
-    groups = [ 'outer', 'inner' ]
+    global_group = 'global'
+    cone_groups = [ 'outer', 'inner' ]
     subgroups = [ 'mean', 'std', 'lim_min', 'lim_max' ]
 
     def conv_str(input) -> str:
@@ -136,46 +138,37 @@ def create_scaling_input(input_file: str, verbose=False) -> str:
         else:
             return str(input)
 
-    def depth(d):
-        if isinstance(d, dict):
-            return 1 + (max(map(depth, d.values())) if d else 0)
-        return 0
-
-    def create_scaling(content: dict) -> str:
+    def create_scaling(content_scaling: dict, content_cfg: dict) -> str:
         string = "namespace Scaling {\n"
-        for FeatureT in content:
-            if depth(content[FeatureT]) == 2:
-                form = 1
-            elif depth(content[FeatureT]) == 3:
-                form = 2
-            else:
-                raise Exception("Wrong scaling config formatting")
-
+        for FeatureT in content_scaling:
             string += "struct "+FeatureT+"{\n"
-            all_vars = content[FeatureT].values()
-
+            duplicate = FeatureT in content_cfg['CellObjectType'] # whether to duplicate scaling param values across cone_groups
             for i, subg in enumerate(subgroups):
                 string += "inline static const "
                 string += "std::vector<std::vector<float>> "
                 string += subg + " = "
-                if form == 2:
-                    string += "{{"+"},{".join([ ","
-                            .join([ conv_str(var[inner][subg])
-                            for inner in groups ])
-                            for var in all_vars ])+"}}"
-                else:
-                    string += "{{"+"},{".join([
-                            conv_str(var[subg])
-                            for var in all_vars ])+"}}"
-
-                string += ";\n"
+                var_string = []
+                for var_i, (var, var_params) in enumerate(content_scaling[FeatureT].items()):
+                    assert var in content_cfg['Features_all'][FeatureT][var_i].keys()
+                    if len(var_params)==len(cone_groups) and all([g in var_params.keys() for g in cone_groups]):
+                        var_string.append(",".join([conv_str(var_params[cone_group][subg]) for cone_group in cone_groups]))
+                    elif len(var_params)==1 and global_group in var_params.keys():
+                        if duplicate:
+                            var_string.append(",".join([conv_str(var_params[global_group][subg]) for cone_group in cone_groups]))
+                        else:
+                            var_string.append(conv_str(var_params[global_group][subg]))
+                    else:
+                        raise Exception(f"wrong format for scaling params in json for variable {var}: expect either dictionary with either a key {global_group}, or keys {cone_groups}")
+                string += "{{"+"},{".join(var_string)+"}};\n"
             string += "};\n"
         string += "};\n"
         return string
 
-    with open(input_file) as file:
-        data = json.load(file)
-    settings  = create_scaling(data)
+    with open(input_scaling_file) as scaling_file:
+        scaling_data = json.load(scaling_file)
+    with open(input_cfg_file) as cfg_file:
+        cfg_data = yaml.load(cfg_file)
+    settings  = create_scaling(scaling_data, cfg_data)
     if verbose:
         print(settings)
     return settings
