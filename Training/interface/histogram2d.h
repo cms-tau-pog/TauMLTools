@@ -43,7 +43,7 @@ class Histogram_2D{
     std::shared_ptr<TH2D> histo_ = std::make_shared<TH2D>();
 
     double ymin_ = std::numeric_limits<float>::max();
-    double ymax_ = std::numeric_limits<float>::min();
+    double ymax_ = std::numeric_limits<float>::lowest();
     
 };
 
@@ -111,7 +111,7 @@ int Histogram_2D::find_bin_by_value_(const double& x){
 
 void Histogram_2D::th2d_add (const TH2D& histo){
   if(!can_be_imported(histo)){
-    throw std::invalid_argument("Input TH2D "+std::string(histo.GetName())+" can not be imported");
+    throw std::invalid_argument("Given TH2D "+std::string(histo.GetName())+" can not be imported");
   }
   
   auto input_yaxis = histo.GetYaxis();
@@ -209,6 +209,5 @@ void Histogram_2D::reset(){
 void load_axis_into_vector(const TAxis* axis, std::vector<double>& vector){
   for(int i = 1; i <= axis->GetNbins() + 1; i++) vector.push_back(axis->GetBinLowEdge(i));
 }
-
 
 #endif
