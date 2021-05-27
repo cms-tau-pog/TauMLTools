@@ -221,10 +221,10 @@ public:
 
     SmartTree(const std::string& _name, const std::vector<std::string>& list,
               const std::set<std::string>& _disabled_branches = {}, const std::set<std::string>& _enabled_branches ={})
-        : name(_name), directory(nullptr), disabled_branches(_disabled_branches),
+        : name(_name), directory(nullptr), readMode(true), disabled_branches(_disabled_branches),
           enabled_branches(_enabled_branches)
     {
-        static constexpr Long64_t maxVirtualSize = 200 * 1024 * 1024;
+        static constexpr Long64_t maxVirtualSize = 100 * 1024 * 1024;
 
         TChain* fchain = new TChain("taus");
         for(const std::string& file: list)
