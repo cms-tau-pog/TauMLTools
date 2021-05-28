@@ -215,13 +215,13 @@ def get_quantiles(var_array):
     """
     quantile_dict = {}
     var_array = ak.to_numpy(ak.flatten(var_array, axis=-1))
-    quantile_dict['median'] = np.median(var_array)
-    quantile_dict['min'] = np.min(var_array)
-    quantile_dict['max'] = np.max(var_array)
-    quantile_dict['1sigma'] = np.quantile(var_array, [norm.cdf(-1), norm.cdf(1)], interpolation='linear')
-    quantile_dict['2sigma'] = np.quantile(var_array, [norm.cdf(-2), norm.cdf(2)], interpolation='linear')
-    quantile_dict['3sigma'] = np.quantile(var_array, [norm.cdf(-3), norm.cdf(3)], interpolation='linear')
-    quantile_dict['5sigma'] = np.quantile(var_array, [norm.cdf(-5), norm.cdf(5)], interpolation='linear')
+    quantile_dict['median'] = np.median(var_array).astype(float)
+    quantile_dict['min'] = np.min(var_array).astype(float)
+    quantile_dict['max'] = np.max(var_array).astype(float)
+    quantile_dict['1sigma'] = {side: float(np.quantile(var_array, norm.cdf(sigma_side), interpolation='linear')) for side, sigma_side in zip(['left', 'right'], [-1, 1])}
+    quantile_dict['2sigma'] = {side: float(np.quantile(var_array, norm.cdf(sigma_side), interpolation='linear')) for side, sigma_side in zip(['left', 'right'], [-2, 2])}
+    quantile_dict['3sigma'] = {side: float(np.quantile(var_array, norm.cdf(sigma_side), interpolation='linear')) for side, sigma_side in zip(['left', 'right'], [-3, 3])}
+    quantile_dict['5sigma'] = {side: float(np.quantile(var_array, norm.cdf(sigma_side), interpolation='linear')) for side, sigma_side in zip(['left', 'right'], [-5, 5])}
     return quantile_dict
 
 def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
@@ -268,7 +268,7 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
             scaling_params[var_type][var]['global']['mean'] = float(format(mean_, '.4g')) # round to 4 significant digits
             scaling_params[var_type][var]['global']['std'] = float(format(std_, '.4g'))
         if quantile_params:
-            quantile_params[var_type][var]['global'][str(file_i)] = get_quantiles(var_array)
+            quantile_params[var_type][var]['global'][file_i] = get_quantiles(var_array)
     elif cone_type == 'inner' or cone_type == 'outer':
         constituent_dR = dR(tau_eta_array - constituent_eta_array, tau_phi_array - constituent_phi_array)
         if cone_type == 'inner':
@@ -284,7 +284,7 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
             scaling_params[var_type][var][cone_type]['mean'] = float(format(mean_, '.4g'))
             scaling_params[var_type][var][cone_type]['std'] = float(format(std_, '.4g'))
         if quantile_params:
-            quantile_params[var_type][var][cone_type][str(file_i)] = get_quantiles(var_array[cone_mask])
+            quantile_params[var_type][var][cone_type][file_i] = get_quantiles(var_array[cone_mask])
     else:
         raise ValueError(f'cone_type for {var_type} should be either inner, or outer')
 
