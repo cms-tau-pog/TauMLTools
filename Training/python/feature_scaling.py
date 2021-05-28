@@ -12,7 +12,7 @@ from glob import glob
 from tqdm import tqdm
 from collections import defaultdict
 
-from scaling_utils import Phi_mpi_pi, dR, dR_signal_cone, compute_mean, compute_std, fill_aggregators
+from scaling_utils import Phi_mpi_pi, dR, dR_signal_cone, compute_mean, compute_std, fill_aggregators, get_quantiles
 from scaling_utils import nested_dict, init_dictionaries, dump_to_json
 
 if __name__ == '__main__':
@@ -84,22 +84,32 @@ if __name__ == '__main__':
                     for var_dict in features_dict[var_type]:
                         begin_var = time.time()
                         (var, (selection_cut, aliases, scaling_type, *lim_params)), = var_dict.items()
-                        if scaling_type != 'normal': continue # other scaling_type are already initialised with mean, std and lim_min/lim_max
-                        constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
-                        # NB: selection cut is applied, broadcasting with tau array (w/o cut) correctly handles the difference
-                        var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
-                        if np.sum(np.isinf(var_array)) > 0:
-                            is_inf_mask = np.isinf(var_array)
-                            inf_counter[var].append(np.sum(is_inf_mask) / ak.count(var_array))
-                            var_array = ak.mask(var_array, is_inf_mask, valid_when=False) # mask inf values with None
-                        dR_tau_signal_cone = dR_signal_cone(tau_pt_array, inner_cone_min_pt, inner_cone_min_radius, inner_cone_opening_coef)
-                        # loop over cone types specified for a given var_type in the cfg file
-                        for cone_type in cone_selection_dict[var_type]['cone_types']:
-                            fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
-                                             var, var_type, file_i, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
-                                             sums, sums2, counts, fill_scaling_params=log_scaling_params, scaling_params=scaling_params, quantile_params=quantile_params
-                                             )
-                        del(constituent_eta_array, constituent_phi_array, var_array)
+                        if scaling_type == 'linear':
+                            print('implement quantile stuff here')
+                            if len(lim_params) == 2 and lim_params[0] <= lim_params[1]:
+                                var_array = tree.arrays(var, cut=selection_cut, aliases=aliases)[var]
+                                quantile_params[var_type][var]['global'][file_i] = get_quantiles(var_array)
+                            elif len(lim_params) == 1 and type(lim_params[0]) == dict:
+                                print(f'[INFO] variable {var}: computation of quantiles in different cones not yet implemented  for linear case')
+                            else:
+                                raise ValueError(f'Unrecognised lim_params for {var} in quantile computation')
+                        elif scaling_type == 'normal':
+                            if scaling_type != 'normal': continue # other scaling_type are already initialised with mean, std and lim_min/lim_max
+                            constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
+                            # NB: selection cut is applied, broadcasting with tau array (w/o cut) correctly handles the difference
+                            var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
+                            if np.sum(np.isinf(var_array)) > 0:
+                                is_inf_mask = np.isinf(var_array)
+                                inf_counter[var].append(np.sum(is_inf_mask) / ak.count(var_array))
+                                var_array = ak.mask(var_array, is_inf_mask, valid_when=False) # mask inf values with None
+                            dR_tau_signal_cone = dR_signal_cone(tau_pt_array, inner_cone_min_pt, inner_cone_min_radius, inner_cone_opening_coef)
+                            # loop over cone types specified for a given var_type in the cfg file
+                            for cone_type in cone_selection_dict[var_type]['cone_types']:
+                                fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
+                                                 var, var_type, file_i, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
+                                                 sums, sums2, counts, fill_scaling_params=log_scaling_params, scaling_params=scaling_params, quantile_params=quantile_params
+                                                 )
+                            del(constituent_eta_array, constituent_phi_array, var_array)
                         end_var = time.time()
                         # print(f'---> processed {var} in {end_var - begin_var:.2f} s\n')
                 del(tau_pt_array, tau_eta_array, tau_phi_array)
