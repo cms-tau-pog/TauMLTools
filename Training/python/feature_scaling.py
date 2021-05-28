@@ -40,6 +40,7 @@ if __name__ == '__main__':
     log_step = setup_dict['log_step']
     version = setup_dict['version']
     scaling_params_json_prefix = f'{output_json_folder}/scaling_params_v{version}'
+    quantile_params_json_prefix = f'{output_json_folder}/quantile_params_v{version}'
     #
     selection_dict = setup_dict['selection']
     cone_definition_dict = setup_dict['cone_definition']
@@ -56,7 +57,7 @@ if __name__ == '__main__':
     inner_cone_opening_coef = cone_definition_dict['inner']['opening_coef']
     #
     # initialise dictionaries to be filled
-    sums, sums2, counts, scaling_params = init_dictionaries(features_dict, cone_selection_dict, len(file_names))
+    sums, sums2, counts, scaling_params, quantile_params = init_dictionaries(features_dict, cone_selection_dict, len(file_names))
     #
     print(f'\n[INFO] will process {len(file_names)} input files from {file_path}')
     print(f'[INFO] will dump scaling parameters to {scaling_params_json_prefix}_*.json after every {log_step} files')
@@ -96,7 +97,7 @@ if __name__ == '__main__':
                         for cone_type in cone_selection_dict[var_type]['cone_types']:
                             fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
                                              var, var_type, file_i, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
-                                             sums, sums2, counts, fill_scaling_params=log_scaling_params, scaling_params=scaling_params
+                                             sums, sums2, counts, fill_scaling_params=log_scaling_params, scaling_params=scaling_params, quantile_params=quantile_params
                                              )
                         del(constituent_eta_array, constituent_phi_array, var_array)
                         end_var = time.time()
@@ -113,6 +114,7 @@ if __name__ == '__main__':
         processed_current_file = time.time()
         # print(f'---> processed {file_name} in {processed_current_file - processed_last_file:.2f} s')
         processed_last_file = processed_current_file
+    dump_to_json({quantile_params_json_prefix: quantile_params})
     print()
     if skip_counter > 0:
         print(f'[WARNING] during the processing {skip_counter} files with no objects were skipped\n')

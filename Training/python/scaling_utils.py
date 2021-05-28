@@ -1,5 +1,6 @@
 import awkward as ak
 import numpy as np
+from scipy.stats import norm
 
 import gc
 import json
@@ -90,8 +91,9 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
         - sums2: dict, container for accumulating squared sums of features' values
         - counts: dict, container for accumulating counts of features' values
         - scaling_params: dict, container for storing features' scaling parameters (mean, std, lim_min, lim_max)
+        - quantile_params: dict, container for storing features' quantile parameters (see `get_quantiles()` function for their description)
     """
-    sums, sums2, counts, scaling_params = nested_dict(), nested_dict(), nested_dict(), nested_dict()
+    sums, sums2, counts, scaling_params, quantile_params = nested_dict(), nested_dict(), nested_dict(), nested_dict(), nested_dict()
     for var_type in features_dict.keys():
         for var_dict in features_dict[var_type]:
             assert len(var_dict) == 1
@@ -147,7 +149,7 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
                         counts[var_type][var] = np.zeros(n_files, dtype='int64')
             else:
                 raise ValueError(f"In variable {var}: scaling_type should be either no_scaling, or linear, or normal")
-    return sums, sums2, counts, scaling_params
+    return sums, sums2, counts, scaling_params, quantile_params
 
 def compute_mean(sums, counts, aggregate=True, *file_range):
     """
@@ -196,9 +198,30 @@ def compute_std(sums, sums2, counts, aggregate=True, *file_range):
     else:
         return np.sqrt(sums2/counts - (sums/counts)**2)
 
+def get_quantiles(var_array):
+    """
+    Compute for a given feature array `var_array` characteristics of its distribution: median, min/max, 1/2/3/5 sigma (under assumption of normality) intervals
+
+    Arguments:
+        - var_array: awkward array with values for a given feature for which quantiles need to be computed.
+
+    Returns:
+        dict with corresponding quantiles
+    """
+    quantile_dict = {}
+    var_array = ak.to_numpy(ak.flatten(var_array, axis=-1))
+    quantile_dict['median'] = np.median(var_array)
+    quantile_dict['min'] = np.min(var_array)
+    quantile_dict['max'] = np.max(var_array)
+    quantile_dict['1sigma'] = np.quantile(var_array, [norm.cdf(-1), norm.cdf(1)], interpolation='linear')
+    quantile_dict['2sigma'] = np.quantile(var_array, [norm.cdf(-2), norm.cdf(2)], interpolation='linear')
+    quantile_dict['3sigma'] = np.quantile(var_array, [norm.cdf(-3), norm.cdf(3)], interpolation='linear')
+    quantile_dict['5sigma'] = np.quantile(var_array, [norm.cdf(-5), norm.cdf(5)], interpolation='linear')
+    return quantile_dict
+
 def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
                      var, var_type, file_i, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
-                     sums, sums2, counts, fill_scaling_params=False, scaling_params=None):
+                     sums, sums2, counts, fill_scaling_params=False, scaling_params=None, quantile_params=None):
     """
     Update `sums`, `sums2` and `counts` dictionaries with the values from `var_array` either inclusively or exclusively (based on `cone_type` argument) for inner/outer cones.
     In the latter case, derive `constituent_dR` with respect to the tau direction of flight and define cones as:
@@ -225,6 +248,7 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
         - counts: dict, container for accumulating counts of features' values and to be filled based on the input `var_array`
         - fill_scaling_params (optional, default=False): bool, whether to update the `scaling_params` dictionary with the values from the current state of sums/sums2/counts
         - scaling_params(optional, default=None): dict, main dictionary storing scaling parameters per variable type/variable name/cone type. Used only if `fill_scaling_params` is set to `True`
+        - quantile_params(optional, default=None): dict, if passed, will store in this disctionary for a given `file_i` quantile numbers for `var_array` as returned by `get_quantiles()` function
 
     Returns:
         None
@@ -238,6 +262,8 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
             std_ = compute_std(sums[var_type][var], sums2[var_type][var], counts[var_type][var], aggregate=True)
             scaling_params[var_type][var]['global']['mean'] = float(format(mean_, '.4g')) # round to 4 significant digits
             scaling_params[var_type][var]['global']['std'] = float(format(std_, '.4g'))
+        if quantile_params:
+            quantile_params[var_type][var]['global'][str(file_i)] = get_quantiles(var_array)
     elif cone_type == 'inner' or cone_type == 'outer':
         constituent_dR = dR(tau_eta_array - constituent_eta_array, tau_phi_array - constituent_phi_array)
         if cone_type == 'inner':
@@ -252,6 +278,8 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
             std_ = compute_std(sums[var_type][var][cone_type], sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
             scaling_params[var_type][var][cone_type]['mean'] = float(format(mean_, '.4g'))
             scaling_params[var_type][var][cone_type]['std'] = float(format(std_, '.4g'))
+        if quantile_params:
+            quantile_params[var_type][var][cone_type][str(file_i)] = get_quantiles(var_array[cone_mask])
     else:
         raise ValueError(f'cone_type for {var_type} should be either inner, or outer')
 
