@@ -92,15 +92,18 @@ if __name__ == '__main__':
                         begin_var = time.time()
                         (var, (selection_cut, aliases, scaling_type, *lim_params)), = var_dict.items()
                         if scaling_type == 'linear':
+                            # dict with scaling params already filled with init_dictionaries(), here compute only variable's quantiles
                             if len(lim_params) == 2 and lim_params[0] <= lim_params[1]:
                                 var_array = tree.arrays(var, cut=selection_cut, aliases=aliases)[var]
+                                if np.sum(np.isinf(var_array)) > 0:
+                                    is_inf_mask = np.isinf(var_array)
+                                    var_array = ak.mask(var_array, is_inf_mask, valid_when=False) # mask inf values with None
                                 quantile_params[var_type][var]['global'][file_i] = get_quantiles(var_array)
                             elif len(lim_params) == 1 and type(lim_params[0]) == dict:
                                 print(f'[INFO] variable {var}: computation of quantiles in different cones not yet implemented  for linear case')
                             else:
                                 raise ValueError(f'Unrecognised lim_params for {var} in quantile computation')
                         elif scaling_type == 'normal':
-                            if scaling_type != 'normal': continue # other scaling_type are already initialised with mean, std and lim_min/lim_max
                             constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
                             # NB: selection cut is applied, broadcasting with tau array (w/o cut) correctly handles the difference
                             var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
