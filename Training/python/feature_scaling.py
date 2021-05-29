@@ -47,8 +47,14 @@ if __name__ == '__main__':
     cone_selection_dict = setup_dict['cone_selection']
     #
     assert log_step > 0 and type(log_step) == int
-    assert len(file_range)==2 and file_range[0]<=file_range[1]
-    file_names = sorted(glob(file_path))[file_range[0]:file_range[1]]
+    if file_range==-1:
+        file_names = sorted(glob(file_path))
+        n_files = len(file_names)
+    elif type(file_range)==list and len(file_range)==2 and file_range[0]<=file_range[1]:
+        file_names = sorted(glob(file_path))[file_range[0]:file_range[1]]
+        n_files = file_range[1]-file_range[0]
+    else:
+        raise ValueError('Specified file_range is not valid: should be either -1 (run on all files in file_path) or range [a, b] with a<=b')
     #
     dR_tau_outer_cone = cone_definition_dict['outer']['dR']
     tau_pt_name, tau_eta_name, tau_phi_name = cone_selection_dict['TauFlat']['var_names']['pt'], cone_selection_dict['TauFlat']['var_names']['eta'], cone_selection_dict['TauFlat']['var_names']['phi']
@@ -57,9 +63,9 @@ if __name__ == '__main__':
     inner_cone_opening_coef = cone_definition_dict['inner']['opening_coef']
     #
     # initialise dictionaries to be filled
-    sums, sums2, counts, scaling_params, quantile_params = init_dictionaries(features_dict, cone_selection_dict, len(file_names))
+    sums, sums2, counts, scaling_params, quantile_params = init_dictionaries(features_dict, cone_selection_dict, n_files)
     #
-    print(f'\n[INFO] will process {len(file_names)} input files from {file_path}')
+    print(f'\n[INFO] will process {n_files} input files from {file_path}')
     print(f'[INFO] will dump scaling parameters to {scaling_params_json_prefix}_*.json after every {log_step} files')
     print('[INFO] starting to accumulate sums & counts:\n')
     #
@@ -68,8 +74,9 @@ if __name__ == '__main__':
     processed_last_file = time.time()
 
     # loop over input files
+    # TODO : make range here , sorting breaks order
     for file_i, file_name in enumerate(tqdm(file_names)):
-        log_scaling_params = not (file_i%log_step) or (file_i == len(file_names)-1)
+        log_scaling_params = not (file_i%log_step) or (file_i == n_files-1)
         with uproot.open(file_name, array_cache='5 GB') as f:
             if len(f.keys()) == 0: # some input ROOT files can be corrupted and uproot can't recover for it. These files are skipped in computations
                 print(f'[WARNING] couldn\'t find any object in {file_name}: skipping the file')
@@ -85,7 +92,6 @@ if __name__ == '__main__':
                         begin_var = time.time()
                         (var, (selection_cut, aliases, scaling_type, *lim_params)), = var_dict.items()
                         if scaling_type == 'linear':
-                            print('implement quantile stuff here')
                             if len(lim_params) == 2 and lim_params[0] <= lim_params[1]:
                                 var_array = tree.arrays(var, cut=selection_cut, aliases=aliases)[var]
                                 quantile_params[var_type][var]['global'][file_i] = get_quantiles(var_array)
@@ -116,7 +122,7 @@ if __name__ == '__main__':
         gc.collect()
         # snapshot scaling params into json if log_step is reached
         if log_scaling_params:
-            if file_i == len(file_names)-1:
+            if file_i == n_files-1:
                 scaling_params_json_name = scaling_params_json_prefix
             else:
                 scaling_params_json_name = f'{scaling_params_json_prefix}_log_{(file_i+1)//log_step}'
