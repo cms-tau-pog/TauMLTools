@@ -62,6 +62,9 @@ Histogram_2D::Histogram_2D(const char* name, std::vector<double>& xaxis, const d
 
 void Histogram_2D::add_y_binning_by_index(const int index, const std::vector<double> yaxis){
   std::string name = name_+std::to_string(index);
+  if(index >= xaxis_content_.size()){
+    std::runtime_error("Index "+std::to_string(index)+" out of x-axis range");
+  }
   xaxis_content_[index] = std::shared_ptr<TH1D>(new TH1D(name.c_str(), "", yaxis.size()-1, &yaxis[0]));
 }
 
@@ -82,8 +85,12 @@ bool Histogram_2D::can_be_imported(const TH2D& histo){
   std::vector<double> input_yaxis;
   std::vector<double> this_yaxis;
 
-  load_axis_into_vector(histo.GetXaxis(), input_xaxis);
-  load_axis_into_vector(histo.GetYaxis(), input_yaxis);
+  //load_axis_into_vector(histo.GetXaxis(), input_xaxis);
+  //load_axis_into_vector(histo.GetYaxis(), input_yaxis);
+  // WORKAROUND to switch x and y axes
+  std::cout << "WARNING from can_be_imported: x and y axes are switched!" << std::endl;
+  load_axis_into_vector(histo.GetYaxis(), input_xaxis);
+  load_axis_into_vector(histo.GetXaxis(), input_yaxis);
   
   if (!check_axis(input_xaxis, xaxis_)){
     std::cerr << "Invalid x-axis binning found" << std::endl;
@@ -114,8 +121,12 @@ void Histogram_2D::th2d_add (const TH2D& histo){
     throw std::invalid_argument("Given TH2D "+std::string(histo.GetName())+" can not be imported");
   }
   
-  auto input_yaxis = histo.GetYaxis();
-  auto input_xaxis = histo.GetXaxis();
+  //auto input_yaxis = histo.GetYaxis();
+  //auto input_xaxis = histo.GetXaxis();
+  // WORKAROUND to switch x and y axes
+  std::cout << "WARNING from th2d_add: x and y axes are switched!" << std::endl;
+  auto input_yaxis = histo.GetXaxis();
+  auto input_xaxis = histo.GetYaxis();
 
   for (int iy = 1; iy <= input_yaxis->GetNbins(); iy++){
   for (int ix = 1; ix <= input_xaxis->GetNbins(); ix++){
@@ -125,7 +136,9 @@ void Histogram_2D::th2d_add (const TH2D& histo){
     auto yhisto = xaxis_content_[find_bin_by_value_(bincx)];
     yhisto->SetBinContent(
       yhisto->FindBin(bincy), 
-      yhisto->GetBinContent(yhisto->FindBin(bincy)) + histo.GetBinContent(ix, iy));
+      //yhisto->GetBinContent(yhisto->FindBin(bincy)) + histo.GetBinContent(ix, iy));
+      // WORKAROUND to switch x and y axes
+      yhisto->GetBinContent(yhisto->FindBin(bincy)) + histo.GetBinContent(iy, ix));
   }}
 }
 
@@ -174,17 +187,26 @@ TH2D& Histogram_2D::get_weights_th2d(const char* name, const char* title){
 
   int nx = (xaxis_.back() - xaxis_.front()) / xwidthmin;
   int ny = (ymax_ - ymin_) / ywidthmin;
-  histo_ = std::shared_ptr<TH2D>(new TH2D(name, title, nx, xaxis_.front(), xaxis_.back(), ny, ymin_, ymax_));
+
+  //histo_ = std::shared_ptr<TH2D>(new TH2D(name, title, nx, xaxis_.front(), xaxis_.back(), ny, ymin_, ymax_));
+  // WORKAROUND to switch x and y axes
+  std::cout << "WARNING from get_weights_th2d: x and y axes are switched!" << std::endl;
+  histo_ = std::shared_ptr<TH2D>(new TH2D(name, title, ny, ymin_, ymax_, nx, xaxis_.front(), xaxis_.back()));
 
   for(int iy = 1; iy <= ny; iy++){
   for(int ix = 1; ix <= nx; ix++){
-    double bincx = histo_->GetXaxis()->GetBinCenter(ix);
-    double bincy = histo_->GetYaxis()->GetBinCenter(iy);
+    //double bincx = histo_->GetXaxis()->GetBinCenter(ix);
+    //double bincy = histo_->GetYaxis()->GetBinCenter(iy);
+    // WORKAROUND to switch x and y axess
+    double bincx = histo_->GetYaxis()->GetBinCenter(ix);
+    double bincy = histo_->GetXaxis()->GetBinCenter(iy);
 
     auto yhisto    = xaxis_content_[find_bin_by_value_(bincx)];
     double content = yhisto->GetBinContent(yhisto->FindBin(bincy));
 
-    histo_->SetBinContent(ix, iy, content);
+    //histo_->SetBinContent(ix, iy, content);
+    // WORKAROUND to switch x and y axess
+    histo_->SetBinContent(iy, ix, content);
   }}
 
   return *histo_;
