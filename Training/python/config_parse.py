@@ -55,6 +55,11 @@ def create_settings(input_file: str, verbose=False) -> str:
         for features in content["Features_all"]:
             number = len(content["Features_all"][features]) -  len(content["Features_disable"][features])
             string += "const inline size_t n_" + str(features) + " = " + str(number) + ";\n"
+
+        string += "const inline std::vector<std::string> CellObjectTypes {\"" + \
+                  "\",\"".join(content["CellObjectType"]) + \
+                  "\"};\n"
+        
         string += "};\n"
         return string
 
@@ -91,7 +96,7 @@ def create_settings(input_file: str, verbose=False) -> str:
         return string
 
     with open(input_file) as file:
-        data = yaml.load(file)
+        data = yaml.safe_load(file)
     settings  = create_namestruc(data)
     settings  += "\n".join([create_enum(k,data) for k in data["Features_all"]])
     settings += create_gridobjects(data)

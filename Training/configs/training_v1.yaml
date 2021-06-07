@@ -10,12 +10,9 @@ Setup:
     n_threads            :  1
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
-    input_dirs           : ["/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_v1/"]
-    file_name_pattern    : "^.*_(1|2|3).root$"
-    exclude_list         : ""
-    exclude_dir_list     : ""
     input_spectrum       : "<PATH_TO_SPECTRUM>/ShuffleSpectrum.root"
     target_spectrum      : "<PATH_TO_SPECTRUM>/ShuffleSpectrum.root"
+    input_dir            : "/nfs/dust/cms/user/mykytaua/dataDeepTau/ShuffleMergeSpectral_v1_test/"
     n_pt_bins            : 7
     pt_min               : 20.0
     pt_max               : 1000.0
@@ -23,6 +20,14 @@ Setup:
     eta_min              : 0.0
     eta_max              : 2.5
     weight_thr           : 100000.0
+
+    # NN setups
+    n_batches            : 200
+    n_batches_val        : 50
+    n_passes             : 10
+    validation_split     : 0.5
+    max_queue_size       : 10
+
 
 CellObjectType : [
                  PfCand_electron,
