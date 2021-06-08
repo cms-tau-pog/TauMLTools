@@ -24,11 +24,10 @@ Setup:
     eta_max              : 2.3
     weight_thr           : 100000.0
     # here define variables for the Histogram_2D class
-    xaxis_vec            : [0., 0.625, 1.25, 1.875, 2.5]
-    yaxis_list_vec       : [[20., 40., 60., 100., 1000.], [20., 60., 100., 1000.],
-                            [20., 100., 1000.]          , [20., 100., 1000.]     ]
-    ymin_val             : 20.0
-    ymax_val             : 1000.
+    xaxis                : [20, 40, 60, 100, 1000]
+    yaxis_list           : [[0., 0.625, 1.25, 1.875, 2.5], [0., 0.625, 1.25, 2.5],[0., 0.625, 2.5], [0., 0.625, 2.5]]
+    ymin                 : 0
+    ymax                 : 2.4
 
 CellObjectType : [
                  PfCand_electron,

@@ -16,7 +16,7 @@ void load_axis_into_vector(const TAxis* axis, std::vector<double>& vector);
 
 class Histogram_2D{
   public:
-    Histogram_2D(const char* name, std::vector<double>& xaxis, const double ymin, const double ymax);
+    Histogram_2D(const char* name, std::vector<double> xaxis, const double ymin, const double ymax);
     Histogram_2D(Histogram_2D& histo) = delete;
     ~Histogram_2D();
 
@@ -50,7 +50,7 @@ class Histogram_2D{
 Histogram_2D::~Histogram_2D(){
 }
 
-Histogram_2D::Histogram_2D(const char* name, std::vector<double>& xaxis, const double ymin, const double ymax){
+Histogram_2D::Histogram_2D(const char* name, std::vector<double> xaxis, const double ymin, const double ymax){
   xaxis_ = xaxis;
   for (std::vector<double>::iterator it = xaxis.begin(); it != std::prev(xaxis.end()); it++){
     xaxis_content_.push_back(std::make_shared<TH1D>());

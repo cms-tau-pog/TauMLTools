@@ -148,8 +148,7 @@ public:
         outerCellGridRef(n_outer_cells, n_outer_cells, outer_cell_size, outer_cell_size),
         input_files(FindInputFiles(input_dirs,file_name_pattern,
                                    exclude_list, exclude_dir_list)),
-        hasData(false),
-        xaxis(xaxis_vec), yaxis_list(yaxis_list_vec), ymin(ymin_val), ymax(ymax_val)
+        hasData(false)
     {
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
 
@@ -843,11 +842,6 @@ private:
   const std::vector<std::string> input_files;
 
   bool hasData;
-
-  std::vector<double> xaxis;
-  std::vector<std::vector<double>> yaxis_list;
-  Double_t ymin;
-  Double_t ymax;
 
   // std::shared_ptr<TFile> file; // to open with one file
   std::shared_ptr<TauTuple> tauTuple;
