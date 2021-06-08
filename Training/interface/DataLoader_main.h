@@ -174,15 +174,15 @@ public:
           input_histogram .add_y_binning_by_index(i, yaxis_list[i]);
       }
 
-      auto target_th2d = dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau"));
+      std::shared_ptr<TH2D> target_th2d = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
       if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
       
       for( auto const& [tau_type, tau_name] : tau_types_names)
       {
-        auto input_th2d  = dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str()));
+        std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
         if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+tau_name);
-        target_histogram.th2d_add(*target_th2d);
-        input_histogram .th2d_add(*input_th2d );
+        target_histogram.th2d_add(*(target_th2d.get()));
+        input_histogram .th2d_add(*(input_th2d .get()));
 
         target_histogram.divide(input_histogram);
         hist_weights[tau_type] = std::make_shared<TH2D>(target_histogram.get_weights_th2d(
