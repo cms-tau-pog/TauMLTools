@@ -111,8 +111,9 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
                 elif len(lim_params) == 1:
                     cone_dict = lim_params[0]
                     assert type(cone_dict) == dict
-                    for cone_type, cone_lim_params in cone_dict.items():
-                        assert cone_type in cone_selection_dict[var_type]['cone_types']
+                    for cone_type in cone_selection_dict[var_type]['cone_types']:
+                        assert cone_type in cone_dict # constrain only to those cone_types in cfg
+                        cone_lim_params = cone_dict[cone_type]
                         assert len(cone_lim_params)==2 and cone_lim_params[0]<=cone_lim_params[1]
                         scaling_params[var_type][var][cone_type] = {"mean": (cone_lim_params[0]+cone_lim_params[1])/2.,
                                                                     "std": (cone_lim_params[1]-cone_lim_params[0])/2., "lim_min": -1., "lim_max": 1.}
@@ -223,6 +224,25 @@ def get_quantiles(var_array):
     quantile_dict['3sigma'] = {side: float(np.quantile(var_array, norm.cdf(sigma_side), interpolation='linear')) for side, sigma_side in zip(['left', 'right'], [-3, 3])}
     quantile_dict['5sigma'] = {side: float(np.quantile(var_array, norm.cdf(sigma_side), interpolation='linear')) for side, sigma_side in zip(['left', 'right'], [-5, 5])}
     return quantile_dict
+
+def mask_inf(var_array, var_name=None, var_inf_counter=None):
+    """
+    Mask inf values in `var_array` with None. If var_inf_counter is passed, append there inplace for a given `var_name` the fraction of its inf values.
+
+    Arguments:
+        - var_array: awkward array, values of a given feature for a given set of taus
+        - var_name (optional, default=None): string, variable name
+        - var_inf_counter (optional, default=None): defaultdict(list), stores fraction of inf values for variables
+
+    Returns
+        var_array witn masked infs values to None
+    """
+    if np.sum(np.isinf(var_array)) > 0:
+        is_inf_mask = np.isinf(var_array)
+        var_array = ak.mask(var_array, is_inf_mask, valid_when=False)
+        if var_inf_counter is not None:
+            var_inf_counter[var_name].append(np.sum(is_inf_mask) / ak.count(var_array))
+    return var_array
 
 def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
                      var, var_type, file_i, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,

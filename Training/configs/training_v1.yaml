@@ -213,7 +213,7 @@ Features_all :
                 - pfCand_ele_valid: [*is_pfElectron, null, "no_scaling"]
                 - pfCand_ele_rel_pt: [*is_pfElectron, {"pfCand_ele_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
                 - pfCand_ele_deta: [*is_pfElectron, {"pfCand_ele_deta": "pfCand_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
-                - pfCand_ele_dphi: [*is_pfElectron, {"pfCand_ele_dphi": "pfCand_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: can't bring dphi values to [-pi,pi] on the fly
+                - pfCand_ele_dphi: [*is_pfElectron, {"pfCand_ele_dphi": "pfCand_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
                 - pfCand_ele_pvAssociationQuality: [*is_pfElectron, {"pfCand_ele_pvAssociationQuality": "pfCand_pvAssociationQuality"}, "linear", 0, 7]
                 - pfCand_ele_puppiWeight: [*is_pfElectron, null, "no_scaling"]
                 - pfCand_ele_charge: [*is_pfElectron, null, "no_scaling"]
@@ -237,7 +237,7 @@ Features_all :
               - pfCand_muon_valid: [*is_pfMuon, null, "no_scaling"]
               - pfCand_muon_rel_pt: [*is_pfMuon, {"pfCand_muon_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
               - pfCand_muon_deta: [*is_pfMuon, {"pfCand_muon_deta": "pfCand_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
-              - pfCand_muon_dphi: [*is_pfMuon, {"pfCand_muon_dphi": "pfCand_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: can't bring dphi values to [-pi,pi] on the fly
+              - pfCand_muon_dphi: [*is_pfMuon, {"pfCand_muon_dphi": "pfCand_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
               - pfCand_muon_pvAssociationQuality: [*is_pfMuon, {"pfCand_muon_pvAssociationQuality": "pfCand_pvAssociationQuality"}, "linear", 0, 7]
               - pfCand_muon_fromPV: [*is_pfMuon, {"pfCand_muon_fromPV": "pfCand_fromPV"}, "linear", 0, 3]
               - pfCand_muon_puppiWeight: [*is_pfMuon, null, "no_scaling"]
@@ -291,7 +291,7 @@ Features_all :
               - pfCand_nHad_valid: [*is_neutralHadron, null, "no_scaling"]
               - pfCand_nHad_rel_pt: [*is_neutralHadron, {"pfCand_nHad_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
               - pfCand_nHad_deta: [*is_neutralHadron, {"pfCand_nHad_deta": "pfCand_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
-              - pfCand_nHad_dphi: [*is_neutralHadron, {"pfCand_nHad_dphi": "pfCand_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: can't bring dphi values to [-pi,pi] on the fly
+              - pfCand_nHad_dphi: [*is_neutralHadron, {"pfCand_nHad_dphi": "pfCand_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
               - pfCand_nHad_puppiWeight: [*is_neutralHadron, null, "no_scaling"]
               - pfCand_nHad_puppiWeightNoLep: [*is_neutralHadron, null, "no_scaling"]
               - pfCand_nHad_hcalFraction: [*is_neutralHadron, null, "no_scaling"]
@@ -300,7 +300,7 @@ Features_all :
               - pfCand_gamma_valid: [*is_pfGamma, null, "no_scaling"]
               - pfCand_gamma_rel_pt: [*is_pfGamma, {"pfCand_gamma_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
               - pfCand_gamma_deta: [*is_pfGamma, {"pfCand_gamma_deta": "pfCand_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
-              - pfCand_gamma_dphi: [*is_pfGamma, {"pfCand_gamma_dphi": "pfCand_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: can't bring dphi values to [-pi,pi] on the fly
+              - pfCand_gamma_dphi: [*is_pfGamma, {"pfCand_gamma_dphi": "pfCand_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
               - pfCand_gamma_pvAssociationQuality: [*is_pfGamma, {"pfCand_gamma_pvAssociationQuality": "pfCand_pvAssociationQuality"}, "linear", 0, 7]
               - pfCand_gamma_fromPV: [*is_pfGamma, {"pfCand_gamma_fromPV": "pfCand_fromPV"}, "linear", 0, 3]
               - pfCand_gamma_puppiWeight: [*is_pfGamma, null, "no_scaling"]
@@ -325,7 +325,7 @@ Features_all :
               - ele_valid: [null, null, "no_scaling"]
               - ele_rel_pt: [null, {"ele_rel_pt": "ele_pt/tau_pt"}, "normal", -5, 5]
               - ele_deta: [null, {"ele_deta": "ele_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
-              - ele_dphi: [null, {"ele_dphi": "ele_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: can't bring dphi values to [-pi,pi] on the fly
+              - ele_dphi: [null, {"ele_dphi": "ele_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
               - ele_cc_valid: [null, null, "no_scaling"]
               - ele_cc_ele_rel_energy: [*ele_cc_valid, {"ele_cc_ele_rel_energy": "ele_cc_ele_energy/ele_pt"}, "normal", -5, 5]
               - ele_cc_gamma_rel_energy: [*ele_cc_valid, {"ele_cc_gamma_rel_energy": "ele_cc_gamma_energy/ele_cc_ele_energy"}, "normal", -5, 5]
@@ -364,7 +364,7 @@ Features_all :
               - muon_valid: [null, null, "no_scaling"]
               - muon_rel_pt: [null, {"muon_rel_pt": "muon_pt/tau_pt"}, "normal", -5, 5]
               - muon_deta: [null, {"muon_deta": "muon_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
-              - muon_dphi: [null, {"muon_dphi": "muon_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: can't bring dphi values to [-pi,pi] on the fly
+              - muon_dphi: [null, {"muon_dphi": "muon_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
               - muon_dxy: [null, null, "normal", -5, 5]
               - muon_dxy_sig: [null, {"muon_dxy_sig": "abs(muon_dxy)/muon_dxy_error"}, "normal", -5, 5]
               - muon_normalizedChi2_valid: [null, null, "no_scaling"]

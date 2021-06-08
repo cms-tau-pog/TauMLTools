@@ -12,7 +12,7 @@ from glob import glob
 from tqdm import tqdm
 from collections import defaultdict
 
-from scaling_utils import Phi_mpi_pi, dR, dR_signal_cone, compute_mean, compute_std, fill_aggregators, get_quantiles
+from scaling_utils import Phi_mpi_pi, dR, dR_signal_cone, compute_mean, compute_std, mask_inf, fill_aggregators, get_quantiles
 from scaling_utils import nested_dict, init_dictionaries, dump_to_json
 
 if __name__ == '__main__':
@@ -67,6 +67,7 @@ if __name__ == '__main__':
     #
     print(f'\n[INFO] will process {n_files} input files from {file_path}')
     print(f'[INFO] will dump scaling parameters to {scaling_params_json_prefix}_*.json after every {log_step} files')
+    print(f'[INFO] will dump quantile parameters to {quantile_params_json_prefix}_*.json for every file')
     print('[INFO] starting to accumulate sums & counts:\n')
     #
     skip_counter = 0 # counter of files which were skipped during processing
@@ -92,25 +93,35 @@ if __name__ == '__main__':
                         begin_var = time.time()
                         (var, (selection_cut, aliases, scaling_type, *lim_params)), = var_dict.items()
                         if scaling_type == 'linear':
-                            # dict with scaling params already filled with init_dictionaries(), here compute only variable's quantiles
+                            # dict with scaling params already fully filled after init_dictionaries() call, here compute only variable's quantiles
                             if len(lim_params) == 2 and lim_params[0] <= lim_params[1]:
                                 var_array = tree.arrays(var, cut=selection_cut, aliases=aliases)[var]
-                                if np.sum(np.isinf(var_array)) > 0:
-                                    is_inf_mask = np.isinf(var_array)
-                                    var_array = ak.mask(var_array, is_inf_mask, valid_when=False) # mask inf values with None
+                                var_array = mask_inf(var_array, var, inf_counter)
                                 quantile_params[var_type][var]['global'][file_i] = get_quantiles(var_array)
+                                del(var_array)
                             elif len(lim_params) == 1 and type(lim_params[0]) == dict:
-                                print(f'[INFO] variable {var}: computation of quantiles in different cones not yet implemented  for linear case')
+                                constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
+                                var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
+                                var_array = mask_inf(var_array, var, inf_counter)
+                                dR_tau_signal_cone = dR_signal_cone(tau_pt_array, inner_cone_min_pt, inner_cone_min_radius, inner_cone_opening_coef)
+                                for cone_type in cone_selection_dict[var_type]['cone_types']:
+                                    assert cone_type in lim_params[0].keys() # constrain only to those cone_types in cfg
+                                    constituent_dR = dR(tau_eta_array - constituent_eta_array, tau_phi_array - constituent_phi_array)
+                                    if cone_type == 'inner':
+                                        cone_mask = constituent_dR <= dR_tau_signal_cone
+                                    elif cone_type == 'outer':
+                                        cone_mask = (constituent_dR > dR_tau_signal_cone) & (constituent_dR < dR_tau_outer_cone)
+                                    else:
+                                        raise ValueError(f'For {var} cone_type should be either inner or outer, got {cone_type}.')
+                                    quantile_params[var_type][var][cone_type][file_i] = get_quantiles(var_array[cone_mask])
+                                del(constituent_eta_array, constituent_phi_array, var_array)
                             else:
                                 raise ValueError(f'Unrecognised lim_params for {var} in quantile computation')
                         elif scaling_type == 'normal':
                             constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
-                            # NB: selection cut is applied, broadcasting with tau array (w/o cut) correctly handles the difference
+                            # NB: selection cut is applied, broadcasting with tau array (w/o cut) should correctly handle the difference
                             var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
-                            if np.sum(np.isinf(var_array)) > 0:
-                                is_inf_mask = np.isinf(var_array)
-                                inf_counter[var].append(np.sum(is_inf_mask) / ak.count(var_array))
-                                var_array = ak.mask(var_array, is_inf_mask, valid_when=False) # mask inf values with None
+                            var_array = mask_inf(var_array, var, inf_counter)
                             dR_tau_signal_cone = dR_signal_cone(tau_pt_array, inner_cone_min_pt, inner_cone_min_radius, inner_cone_opening_coef)
                             # loop over cone types specified for a given var_type in the cfg file
                             for cone_type in cone_selection_dict[var_type]['cone_types']:
