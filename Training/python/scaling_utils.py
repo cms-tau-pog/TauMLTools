@@ -98,7 +98,7 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
         for var_dict in features_dict[var_type]:
             assert len(var_dict) == 1
             (var, (_, _, scaling_type, *lim_params)), = var_dict.items()
-            if scaling_type == 'no_scaling':
+            if scaling_type=='no_scaling' or scaling_type=='categorical':
                 scaling_params[var_type][var]['global'] = {"mean": 0, "std": 1, "lim_min": "-inf", "lim_max": "inf"}
                 quantile_params[var_type][var]['global'] = {}
             elif scaling_type == 'linear':
@@ -154,7 +154,7 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
                         sums2[var_type][var] = np.zeros(n_files, dtype='float64')
                         counts[var_type][var] = np.zeros(n_files, dtype='int64')
             else:
-                raise ValueError(f"In variable {var}: scaling_type should be either no_scaling, or linear, or normal")
+                raise ValueError(f"In variable {var}: scaling_type should be one of [no_scaling, categorical, linear, normal]")
     return sums, sums2, counts, scaling_params, quantile_params
 
 def compute_mean(sums, counts, aggregate=True, *file_range):

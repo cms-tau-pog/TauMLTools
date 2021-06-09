@@ -94,7 +94,7 @@ if __name__ == '__main__':
             assert len(var_dict.keys()) == 1
             var_name = list(var_dict.keys())[0]
             var_scaling_type = var_dict[var_name][2]
-            if var_scaling_type == 'no_scaling':
+            if var_scaling_type=='no_scaling' or var_scaling_type=='categorical':
                 continue
             for cone_type in scaling_params[var_type][var_name]: # loop over cone types for which scaling params were computed
                 ### fetch variable's quantile and scaling dictionaries
