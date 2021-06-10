@@ -141,10 +141,10 @@ if __name__ == '__main__':
             else:
                 scaling_params_json_name = f'{scaling_params_json_prefix}_log_{(file_i+1)//log_step}'
             dump_to_json({scaling_params_json_name: scaling_params})
+        dump_to_json({f'{quantile_params_json_prefix}_fid_{file_i}': quantile_params})
         processed_current_file = time.time()
         # print(f'---> processed {file_name} in {processed_current_file - processed_last_file:.2f} s')
         processed_last_file = processed_current_file
-    dump_to_json({quantile_params_json_prefix: quantile_params})
     print()
     if skip_counter > 0:
         print(f'[WARNING] during the processing {skip_counter} files with no objects were skipped\n')
