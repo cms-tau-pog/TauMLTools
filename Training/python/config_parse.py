@@ -55,6 +55,11 @@ def create_settings(input_file: str, verbose=False) -> str:
         for features in content["Features_all"]:
             number = len(content["Features_all"][features]) -  len(content["Features_disable"][features])
             string += "const inline size_t n_" + str(features) + " = " + str(number) + ";\n"
+
+        string += "const inline std::vector<std::string> CellObjectTypes {\"" + \
+                  "\",\"".join(content["CellObjectType"]) + \
+                  "\"};\n"
+
         string += "};\n"
         return string
 
@@ -95,7 +100,7 @@ def create_settings(input_file: str, verbose=False) -> str:
         return string
 
     with open(input_file) as file:
-        data = yaml.load(file)
+        data = yaml.safe_load(file)
     settings  = create_namestruc(data)
     settings  += "\n".join([create_enum(k,data) for k in data["Features_all"]])
     settings += create_gridobjects(data)
@@ -167,7 +172,7 @@ def create_scaling_input(input_scaling_file: str, input_cfg_file: str, verbose=F
     with open(input_scaling_file) as scaling_file:
         scaling_data = json.load(scaling_file)
     with open(input_cfg_file) as cfg_file:
-        cfg_data = yaml.load(cfg_file)
+        cfg_data = yaml.safe_load(cfg_file)
     settings  = create_scaling(scaling_data, cfg_data)
     if verbose:
         print(settings)
