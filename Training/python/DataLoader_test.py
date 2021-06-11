@@ -10,7 +10,7 @@ from glob import glob
 R.gROOT.ProcessLine(".include ../../..")
 
 print("Compiling Setup classes...")
-R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_v0.json", "../configs/training_v1.yaml", verbose=False))
+R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_v1.json", "../configs/training_v1.yaml", verbose=False))
 R.gInterpreter.Declare(config_parse.create_settings("../configs/training_v1.yaml", verbose=False))
 
 print("Compiling DataLoader_main...")
