@@ -9,6 +9,8 @@
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 
+#include "DataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
+#include "DataFormats/L1Trigger/interface/Tau.h"
 #include "DataFormats/PatCandidates/interface/Electron.h"
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/PatCandidates/interface/Tau.h"
@@ -18,7 +20,6 @@
 #include "DataFormats/TrackReco/interface/HitPattern.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
-#include "SimDataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
 
 #include "AnalysisDataFormats/TopObjects/interface/TtGenEvent.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
@@ -121,12 +122,16 @@ private:
 
 class TauTupleProducer : public edm::EDAnalyzer {
 public:
+    using TauJet = TauJetT<pat::PackedCandidate, pat::Tau, pat::Jet, pat::Electron, pat::Muon, pat::IsolatedTrack,
+                           pat::PackedCandidate, l1t::Tau>;
+
     TauTupleProducer(const edm::ParameterSet& cfg) :
         isMC(cfg.getParameter<bool>("isMC")),
         isEmbedded(cfg.getParameter<bool>("isEmbedded")),
         requireGenMatch(cfg.getParameter<bool>("requireGenMatch")),
         requireGenORRecoTauMatch(cfg.getParameter<bool>("requireGenORRecoTauMatch")),
         applyRecoPtSieve(cfg.getParameter<bool>("applyRecoPtSieve")),
+        builderSetup(TauJetBuilderSetup::fromPSet(cfg.getParameterSet("tauJetBuilderSetup"))),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
         genParticles_token(mayConsume<reco::GenParticleCollection>(cfg.getParameter<edm::InputTag>("genParticles"))),
         genJets_token(mayConsume<reco::GenJetCollection>(cfg.getParameter<edm::InputTag>("genJets"))),
@@ -148,37 +153,6 @@ public:
         tauTuple(data->tauTuple),
         summaryTuple(data->summaryTuple)
     {
-        const std::map<std::string, double*> builderParamNames = {
-            { "genLepton_genJet_dR", &builderSetup.genLepton_genJet_dR },
-            { "genLepton_tau_dR", &builderSetup.genLepton_tau_dR },
-            { "genLepton_boostedTau_dR", &builderSetup.genLepton_boostedTau_dR },
-            { "genLepton_jet_dR", &builderSetup.genLepton_jet_dR },
-            { "genLepton_fatJet_dR", &builderSetup.genLepton_fatJet_dR },
-            { "genJet_tau_dR", &builderSetup.genJet_tau_dR },
-            { "genJet_boostedTau_dR", &builderSetup.genJet_boostedTau_dR },
-            { "genJet_jet_dR", &builderSetup.genJet_jet_dR },
-            { "genJet_fatJet_dR", &builderSetup.genJet_fatJet_dR },
-            { "tau_boostedTau_dR", &builderSetup.tau_boostedTau_dR },
-            { "tau_jet_dR", &builderSetup.tau_jet_dR },
-            { "tau_fatJet_dR", &builderSetup.tau_fatJet_dR },
-            { "jet_fatJet_dR", &builderSetup.jet_fatJet_dR },
-            { "jet_maxAbsEta", &builderSetup.jet_maxAbsEta },
-            { "fatJet_maxAbsEta", &builderSetup.fatJet_maxAbsEta },
-            { "genLepton_cone", &builderSetup.genLepton_cone },
-            { "genJet_cone", &builderSetup.genJet_cone },
-            { "tau_cone", &builderSetup.tau_cone },
-            { "boostedTau_cone", &builderSetup.boostedTau_cone },
-            { "jet_cone", &builderSetup.jet_cone },
-            { "fatJet_cone", &builderSetup.fatJet_cone },
-        };
-        const auto& builderParams = cfg.getParameterSet("tauJetBuilderSetup");
-        for(const auto& paramName : builderParams.getParameterNames()) {
-            auto iter = builderParamNames.find(paramName);
-            if(iter == builderParamNames.end())
-                throw cms::Exception("TauTupleProducer") << "Unknown parameter '" << paramName <<
-                                                            "' in tauJetBuilderSetup.";
-            *iter->second = builderParams.getParameter<double>(paramName);
-        }
     }
 
 private:
@@ -267,9 +241,9 @@ private:
         auto genJets = hGenJets.isValid() ? hGenJets.product() : nullptr;
         auto genJetFlavourInfos = hGenJetFlavourInfos.isValid() ? hGenJetFlavourInfos.product() : nullptr;
 
-        TauJetBuilder builder(builderSetup, *taus, *boostedTaus, *jets, *fatJets, *cands, *electrons, *muons,
-                              *isoTracks, *lostTracks, genParticles, genJets, requireGenMatch,
-                              requireGenORRecoTauMatch, applyRecoPtSieve);
+        TauJetBuilder<TauJet> builder(builderSetup, &*taus, &*boostedTaus, &*jets, &*fatJets, &*cands, &*electrons,
+                                      &*muons, &*isoTracks, &*lostTracks, nullptr, genParticles, genJets,
+                                      requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve);
         const auto& tauJets = builder.GetTauJets();
         tauTuple().total_entries = static_cast<int>(tauJets.size());
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {
@@ -550,7 +524,7 @@ private:
             tauTuple.get<std::vector<decltype(value)>>(prefix + name).push_back(value);
         };
 
-        for(const PFCandDesc& cand_desc : cands) {
+        for(const auto& cand_desc : cands) {
             const pat::PackedCandidate* cand = cand_desc.candidate;
 
             push_back("index", cand_desc.index);
