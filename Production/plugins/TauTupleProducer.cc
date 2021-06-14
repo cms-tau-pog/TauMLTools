@@ -122,8 +122,8 @@ private:
 
 class TauTupleProducer : public edm::EDAnalyzer {
 public:
-    using TauJet = TauJetT<pat::PackedCandidate, pat::Tau, pat::Jet, pat::Electron, pat::Muon, pat::IsolatedTrack,
-                           pat::PackedCandidate, l1t::Tau>;
+    using TauJet = TauJetT<pat::PackedCandidate, pat::Tau, pat::Tau, pat::Jet, pat::Jet, pat::Electron, pat::Muon,
+                           pat::IsolatedTrack, pat::PackedCandidate, l1t::Tau>;
 
     TauTupleProducer(const edm::ParameterSet& cfg) :
         isMC(cfg.getParameter<bool>("isMC")),
@@ -186,7 +186,7 @@ private:
 
             edm::Handle<std::vector<PileupSummaryInfo>> puInfo;
             event.getByToken(puInfo_token, puInfo);
-            tauTuple().npu = gen_truth::GetNumberOfPileUpInteractions(puInfo);
+            tauTuple().npu = gen_truth::GetNumberOfPileUpInteractions(*puInfo);
         }
 
         const auto& PV = vertices->at(0);

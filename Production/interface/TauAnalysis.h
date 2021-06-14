@@ -45,6 +45,12 @@ double CalculateDeltaEtaCrack(double eta);
 
 // Based on https://github.com/cms-sw/cmssw/blob/CMSSW_9_4_X/RecoTauTag/RecoTau/plugins/PATTauDiscriminationByMVAIsolationRun2.cc#L218
 bool CalculateGottfriedJacksonAngleDifference(const pat::Tau& tau, double& gj_diff);
-
+bool CalculateGottfriedJacksonAngleDifference(const reco::PFTau& tau,
+                                              const reco::PFTauTransverseImpactParameter& tau_transverse_ip,
+                                              double& gj_diff);
+bool CalculateGottfriedJacksonAngleDifference(bool hasSecondaryVertex,
+                                              const reco::Candidate::LorentzVector& tau_p4,
+                                              const reco::PFTauTransverseImpactParameter::Vector& tau_flightLength,
+                                              double& gj_diff);
 
 } // namespace tau_analysis

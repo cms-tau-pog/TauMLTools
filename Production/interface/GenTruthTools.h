@@ -64,7 +64,7 @@ LeptonMatchResult LeptonGenMatch(const LorentzVectorM& p4, const GenParticleColl
 
 QcdMatchResult QcdGenMatch(const LorentzVectorM& p4, const GenParticleCollection& genParticles);
 
-float GetNumberOfPileUpInteractions(edm::Handle<std::vector<PileupSummaryInfo>>& pu_infos);
+float GetNumberOfPileUpInteractions(const std::vector<PileupSummaryInfo>& pu_infos);
 
 } // namespace gen_truth
 } // namespace analysis

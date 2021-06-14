@@ -241,15 +241,13 @@ QcdMatchResult QcdGenMatch(const LorentzVectorM& p4, const GenParticleCollection
     return result;
 }
 
-float GetNumberOfPileUpInteractions(edm::Handle<std::vector<PileupSummaryInfo>>& pu_infos)
+float GetNumberOfPileUpInteractions(const std::vector<PileupSummaryInfo>& pu_infos)
 {
-    if(pu_infos.isValid()) {
-        for(const PileupSummaryInfo& pu : *pu_infos) {
-            if(pu.getBunchCrossing() == 0)
-                return pu.getTrueNumInteractions();
-        }
+    for(const PileupSummaryInfo& pu : pu_infos) {
+        if(pu.getBunchCrossing() == 0)
+            return pu.getTrueNumInteractions();
     }
-    return std::numeric_limits<float>::lowest();
+    throw std::runtime_error("TrueNumInteractions for bunchCrossing=0 is not found.");
 }
 
 } // namespace gen_truth

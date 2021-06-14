@@ -46,12 +46,14 @@ struct ObjPtr {
     }
 };
 
-template<typename _PFCand, typename _Tau, typename _Jet, typename _Electron, typename _Muon, typename _IsoTrack,
-         typename _LostTrack, typename _L1Tau>
+template<typename _PFCand, typename _Tau, typename _BoostedTau, typename _Jet, typename _FatJet, typename _Electron,
+         typename _Muon, typename _IsoTrack, typename _LostTrack, typename _L1Tau>
 struct TauJetT {
     using PFCand = _PFCand;
     using Tau = _Tau;
+    using BoostedTau = _BoostedTau;
     using Jet = _Jet;
+    using FatJet = _FatJet;
     using Electron = _Electron;
     using Muon = _Muon;
     using IsoTrack = _IsoTrack;
@@ -66,9 +68,9 @@ struct TauJetT {
     ObjPtr<reco_tau::gen_truth::GenLepton> genLepton;
     ObjPtr<const reco::GenJet> genJet;
     ObjPtr<const Tau> tau;
-    ObjPtr<const Tau> boostedTau;
+    ObjPtr<const BoostedTau> boostedTau;
     ObjPtr<const Jet> jet;
-    ObjPtr<const Jet> fatJet;
+    ObjPtr<const FatJet> fatJet;
     ObjPtr<const L1Tau> l1Tau;
 
     PFCandCollection cands;
@@ -131,14 +133,18 @@ public:
     using TauJet = _TauJet;
     using PFCand = typename TauJet::PFCand;
     using Tau = typename TauJet::Tau;
+    using BoostedTau = typename TauJet::BoostedTau;
     using Jet = typename TauJet::Jet;
+    using FatJet = typename TauJet::FatJet;
     using Electron = typename TauJet::Electron;
     using Muon = typename TauJet::Muon;
     using IsoTrack = typename TauJet::IsoTrack;
     using LostTrack = typename TauJet::LostTrack;
     using L1Tau = typename TauJet::L1Tau;
     using TauCollection = std::vector<Tau>;
+    using BoostedTauCollection = std::vector<BoostedTau>;
     using JetCollection = std::vector<Jet>;
+    using FatJetCollection = std::vector<FatJet>;
     using PFCandCollection = std::vector<PFCand>;
     using ElectronCollection = std::vector<Electron>;
     using MuonCollection = std::vector<Muon>;
@@ -146,8 +152,8 @@ public:
     using LostTrackCollection = std::vector<LostTrack>;
     using L1TauCollection = std::vector<L1Tau>;
 
-    TauJetBuilder(const TauJetBuilderSetup& setup, const TauCollection* taus, const TauCollection* boostedTaus,
-                  const JetCollection* jets, const JetCollection* fatJets, const PFCandCollection* cands,
+    TauJetBuilder(const TauJetBuilderSetup& setup, const TauCollection* taus, const BoostedTauCollection* boostedTaus,
+                  const JetCollection* jets, const FatJetCollection* fatJets, const PFCandCollection* cands,
                   const ElectronCollection* electrons, const MuonCollection* muons,
                   const IsoTrackCollection* isoTracks, const LostTrackCollection* lostTracks,
                   const L1TauCollection* l1Taus, const reco::GenParticleCollection* genParticles,
@@ -170,52 +176,56 @@ public:
     const std::vector<reco_tau::gen_truth::GenLepton>& GetGenLeptons() const { return genLeptons_; }
 
 private:
-    static bool IsTauSignalCand(const Tau& tau, const PFCand& cand)
+    template<typename TauType>
+    static bool IsTauSignalCand(const TauType& tau, const PFCand& cand)
     {
         for(const auto& signalCandBase : tau.signalCands()) {
-            auto signalCand = dynamic_cast<const pat::PackedCandidate*>(signalCandBase.get());
+            auto signalCand = dynamic_cast<const PFCand*>(signalCandBase.get());
             if(signalCand == &cand)
                 return true;
         }
         return false;
     }
 
-    static bool IsTauIsoCand(const Tau& tau, const PFCand& cand)
+    template<typename TauType>
+    static bool IsTauIsoCand(const TauType& tau, const PFCand& cand)
     {
         for(const auto& isoCandBase : tau.isolationCands()) {
-            auto isoCand = dynamic_cast<const pat::PackedCandidate*>(isoCandBase.get());
+            auto isoCand = dynamic_cast<const PFCand*>(isoCandBase.get());
             if(isoCand == &cand)
                 return true;
         }
         return false;
     }
 
-    static bool IsLeadChargedHadrCand(const Tau& tau, const PFCand& cand)
+    template<typename TauType>
+    static bool IsLeadChargedHadrCand(const TauType& tau, const PFCand& cand)
     {
-        auto leadChargedHadrCand = dynamic_cast<const pat::PackedCandidate*>(tau.leadChargedHadrCand().get());
+        auto leadChargedHadrCand = dynamic_cast<const PFCand*>(tau.leadChargedHadrCand().get());
         return leadChargedHadrCand == &cand;
     }
 
-    static bool IsJetDaughter(const Jet& jet, const PFCand& cand)
+    template<typename JetType>
+    static bool IsJetDaughter(const JetType& jet, const PFCand& cand)
     {
         const size_t nDaughters = jet.numberOfDaughters();
         for(size_t n = 0; n < nDaughters; ++n) {
             const auto& daughter = jet.daughterPtr(n);
-            auto jetCand = dynamic_cast<const pat::PackedCandidate*>(daughter.get());
+            auto jetCand = dynamic_cast<const PFCand*>(daughter.get());
             if(jetCand == &cand)
                 return true;
         }
         return false;
     }
 
-    static int GetMatchedSubJetIndex(const Jet& fatJet, const PFCand& cand)
+    static int GetMatchedSubJetIndex(const FatJet& fatJet, const PFCand& cand)
     {
         static const std::string subjetCollection = "SoftDropPuppi";
         if(fatJet.hasSubjets(subjetCollection)) {
             const auto& subJets = fatJet.subjets(subjetCollection);
             for(size_t n = 0; n < subJets.size(); ++n) {
                 const auto& subJet = subJets.at(n);
-                if(IsJetDaughter(subJet, cand))
+                if(IsJetDaughter(*subJet, cand))
                     return static_cast<int>(n);
             }
         }
@@ -287,11 +297,11 @@ private:
                   setup_.genLepton_genJet_dR);
         BuildStep(taus_, [](TauJet& tauJet) -> ObjPtr<const Tau>& { return tauJet.tau; }, false,
                   setup_.genLepton_tau_dR, setup_.genJet_tau_dR);
-        BuildStep(boostedTaus_, [](TauJet& tauJet) -> ObjPtr<const Tau>& { return tauJet.boostedTau; }, false,
+        BuildStep(boostedTaus_, [](TauJet& tauJet) -> ObjPtr<const BoostedTau>& { return tauJet.boostedTau; }, false,
                   setup_.genLepton_boostedTau_dR, setup_.genJet_boostedTau_dR, setup_.tau_boostedTau_dR);
         BuildStep(jets_, [](TauJet& tauJet) -> ObjPtr<const Jet>& { return tauJet.jet; }, false,
                   setup_.genLepton_jet_dR, setup_.genJet_jet_dR, setup_.tau_jet_dR, setup_.boostedTau_jet_dR);
-        BuildStep(fatJets_, [](TauJet& tauJet) -> ObjPtr<const Jet>& { return tauJet.fatJet; }, false,
+        BuildStep(fatJets_, [](TauJet& tauJet) -> ObjPtr<const FatJet>& { return tauJet.fatJet; }, false,
                   setup_.genLepton_fatJet_dR, setup_.genJet_fatJet_dR, setup_.tau_fatJet_dR,
                   setup_.boostedTau_fatJet_dR, setup_.jet_fatJet_dR);
         BuildStep(l1Taus_, [](TauJet& tauJet) -> ObjPtr<const L1Tau>& { return tauJet.l1Tau; }, false,
@@ -384,7 +394,7 @@ private:
                 for(size_t pfCandIndex = 0; pfCandIndex < lostTracks_->size(); ++pfCandIndex) {
                     const auto& pfCand = lostTracks_->at(pfCandIndex);
                     if(!hasMatch(pfCand.polarP4())) continue;
-                    PFCandDesc<PFCand> pfCandDesc;
+                    PFCandDesc<LostTrack> pfCandDesc;
                     pfCandDesc.candidate = &pfCand;
                     pfCandDesc.index = static_cast<int>(pfCandIndex);
                     tauJet.lostTracks.push_back(pfCandDesc);
@@ -400,9 +410,9 @@ private:
 private:
     const TauJetBuilderSetup setup_;
     const TauCollection* taus_;
-    const TauCollection* boostedTaus_;
+    const BoostedTauCollection* boostedTaus_;
     const JetCollection* jets_;
-    const JetCollection* fatJets_;
+    const FatJetCollection* fatJets_;
     const PFCandCollection* cands_;
     const ElectronCollection* electrons_;
     const MuonCollection* muons_;
