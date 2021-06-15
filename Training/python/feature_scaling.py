@@ -55,6 +55,7 @@ if __name__ == '__main__':
         n_files = file_range[1]-file_range[0]
     else:
         raise ValueError('Specified file_range is not valid: should be either -1 (run on all files in file_path) or range [a, b] with a<=b')
+    file_names_id = [fname.split('_')[-1].split('.root')[0] for fname in file_names] # id as taken from the name: used as file identifier (key field) in the output json files with quantiles
     #
     dR_tau_outer_cone = cone_definition_dict['outer']['dR']
     tau_pt_name, tau_eta_name, tau_phi_name = cone_selection_dict['TauFlat']['var_names']['pt'], cone_selection_dict['TauFlat']['var_names']['eta'], cone_selection_dict['TauFlat']['var_names']['phi']
@@ -75,8 +76,7 @@ if __name__ == '__main__':
     processed_last_file = time.time()
 
     # loop over input files
-    # TODO : make range here , sorting breaks order
-    for file_i, file_name in enumerate(tqdm(file_names)):
+    for file_i, (file_name_id, file_name) in enumerate(tqdm(zip(file_names_id, file_names))): # file_i used internally to count number of processed files
         log_scaling_params = not (file_i%log_step) or (file_i == n_files-1)
         with uproot.open(file_name, array_cache='5 GB') as f:
             if len(f.keys()) == 0: # some input ROOT files can be corrupted and uproot can't recover for it. These files are skipped in computations
@@ -97,7 +97,7 @@ if __name__ == '__main__':
                             if len(lim_params) == 2 and lim_params[0] <= lim_params[1]:
                                 var_array = tree.arrays(var, cut=selection_cut, aliases=aliases)[var]
                                 var_array = mask_inf(var_array, var, inf_counter)
-                                quantile_params[var_type][var]['global'][file_i] = get_quantiles(var_array)
+                                quantile_params[var_type][var]['global'][file_name_id] = get_quantiles(var_array)
                                 del(var_array)
                             elif len(lim_params) == 1 and type(lim_params[0]) == dict:
                                 constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
@@ -113,7 +113,7 @@ if __name__ == '__main__':
                                         cone_mask = (constituent_dR > dR_tau_signal_cone) & (constituent_dR < dR_tau_outer_cone)
                                     else:
                                         raise ValueError(f'For {var} cone_type should be either inner or outer, got {cone_type}.')
-                                    quantile_params[var_type][var][cone_type][file_i] = get_quantiles(var_array[cone_mask])
+                                    quantile_params[var_type][var][cone_type][file_name_id] = get_quantiles(var_array[cone_mask])
                                 del(constituent_eta_array, constituent_phi_array, var_array)
                             else:
                                 raise ValueError(f'Unrecognised lim_params for {var} in quantile computation')
@@ -126,7 +126,7 @@ if __name__ == '__main__':
                             # loop over cone types specified for a given var_type in the cfg file
                             for cone_type in cone_selection_dict[var_type]['cone_types']:
                                 fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
-                                                 var, var_type, file_i, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
+                                                 var, var_type, file_i, file_name_id, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
                                                  sums, sums2, counts, fill_scaling_params=log_scaling_params, scaling_params=scaling_params, quantile_params=quantile_params
                                                  )
                             del(constituent_eta_array, constituent_phi_array, var_array)
@@ -139,12 +139,15 @@ if __name__ == '__main__':
             if file_i == n_files-1:
                 scaling_params_json_name = scaling_params_json_prefix
             else:
-                scaling_params_json_name = f'{scaling_params_json_prefix}_log_{(file_i+1)//log_step}'
+                if log_step == 1:
+                    scaling_params_json_name = f'{scaling_params_json_prefix}_log_{(file_i)//log_step}'
+                else:
+                    scaling_params_json_name = f'{scaling_params_json_prefix}_log_{(file_i+1)//log_step}'
             dump_to_json({scaling_params_json_name: scaling_params})
-        dump_to_json({f'{quantile_params_json_prefix}_fid_{file_i}': quantile_params})
         processed_current_file = time.time()
         # print(f'---> processed {file_name} in {processed_current_file - processed_last_file:.2f} s')
         processed_last_file = processed_current_file
+    dump_to_json({f'{quantile_params_json_prefix}': quantile_params})
     print()
     if skip_counter > 0:
         print(f'[WARNING] during the processing {skip_counter} files with no objects were skipped\n')

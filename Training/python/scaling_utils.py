@@ -245,7 +245,7 @@ def mask_inf(var_array, var_name=None, var_inf_counter=None):
     return var_array
 
 def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
-                     var, var_type, file_i, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
+                     var, var_type, file_i, file_name_id, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
                      sums, sums2, counts, fill_scaling_params=False, scaling_params=None, quantile_params=None):
     """
     Update `sums`, `sums2` and `counts` dictionaries with the values from `var_array` either inclusively or exclusively (based on `cone_type` argument) for inner/outer cones.
@@ -264,7 +264,8 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
         - constituent_phi_array: awkward array, phi values of tau constituents
         - var: string, variable name
         - var_type: string, variable type
-        - file_i: int, index of the file being processed
+        - file_i: int, index of the file being processed in the input file list
+        - file_name_id: int, index of the file being processed taken from the corresponding file name
         - cone_type: string, type of cone being processed, should be either inner or outer
         - dR_tau_signal_cone: awkward array, per tau dR values defining the signal cone
         - dR_tau_outer_cone: float, dR value defining the tau outer cone
@@ -288,7 +289,7 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
             scaling_params[var_type][var]['global']['mean'] = float(format(mean_, '.4g')) # round to 4 significant digits
             scaling_params[var_type][var]['global']['std'] = float(format(std_, '.4g'))
         if quantile_params:
-            quantile_params[var_type][var]['global'][file_i] = get_quantiles(var_array)
+            quantile_params[var_type][var]['global'][file_name_id] = get_quantiles(var_array)
     elif cone_type == 'inner' or cone_type == 'outer':
         constituent_dR = dR(tau_eta_array - constituent_eta_array, tau_phi_array - constituent_phi_array)
         if cone_type == 'inner':
@@ -304,7 +305,7 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
             scaling_params[var_type][var][cone_type]['mean'] = float(format(mean_, '.4g'))
             scaling_params[var_type][var][cone_type]['std'] = float(format(std_, '.4g'))
         if quantile_params:
-            quantile_params[var_type][var][cone_type][file_i] = get_quantiles(var_array[cone_mask])
+            quantile_params[var_type][var][cone_type][file_name_id] = get_quantiles(var_array[cone_mask])
     else:
         raise ValueError(f'cone_type for {var_type} should be either inner, or outer')
 
