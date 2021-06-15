@@ -34,10 +34,10 @@
         },
         "tau_E_over_pt": {
             "global": {
-                "mean": 3.1,
-                "std": 2.1,
-                "lim_min": -1.0,
-                "lim_max": 1.0
+                "mean": 1.968,
+                "std": 1.134,
+                "lim_min": -5,
+                "lim_max": 5
             }
         },
         "tau_charge": {

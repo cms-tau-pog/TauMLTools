@@ -166,7 +166,7 @@ Features_all :
                 - tau_eta: [null, null, "linear", -2.3, 2.3]
                 - tau_phi: [null, null, "linear", *mpi, *pi]
                 - tau_mass: [null, null, "normal", -5, 5]
-                - tau_E_over_pt: [null, {"tau_E_over_pt": "sqrt((tau_pt*cosh(tau_eta))*(tau_pt*cosh(tau_eta)) + tau_mass*tau_mass)/tau_pt"}, "linear", 1., 5.2]
+                - tau_E_over_pt: [null, {"tau_E_over_pt": "sqrt((tau_pt*cosh(tau_eta))*(tau_pt*cosh(tau_eta)) + tau_mass*tau_mass)/tau_pt"}, "normal", -5, 5]
                 - tau_charge: [null, null, "no_scaling"]
                 - tau_n_charged_prongs: [null, {"tau_n_charged_prongs": "tau_decayMode//5 + 1"}, "categorical"]
                 - tau_n_neutral_prongs: [null, {"tau_n_neutral_prongs": "tau_decayMode%5"}, "categorical"]

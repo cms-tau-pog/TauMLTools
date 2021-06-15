@@ -68,7 +68,7 @@ if __name__ == '__main__':
     #
     print(f'\n[INFO] will process {n_files} input files from {file_path}')
     print(f'[INFO] will dump scaling parameters to {scaling_params_json_prefix}_*.json after every {log_step} files')
-    print(f'[INFO] will dump quantile parameters to {quantile_params_json_prefix}_*.json for every file')
+    print(f'[INFO] will dump quantile parameters for every file into {quantile_params_json_prefix}.json')
     print('[INFO] starting to accumulate sums & counts:\n')
     #
     skip_counter = 0 # counter of files which were skipped during processing
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     processed_last_file = time.time()
 
     # loop over input files
-    for file_i, (file_name_id, file_name) in enumerate(tqdm(zip(file_names_id, file_names))): # file_i used internally to count number of processed files
+    for file_i, (file_name_id, file_name) in enumerate(zip(tqdm(file_names_id), file_names)): # file_i used internally to count number of processed files
         log_scaling_params = not (file_i%log_step) or (file_i == n_files-1)
         with uproot.open(file_name, array_cache='5 GB') as f:
             if len(f.keys()) == 0: # some input ROOT files can be corrupted and uproot can't recover for it. These files are skipped in computations
