@@ -10,8 +10,8 @@ Setup:
     n_threads            :  1
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
-    input_spectrum       : "/afs/cern.ch/work/m/myshched/public/ShuffleSpectrum.root"
-    target_spectrum      : "/afs/cern.ch/work/m/myshched/public/ShuffleSpectrum.root"
+    input_spectrum       : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleSpectrum.root"
+    target_spectrum      : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleSpectrum.root"
     input_dir            : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_v1/"
     n_pt_bins            : 7
     pt_min               : 20.0
