@@ -64,20 +64,22 @@ def create_settings(input_file: str, verbose=False) -> str:
         return string
 
     def create_enum(key_name: str, content: dict) -> str:
-        key_list = []
-        for key_dict in content["Features_all"][key_name]:
-            assert len(key_dict) == 1 and type(key_dict) == dict
-            key_list.append(list(key_dict)[0])
+        feature_list_enabled, feature_list_disabled = [], []
+        for feature_dict in content["Features_all"][key_name]:
+            assert len(feature_dict) == 1 and type(feature_dict) == dict
+            if list(feature_dict)[0] in content["Features_disable"][key_name]:
+                feature_list_disabled.append(list(feature_dict)[0])
+                continue
+            feature_list_enabled.append(list(feature_dict)[0])
         string = "enum class " + key_name +"_Features " + "{\n"
         # enabled features:
-        for i, key in enumerate(key_list):
-            if key not in content["Features_disable"][key_name]:
-                string += key +" = " + str(i) + ",\n"
+        for i, feature in enumerate(feature_list_enabled):
+            string += feature +" = " + str(i) + ",\n"
         # disabled features:
-        for i, key in enumerate(content["Features_disable"][key_name]):
-            if key not in key_list:
-                raise Exception("Disabled feature {0} is not listed in \"Features_all\" section of cofig file".format(key))
-            string += key +" = " + "-1" + ",\n"
+        for i, feature in enumerate(content["Features_disable"][key_name]):
+            if feature not in feature_list_disabled:
+                raise Exception("Disabled feature {0} is not listed in \"Features_all\" section of cofig file".format(feature))
+            string += feature +" = " + "-1" + ",\n"
         return string[:-2] + "};\n"
 
     def create_gridobjects(content: dict) -> str:
@@ -154,7 +156,8 @@ def create_scaling_input(input_scaling_file: str, input_cfg_file: str, verbose=F
                 string += subg + " = "
                 var_string = []
                 for var_i, (var, var_params) in enumerate(content_scaling[FeatureT].items()):
-                    assert var in content_cfg['Features_all'][FeatureT][var_i].keys()
+                    assert var in content_cfg['Features_all'][FeatureT][var_i].keys() # check if there is such feature in training cfg
+                    if var in content_cfg['Features_disable'][FeatureT]: continue
                     if len(var_params)==len(cone_groups) and all([g in var_params.keys() for g in cone_groups]):
                         var_string.append(",".join([conv_str(var_params[cone_group][subg]) for cone_group in cone_groups]))
                     elif len(var_params)==1 and global_group in var_params.keys():
