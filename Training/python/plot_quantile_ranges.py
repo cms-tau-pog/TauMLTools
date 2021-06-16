@@ -1,15 +1,17 @@
 import os
 import json
 import yaml
-import argparse
+import click
 
 import numpy as np
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import seaborn as sns
-sns.set_context("notebook", font_scale=1.5, rc={"lines.linewidth": 2.5})
 
-################################################################################
+sns.set_theme(context='notebook', font='sans-serif', style='white', palette=None, font_scale=1.5,
+              rc={"lines.linewidth": 2.5, "font.sans-serif": 'DejaVu Sans', "text.usetex": False})
+
+## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def plot_ranges(file_id, var_name, cone_type, mean, median, min_value, max_value,
                 clamp_range, one_sigma_range, two_sigma_range, three_sigma_range,
@@ -19,7 +21,7 @@ def plot_ranges(file_id, var_name, cone_type, mean, median, min_value, max_value
     assert len(two_sigma_range)==2 and two_sigma_range[0] <= two_sigma_range[1]
     assert len(three_sigma_range)==2 and three_sigma_range[0] <= three_sigma_range[1]
 
-    ### plot configuration
+    ### figure configuration
     fig = plt.figure(figsize=(10.3, 5.0))
     xscale = clamp_range[1]-clamp_range[0]
     yscale = 1
@@ -42,7 +44,7 @@ def plot_ranges(file_id, var_name, cone_type, mean, median, min_value, max_value
     plt.barh(level_quantile, width=two_sigma_range[1]-two_sigma_range[0], height=bar_height, left=two_sigma_range[0], color='black', alpha=0.3, label=f'2 sigma (IQW={norm.cdf(2)-norm.cdf(-2):.2f})')
     plt.barh(level_quantile, width=three_sigma_range[1]-three_sigma_range[0], height=bar_height, left=three_sigma_range[0], color='black', alpha=0.15, label=f'3 sigma (IQW={norm.cdf(3)-norm.cdf(-3):.3f})')
 
-    ### add mean/median/min/max numbers + suspicious tag to the plot
+    ### add mean/median/min/max numbers and suspicious tag to the plot
     if mean is not None:
         plt.text(xlim[0] + 0.05*(xlim[1]-xlim[0]), ylim[1]-0.15*(ylim[1]-ylim[0]), f'mean: {mean:.1e}') # , color='steelblue'
     plt.text(xlim[0] + 0.05*(xlim[1]-xlim[0]), ylim[1]-0.3*(ylim[1]-ylim[0]), f'median: {median:.1e}\nmin, max: ({min_value:.1e}, {max_value:.1e})')
@@ -61,27 +63,27 @@ def plot_ranges(file_id, var_name, cone_type, mean, median, min_value, max_value
     if close_plot:
         plt.close()
 
-################################################################################
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--train_cfg", type=str, help="Path to yaml configuration file used for training")
-    parser.add_argument("--scaling_file", type=str, help="Path to json file with scaling parameters")
-    parser.add_argument("--quantile_file", type=str, help="Path to json file with quantile parameters")
-    parser.add_argument("--output_folder", type=str, default='quantile_plots', help="Folder to store range plots")
-    parser.add_argument("--file_id", type=int, default=0, help="File ID to be picked from quantile parameters file")
-    # parser.add_argument('--var_types', nargs='+', help="Variable types from field 'Features_all' of the cfg file for which to derive scaling parameters. Defaults to -1 for running on all those specified in the cfg", default=-1)
-    args = parser.parse_args()
-    with open(args.train_cfg) as f:
-        training_cfg = yaml.load(f, Loader=yaml.FullLoader)
-    with open(args.scaling_file) as f:
-        scaling_params = yaml.load(f, Loader=yaml.FullLoader)
-    with open(args.quantile_file) as f:
-        quantile_params = yaml.load(f, Loader=yaml.FullLoader)
-    output_folder = args.output_folder
-    file_id = args.file_id
+@click.command(
+    help="Plot for input features their interquantile ranges along with ranges to be clamped as a part of scaling step."
+)
+@click.option("--train-cfg", type=str, default='../configs/training_v1.yaml', help="Path to yaml configuration file used for training", show_default=True)
+@click.option("--scaling-file", type=str, default='../configs/scaling_params_v1.json', help="Path to json file with scaling parameters", show_default=True)
+@click.option("--quantile-file", type=str, default='../configs/quantile_params_v1_fid_0.json', help="Path to json file with quantile parameters", show_default=True)
+@click.option("--file-id", type=int, default=0, help="File ID to be picked from quantile parameters file", show_default=True)
+@click.option("--output-folder", type=str, default='quantile_plots', help="Folder to store range plots", show_default=True)
+@click.option('--only-suspicious', type=bool, default=True, show_default=True )
+def main(
+    train_cfg, scaling_file, quantile_file, file_id,
+    output_folder, only_suspicious
+):
     if not os.path.isdir(output_folder):
         os.mkdir(output_folder)
+    with open(train_cfg) as f:
+        training_cfg = yaml.load(f, Loader=yaml.FullLoader)
+    with open(scaling_file) as f:
+        scaling_params = yaml.load(f, Loader=yaml.FullLoader)
+    with open(quantile_file) as f:
+        quantile_params = yaml.load(f, Loader=yaml.FullLoader)
 
     ### fetch type of scaling for a given variable
     for var_type in training_cfg['Features_all']: # loop over types of variables (particle types) specified in the training cfg
@@ -147,13 +149,19 @@ if __name__ == '__main__':
                 suspicious_dict['three_sigma_empty'] = three_sigma_left == three_sigma_right
                 suspicious_dict['five_sigma_empty'] = five_sigma_left == five_sigma_right
                 is_suspicious = any(suspicious_dict.values())
-                if is_suspicious: # if suspicious behaviour observed, plot quantile and clamping ranges
+                if is_suspicious or not only_suspicious:
                     plot_ranges(file_id, var_name, cone_type, None if var_scaling_type=='linear' else mean, median, min_value, max_value,
                                 clamp_range, one_sigma_range, two_sigma_range, three_sigma_range,
                                 suspicious_dict, savepath=f'{output_folder}/{var_type}', close_plot=True)
+                if is_suspicious:
                     print(f'-----> {var_name}, {cone_type}: looks suspicious')
                     for k, v in suspicious_dict.items():
                         print(f'           {k}: {v}')
                     print()
                 else:
                     print(f'       {var_name}, {cone_type}: OK')
+
+################################################################################
+
+if __name__ == '__main__':
+    main()
