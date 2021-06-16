@@ -397,7 +397,7 @@ Features_all :
               - muon_n_hits_RPC_4: [null, null, "linear", 0., 2.]
 
 Features_disable :
-    TauFlat : [ ]
+    TauFlat : ["tau_phi"]
     PfCand_electron : [ ]
     PfCand_muon : [ ]
     PfCand_chHad : [ ]
