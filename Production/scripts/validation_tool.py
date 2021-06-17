@@ -133,10 +133,10 @@ if __name__ == '__main__':
   model = lambda main, third = None: (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]+BINS[third] if not third is None else (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]
   
   cpp_function = '''
-std::vector<int> hash_list = {%s};
+std::vector<ULong64_t> hash_list = {%s};
 int hash, line = 0;
-for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it++, line++){
- if (*it == %s) return line;
+for(std::vector<ULong64_t>::iterator it = hash_list.begin(); it != hash_list.end(); it++, line++){
+if (*it == %s) return line;
 } return line;'''
 
   id_json       = json.load(open(args.id_json, 'r'))
