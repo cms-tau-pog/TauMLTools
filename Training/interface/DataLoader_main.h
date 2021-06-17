@@ -558,18 +558,22 @@ public:
 
             fillGrid(Br::pfCand_chHad_vertex_dx, tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x);
             fillGrid(Br::pfCand_chHad_vertex_dy, tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y);
-            fillGrid(Br::pfCand_chHad_vertex_dz, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z);
+            if(std::isfinite(tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z))
+              fillGrid(Br::pfCand_chHad_vertex_dz, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z);
             fillGrid(Br::pfCand_chHad_vertex_dx_tauFL, tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x - tau.tau_flightLength_x);
             fillGrid(Br::pfCand_chHad_vertex_dy_tauFL,  tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y - tau.tau_flightLength_y);
-            fillGrid(Br::pfCand_chHad_vertex_dz_tauFL, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z - tau.tau_flightLength_z);
+            if(std::isfinite(tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z - tau.tau_flightLength_z))
+              fillGrid(Br::pfCand_chHad_vertex_dz_tauFL, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z - tau.tau_flightLength_z);
 
             const bool hasTrackDetails = tau.pfCand_hasTrackDetails.at(pfCand_idx) == 1;
             fillGrid(Br::pfCand_chHad_hasTrackDetails, static_cast<float>(hasTrackDetails));
             if(hasTrackDetails) {
               fillGrid(Br::pfCand_chHad_dxy, tau.pfCand_dxy.at(pfCand_idx));
               fillGrid(Br::pfCand_chHad_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) / tau.pfCand_dxy_error.at(pfCand_idx));
-              fillGrid(Br::pfCand_chHad_dz, tau.pfCand_dz.at(pfCand_idx));
-              fillGrid(Br::pfCand_chHad_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
+              if(std::isfinite(tau.pfCand_dz.at(pfCand_idx))){
+                fillGrid(Br::pfCand_chHad_dz, tau.pfCand_dz.at(pfCand_idx));
+                fillGrid(Br::pfCand_chHad_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
+              }
               if(tau.pfCand_track_ndof.at(pfCand_idx)!=0)
                 fillGrid(Br::pfCand_chHad_track_chi2_ndof, tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx));
               fillGrid(Br::pfCand_chHad_track_ndof, tau.pfCand_track_ndof.at(pfCand_idx));
