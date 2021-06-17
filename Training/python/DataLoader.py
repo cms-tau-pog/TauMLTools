@@ -1,33 +1,32 @@
 import gc
 from multiprocessing import Process, Queue
 import numpy as np
-import tensorflow as tf
-import keras
-import keras.backend as K
-from keras import regularizers
-from keras.models import Sequential, Model, load_model
-from keras.layers import Input, Dense, Conv2D, Dropout, AlphaDropout, Activation, BatchNormalization, Flatten, \
-                                    Concatenate, PReLU, TimeDistributed, LSTM, Masking
 import ROOT as R
 import config_parse
 import os
+import yaml
 
-R.gROOT.ProcessLine(".include ../../..")
+R.gROOT.Reset()
 
-def LoaderThread(data_loader, queue, batch_size, n_inner_cells, n_outer_cells,
+def LoaderThread(data_loader, queue, input_grids, batch_size, n_inner_cells, n_outer_cells,
                  n_flat_features, n_grid_features, tau_types, return_truth, return_weights, steps_per_epoch):
-
-    def getdata(obj_f, reshape, dtype=np.float32):
-        x = np.copy(np.frombuffer(obj_f.data(), dtype=dtype, count=obj_f.size()))
-        return x if reshape==-1 else x.reshape(reshape)
     
-    def getgrid(obj_grid, grid_features, inner):
-        X_grid = []
-        n_cells = n_inner_cells if inner else n_outer_cells
-        for fname, n_f in grid_features:
-            X_grid.append(getdata(obj_grid[ getattr(R.CellObjectType,fname) ][inner],
-                                    (batch_size, n_cells, n_cells, n_f)))
-        return X_grid
+    def getdata(_obj_f, _reshape, _dtype=np.float32):
+        x = np.copy(np.frombuffer(_obj_f.data(), dtype=_dtype, count=_obj_f.size()))
+        return x if _reshape==-1 else x.reshape(_reshape)
+    
+    def getgrid(_obj_grid, _inner):
+        _n_cells = n_inner_cells if _inner else n_outer_cells
+        _X = []
+        for group in input_grids:
+            _X.append(
+                np.concatenate(
+                    [ getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner],
+                     (batch_size, _n_cells, _n_cells, n_grid_features[fname])) for fname in group ],
+                    axis=-1
+                    )
+                )
+        return _X
 
     current_epoch_step = 0
 
@@ -35,19 +34,14 @@ def LoaderThread(data_loader, queue, batch_size, n_inner_cells, n_outer_cells,
 
         data = data_loader.LoadData()
 
-        # Test:
-        X_ = [ getdata(data.x_tau, (batch_size, n_flat_features)).reshape(batch_size,-1) ]
-        X_ += [ np.concatenate(getgrid(data.x_grid, n_grid_features, 0), axis=-1).reshape(batch_size,-1) ]
-        X_ += [ np.concatenate(getgrid(data.x_grid, n_grid_features, 1), axis=-1).reshape(batch_size,-1) ]
-        X_all = np.concatenate(X_,axis=1)
+        # Flat Tau features
+        X_all = [getdata(data.x_tau, (batch_size, n_flat_features))]
+        # Inner grid
+        X_all += getgrid(data.x_grid, 1) # 500 11 11 176
+        # Outer grid
+        X_all += getgrid(data.x_grid, 0) # 500 21 21 176
 
-        # To be replaced with:
-        # # Flat Tau features
-        # X_all = [ getdata(data.x_tau, (batch_size, n_flat_features)) ]
-        # # Outer grid
-        # X_all += [ np.concatenate(getgrid(data.x_grid, n_grid_features, 0), axis=-1) ] # 500 21 21 176
-        # # Inner grid
-        # X_all += [ np.concatenate(getgrid(data.x_grid, n_grid_features, 1), axis=-1) ]
+        X_all = tuple(X_all)
 
         if return_weights:
             weights = getdata(data.weight, -1)
@@ -78,39 +72,56 @@ class DataLoader:
 
     @staticmethod
     def compile_classes(file_config, file_scaling):
-        
+
+        _rootpath = os.path.abspath(os.path.dirname(__file__)+"/../../..")
+        R.gROOT.ProcessLine(".include "+_rootpath)
+
+        _LOADPATH = "TauMLTools/Training/interface/DataLoader_main.h"
+
         if not(os.path.isfile(file_config) \
-           and os.path.isfile(file_config) \
-           and os.path.isfile("../interface/DataLoader_main.h")):
-               raise RuntimeError("DataLoader file does not exists")
+           and os.path.isfile(file_scaling)):
+            raise RuntimeError("file_config or file_scaling do not exist")
+
+        if not(os.path.isfile(_rootpath+"/"+_LOADPATH)):
+            raise RuntimeError("c++ dataloader does not exist")
 
         # compilation should be done in corresponding order:
         print("Compiling DataLoader headers.")
         R.gInterpreter.ProcessLine(config_parse.create_scaling_input(file_scaling))
         R.gInterpreter.ProcessLine(config_parse.create_settings(file_config))
-        R.gInterpreter.ProcessLine('#include "../interface/DataLoader_main.h"')
+        R.gInterpreter.ProcessLine('#include "{}"'.format(_LOADPATH))
 
 
     def __init__(self, file_config, file_scaling):
 
         DataLoader.compile_classes(file_config, file_scaling)
 
-        # global variables after compile are read out here 
-        self.batch_size = R.Setup.n_tau
-        self.n_batches  = R.Setup.n_batches
-        self.n_batches_val  = R.Setup.n_batches_val
-        self.n_inner_cells  = R.Setup.n_inner_cells
-        self.n_outer_cells  = R.Setup.n_outer_cells
-        self.n_flat_features = R.Setup.n_TauFlat     
-        self.n_grid_features = [(str(cell), getattr(R.Setup, "n_"+str(cell))) for cell in R.Setup.CellObjectTypes]
-        self.tau_types   = R.Setup.tau_types_names.size()
+        with open(file_config) as file:
+            self.config = yaml.safe_load(file)
 
-        self.validation_split = R.Setup.validation_split
-        self.max_queue_size = R.Setup.max_queue_size
-        self.n_passes = R.Setup.n_passes
+        self.n_grid_features = {}
+        for celltype in self.config["Features_all"]:
+            if celltype!="TauFlat":
+                self.n_grid_features[str(celltype)] = len(self.config["Features_all"][celltype])
+
+        self.n_flat_features = len(self.config["Features_all"]["TauFlat"])   
+        print(self.n_flat_features, self.n_grid_features)
+
+        # global variables after compile are read out here 
+        self.batch_size     = self.config["Setup"]["n_tau"]
+        self.n_inner_cells  = self.config["Setup"]["n_inner_cells"]
+        self.n_outer_cells  = self.config["Setup"]["n_outer_cells"]
+        self.tau_types      = len(self.config["Setup"]["tau_types_names"])
+
+        self.n_batches        = self.config["SetupNN"]["n_batches"]
+        self.n_batches_val    = self.config["SetupNN"]["n_batches_val"]
+        self.validation_split = self.config["SetupNN"]["validation_split"]
+        self.max_queue_size   = self.config["SetupNN"]["max_queue_size"]
+        self.n_passes         = self.config["SetupNN"]["n_passes"]
+        self.input_grids        = self.config["SetupNN"]["input_grids"]
 
         data_files = []
-        for root, dirs, files in os.walk(os.path.abspath(R.Setup.input_dir)):
+        for root, dirs, files in os.walk(os.path.abspath(self.config["Setup"]["input_dir"])):
             for file in files:
                 data_files.append(os.path.join(root, file))
 
@@ -147,7 +158,8 @@ class DataLoader:
                 _batch_loader.reset()
 
                 process = Process(target=LoaderThread, 
-                           args=(  _batch_loader, queue, self.batch_size, self.n_inner_cells, self.n_outer_cells,
+                           args=(  _batch_loader, queue, self.input_grids,
+                                self.batch_size, self.n_inner_cells, self.n_outer_cells,
                                 self.n_flat_features, self.n_grid_features, self.tau_types,
                                 return_truth, return_weights, _steps_per_epoch))
                 process.daemon = True
@@ -164,40 +176,40 @@ class DataLoader:
         return _generator, _steps_per_epoch
 
 
-if __name__ == "__main__":
+    def get_config(self):
 
-    # Create a TensorBoard callback
-    logs = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
-    tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
-                                                     profile_batch='1, 10')
+        # copy of feature lists is not necessery
+        input_tau_branches = self.config["Features_all"]["TauFlat"]
+        input_cell_pfCand_ele_branches = self.config["Features_all"]["PfCand_electron"]
+        input_cell_pfCand_muon_branches = self.config["Features_all"]["PfCand_muon"]
+        input_cell_pfCand_chHad_branches = self.config["Features_all"]["PfCand_chHad"]
+        input_cell_pfCand_nHad_branches = self.config["Features_all"]["PfCand_nHad"]
+        input_cell_pfCand_gamma_branches = self.config["Features_all"]["PfCand_gamma"]
+        input_cell_ele_branches = self.config["Features_all"]["Electron"]
+        input_cell_muon_branches = self.config["Features_all"]["Muon"]
 
-    config   = "../configs/training_v1.yaml"
-    scaling  = "../configs/scaling_test.json"
-    dataloader = DataLoader(config, scaling)
+        # code below is a shortened copy of common.py
+        class NetConf:
+            def __init__(self, name, final, tau_branches, cell_locations, component_names, component_branches):
+                self.name = name
+                self.final = final
+                self.tau_branches = tau_branches
+                self.cell_locations = cell_locations
+                self.comp_names = component_names
+                self.comp_branches = component_branches
 
-    gen_train, n_steps_train = dataloader.get_generator(primary_set = True)
-    gen_val, n_steps_val = dataloader.get_generator(primary_set = False)
-    print("Training steps:",n_steps_train, "Validation steps:",n_steps_val)
-
-    num_classes = 4
-    input_shape = (98955,)
-
-    data_train = tf.data.Dataset.from_generator(gen_train, (tf.float32, tf.int16), (tf.TensorShape([None,98955]), tf.TensorShape([None, num_classes])))
-    data_val = tf.data.Dataset.from_generator(gen_val, (tf.float32, tf.int16), (tf.TensorShape([None,98955]), tf.TensorShape([None, num_classes])))
-
-    model = keras.Sequential([
-        keras.Input(shape=input_shape),
-        Dense(100, activation="relu"),
-        Dense(100, activation="relu"),
-        Dense(100, activation="relu"),
-        Dense(100, activation="relu"),
-        Dense(num_classes, activation="softmax"),
+        netConf_preTau = NetConf("preTau", False, input_tau_branches, [], [], [])
+        netConf_preInner = NetConf("preInner", False, [], ['inner'], ['egamma', 'muon', 'hadrons'], [
+            input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches,
+            input_cell_pfCand_muon_branches + input_cell_muon_branches,
+            input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches
         ])
+        netConf_preTauInter = NetConf("preTauInter", False, netConf_preTau.tau_branches, netConf_preInner.cell_locations,
+                                    netConf_preInner.comp_names, netConf_preInner.comp_branches)
+        netConf_preOuter = NetConf("preOuter", False, [], ['outer'], netConf_preInner.comp_names,
+                                netConf_preInner.comp_branches)
+        netConf_full = NetConf("full", True, netConf_preTau.tau_branches,
+                            netConf_preInner.cell_locations + netConf_preOuter.cell_locations,
+                            netConf_preInner.comp_names, netConf_preInner.comp_branches)
 
-    model.summary()
-
-    model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
-    model.fit(data_train, steps_per_epoch = n_steps_train,
-              max_queue_size=1, validation_data=data_val,
-              validation_steps = n_steps_val, epochs = 10,
-              callbacks=[tboard_callback])
+        return netConf_full
