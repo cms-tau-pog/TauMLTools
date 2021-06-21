@@ -18,6 +18,7 @@ from tensorflow.keras.models import Sequential, Model, load_model
 from tensorflow.keras.layers import Input, Dense, Conv2D, Dropout, AlphaDropout, Activation, BatchNormalization, Flatten, \
                                     Concatenate, PReLU, TimeDistributed, LSTM, Masking
 from tensorflow.keras.callbacks import Callback, ModelCheckpoint, CSVLogger
+from datetime import datetime
 
 from threading import Lock
 read_hdf_lock = Lock()
@@ -25,6 +26,19 @@ read_hdf_lock = Lock()
 sys.path.insert(0, "..")
 from common import *
 import DataLoader
+
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    # Restrict TensorFlow to only allocate 10GB of memory on the first GPU
+    try:
+        tf.config.experimental.set_virtual_device_configuration(
+            gpus[0],
+            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=10*1024)])
+        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+    except RuntimeError as e:
+        # Virtual devices must be set before GPUs have been initialized
+        print(e)
 
 class MaskedDense(Dense):
     def __init__(self, units, **kwargs):
@@ -154,10 +168,8 @@ def create_model(net_config):
         high_level_features.append(processed_tau)
 
     for loc in net_config.cell_locations:
-        print("loc: ",loc)
         reduced_inputs = []
         for comp_id in range(len(net_config.comp_names)):
-            print(comp_id)
             comp_name = net_config.comp_names[comp_id]
             # n_comp_features = len(input_cell_external_branches) + len(net_config.comp_branches[comp_id])
             n_comp_features = len(net_config.comp_branches[comp_id])
@@ -258,75 +270,54 @@ class TimeCheckpoint(Callback):
         read_hdf_lock.release()
         print("Epoch {} is ended.".format(epoch))
 
-# def run_training(train_suffix, model_name, data_loader, epoch, n_epochs):
+def run_training(train_suffix, model_name, model, data_loader, is_profile):
 
-#     train_name = '%s_%s' % (model_name, train_suffix)
-#     log_name = "%s.log" % train_name
-#     if os.path.isfile(log_name):
-#         close_file(log_name)
-#         os.remove(log_name)
-#     csv_log = CSVLogger(log_name, append=True)
+    gen_train, n_steps_train = dataloader.get_generator(primary_set = True)
+    gen_val, n_steps_val = dataloader.get_generator(primary_set = False)
 
-#     time_checkpoint = TimeCheckpoint(12*60*60, train_name)
-#     callbacks = [time_checkpoint, csv_log]
-#     fit_hist = model.fit_generator(data_loader.generator(True), validation_data=data_loader.generator(False),
-#                                    steps_per_epoch=data_loader.steps_per_epoch, validation_steps=data_loader.validation_steps,
-#                                    callbacks=callbacks, epochs=n_epochs, initial_epoch=epoch, verbose=1)
+    data_train = tf.data.Dataset.from_generator(gen_train, output_types = input_types, output_shapes = input_shape)
+    data_val = tf.data.Dataset.from_generator(gen_val, output_types = input_types, output_shapes = input_shape)
 
-#     read_hdf_lock.acquire()
-#     model.save("%s_final.hdf5" % train_name)
-#     read_hdf_lock.release()
-#     return fit_hist
+    train_name = '%s_%s' % (model_name, train_suffix)
+    log_name = "%s.log" % train_name
+    if os.path.isfile(log_name):
+        close_file(log_name)
+        os.remove(log_name)
+    csv_log = CSVLogger(log_name, append=True)
+    time_checkpoint = TimeCheckpoint(12*60*60, train_name)
+    callbacks = [time_checkpoint, csv_log]
 
-# config = tf.ConfigProto()
-# config.gpu_options.allow_growth = True
-# sess = tf.Session(config=config)
-# K.set_session(sess)
+    if is_profile:
+        logs = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+        tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs, profile_batch='1, 10')
+        callbacks += tboard_callback
+
+    fit_hist = model.fit(data_train, steps_per_epoch = n_steps_train, max_queue_size=1, 
+               validation_data = data_val, validation_steps = n_steps_val,
+               epochs = dataloader.n_epochs, initial_epoch = dataloader.epoch,
+               callbacks = callbacks)
+
+    read_hdf_lock.acquire()
+    model.save("%s_final.hdf5" % train_name)
+    read_hdf_lock.release()
+    return fit_hist
 
 
 config   = os.path.abspath( "../../configs/training_v1.yaml")
 scaling  = os.path.abspath("../../configs/scaling_test.json")
 dataloader = DataLoader.DataLoader(config, scaling)
-netConf_full = dataloader.get_config()
+netConf_full, input_shape, input_types  = dataloader.get_config()
 
-gen_train, n_steps_train = dataloader.get_generator(primary_set = True)
-gen_val, n_steps_val = dataloader.get_generator(primary_set = False)
+n_cells_eta = dataloader.n_cells
+n_cells_phi = dataloader.n_cells
+n_outputs = dataloader.tau_types
 
 TauLosses.SetSFs(1, 2.5, 5, 1.5)
-print(TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
+print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
 model_name = "DeepTau2018v0"
 model = create_model(netConf_full)
 compile_model(model, 1e-3)
-tf.keras.utils.plot_model(model, "model.png", show_shapes=True)
+tf.keras.utils.plot_model(model, model_name + "_diagram.png", show_shapes=True)
 
-shape =(((None, 43),
-         (None, 11, 11, 82),
-         (None, 11, 11, 60),
-         (None, 11, 11, 34),
-         (None, 21, 21, 82),
-         (None, 21, 21, 60),
-         (None, 21, 21, 34)),
-         (None, 4))
+fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, False)
 
-types =((tf.float32,
-         tf.float32,
-         tf.float32,
-         tf.float32,
-         tf.float32,
-         tf.float32,
-         tf.float32),
-        (tf.float32))
-
-data_train = tf.data.Dataset.from_generator(gen_train, output_types = types, output_shapes = shape)
-data_val = tf.data.Dataset.from_generator(gen_val, output_types = types, output_shapes = shape)
-
-model.fit(data_train, steps_per_epoch = n_steps_train,
-          max_queue_size=1, validation_data=data_val,
-          validation_steps = n_steps_val, epochs = 10)
-
-# loader = DataLoader('/data/tau-ml/tuples-v2-training-v2-t1/training/part_*.h5', netConf_full, 100, 2000,
-#                     validation_size=10000000, max_queue_size=40, n_passes=-1, return_grid=True)
-# print(loader.file_entries)
-# print(loader.total_size, loader.data_size, loader.validation_size)
-
-# fit_hist = run_training('step{}'.format(1), model_name, loader, 0, 10)
