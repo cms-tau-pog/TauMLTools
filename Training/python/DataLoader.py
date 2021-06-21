@@ -3,6 +3,7 @@ from multiprocessing import Process, Queue
 import numpy as np
 import ROOT as R
 import config_parse
+import tensorflow as tf
 import os
 import yaml
 
@@ -104,21 +105,21 @@ class DataLoader:
             if celltype!="TauFlat":
                 self.n_grid_features[str(celltype)] = len(self.config["Features_all"][celltype])
 
-        self.n_flat_features = len(self.config["Features_all"]["TauFlat"])   
-        print(self.n_flat_features, self.n_grid_features)
+        self.n_flat_features = len(self.config["Features_all"]["TauFlat"])
 
         # global variables after compile are read out here 
         self.batch_size     = self.config["Setup"]["n_tau"]
         self.n_inner_cells  = self.config["Setup"]["n_inner_cells"]
         self.n_outer_cells  = self.config["Setup"]["n_outer_cells"]
         self.tau_types      = len(self.config["Setup"]["tau_types_names"])
-
         self.n_batches        = self.config["SetupNN"]["n_batches"]
         self.n_batches_val    = self.config["SetupNN"]["n_batches_val"]
         self.validation_split = self.config["SetupNN"]["validation_split"]
         self.max_queue_size   = self.config["SetupNN"]["max_queue_size"]
-        self.n_passes         = self.config["SetupNN"]["n_passes"]
+        self.n_epochs         = self.config["SetupNN"]["n_epochs"]
+        self.epoch         = self.config["SetupNN"]["epoch"]
         self.input_grids        = self.config["SetupNN"]["input_grids"]
+        self.n_cells = { 'inner': self.n_inner_cells, 'outer': self.n_outer_cells }
 
         data_files = []
         for root, dirs, files in os.walk(os.path.abspath(self.config["Setup"]["input_dir"])):
@@ -153,8 +154,8 @@ class DataLoader:
         def _generator():
 
             queue = Queue(maxsize=self.max_queue_size)
-            current_pass = 0
-            while self.n_passes < 0 or current_pass < self.n_passes:
+            current_pass = self.epoch
+            while self.n_passes < 0 or current_pass < self.n_epochs:
                 _batch_loader.reset()
 
                 process = Process(target=LoaderThread, 
@@ -178,15 +179,19 @@ class DataLoader:
 
     def get_config(self):
 
+        def get_branches(config, group):
+            return list(set(config["Features_all"][group]) - \
+                        set(config["Features_disable"][group]))
+
         # copy of feature lists is not necessery
-        input_tau_branches = self.config["Features_all"]["TauFlat"]
-        input_cell_pfCand_ele_branches = self.config["Features_all"]["PfCand_electron"]
-        input_cell_pfCand_muon_branches = self.config["Features_all"]["PfCand_muon"]
-        input_cell_pfCand_chHad_branches = self.config["Features_all"]["PfCand_chHad"]
-        input_cell_pfCand_nHad_branches = self.config["Features_all"]["PfCand_nHad"]
-        input_cell_pfCand_gamma_branches = self.config["Features_all"]["PfCand_gamma"]
-        input_cell_ele_branches = self.config["Features_all"]["Electron"]
-        input_cell_muon_branches = self.config["Features_all"]["Muon"]
+        input_tau_branches = get_branches(self.config,"TauFlat")
+        input_cell_pfCand_ele_branches = get_branches(self.config,"PfCand_electron")
+        input_cell_pfCand_muon_branches = get_branches(self.config,"PfCand_muon")
+        input_cell_pfCand_chHad_branches = get_branches(self.config,"PfCand_chHad")
+        input_cell_pfCand_nHad_branches = get_branches(self.config,"PfCand_nHad")
+        input_cell_pfCand_gamma_branches = get_branches(self.config,"PfCand_gamma")
+        input_cell_ele_branches = get_branches(self.config,"Electron")
+        input_cell_muon_branches = get_branches(self.config,"Muon")
 
         # code below is a shortened copy of common.py
         class NetConf:
@@ -204,12 +209,24 @@ class DataLoader:
             input_cell_pfCand_muon_branches + input_cell_muon_branches,
             input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches
         ])
-        netConf_preTauInter = NetConf("preTauInter", False, netConf_preTau.tau_branches, netConf_preInner.cell_locations,
-                                    netConf_preInner.comp_names, netConf_preInner.comp_branches)
+        # netConf_preTauInter = NetConf("preTauInter", False, netConf_preTau.tau_branches, netConf_preInner.cell_locations,
+        #                             netConf_preInner.comp_names, netConf_preInner.comp_branches)
         netConf_preOuter = NetConf("preOuter", False, [], ['outer'], netConf_preInner.comp_names,
                                 netConf_preInner.comp_branches)
         netConf_full = NetConf("full", True, netConf_preTau.tau_branches,
                             netConf_preInner.cell_locations + netConf_preOuter.cell_locations,
                             netConf_preInner.comp_names, netConf_preInner.comp_branches)
 
-        return netConf_full
+        # Input tensor shape and type 
+        input_shape, input_types = [], []
+        input_shape.append(tuple([None, len(get_branches(self.config,"TauFlat"))]))
+        input_types.append(tf.float32)
+        for grid in ["inner","outer"]:
+            for f_group in self.input_grids:
+                n_f = sum([len(get_branches(self.config,cell_type)) for cell_type in f_group])
+                input_shape.append(tuple([None, self.n_cells[grid], self.n_cells[grid], n_f]))
+                input_types.append(tf.float32)
+        input_shape = tuple([tuple(input_shape),(None, self.tau_types)])
+        input_types = tuple([tuple(input_types),(tf.float32)])
+
+        return netConf_full, input_shape, input_types

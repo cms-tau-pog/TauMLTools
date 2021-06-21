@@ -1,16 +1,16 @@
-import uproot
-import pandas
+# import uproot
+# import pandas
 import numpy as np
 import tensorflow as tf
 
-trainMode = 'std'
+# trainMode = 'std'
 
 # { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
 
-if trainMode == 'emb':
-    truth_branches = [ 'gen_tau' ]
-else:
-    truth_branches = [ 'gen_e', 'gen_mu', 'gen_tau', 'gen_jet' ]
+# if trainMode == 'emb':
+#     truth_branches = [ 'gen_tau' ]
+# else:
+#     truth_branches = [ 'gen_e', 'gen_mu', 'gen_tau', 'gen_jet' ]
 # weight_branches = [ 'trainingWeight' ]
 # navigation_branches = [ 'innerCells_begin', 'innerCells_end', 'outerCells_begin', 'outerCells_end' ]
 # tau_id_branches = [ 'againstElectronMVA6', 'againstElectronMVA6raw', 'againstElectronMVA62018',
@@ -126,12 +126,12 @@ else:
 #                    input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches + \
 #                    input_cell_pfCand_gamma_branches + input_cell_ele_branches + input_cell_muon_branches
 
-match_suffixes = [ 'e', 'mu', 'tau', 'jet' ]
-e, mu, tau, jet = 0, 1, 2, 3
+# match_suffixes = [ 'e', 'mu', 'tau', 'jet' ]
+
 #cell_locations = ['inner', 'outer']
-n_cells_eta = { 'inner': 11, 'outer': 21 }
-n_cells_phi = { 'inner': 11, 'outer': 21 }
-n_cells = { 'inner': n_cells_eta['inner'] * n_cells_phi['inner'], 'outer': n_cells_eta['outer'] * n_cells_phi['outer'] }
+# n_cells_eta = { 'inner': 11, 'outer': 21 }
+# n_cells_phi = { 'inner': 11, 'outer': 21 }
+# n_cells = { 'inner': n_cells_eta['inner'] * n_cells_phi['inner'], 'outer': n_cells_eta['outer'] * n_cells_phi['outer'] }
 
 # class NetConf:
 #     def __init__(self, name, final, tau_branches, cell_locations, component_names, component_branches):
@@ -169,7 +169,7 @@ n_cells = { 'inner': n_cells_eta['inner'] * n_cells_phi['inner'], 'outer': n_cel
 #     input_cell_muon_branches,
 # ]
 
-n_outputs = len(truth_branches)
+# n_outputs = len(truth_branches)
 
 def load_graph(graph_filename):
     with tf.gfile.GFile(graph_filename, 'rb') as f:
@@ -180,6 +180,9 @@ def load_graph(graph_filename):
         tf.import_graph_def(graph_def, name="deepTau")
     return graph
 
+
+e, mu, tau, jet = 0, 1, 2, 3
+
 class TauLosses:
     Le_sf = 1
     Lmu_sf = 1
@@ -189,6 +192,7 @@ class TauLosses:
     merge_thr = 0.1
 
     @staticmethod
+    @tf.function
     def SetSFs(sf_e, sf_mu, sf_tau, sf_jet):
         sf_corr = 4. / (sf_e + sf_mu + sf_tau + sf_jet)
         TauLosses.Le_sf = sf_e * sf_corr
@@ -197,6 +201,7 @@ class TauLosses:
         TauLosses.Ljet_sf = sf_jet * sf_corr
 
     @staticmethod
+    @tf.function
     def Lbase(target, output, genuine_index, fake_index):
         epsilon = tf.constant(TauLosses.epsilon, output.dtype.base_dtype)
         genuine_vs_fake = output[:, genuine_index] / (output[:, genuine_index] + output[:, fake_index] + epsilon)
@@ -205,6 +210,7 @@ class TauLosses:
         return loss
 
     @staticmethod
+    @tf.function
     def Hbase(target, output, index, inverse):
         epsilon = tf.constant(TauLosses.epsilon, output.dtype.base_dtype)
         x = tf.clip_by_value(output[:, index], epsilon, 1 - epsilon)
@@ -213,6 +219,7 @@ class TauLosses:
         return - target[:, index] * tf.math.log(x)
 
     @staticmethod
+    @tf.function
     def Fbase(target, output, index, gamma, apply_decay, inverse):
         decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.1)) + 1) / 2 if apply_decay else 1
         if gamma <= 0:
@@ -225,49 +232,60 @@ class TauLosses:
         return - decay_factor * target[:, index] * tf.pow(1-x, gamma_t) * tf.math.log(x)
 
     @staticmethod
+    @tf.function
     def Le(target, output):
         return TauLosses.Lbase(target, output, tau, e)
 
     @staticmethod
+    @tf.function
     def Lmu(target, output):
         return TauLosses.Lbase(target, output, tau, mu)
 
     @staticmethod
+    @tf.function
     def Ljet(target, output):
         return TauLosses.Lbase(target, output, tau, jet)
 
     @staticmethod
+    @tf.function
     def sLe(target, output):
         sf = tf.constant(TauLosses.Le_sf, output.dtype.base_dtype)
         return sf * TauLosses.Le(target, output)
 
     @staticmethod
+    @tf.function
     def sLmu(target, output):
         sf = tf.constant(TauLosses.Lmu_sf, output.dtype.base_dtype)
         return sf * TauLosses.Lmu(target, output)
 
     @staticmethod
+    @tf.function
     def sLjet(target, output):
         sf = tf.constant(TauLosses.Ljet_sf, output.dtype.base_dtype)
         return sf * TauLosses.Ljet(target, output)
 
     @staticmethod
+    @tf.function
     def He(target, output):
         return TauLosses.Hbase(target, output, e, False)
 
     @staticmethod
+    @tf.function
     def Hmu(target, output):
         return TauLosses.Hbase(target, output, mu, False)
 
     @staticmethod
+    @tf.function
     def Htau(target, output):
         return TauLosses.Hbase(target, output, tau, False)
 
     @staticmethod
+    @tf.function
     def Hjet(target, output):
         return TauLosses.Hbase(target, output, jet, False)
 
     @staticmethod
+    @tf.function
     def Hcat_base(target, output, index, inverse):
         decay_factor = (tf.math.tanh(70 * (output[:, tau] - 0.1)) + 1) / 2
         if inverse:
@@ -275,58 +293,71 @@ class TauLosses:
         return decay_factor * TauLosses.Hbase(target, output, index, False)
 
     @staticmethod
+    @tf.function
     def Hcat_e(target, output):
         return TauLosses.Hcat_base(target, output, e, False)
 
     @staticmethod
+    @tf.function
     def Hcat_mu(target, output):
         return TauLosses.Hcat_base(target, output, mu, False)
 
     @staticmethod
+    @tf.function
     def Hcat_jet(target, output):
         return TauLosses.Hcat_base(target, output, jet, False)
 
     @staticmethod
+    @tf.function
     def Hcat_eInv(target, output):
         return TauLosses.Hcat_base(target, output, e, True)
 
     @staticmethod
+    @tf.function
     def Hcat_muInv(target, output):
         return TauLosses.Hcat_base(target, output, mu, True)
 
     @staticmethod
+    @tf.function
     def Hcat_jetInv(target, output):
         return TauLosses.Hcat_base(target, output, jet, True)
 
     @staticmethod
+    @tf.function
     def Hbin(target, output):
         return TauLosses.Hbase(target, output, tau, True)
 
     @staticmethod
+    @tf.function
     def Fe(target, output):
         F_factor = tf.constant(1.63636, dtype=output.dtype.base_dtype)
         return F_factor * TauLosses.Fbase(target, output, e, 2, True, False)
 
     @staticmethod
+    @tf.function
     def Fmu(target, output):
         F_factor = tf.constant(1.63636, dtype=output.dtype.base_dtype)
         return F_factor * TauLosses.Fbase(target, output, mu, 2, True, False)
 
     @staticmethod
+    @tf.function
     def Fjet(target, output):
         F_factor = tf.constant(1.63636, dtype=output.dtype.base_dtype)
         return F_factor * TauLosses.Fbase(target, output, jet, 2, True, False)
 
     @staticmethod
+    @tf.function
     def Fcmb(target, output):
         F_factor = tf.constant(1.17153, dtype=output.dtype.base_dtype)
         return F_factor * TauLosses.Fbase(target, output, tau, 0.5, False, True)
 
     @staticmethod
+    @tf.function
     def tau_crossentropy(target, output):
         return TauLosses.sLe(target, output) + TauLosses.sLmu(target, output) + TauLosses.sLjet(target, output)
 
     @staticmethod
+    @tf.function
     def tau_crossentropy_v2(target, output):
         F_factor = tf.constant(5, dtype=output.dtype.base_dtype)
         sf = tf.constant([TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf],
@@ -336,6 +367,7 @@ class TauLosses:
                              + sf[jet] * TauLosses.Fjet(target, output))
 
     @staticmethod
+    @tf.function
     def tau_vs_other(prob_tau, prob_other):
         #return np.where(prob_tau > TauLosses.merge_thr, prob_tau / (prob_tau + prob_other), prob_tau)
         #return np.where(prob_tau > TauLosses.merge_thr, prob_tau / np.exp(prob_other), prob_tau)
@@ -343,6 +375,7 @@ class TauLosses:
         #return prob_tau / (prob_tau + prob_other + TauLosses.epsilon)
 
     @staticmethod
+    @tf.function
     def binary(target, output, weights, selected):
         if selected == 1:
             cmp_target = target > 0.5
@@ -358,6 +391,7 @@ class TauLosses:
         #return tf.where(target > 0.5, tf.ones(shape), tf.zeros(shape))
 
     @staticmethod
+    @tf.function
     def binary_negative(target, output):
         zero = tf.constant(0, dtype=target.dtype.base_dtype)
         shape = tf.shape(target)
