@@ -10,7 +10,7 @@ Setup:
     n_threads            :  1
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
-    input_dir            : "/nfs/dust/cms/user/mykytaua/dataDeepTau/ShuffleMergeSpectral_v1_test/"
+    input_dir            : "/nfs/dust/cms/user/mykytaua/dataDeepTau/ShuffleMergeSpectral_v1/"
     input_spectrum       : "/nfs/dust/cms/user/mykytaua/softDeepTau/DataLoader_prod_v2_master/CMSSW_10_6_20/src/TauMLTools/ShuffleSpectrum.root"
     target_spectrum      : "/nfs/dust/cms/user/mykytaua/softDeepTau/DataLoader_prod_v2_master/CMSSW_10_6_20/src/TauMLTools/ShuffleSpectrum.root"
     n_pt_bins            : 7
@@ -22,18 +22,17 @@ Setup:
     weight_thr           : 100000.0
 
 SetupNN:
-    # NN setups
-    n_batches            : 100
-    n_batches_val        : 10
-    n_passes             : 10
+    n_batches            : 200
+    n_batches_val        : 5
+    epoch                : 0
+    n_epochs             : 10
     validation_split     : 0.5
-    max_queue_size       : 10
+    max_queue_size       : 5
     input_grids          : [
                             [ PfCand_electron, PfCand_gamma, Electron ], # e-gamma
                             [ PfCand_muon, Muon ], # muons
                             [ PfCand_chHad, PfCand_nHad ] # hadrons
                            ]
-
 
 CellObjectType : [
                  PfCand_electron,
