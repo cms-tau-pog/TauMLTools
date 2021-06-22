@@ -101,7 +101,8 @@ public:
                      {"boostedTau_pt", "boostedTau_eta", "sampleType", "genLepton_kind", "boostedTau_index",
                       "genLepton_index", "genJet_index",
                       "genLepton_vis_pt", "genLepton_vis_eta", "genLepton_vis_phi", "genLepton_vis_mass",
-                      "boostedTau_pt", "boostedTau_eta", "boostedTau_phi", "boostedTau_mass", "evt"});
+			 "boostedTau_pt", "boostedTau_eta", "boostedTau_phi", "boostedTau_mass", "evt"});
+	    output_txt << file_name << " " << input_tauTuple.GetEntries() << "\n";
 
 
             for(const Tau& tau : input_tauTuple)
