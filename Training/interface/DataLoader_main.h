@@ -142,12 +142,11 @@ public:
     using TauTuple = tau_tuple::TauTuple;
     using LorentzVectorM = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>;
 
-    DataLoader(const std::vector<std::string> file_name) :
-        current_entry(start_dataset),
+    DataLoader() :
+        // current_entry(start_dataset),
         innerCellGridRef(n_inner_cells, n_inner_cells, inner_cell_size, inner_cell_size),
         outerCellGridRef(n_outer_cells, n_outer_cells, outer_cell_size, outer_cell_size),
-        input_files(file_name),
-        hasData(false)
+        hasData(false), fullData(false), hasFile(false)
     { 
       ROOT::EnableThreadSafety();
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
@@ -155,26 +154,26 @@ public:
       // file = OpenRootFile(input_files.at(0));
       // tauTuple = std::make_shared<tau_tuple::TauTuple>(file.get(), true);
 
-      std::cout << "Number of files to process: " << input_files.size() << std::endl;
-      tauTuple = std::make_shared<TauTuple>("taus", input_files);
-      end_entry = std::min((long long)end_dataset, tauTuple->GetEntries());
+      // std::cout << "Number of files to process: " << input_files.size() << std::endl;
+      // tauTuple = std::make_shared<TauTuple>("taus", input_files);
+      // end_entry = std::min((long long)end_dataset, tauTuple->GetEntries());
 
       // histogram to calculate weights
-      auto file_input = std::make_shared<TFile>(input_spectrum.c_str());
-      auto file_target = std::make_shared<TFile>(target_spectrum.c_str());
-      std::shared_ptr<TH2D> target_hist(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
+      auto file_input = std::make_unique<TFile>(input_spectrum.c_str());
+      auto file_target = std::make_unique<TFile>(target_spectrum.c_str());
+      std::unique_ptr<TH2D> target_hist(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
 
       for( auto const& [tau_type, tau_name] : tau_types_names)
       {
-        hist_weights[tau_type] = std::make_shared<TH2D>(("w_1_"+tau_name).c_str(),
+        hist_weights[tau_type] = std::make_unique<TH2D>(("w_1_"+tau_name).c_str(),
                                                         ("w_1_"+tau_name).c_str(),
                                                         n_eta_bins, eta_min, eta_max,
                                                         n_pt_bins, pt_min, pt_max);
         hist_weights[tau_type]->SetDirectory(0); // disabling the file referencing
-        auto after_rebin_input_hist = std::make_shared<TH2D>("input_hist", "input_hist",
+        auto after_rebin_input_hist = std::make_unique<TH2D>("input_hist", "input_hist",
                                                              n_eta_bins, eta_min, eta_max,
                                                              n_pt_bins, pt_min, pt_max);
-        std::shared_ptr<TH2D> input_hist(dynamic_cast<TH2D*>(file_input->Get(("eta_pt_hist_"+tau_name).c_str())));
+        std::unique_ptr<TH2D> input_hist(dynamic_cast<TH2D*>(file_input->Get(("eta_pt_hist_"+tau_name).c_str())));
         if(hist_weights[tau_type] && target_hist && after_rebin_input_hist && input_hist) {
             RebinAndFill(*hist_weights[tau_type], *target_hist);
             RebinAndFill(*after_rebin_input_hist, *input_hist);
@@ -192,20 +191,37 @@ public:
     DataLoader(const DataLoader&) = delete;
     DataLoader& operator=(const DataLoader&) = delete;
 
+    void ReadFile(std::string file_name, Long64_t start_file, Long64_t end_file) { // put end_file=-1 to read all events from file
+        tauTuple.reset();
+        if(file) file->Close();
+        file = std::make_unique<TFile>(file_name.c_str());
+        tauTuple = std::make_unique<tau_tuple::TauTuple>(file.get(), true);
+        current_entry = start_file;
+        end_entry = tauTuple->GetEntries();
+        if(end_file!=-1) end_entry = std::min((long long)end_file, end_entry);
+        hasFile = true;
+    } 
+
     bool MoveNext() {
+        if(!hasFile)
+          throw std::runtime_error("File should be loaded with DataLoaderWorker::ReadFile()");
 
         if(!tauTuple)
-          throw std::runtime_error("DataLoader is not initialized.");
+          throw std::runtime_error("TauTuple is not loaded!");
 
-        data = std::make_shared<Data>(n_tau, n_TauFlat, n_inner_cells, n_outer_cells,
-                                      n_PfCand_electron, n_PfCand_muon, n_PfCand_chHad, n_PfCand_nHad,
-                                      n_PfCand_gamma, n_Electron, n_Muon, tau_types_names.size()
-                                      );
-
-        const Long64_t end_point = current_entry + n_tau;
-        size_t n_processed = 0, n_total = static_cast<size_t>(end_point - current_entry);
-        for(Long64_t tau_i = 0; tau_i < n_tau; ++current_entry) {
-          if(current_entry == end_entry) return false;
+        if(!hasData) {
+          data = std::make_unique<Data>(n_tau, n_TauFlat, n_inner_cells, n_outer_cells,
+                                        n_PfCand_electron, n_PfCand_muon, n_PfCand_chHad, n_PfCand_nHad,
+                                        n_PfCand_gamma, n_Electron, n_Muon, tau_types_names.size()
+                                        );
+          tau_i = 0;
+          hasData = true;
+        }
+        while(tau_i < n_tau) {
+          if(current_entry == end_entry) {
+            hasFile = false;
+            return false;
+          }
           tauTuple->GetEntry(current_entry);
           const auto& tau = tauTuple->data();
           // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
@@ -218,23 +234,22 @@ public:
             FillCellGrid(tau, tau_i, outerCellGridRef, data, false);
             ++tau_i;
           }
+          ++current_entry;
         }
-        hasData = true;
+        fullData = true;
         return true;
     }
 
-    size_t GetEntries () { return end_entry - current_entry; }
-
-    std::shared_ptr<Data> LoadData() {
-      if(!hasData)
+    Data LoadData() {
+      if(!fullData)
         throw std::runtime_error("Data was not loaded with MoveNext()");
+      fullData = false;
       hasData = false;
-      return data;
+      return (*data.get());
     }
 
-    void reset() { current_entry = start_dataset;}
 
-    static void MaxDisbCheck(const std::unordered_map<int ,std::shared_ptr<TH2D>>& hists,
+    static void MaxDisbCheck(const std::unordered_map<int ,std::unique_ptr<TH2D>>& hists,
                              Double_t max_thr)
     {
       double min_weight = std::numeric_limits<double>::max();
@@ -281,7 +296,7 @@ public:
                           FeatureT::lim_min[idx][inner], FeatureT::lim_max[idx][inner]);
       }
 
-      void FillTauBranches(const Tau& tau, Long64_t tau_i, std::shared_ptr<Data>& data)
+      void FillTauBranches(const Tau& tau, Long64_t tau_i, std::unique_ptr<Data>& data)
       {
         Long64_t start_array_index = tau_i * n_TauFlat;
 
@@ -369,7 +384,7 @@ public:
 
       }
 
-      void FillCellGrid(const Tau& tau, Long64_t tau_i,  const CellGrid& cellGridRef, std::shared_ptr<Data>& data, bool inner)
+      void FillCellGrid(const Tau& tau, Long64_t tau_i,  const CellGrid& cellGridRef, std::unique_ptr<Data>& data, bool inner)
       {
           auto cellGrid = CreateCellGrid(tau, cellGridRef, inner);
           const int max_eta_index = cellGrid.MaxEtaIndex(), max_phi_index = cellGrid.MaxPhiIndex();
@@ -409,7 +424,7 @@ public:
       }
 
       void FillCellBranches(const Tau& tau, Long64_t tau_i,  const CellGrid& cellGridRef, const CellIndex& cellIndex,
-                            Cell& cell, std::shared_ptr<Data>& data, bool inner)
+                            Cell& cell, std::unique_ptr<Data>& data, bool inner)
       {
         static constexpr size_t nFeaturesTypes = std::tuple_size_v<FeatureTuple>;
         const auto start_indices = CreateStartIndices(cellGridRef, cellIndex, tau_i,
@@ -836,15 +851,19 @@ public:
 private:
 
   Long64_t end_entry;
-  Long64_t current_entry; // number of the current entry
+  Long64_t current_entry; // number of the current entry in the file
+  Long64_t current_tau; // number of the current tau candidate
+  Long64_t tau_i;
   const CellGrid innerCellGridRef, outerCellGridRef;
-  const std::vector<std::string> input_files;
+  // const std::vector<std::string> input_files;
 
   bool hasData;
+  bool fullData;
+  bool hasFile;
 
-  // std::shared_ptr<TFile> file; // to open with one file
-  std::shared_ptr<TauTuple> tauTuple;
-  std::shared_ptr<Data> data;
-  std::unordered_map<int ,std::shared_ptr<TH2D>> hist_weights;
+  std::unique_ptr<TFile> file; // to open with one file
+  std::unique_ptr<TauTuple> tauTuple;
+  std::unique_ptr<Data> data;
+  std::unordered_map<int ,std::unique_ptr<TH2D>> hist_weights;
 
 };
