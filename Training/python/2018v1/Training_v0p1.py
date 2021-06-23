@@ -5,8 +5,8 @@ import glob
 import time
 import math
 import numpy as np
-import uproot
-import pandas
+# import uproot
+# import pandas
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 
@@ -270,10 +270,17 @@ class TimeCheckpoint(Callback):
         read_hdf_lock.release()
         print("Epoch {} is ended.".format(epoch))
 
+    # Tesing
+    # def on_train_batch_begin(self, batch, logs=None):
+    #     print("...Training: start of batch {};".format(batch))
+
+    # def on_train_batch_end(self, batch, logs=None):
+    #     print("...Training: end of batch {};".format(batch))
+
 def run_training(train_suffix, model_name, model, data_loader, is_profile):
 
-    gen_train, n_steps_train = dataloader.get_generator(primary_set = True)
-    gen_val, n_steps_val = dataloader.get_generator(primary_set = False)
+    gen_train = dataloader.get_generator(primary_set = True)
+    gen_val = dataloader.get_generator(primary_set = False)
 
     data_train = tf.data.Dataset.from_generator(gen_train, output_types = input_types, output_shapes = input_shape)
     data_val = tf.data.Dataset.from_generator(gen_val, output_types = input_types, output_shapes = input_shape)
@@ -288,13 +295,13 @@ def run_training(train_suffix, model_name, model, data_loader, is_profile):
     callbacks = [time_checkpoint, csv_log]
 
     if is_profile:
-        logs = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
-        tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs, profile_batch='1, 10')
-        callbacks += tboard_callback
+        logs = "logs/" + model_name + datetime.now().strftime("%Y%m%d-%H%M%S")
+        tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs, profile_batch='10, 50')
+        callbacks.append(tboard_callback)
 
-    fit_hist = model.fit(data_train, steps_per_epoch = n_steps_train, max_queue_size=1, 
-               validation_data = data_val, validation_steps = n_steps_val,
-               epochs = dataloader.n_epochs, initial_epoch = dataloader.epoch,
+    fit_hist = model.fit(data_train, validation_data = data_val, max_queue_size=5,
+	       workers=4,
+               epochs = data_loader.n_epochs, initial_epoch = data_loader.epoch,
                callbacks = callbacks)
 
     read_hdf_lock.acquire()
@@ -314,10 +321,10 @@ n_outputs = dataloader.tau_types
 
 TauLosses.SetSFs(1, 2.5, 5, 1.5)
 print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
-model_name = "DeepTau2018v0"
+model_name = "DeepTau2018v0tests"
 model = create_model(netConf_full)
 compile_model(model, 1e-3)
 tf.keras.utils.plot_model(model, model_name + "_diagram.png", show_shapes=True)
 
-fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, False)
+fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, True)
 

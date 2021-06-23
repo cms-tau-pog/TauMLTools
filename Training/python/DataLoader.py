@@ -1,17 +1,26 @@
 import gc
 from multiprocessing import Process, Queue
+
+# https://stackoverflow.com/questions/47085458/why-is-multiprocessing-queue-get-so-slow
+# https://pypi.org/project/quick-queue/
+# from quick_queue import QQueue as Queue
+
 import numpy as np
 import ROOT as R
 import config_parse
 import tensorflow as tf
 import os
 import yaml
+import copy
+import time
 
 R.gROOT.Reset()
+class TerminateGenerator:
+    pass
 
-def LoaderThread(data_loader, queue, input_grids, batch_size, n_inner_cells, n_outer_cells,
-                 n_flat_features, n_grid_features, tau_types, return_truth, return_weights, steps_per_epoch):
-    
+def LoaderThread(queue_out, queue_files, input_grids, batch_size, n_inner_cells, n_outer_cells,
+                 n_flat_features, n_grid_features, tau_types, return_truth, return_weights):
+
     def getdata(_obj_f, _reshape, _dtype=np.float32):
         x = np.copy(np.frombuffer(_obj_f.data(), dtype=_dtype, count=_obj_f.size()))
         return x if _reshape==-1 else x.reshape(_reshape)
@@ -29,12 +38,27 @@ def LoaderThread(data_loader, queue, input_grids, batch_size, n_inner_cells, n_o
                 )
         return _X
 
-    current_epoch_step = 0
+    _dl_worker = R.DataLoader()
+    _req_file = True
 
-    while data_loader.MoveNext() and current_epoch_step < steps_per_epoch:
+    while True:
 
-        data = data_loader.LoadData()
+        if _req_file:
+            try:
+                _filename = queue_files.get(False)
+                # print(_filename)
+                _dl_worker.ReadFile(R.std.string(_filename), 0, 1000)
+                _req_file = False
+                continue
+            except: # Queue.Empty
+                queue_out.put(TerminateGenerator())
+                break
 
+        if not _dl_worker.MoveNext():
+            _req_file = True
+            continue
+        
+        data = _dl_worker.LoadData()
         # Flat Tau features
         X_all = [getdata(data.x_tau, (batch_size, n_flat_features))]
         # Inner grid
@@ -57,9 +81,8 @@ def LoaderThread(data_loader, queue, input_grids, batch_size, n_inner_cells, n_o
             item = (X_all, weights)
         else:
             item = X_all
-
-        queue.put(item)
-        current_epoch_step += 1
+        # print("ready to put!")
+        queue_out.put(item)
 
 
 class DataLoader:
@@ -112,6 +135,7 @@ class DataLoader:
         self.n_inner_cells  = self.config["Setup"]["n_inner_cells"]
         self.n_outer_cells  = self.config["Setup"]["n_outer_cells"]
         self.tau_types      = len(self.config["Setup"]["tau_types_names"])
+        self.n_load_workers   = self.config["SetupNN"]["n_load_workers"]
         self.n_batches        = self.config["SetupNN"]["n_batches"]
         self.n_batches_val    = self.config["SetupNN"]["n_batches_val"]
         self.validation_split = self.config["SetupNN"]["validation_split"]
@@ -128,53 +152,59 @@ class DataLoader:
 
         self.train_files, self.val_files = \
              np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
-        self.train_files, self.val_files = list(self.train_files), list(self.val_files)
-
+            
         if len(self.train_files) == 0:
-            raise RuntimeError("Taining file list is empty.")
+            raise RuntimeError("Taining file queue is empty.")
         if len(self.val_files) == 0:
-            raise RuntimeError("Validation file list is empty.")
+            raise RuntimeError("Validation file queue is empty.")
 
-        print("Files for training:",len(self.train_files))
-        print("Files for validation:",len(self.val_files))
+        print("Files for training:", len(self.train_files))
+        # print("Files for validation:", len(self.val_files))
 
 
     def get_generator(self, primary_set = True, return_truth = True, return_weights = False):
 
-        if primary_set:
-            _batch_loader = R.DataLoader(DataLoader.ListToVector(self.train_files,'string'))
-            _batch_size = self.n_batches
-        else:
-            _batch_loader = R.DataLoader(DataLoader.ListToVector(self.val_files,'string'))
-            _batch_size = self.n_batches_val
-
-        _steps_per_epoch = int(_batch_loader.GetEntries() / self.batch_size)
-        _steps_per_epoch = _steps_per_epoch if _batch_size == -1 else min(_steps_per_epoch, _batch_size)
+        _files = self.train_files if primary_set else self.val_files
+        print("Number of workers in DataLoader: ", self.n_load_workers)
 
         def _generator():
 
-            queue = Queue(maxsize=self.max_queue_size)
-            current_pass = self.epoch
-            while self.n_passes < 0 or current_pass < self.n_epochs:
-                _batch_loader.reset()
+            finish_counter = 0
 
-                process = Process(target=LoaderThread, 
-                           args=(  _batch_loader, queue, self.input_grids,
+            queue_files = Queue()
+            [ queue_files.put(file) for file in _files ]
+            queue_out = Queue(maxsize=self.max_queue_size)
+
+            processes = []
+            for i in range(self.n_load_workers):
+                processes.append(
+                Process(target = LoaderThread, 
+                        args = (queue_out, queue_files, self.input_grids,
                                 self.batch_size, self.n_inner_cells, self.n_outer_cells,
                                 self.n_flat_features, self.n_grid_features, self.tau_types,
-                                return_truth, return_weights, _steps_per_epoch))
-                process.daemon = True
-                process.start()
+                                return_truth, return_weights)))
+                processes[-1].deamon = True
+                processes[-1].start()
+            
+            while True:
+                # print("in while")
+                # print("q size:", queue_out.qsize())
+                item = queue_out.get()
 
-                for step_id in range(_steps_per_epoch):
-                    item = queue.get()
+                if isinstance(item, TerminateGenerator):
+                    finish_counter+=1
+                else:
                     yield item
-                
-                process.join()
-                gc.collect()
-                current_pass += 1
 
-        return _generator, _steps_per_epoch
+                # print("in while 2")
+                if finish_counter == self.n_load_workers:
+                    break
+
+            for pr in processes:
+                pr.join()
+            gc.collect()
+
+        return _generator
 
 
     def get_config(self):
