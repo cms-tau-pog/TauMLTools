@@ -270,20 +270,14 @@ class TimeCheckpoint(Callback):
         read_hdf_lock.release()
         print("Epoch {} is ended.".format(epoch))
 
-    # Tesing
-    # def on_train_batch_begin(self, batch, logs=None):
-    #     print("...Training: start of batch {};".format(batch))
-
-    # def on_train_batch_end(self, batch, logs=None):
-    #     print("...Training: end of batch {};".format(batch))
 
 def run_training(train_suffix, model_name, model, data_loader, is_profile):
 
     gen_train = dataloader.get_generator(primary_set = True)
     gen_val = dataloader.get_generator(primary_set = False)
 
-    data_train = tf.data.Dataset.from_generator(gen_train, output_types = input_types, output_shapes = input_shape)
-    data_val = tf.data.Dataset.from_generator(gen_val, output_types = input_types, output_shapes = input_shape)
+    # data_train = tf.data.Dataset.from_generator(gen_train, output_types = input_types, output_shapes = input_shape)
+    # data_val = tf.data.Dataset.from_generator(gen_val, output_types = input_types, output_shapes = input_shape)
 
     train_name = '%s_%s' % (model_name, train_suffix)
     log_name = "%s.log" % train_name
@@ -299,10 +293,9 @@ def run_training(train_suffix, model_name, model, data_loader, is_profile):
         tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs, profile_batch='10, 50')
         callbacks.append(tboard_callback)
 
-    fit_hist = model.fit(data_train, validation_data = data_val, max_queue_size=5,
-	       workers=4,
-               epochs = data_loader.n_epochs, initial_epoch = data_loader.epoch,
-               callbacks = callbacks)
+    fit_hist = model.fit(gen_train(), validation_data = gen_val(),
+                         epochs = data_loader.n_epochs, initial_epoch = data_loader.epoch,
+                         callbacks = callbacks)
 
     read_hdf_lock.acquire()
     model.save("%s_final.hdf5" % train_name)
@@ -324,7 +317,7 @@ print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLo
 model_name = "DeepTau2018v0tests"
 model = create_model(netConf_full)
 compile_model(model, 1e-3)
-tf.keras.utils.plot_model(model, model_name + "_diagram.png", show_shapes=True)
+tf.keras.utils.plot_model(model, model_name + "_diagram.png", show_shapes=False)
 
-fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, True)
+fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, False)
 
