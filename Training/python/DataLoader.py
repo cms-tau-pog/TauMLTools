@@ -1,6 +1,10 @@
 import gc
-from multiprocessing import Process, Queue
+import multiprocessing as mp
 
+# from pathos.helpers import mp
+# from mp import Process,Queue
+# from faster_fifo import Queue
+# from queue import Full, Empty
 # https://stackoverflow.com/questions/47085458/why-is-multiprocessing-queue-get-so-slow
 # https://pypi.org/project/quick-queue/
 # from quick_queue import QQueue as Queue
@@ -29,12 +33,12 @@ def LoaderThread(queue_out, queue_files, input_grids, batch_size, n_inner_cells,
         _n_cells = n_inner_cells if _inner else n_outer_cells
         _X = []
         for group in input_grids:
-            _X.append(
+            _X.append(tf.convert_to_tensor(
                 np.concatenate(
                     [ getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner],
                      (batch_size, _n_cells, _n_cells, n_grid_features[fname])) for fname in group ],
                     axis=-1
-                    )
+                    ),dtype=tf.float32)
                 )
         return _X
 
@@ -46,8 +50,7 @@ def LoaderThread(queue_out, queue_files, input_grids, batch_size, n_inner_cells,
         if _req_file:
             try:
                 _filename = queue_files.get(False)
-                # print(_filename)
-                _dl_worker.ReadFile(R.std.string(_filename), 0, 1000)
+                _dl_worker.ReadFile(R.std.string(_filename), 0, -1)
                 _req_file = False
                 continue
             except: # Queue.Empty
@@ -60,13 +63,13 @@ def LoaderThread(queue_out, queue_files, input_grids, batch_size, n_inner_cells,
         
         data = _dl_worker.LoadData()
         # Flat Tau features
-        X_all = [getdata(data.x_tau, (batch_size, n_flat_features))]
+        X_all = [tf.convert_to_tensor(getdata(data.x_tau, (batch_size, n_flat_features)))]
         # Inner grid
         X_all += getgrid(data.x_grid, 1) # 500 11 11 176
         # Outer grid
         X_all += getgrid(data.x_grid, 0) # 500 21 21 176
 
-        X_all = tuple(X_all)
+        # X_all = tuple(X_all)
 
         if return_weights:
             weights = getdata(data.weight, -1)
@@ -81,9 +84,8 @@ def LoaderThread(queue_out, queue_files, input_grids, batch_size, n_inner_cells,
             item = (X_all, weights)
         else:
             item = X_all
-        # print("ready to put!")
-        queue_out.put(item)
 
+        queue_out.put(item)
 
 class DataLoader:
 
@@ -159,7 +161,7 @@ class DataLoader:
             raise RuntimeError("Validation file queue is empty.")
 
         print("Files for training:", len(self.train_files))
-        # print("Files for validation:", len(self.val_files))
+        print("Files for validation:", len(self.val_files))
 
 
     def get_generator(self, primary_set = True, return_truth = True, return_weights = False):
@@ -170,36 +172,31 @@ class DataLoader:
         def _generator():
 
             finish_counter = 0
-
-            queue_files = Queue()
+            queue_files = mp.Queue()
             [ queue_files.put(file) for file in _files ]
-            queue_out = Queue(maxsize=self.max_queue_size)
+            queue_out = mp.Queue(self.max_queue_size)
 
             processes = []
             for i in range(self.n_load_workers):
                 processes.append(
-                Process(target = LoaderThread, 
+                mp.Process(target = LoaderThread, 
                         args = (queue_out, queue_files, self.input_grids,
                                 self.batch_size, self.n_inner_cells, self.n_outer_cells,
                                 self.n_flat_features, self.n_grid_features, self.tau_types,
                                 return_truth, return_weights)))
                 processes[-1].deamon = True
                 processes[-1].start()
-            
-            while True:
-                # print("in while")
-                # print("q size:", queue_out.qsize())
-                item = queue_out.get()
 
+
+            while True:
+                item = queue_out.get()
                 if isinstance(item, TerminateGenerator):
                     finish_counter+=1
                 else:
                     yield item
-
-                # print("in while 2")
                 if finish_counter == self.n_load_workers:
                     break
-
+                    
             for pr in processes:
                 pr.join()
             gc.collect()
