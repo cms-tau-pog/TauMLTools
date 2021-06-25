@@ -51,15 +51,12 @@ def create_settings(input_file: str, verbose=False) -> str:
         for key in content["Setup"]:
             string += "const inline " + types_map[type(content["Setup"][key])] \
                    + " " + key + " = " + items_str(content["Setup"][key]) + ";\n"
+                   
         # variables that define the length of feature lists:
         for features in content["Features_all"]:
             number = len(content["Features_all"][features]) -  len(content["Features_disable"][features])
             string += "const inline size_t n_" + str(features) + " = " + str(number) + ";\n"
-
-        string += "const inline std::vector<std::string> CellObjectTypes {\"" + \
-                  "\",\"".join(content["CellObjectType"]) + \
-                  "\"};\n"
-        
+       
         string += "};\n"
         return string
 
