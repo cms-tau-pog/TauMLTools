@@ -45,32 +45,56 @@ def create_settings(input_file: str, verbose=False) -> str:
                 return "\"" + str(input) + "\""
             else:
                 return str(input)
+        def items_float(input):
+            return "{"+','.join([str(k)  for k in input])+"}"
+        def items_float_vector(input):
+            return "{"+','.join([items_float(it) for it in input])+"}"
 
         string = "namespace Setup {\n"
         # variables from Setup section:
         for key in content["Setup"]:
-            string += "const inline " + types_map[type(content["Setup"][key])] \
-                   + " " + key + " = " + items_str(content["Setup"][key]) + ";\n"
-                   
+
+            value = content["Setup"][key]
+            if type(value) == list and (type(value[0]) == float or type(value[0]) == int):
+                string += "const inline std::vector<Double_t>" \
+                       + " " + key + " = " + items_float(value) + ";\n"
+            elif type(value) == list and type(value[0]) == list and (type(value[0][0]) == float or type(value[0][0]) == int):
+                string += "const inline std::vector<std::vector<Double_t>>"\
+                       + " " + key + " = " + items_float_vector(value) + ";\n"
+            else:
+                string += "const inline " + types_map[type(value)] \
+                       + " " + key + " = " + items_str(value) + ";\n"
+
         # variables that define the length of feature lists:
         for features in content["Features_all"]:
             number = len(content["Features_all"][features]) -  len(content["Features_disable"][features])
             string += "const inline size_t n_" + str(features) + " = " + str(number) + ";\n"
-       
+
+
+        string += "const inline std::vector<std::string> CellObjectTypes {\"" + \
+                  "\",\"".join(content["CellObjectType"]) + \
+                  "\"};\n"
+
         string += "};\n"
         return string
 
     def create_enum(key_name: str, content: dict) -> str:
+        feature_list_enabled, feature_list_disabled = [], []
+        for feature_dict in content["Features_all"][key_name]:
+            assert len(feature_dict) == 1 and type(feature_dict) == dict
+            if list(feature_dict)[0] in content["Features_disable"][key_name]:
+                feature_list_disabled.append(list(feature_dict)[0])
+                continue
+            feature_list_enabled.append(list(feature_dict)[0])
         string = "enum class " + key_name +"_Features " + "{\n"
         # enabled features:
-        for i, key in enumerate(content["Features_all"][key_name]):
-            if key not in content["Features_disable"][key_name]:
-                string += key +" = " + str(i) + ",\n"
+        for i, feature in enumerate(feature_list_enabled):
+            string += feature +" = " + str(i) + ",\n"
         # disabled features:
-        for i, key in enumerate(content["Features_disable"][key_name]):
-            if key not in content["Features_all"][key_name]:
-                raise Exception("Disabled feature {0} is not listed in \"Features_all\" section of cofig file".format(key))
-            string += key +" = " + "-1" + ",\n"
+        for i, feature in enumerate(content["Features_disable"][key_name]):
+            if feature not in feature_list_disabled:
+                raise Exception("Disabled feature {0} is not listed in \"Features_all\" section of cofig file".format(feature))
+            string += feature +" = " + "-1" + ",\n"
         return string[:-2] + "};\n"
 
     def create_gridobjects(content: dict) -> str:
@@ -101,7 +125,7 @@ def create_settings(input_file: str, verbose=False) -> str:
         print(settings)
     return settings
 
-def create_scaling_input(input_file: str, verbose=False) -> str:
+def create_scaling_input(input_scaling_file: str, input_cfg_file: str, verbose=False) -> str:
     '''
     The following subroutine parses the json config file and
     returns the string with Scaling namespace, where
@@ -122,8 +146,10 @@ def create_scaling_input(input_file: str, verbose=False) -> str:
         ...
     '''
     import json
+    import yaml
 
-    groups = [ 'outer', 'inner' ]
+    global_group = 'global'
+    cone_groups = [ 'outer', 'inner' ]
     subgroups = [ 'mean', 'std', 'lim_min', 'lim_max' ]
 
     def conv_str(input) -> str:
@@ -134,46 +160,38 @@ def create_scaling_input(input_file: str, verbose=False) -> str:
         else:
             return str(input)
 
-    def depth(d):
-        if isinstance(d, dict):
-            return 1 + (max(map(depth, d.values())) if d else 0)
-        return 0
-
-    def create_scaling(content: dict) -> str:
+    def create_scaling(content_scaling: dict, content_cfg: dict) -> str:
         string = "namespace Scaling {\n"
-        for FeatureT in content:
-            if depth(content[FeatureT]) == 2:
-                form = 1
-            elif depth(content[FeatureT]) == 3:
-                form = 2
-            else:
-                raise Exception("Wrong scaling config formatting")
-
+        for FeatureT in content_scaling:
             string += "struct "+FeatureT+"{\n"
-            all_vars = content[FeatureT].values()
-
+            duplicate = FeatureT in content_cfg['CellObjectType'] # whether to duplicate scaling param values across cone_groups
             for i, subg in enumerate(subgroups):
                 string += "inline static const "
                 string += "std::vector<std::vector<float>> "
                 string += subg + " = "
-                if form == 2:
-                    string += "{{"+"},{".join([ ","
-                            .join([ conv_str(var[inner][subg])
-                            for inner in groups ])
-                            for var in all_vars ])+"}}"
-                else:
-                    string += "{{"+"},{".join([
-                            conv_str(var[subg])
-                            for var in all_vars ])+"}}"
-
-                string += ";\n"
+                var_string = []
+                for var_i, (var, var_params) in enumerate(content_scaling[FeatureT].items()):
+                    assert var in content_cfg['Features_all'][FeatureT][var_i].keys() # check if there is such feature in training cfg
+                    if var in content_cfg['Features_disable'][FeatureT]: continue
+                    if len(var_params)==len(cone_groups) and all([g in var_params.keys() for g in cone_groups]):
+                        var_string.append(",".join([conv_str(var_params[cone_group][subg]) for cone_group in cone_groups]))
+                    elif len(var_params)==1 and global_group in var_params.keys():
+                        if duplicate:
+                            var_string.append(",".join([conv_str(var_params[global_group][subg]) for cone_group in cone_groups]))
+                        else:
+                            var_string.append(conv_str(var_params[global_group][subg]))
+                    else:
+                        raise Exception(f"wrong format for scaling params in json for variable {var}: expect either dictionary with either a key {global_group}, or keys {cone_groups}")
+                string += "{{"+"},{".join(var_string)+"}};\n"
             string += "};\n"
         string += "};\n"
         return string
 
-    with open(input_file) as file:
-        data = json.load(file)
-    settings  = create_scaling(data)
+    with open(input_scaling_file) as scaling_file:
+        scaling_data = json.load(scaling_file)
+    with open(input_cfg_file) as cfg_file:
+        cfg_data = yaml.safe_load(cfg_file)
+    settings  = create_scaling(scaling_data, cfg_data)
     if verbose:
         print(settings)
     return settings

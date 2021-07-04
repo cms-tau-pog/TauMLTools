@@ -5,12 +5,14 @@ import numpy as np
 import time
 import config_parse
 import os
+from glob import glob
 
 R.gROOT.ProcessLine(".include ../../..")
 
 print("Compiling Setup classes...")
-R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_test.json",verbose=False))
-R.gInterpreter.Declare(config_parse.create_settings("../configs/training_v1.yaml",verbose=False))
+
+R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_v1.json", "../configs/training_v1.yaml", verbose=False))
+R.gInterpreter.Declare(config_parse.create_settings("../configs/training_v1.yaml", verbose=False))
 
 print("Compiling DataLoader_main...")
 R.gInterpreter.Declare('#include "../interface/DataLoader_main.h"')
@@ -27,6 +29,7 @@ n_pf_gamma  = R.Setup.n_PfCand_gamma
 n_ele       = R.Setup.n_Electron
 n_muon      = R.Setup.n_Muon
 tau_types   = R.Setup.tau_types_names.size()
+input_files = glob(f'{R.Setup.input_dir}*.root')
 
 n_grid_features = {
     "PfCand_electron" : n_pf_el,
@@ -104,6 +107,7 @@ for i in range(n_batches):
 
     weights = getdata(data.weight, -1)
     Y = getdata(data.y_onehot, (n_tau, tau_types))
+
 
     data_que.put(X)
 
