@@ -40,26 +40,6 @@ if gpus:
         # Virtual devices must be set before GPUs have been initialized
         print(e)
 
-class MaskedDense(Dense):
-    def __init__(self, units, **kwargs):
-        super(MaskedDense, self).__init__(units, **kwargs)
-
-    def call(self, inputs, mask=None):
-        base_out = super(MaskedDense, self).call(inputs)
-        if mask is None:
-            return base_out
-        zeros = tf.zeros_like(base_out)
-        return tf.where(mask, base_out, zeros)
-
-class SafeModelCheckpoint(ModelCheckpoint):
-    def __init__(self, filepath, **kwargs):
-        super(SafeModelCheckpoint, self).__init__(filepath, **kwargs)
-
-    def on_epoch_end(self, epoch, logs=None):
-        read_hdf_lock.acquire()
-        super(SafeModelCheckpoint, self).on_epoch_end(epoch, logs)
-        read_hdf_lock.release()
-
 class NetSetup:
     def __init__(self, activation, activation_shared_axes, dropout_rate, first_layer_size, last_layer_size, decay_factor,
                  kernel_regularizer, time_distributed):
@@ -103,7 +83,6 @@ def add_block_ending(net_setup, name_format, layer):
     if net_setup.dropout_rate > 0:
         return net_setup.DropoutType(net_setup.dropout_rate, name=name_format.format('dropout'))(activation_layer)
     return activation_layer
-
 
 def dense_block(prev_layer, kernel_size, net_setup, block_name, n):
     DenseType = MaskedDense if net_setup.time_distributed else Dense
@@ -304,7 +283,7 @@ def run_training(train_suffix, model_name, model, data_loader, is_profile):
 
 
 config   = os.path.abspath( "../../configs/training_v1.yaml")
-scaling  = os.path.abspath("../../configs/scaling_test.json")
+scaling  = os.path.abspath("../../configs/scaling_params_v1.json")
 dataloader = DataLoader.DataLoader(config, scaling)
 netConf_full, input_shape, input_types  = dataloader.get_config()
 
