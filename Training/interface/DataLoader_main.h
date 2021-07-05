@@ -207,7 +207,7 @@ public:
         tauTuple = std::make_unique<tau_tuple::TauTuple>(file.get(), true);
         current_entry = start_file;
         end_entry = tauTuple->GetEntries();
-        if(end_file!=-1) end_entry = std::min((long long)end_file, end_entry);
+        if(end_file!=-1) end_entry = std::min(end_file, end_entry);
         hasFile = true;
     } 
 
@@ -238,9 +238,9 @@ public:
           else {
             data->y_onehot[ tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
             data->weight.at(tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
-            FillTauBranches(tau, tau_i, data);
-            FillCellGrid(tau, tau_i, innerCellGridRef, data, true);
-            FillCellGrid(tau, tau_i, outerCellGridRef, data, false);
+            FillTauBranches(tau, tau_i);
+            FillCellGrid(tau, tau_i, innerCellGridRef, true);
+            FillCellGrid(tau, tau_i, outerCellGridRef, false);
             ++tau_i;
           }
           ++current_entry;
@@ -305,7 +305,7 @@ public:
                           FeatureT::lim_min[idx][inner], FeatureT::lim_max[idx][inner]);
       }
 
-      void FillTauBranches(const Tau& tau, Long64_t tau_i, std::unique_ptr<Data>& data)
+      void FillTauBranches(const Tau& tau, Long64_t tau_i)
       {
         Long64_t start_array_index = tau_i * n_TauFlat;
 
@@ -393,7 +393,7 @@ public:
 
       }
 
-      void FillCellGrid(const Tau& tau, Long64_t tau_i,  const CellGrid& cellGridRef, std::unique_ptr<Data>& data, bool inner)
+      void FillCellGrid(const Tau& tau, Long64_t tau_i,  const CellGrid& cellGridRef, bool inner)
       {
           auto cellGrid = CreateCellGrid(tau, cellGridRef, inner);
           const int max_eta_index = cellGrid.MaxEtaIndex(), max_phi_index = cellGrid.MaxPhiIndex();
@@ -412,7 +412,7 @@ public:
                           throw std::runtime_error("Duplicated cell index in FillCellGrid.");
                       processed_cells.insert(cellIndex);
                       if(!cellGrid.IsEmpty(cellIndex))
-                          FillCellBranches(tau, tau_i, cellGridRef, cellIndex, cellGrid.at(cellIndex), data, inner);
+                          FillCellBranches(tau, tau_i, cellGridRef, cellIndex, cellGrid.at(cellIndex), inner);
                   }
               }
           }
@@ -433,7 +433,7 @@ public:
       }
 
       void FillCellBranches(const Tau& tau, Long64_t tau_i,  const CellGrid& cellGridRef, const CellIndex& cellIndex,
-                            Cell& cell, std::unique_ptr<Data>& data, bool inner)
+                            Cell& cell, bool inner)
       {
         static constexpr size_t nFeaturesTypes = std::tuple_size_v<FeatureTuple>;
         const auto start_indices = CreateStartIndices(cellGridRef, cellIndex, tau_i,
