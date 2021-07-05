@@ -15,8 +15,6 @@ import config_parse
 import tensorflow as tf
 import os
 import yaml
-import copy
-import time
 
 R.gROOT.Reset()
 class TerminateGenerator:
@@ -90,13 +88,6 @@ def LoaderThread(queue_out, queue_files, input_grids, batch_size, n_inner_cells,
 class DataLoader:
 
     @staticmethod
-    def ListToVector(l, elem_type):
-        vec = R.std.vector(elem_type)()
-        for elem in l:
-            vec.push_back(elem)
-        return vec
-
-    @staticmethod
     def compile_classes(file_config, file_scaling):
 
         _rootpath = os.path.abspath(os.path.dirname(__file__)+"/../../..")
@@ -113,14 +104,14 @@ class DataLoader:
 
         # compilation should be done in corresponding order:
         print("Compiling DataLoader headers.")
-        R.gInterpreter.ProcessLine(config_parse.create_scaling_input(file_scaling))
-        R.gInterpreter.ProcessLine(config_parse.create_settings(file_config))
-        R.gInterpreter.ProcessLine('#include "{}"'.format(_LOADPATH))
+        R.gInterpreter.Declare(config_parse.create_scaling_input(file_scaling,file_config, verbose=False))
+        R.gInterpreter.Declare(config_parse.create_settings(file_config, verbose=False))
+        R.gInterpreter.Declare('#include "{}"'.format(_LOADPATH))
 
 
     def __init__(self, file_config, file_scaling):
 
-        DataLoader.compile_classes(file_config, file_scaling)
+        self.compile_classes(file_config, file_scaling)
 
         with open(file_config) as file:
             self.config = yaml.safe_load(file)
@@ -128,9 +119,11 @@ class DataLoader:
         self.n_grid_features = {}
         for celltype in self.config["Features_all"]:
             if celltype!="TauFlat":
-                self.n_grid_features[str(celltype)] = len(self.config["Features_all"][celltype])
+                self.n_grid_features[str(celltype)] = len(self.config["Features_all"][celltype]) - \
+                                                      len(self.config["Features_disable"][celltype])
 
-        self.n_flat_features = len(self.config["Features_all"]["TauFlat"])
+        self.n_flat_features = len(self.config["Features_all"]["TauFlat"]) - \
+                               len(self.config["Features_disable"]["TauFlat"])
 
         # global variables after compile are read out here 
         self.batch_size     = self.config["Setup"]["n_tau"]
@@ -207,8 +200,10 @@ class DataLoader:
     def get_config(self):
 
         def get_branches(config, group):
-            return list(set(config["Features_all"][group]) - \
-                        set(config["Features_disable"][group]))
+            return list(
+                set(sum( [list(d.keys()) for d in config["Features_all"][group]],[])) - \
+                set(config["Features_disable"][group])
+            )
 
         # copy of feature lists is not necessery
         input_tau_branches = get_branches(self.config,"TauFlat")
