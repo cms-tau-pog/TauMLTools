@@ -44,7 +44,6 @@ class Histogram_2D{
 
     double ymin_ = std::numeric_limits<float>::max();
     double ymax_ = std::numeric_limits<float>::lowest();
-    
 };
 
 Histogram_2D::~Histogram_2D(){
@@ -65,12 +64,15 @@ void Histogram_2D::add_y_binning_by_index(const int index, const std::vector<dou
   if(index >= xaxis_content_.size()){
     std::runtime_error("Index "+std::to_string(index)+" out of x-axis range");
   }
+  if (yaxis.front() != ymax_ || yaxis.back() != ymin_){
+    std::runtime_error("Input yaxis min or max values not matching specified min and max values");
+  }
   xaxis_content_[index] = std::shared_ptr<TH1D>(new TH1D(name.c_str(), "", yaxis.size()-1, &yaxis[0]));
 }
 
 bool Histogram_2D::can_be_imported(const TH2D& histo){
   auto check_axis = [](const std::vector<double>& input_axis, const std::vector<double>& this_axis){
-    if (input_axis.front() != this_axis.front() || input_axis.back() != this_axis.back()) return false;
+    //if (input_axis.front() != this_axis.front() || input_axis.back() != this_axis.back()) return false;
     bool matching;
     for (auto this_low_edge  : this_axis ){
     for (auto input_low_edge : input_axis){
@@ -91,7 +93,7 @@ bool Histogram_2D::can_be_imported(const TH2D& histo){
   std::cout << "WARNING from can_be_imported: x and y axes are switched!" << std::endl;
   load_axis_into_vector(histo.GetYaxis(), input_xaxis);
   load_axis_into_vector(histo.GetXaxis(), input_yaxis);
-  
+
   if (!check_axis(input_xaxis, xaxis_)){
     std::cerr << "Invalid x-axis binning found" << std::endl;
     return false;
@@ -120,7 +122,7 @@ void Histogram_2D::th2d_add (const TH2D& histo){
   if(!can_be_imported(histo)){
     throw std::invalid_argument("Given TH2D "+std::string(histo.GetName())+" can not be imported");
   }
-  
+
   //auto input_yaxis = histo.GetYaxis();
   //auto input_xaxis = histo.GetXaxis();
   // WORKAROUND to switch x and y axes
@@ -132,6 +134,8 @@ void Histogram_2D::th2d_add (const TH2D& histo){
   for (int ix = 1; ix <= input_xaxis->GetNbins(); ix++){
     auto bincy = input_yaxis->GetBinCenter(iy);
     auto bincx = input_xaxis->GetBinCenter(ix);
+
+    if(bincy < ymin_ || bincy >= ymax_ || bincx < xaxis_.front() || bincx >= xaxis_.back()) continue;
 
     auto yhisto = xaxis_content_[find_bin_by_value_(bincx)];
     yhisto->SetBinContent(
