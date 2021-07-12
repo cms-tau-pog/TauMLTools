@@ -1,13 +1,7 @@
 import gc
 import multiprocessing as mp
-
-# from pathos.helpers import mp
-# from mp import Process,Queue
-# from faster_fifo import Queue
-# from queue import Full, Empty
-# https://stackoverflow.com/questions/47085458/why-is-multiprocessing-queue-get-so-slow
-# https://pypi.org/project/quick-queue/
-# from quick_queue import QQueue as Queue
+from queue import Empty as EmptyException
+from queue import Full as FullException
 
 import numpy as np
 import ROOT as R
@@ -15,13 +9,14 @@ import config_parse
 import tensorflow as tf
 import os
 import yaml
+import time
 
-R.gROOT.Reset()
 class TerminateGenerator:
     pass
 
-def LoaderThread(queue_out, queue_files, input_grids, batch_size, n_inner_cells, n_outer_cells,
-                 n_flat_features, n_grid_features, tau_types, return_truth, return_weights):
+def LoaderThread(queue_out, queue_files,  batch_counter, n_batches, #terminate,
+                 input_grids, batch_size, n_inner_cells, n_outer_cells, n_flat_features,
+                 n_grid_features, tau_types, return_truth, return_weights):
 
     def getdata(_obj_f, _reshape, _dtype=np.float32):
         x = np.copy(np.frombuffer(_obj_f.data(), dtype=_dtype, count=_obj_f.size()))
@@ -43,7 +38,7 @@ def LoaderThread(queue_out, queue_files, input_grids, batch_size, n_inner_cells,
     _dl_worker = R.DataLoader()
     _req_file = True
 
-    while True:
+    while batch_counter.value < n_batches or n_batches == -1:
 
         if _req_file:
             try:
@@ -51,8 +46,7 @@ def LoaderThread(queue_out, queue_files, input_grids, batch_size, n_inner_cells,
                 _dl_worker.ReadFile(R.std.string(_filename), 0, -1)
                 _req_file = False
                 continue
-            except: # Queue.Empty
-                queue_out.put(TerminateGenerator())
+            except EmptyException:
                 break
 
         if not _dl_worker.MoveNext():
@@ -82,8 +76,25 @@ def LoaderThread(queue_out, queue_files, input_grids, batch_size, n_inner_cells,
             item = (X_all, weights)
         else:
             item = X_all
+        
+        while batch_counter.value < n_batches or n_batches == -1:
+            try:
+                queue_out.put(item, timeout=0.1)
+                batch_counter.value+=1
+                break
+            except FullException:
+                continue
 
-        queue_out.put(item)
+    queue_out.put(TerminateGenerator())
+
+    ## For some reasons Thread can not exit
+    ## while elements are present in the queue
+    ## here LoadThread is put to sleep until
+    ## all other processes are finished
+    
+    ## Uncomment if needed: 
+    # while not terminate.value:
+    #     time.sleep(1)
 
 class DataLoader:
 
@@ -160,11 +171,15 @@ class DataLoader:
     def get_generator(self, primary_set = True, return_truth = True, return_weights = False):
 
         _files = self.train_files if primary_set else self.val_files
+        n_batches = self.n_batches if primary_set else self.n_batches_val
         print("Number of workers in DataLoader: ", self.n_load_workers)
 
         def _generator():
 
             finish_counter = 0
+            batch_counter = mp.Value('i', 0)
+            # terminate_workers = mp.Value('b', False)
+            
             queue_files = mp.Queue()
             [ queue_files.put(file) for file in _files ]
             queue_out = mp.Queue(self.max_queue_size)
@@ -173,24 +188,32 @@ class DataLoader:
             for i in range(self.n_load_workers):
                 processes.append(
                 mp.Process(target = LoaderThread, 
-                        args = (queue_out, queue_files, self.input_grids,
-                                self.batch_size, self.n_inner_cells, self.n_outer_cells,
-                                self.n_flat_features, self.n_grid_features, self.tau_types,
-                                return_truth, return_weights)))
+                        args = (queue_out, queue_files, batch_counter, n_batches, #terminate_workers,
+                                self.input_grids, self.batch_size, self.n_inner_cells,
+                                self.n_outer_cells, self.n_flat_features, self.n_grid_features,
+                                self.tau_types, return_truth, return_weights)))
                 processes[-1].deamon = True
                 processes[-1].start()
 
-
-            while True:
+            while finish_counter < self.n_load_workers:
                 item = queue_out.get()
                 if isinstance(item, TerminateGenerator):
                     finish_counter+=1
                 else:
                     yield item
-                if finish_counter == self.n_load_workers:
-                    break
-                    
-            for pr in processes:
+
+            ## queue_out should be empty
+            ## before joining the processes
+            ## uncomment if needed:
+            # while not queue_out.empty():
+            #     _ = queue_out.get()
+            
+            ## This line send signal to all workers indicating
+            ## that all the processes were finished
+            ## and extra elements were removed (optional)
+            # terminate_workers.value = True
+
+            for i, pr in enumerate(processes):
                 pr.join()
             gc.collect()
 
