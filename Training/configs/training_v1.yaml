@@ -11,7 +11,7 @@ Setup:
 
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
-    input_dir            : "/nfs/dust/cms/user/mykytaua/dataDeepTau/ShuffleMergeSpectral_v1/"
+    input_dir            : "<path_to_shuffle_and_merge_files>"
     input_spectrum       : "<path_to_shuffle_and_merge_spectrum>.root"
     target_spectrum      : "<path_to_shuffle_and_merge_spectrum>.root"
     weight_thr           : 100000.0
@@ -82,12 +82,12 @@ Setup:
     ymax                 : 2.5
 
 SetupNN:
-    n_batches            : 200
-    n_batches_val        : 5
+    n_batches            : -1
+    n_batches_val        : -1
     epoch                : 0
     n_epochs             : 10
-    validation_split     : 0.5
-    max_queue_size       : 5
+    validation_split     : 0.3
+    max_queue_size       : 10
     n_load_workers       : 5
     input_grids          : [
                             [ PfCand_electron, PfCand_gamma, Electron ], # e-gamma
