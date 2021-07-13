@@ -1,6 +1,6 @@
-#include "TauMLTools/Core/interface/AnalysisMath.h"
 #include "TauMLTools/Analysis/interface/TauTuple.h"
 #include "TauMLTools/Training/interface/DataLoader_tools.h"
+#include "TauMLTools/Training/interface/histogram2d.h"
 
 #include "TROOT.h"
 #include "TLorentzVector.h"
@@ -141,15 +141,21 @@ class DataLoader {
 public:
     using Tau = tau_tuple::Tau;
     using TauTuple = tau_tuple::TauTuple;
+    using LorentzVectorM = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>;
 
-    DataLoader() : current_entry(start_dataset),
+    DataLoader(const std::vector<std::string> file_name) :
+        current_entry(start_dataset),
         innerCellGridRef(n_inner_cells, n_inner_cells, inner_cell_size, inner_cell_size),
         outerCellGridRef(n_outer_cells, n_outer_cells, outer_cell_size, outer_cell_size),
-        input_files(FindInputFiles(input_dirs,file_name_pattern,
-                                   exclude_list, exclude_dir_list)),
+        input_files(file_name),
         hasData(false)
-    {
+    { 
+      ROOT::EnableThreadSafety();
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
+
+      if (xaxis.size() != (yaxis_list.size() + 1)){
+        throw std::invalid_argument("Y binning list does not match X binning length");
+      }
 
       // file = OpenRootFile(file_name);
       // tauTuple = std::make_shared<tau_tuple::TauTuple>(file.get(), true);
@@ -161,29 +167,38 @@ public:
       // histogram to calculate weights
       auto file_input = std::make_shared<TFile>(input_spectrum.c_str());
       auto file_target = std::make_shared<TFile>(target_spectrum.c_str());
-      std::shared_ptr<TH2D> target_hist(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
 
-      for( auto const& [tau_type, tau_name] : tau_types_names)
-      {
-        hist_weights[tau_type] = std::make_shared<TH2D>(("w_1_"+tau_name).c_str(),
-                                                        ("w_1_"+tau_name).c_str(),
-                                                        n_eta_bins, eta_min, eta_max,
-                                                        n_pt_bins, pt_min, pt_max);
-        hist_weights[tau_type]->SetDirectory(0); // disabling the file referencing
-        auto after_rebin_input_hist = std::make_shared<TH2D>("input_hist", "input_hist",
-                                                             n_eta_bins, eta_min, eta_max,
-                                                             n_pt_bins, pt_min, pt_max);
-        std::shared_ptr<TH2D> input_hist(dynamic_cast<TH2D*>(file_input->Get(("eta_pt_hist_"+tau_name).c_str())));
-        if(hist_weights[tau_type] && target_hist && after_rebin_input_hist && input_hist) {
-            RebinAndFill(*hist_weights[tau_type], *target_hist);
-            RebinAndFill(*after_rebin_input_hist, *input_hist);
-        } else throw std::runtime_error("Error: Spectrum hist is nullptr");
-        hist_weights[tau_type]->Divide(after_rebin_input_hist.get());
+      Histogram_2D target_histogram("target", xaxis, ymin, ymax);
+      Histogram_2D input_histogram ("input" , xaxis, ymin, ymax);
+      for (int i = 0; i < yaxis_list.size(); i++){
+          target_histogram.add_y_binning_by_index(i, yaxis_list[i]);
+          input_histogram .add_y_binning_by_index(i, yaxis_list[i]);
       }
 
-      MaxDisbCheck(hist_weights, weight_thr);
+      std::shared_ptr<TH2D> target_th2d = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
+      if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
+      
+      for( auto const& [tau_type, tau_name] : tau_types_names)
+      {
+        std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
+        if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+tau_name);
+        target_histogram.th2d_add(*(target_th2d.get()));
+        input_histogram .th2d_add(*(input_th2d .get()));
 
+        target_histogram.divide(input_histogram);
+        hist_weights[tau_type] = std::make_shared<TH2D>(target_histogram.get_weights_th2d(
+            ("w_1_"+tau_name).c_str(),
+            ("w_1_"+tau_name).c_str()
+        ));
+
+        target_histogram.reset();
+        input_histogram .reset();
+      }
+      MaxDisbCheck(hist_weights, weight_thr);
     }
+
+    DataLoader(const DataLoader&) = delete;
+    DataLoader& operator=(const DataLoader&) = delete;
 
     bool MoveNext() {
 
@@ -291,23 +306,23 @@ public:
         fill_tau(TauFlat_Features::tau_phi, tau.tau_phi);
         fill_tau(TauFlat_Features::tau_mass, tau.tau_mass);
 
-        const analysis::LorentzVectorM tau_p4(tau.tau_pt, tau.tau_eta, tau.tau_phi, tau.tau_mass);
+        const LorentzVectorM tau_p4(tau.tau_pt, tau.tau_eta, tau.tau_phi, tau.tau_mass);
         fill_tau(TauFlat_Features::tau_E_over_pt, tau_p4.energy() / tau.tau_pt);
         fill_tau(TauFlat_Features::tau_charge, tau.tau_charge);
         fill_tau(TauFlat_Features::tau_n_charged_prongs, tau.tau_decayMode / 5);
         fill_tau(TauFlat_Features::tau_n_neutral_prongs, tau.tau_decayMode % 5);
-        fill_tau(TauFlat_Features::chargedIsoPtSum, tau.chargedIsoPtSum);
-        if(tau.chargedIsoPtSum!=0)
-          fill_tau(TauFlat_Features::chargedIsoPtSumdR03_over_dR05, tau.chargedIsoPtSumdR03 / tau.chargedIsoPtSum);
-        fill_tau(TauFlat_Features::footprintCorrection, tau.footprintCorrection);
-        fill_tau(TauFlat_Features::neutralIsoPtSum, tau.neutralIsoPtSum);
-        if(tau.neutralIsoPtSum!=0) {
-          fill_tau(TauFlat_Features::neutralIsoPtSumWeight_over_neutralIsoPtSum, tau.neutralIsoPtSumWeight / tau.neutralIsoPtSum);
-          fill_tau(TauFlat_Features::neutralIsoPtSumWeightdR03_over_neutralIsoPtSum,tau.neutralIsoPtSumWeightdR03 / tau.neutralIsoPtSum);
-          fill_tau(TauFlat_Features::neutralIsoPtSumdR03_over_dR05, tau.neutralIsoPtSumdR03 / tau.neutralIsoPtSum);
+        fill_tau(TauFlat_Features::tau_chargedIsoPtSum, tau.tau_chargedIsoPtSum);
+        if(tau.tau_chargedIsoPtSum!=0)
+          fill_tau(TauFlat_Features::tau_chargedIsoPtSumdR03_over_dR05, tau.tau_chargedIsoPtSumdR03 / tau.tau_chargedIsoPtSum);
+        fill_tau(TauFlat_Features::tau_footprintCorrection, tau.tau_footprintCorrection);
+        fill_tau(TauFlat_Features::tau_neutralIsoPtSum, tau.tau_neutralIsoPtSum);
+        if(tau.tau_neutralIsoPtSum!=0) {
+          fill_tau(TauFlat_Features::tau_neutralIsoPtSumWeight_over_neutralIsoPtSum, tau.tau_neutralIsoPtSumWeight / tau.tau_neutralIsoPtSum);
+          fill_tau(TauFlat_Features::tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum,tau.tau_neutralIsoPtSumWeightdR03 / tau.tau_neutralIsoPtSum);
+          fill_tau(TauFlat_Features::tau_neutralIsoPtSumdR03_over_dR05, tau.tau_neutralIsoPtSumdR03 / tau.tau_neutralIsoPtSum);
         }
-        fill_tau(TauFlat_Features::photonPtSumOutsideSignalCone, tau.photonPtSumOutsideSignalCone);
-        fill_tau(TauFlat_Features::puCorrPtSum, tau.puCorrPtSum);
+        fill_tau(TauFlat_Features::tau_photonPtSumOutsideSignalCone, tau.tau_photonPtSumOutsideSignalCone);
+        fill_tau(TauFlat_Features::tau_puCorrPtSum, tau.tau_puCorrPtSum);
 
         const bool tau_dxy_valid = std::isnormal(tau.tau_dxy) && tau.tau_dxy > - 10
                                    && std::isnormal(tau.tau_dxy_error) && tau.tau_dxy_error > 0;
@@ -358,7 +373,7 @@ public:
         fill_tau(TauFlat_Features::tau_n_photons, tau.tau_n_photons);
         fill_tau(TauFlat_Features::tau_emFraction, tau.tau_emFraction);
         fill_tau(TauFlat_Features::tau_inside_ecal_crack, tau.tau_inside_ecal_crack);
-        fill_tau(TauFlat_Features::leadChargedCand_etaAtEcalEntrance_minus_tau_eta, tau.leadChargedCand_etaAtEcalEntrance);
+        fill_tau(TauFlat_Features::tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta, tau.tau_leadChargedCand_etaAtEcalEntrance - tau.tau_eta);
 
       }
 
@@ -455,7 +470,7 @@ public:
               fillGrid(Br::pfCand_ele_puppiWeight, tau.pfCand_puppiWeight.at(pfCand_idx));
               fillGrid(Br::pfCand_ele_charge, tau.pfCand_charge.at(pfCand_idx));
               fillGrid(Br::pfCand_ele_lostInnerHits, tau.pfCand_lostInnerHits.at(pfCand_idx));
-              fillGrid(Br::pfCand_ele_numberOfPixelHits, tau.pfCand_numberOfPixelHits.at(pfCand_idx));
+              fillGrid(Br::pfCand_ele_nPixelHits, tau.pfCand_nPixelHits.at(pfCand_idx));
 
               fillGrid(Br::pfCand_ele_vertex_dx, tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x);
               fillGrid(Br::pfCand_ele_vertex_dy, tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y);
@@ -500,7 +515,7 @@ public:
               fillGrid(Br::pfCand_muon_puppiWeight, tau.pfCand_puppiWeight.at(pfCand_idx));
               fillGrid(Br::pfCand_muon_charge, tau.pfCand_charge.at(pfCand_idx));
               fillGrid(Br::pfCand_muon_lostInnerHits, tau.pfCand_lostInnerHits.at(pfCand_idx));
-              fillGrid(Br::pfCand_muon_numberOfPixelHits, tau.pfCand_numberOfPixelHits.at(pfCand_idx));
+              fillGrid(Br::pfCand_muon_nPixelHits, tau.pfCand_nPixelHits.at(pfCand_idx));
 
               fillGrid(Br::pfCand_muon_vertex_dx,  tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x);
               fillGrid(Br::pfCand_muon_vertex_dy, tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y);
@@ -540,29 +555,33 @@ public:
             fillGrid(Br::pfCand_chHad_rel_pt, tau.pfCand_pt.at(pfCand_idx) / tau.tau_pt);
             fillGrid(Br::pfCand_chHad_deta, tau.pfCand_eta.at(pfCand_idx) - tau.tau_eta );
             fillGrid(Br::pfCand_chHad_dphi, DeltaPhi(tau.pfCand_phi.at(pfCand_idx), tau.tau_phi));
-            fillGrid(Br::pfCand_chHad_leadChargedHadrCand, tau.pfCand_leadChargedHadrCand.at(pfCand_idx));
+            fillGrid(Br::pfCand_chHad_tauLeadChargedHadrCand, tau.pfCand_tauLeadChargedHadrCand.at(pfCand_idx));
             fillGrid(Br::pfCand_chHad_pvAssociationQuality, tau.pfCand_pvAssociationQuality.at(pfCand_idx));
             fillGrid(Br::pfCand_chHad_fromPV, tau.pfCand_fromPV.at(pfCand_idx));
             fillGrid(Br::pfCand_chHad_puppiWeight, tau.pfCand_puppiWeight.at(pfCand_idx));
             fillGrid(Br::pfCand_chHad_puppiWeightNoLep, tau.pfCand_puppiWeightNoLep.at(pfCand_idx));
             fillGrid(Br::pfCand_chHad_charge, tau.pfCand_charge.at(pfCand_idx));
             fillGrid(Br::pfCand_chHad_lostInnerHits, tau.pfCand_lostInnerHits.at(pfCand_idx));
-            fillGrid(Br::pfCand_chHad_numberOfPixelHits, tau.pfCand_numberOfPixelHits.at(pfCand_idx));
+            fillGrid(Br::pfCand_chHad_nPixelHits, tau.pfCand_nPixelHits.at(pfCand_idx));
 
             fillGrid(Br::pfCand_chHad_vertex_dx, tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x);
             fillGrid(Br::pfCand_chHad_vertex_dy, tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y);
-            fillGrid(Br::pfCand_chHad_vertex_dz, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z);
+            if(std::isfinite(tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z))
+              fillGrid(Br::pfCand_chHad_vertex_dz, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z);
             fillGrid(Br::pfCand_chHad_vertex_dx_tauFL, tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x - tau.tau_flightLength_x);
             fillGrid(Br::pfCand_chHad_vertex_dy_tauFL,  tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y - tau.tau_flightLength_y);
-            fillGrid(Br::pfCand_chHad_vertex_dz_tauFL, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z - tau.tau_flightLength_z);
+            if(std::isfinite(tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z - tau.tau_flightLength_z))
+              fillGrid(Br::pfCand_chHad_vertex_dz_tauFL, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z - tau.tau_flightLength_z);
 
             const bool hasTrackDetails = tau.pfCand_hasTrackDetails.at(pfCand_idx) == 1;
             fillGrid(Br::pfCand_chHad_hasTrackDetails, static_cast<float>(hasTrackDetails));
             if(hasTrackDetails) {
               fillGrid(Br::pfCand_chHad_dxy, tau.pfCand_dxy.at(pfCand_idx));
               fillGrid(Br::pfCand_chHad_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) / tau.pfCand_dxy_error.at(pfCand_idx));
-              fillGrid(Br::pfCand_chHad_dz, tau.pfCand_dz.at(pfCand_idx));
-              fillGrid(Br::pfCand_chHad_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
+              if(std::isfinite(tau.pfCand_dz.at(pfCand_idx))){
+                fillGrid(Br::pfCand_chHad_dz, tau.pfCand_dz.at(pfCand_idx));
+                fillGrid(Br::pfCand_chHad_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
+              }
               if(tau.pfCand_track_ndof.at(pfCand_idx)!=0)
                 fillGrid(Br::pfCand_chHad_track_chi2_ndof, tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx));
               fillGrid(Br::pfCand_chHad_track_ndof, tau.pfCand_track_ndof.at(pfCand_idx));
@@ -610,7 +629,7 @@ public:
             fillGrid(Br::pfCand_gamma_puppiWeight, tau.pfCand_puppiWeight.at(pfCand_idx));
             fillGrid(Br::pfCand_gamma_puppiWeightNoLep, tau.pfCand_puppiWeightNoLep.at(pfCand_idx));
             fillGrid(Br::pfCand_gamma_lostInnerHits, tau.pfCand_lostInnerHits.at(pfCand_idx));
-            fillGrid(Br::pfCand_gamma_numberOfPixelHits, tau.pfCand_numberOfPixelHits.at(pfCand_idx));
+            fillGrid(Br::pfCand_gamma_nPixelHits, tau.pfCand_nPixelHits.at(pfCand_idx));
 
             fillGrid(Br::pfCand_gamma_vertex_dx, tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x);
             fillGrid(Br::pfCand_gamma_vertex_dy, tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y);
@@ -770,20 +789,23 @@ public:
           return std::max(cone_opening_coef / std::max(pt, min_pt), min_radius);
       }
 
-      static CellObjectType GetCellObjectType(int pdgId)
-      {
-          static const std::map<int, CellObjectType> obj_types = {
-              { 11, CellObjectType::PfCand_electron },
-              { 13, CellObjectType::PfCand_muon },
-              { 22, CellObjectType::PfCand_gamma },
-              { 130, CellObjectType::PfCand_nHad },
-              { 211, CellObjectType::PfCand_chHad }
-          };
+      static bool isSameCellObjectType(int particleType, CellObjectType type)
+      { 
+          static const std::set<int> other_types = {0, 6, 7};
 
-          auto iter = obj_types.find(std::abs(pdgId));
+          static const std::map<int, CellObjectType> obj_types = {
+              { 2, CellObjectType::PfCand_electron },
+              { 3, CellObjectType::PfCand_muon },
+              { 4, CellObjectType::PfCand_gamma },
+              { 5, CellObjectType::PfCand_nHad },
+              { 1, CellObjectType::PfCand_chHad }
+          };
+          
+          if(other_types.find(particleType) != other_types.end()) return false;
+          auto iter = obj_types.find(particleType);
           if(iter == obj_types.end())
-              throw std::runtime_error("Unknown object pdg id = "+std::to_string(pdgId));
-          return iter->second;
+              throw std::runtime_error("Unknown object of particleType = "+std::to_string(particleType));
+          return iter->second==type;
       }
 
       CellGrid CreateCellGrid(const Tau& tau, const CellGrid& cellGridRef, bool inner) const
@@ -792,12 +814,12 @@ public:
           CellGrid grid = cellGridRef;
           const double tau_pt = tau.tau_pt, tau_eta = tau.tau_eta, tau_phi = tau.tau_phi;
 
-          const auto fillGrid = [&](CellObjectType type, const std::vector<float>& eta_vec,
-                                    const std::vector<float>& phi_vec, const std::vector<int>& pdgId = {}) {
+          const auto fillCells = [&](CellObjectType type, const std::vector<float>& eta_vec,
+                                    const std::vector<float>& phi_vec, const std::vector<int>& particleType = {}) {
               if(eta_vec.size() != phi_vec.size())
                   throw std::runtime_error("Inconsistent cell inputs.");
               for(size_t n = 0; n < eta_vec.size(); ++n) {
-                  if(pdgId.size() && GetCellObjectType(pdgId.at(n)) != type) continue;
+                  if(particleType.size() && !isSameCellObjectType(particleType.at(n),type)) continue;
                   const double eta = eta_vec.at(n), phi = phi_vec.at(n);
                   const double deta = eta - tau_eta, dphi = DeltaPhi(phi, tau_phi);
                   const double dR = std::hypot(deta, dphi);
@@ -812,13 +834,13 @@ public:
               }
           };
 
-          fillGrid(CellObjectType::PfCand_electron, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
-          fillGrid(CellObjectType::PfCand_muon, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
-          fillGrid(CellObjectType::PfCand_chHad, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
-          fillGrid(CellObjectType::PfCand_nHad, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
-          fillGrid(CellObjectType::PfCand_gamma, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_pdgId);
-          fillGrid(CellObjectType::Electron, tau.ele_eta, tau.ele_phi);
-          fillGrid(CellObjectType::Muon, tau.muon_eta, tau.muon_phi);
+          fillCells(CellObjectType::PfCand_electron, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_particleType);
+          fillCells(CellObjectType::PfCand_muon, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_particleType);
+          fillCells(CellObjectType::PfCand_chHad, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_particleType);
+          fillCells(CellObjectType::PfCand_nHad, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_particleType);
+          fillCells(CellObjectType::PfCand_gamma, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_particleType);
+          fillCells(CellObjectType::Electron, tau.ele_eta, tau.ele_phi);
+          fillCells(CellObjectType::Muon, tau.muon_eta, tau.muon_phi);
 
           return grid;
       }

@@ -34,6 +34,8 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   n_threads         = luigi.Parameter(default = '', description = 'number of threads')
   lastbin_disbalance= luigi.Parameter(default = '', description = 'maximal acceptable disbalance between low pt and high pt region')
   seed              = luigi.Parameter(default = '', description = 'random seed to initialize the generator used for sampling')
+  enable_emptybin   = luigi.Parameter(default = '', description = 'enable empty pt-eta bins in the spectrum')
+  refill_spectrum   = luigi.Parameter(default = '', description = 'to recalculated spectrums of the input data on flight')
 
   def create_branch_map(self):
     self.output_dir = '/'.join([self.output_path, 'tmp'])
@@ -84,7 +86,9 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
       ['--compression-algo' , str(self.compression_algo)        ] * (not self.compression_algo   is '') +\
       ['--compression-level', str(self.compression_level)       ] * (not self.compression_level  is '') +\
       ['--parity'           , str(self.parity)                  ] * (not self.parity             is '') +\
-      ['--max-entries'      , str(self.max_entries)             ] * (not self.max_entries        is '')  )
+      ['--max-entries'      , str(self.max_entries)             ] * (not self.max_entries        is '') +\
+      ['--enable-emptybin'  , str(self.enable_emptybin)         ] * (not self.enable_emptybin    is '') +\
+      ['--refill-spectrum' , str(self.refill_spectrum)         ] * (not self.refill_spectrum    is '')  )
 
     print ('>> {}'.format(command))
     proc = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
