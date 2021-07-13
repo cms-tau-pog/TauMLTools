@@ -43,8 +43,8 @@ PVAL_THRESHOLD = args.pvthreshold
 
 ## binning of tested variables (dataset group id and dataset id are guessed from jsons)
 BINS = {
-  'tau_pt'    : (50, 0, 5000),
-  'tau_eta'   : (5, -3.2, 3.2),
+  'boostedTau_pt'    : (50, 0, 5000),
+  'boostedTau_eta'   : (5, -3.2, 3.2),
   'tauType' : (10, 0, 10),
   'sampleType': (20, -1, 19),
 }
@@ -133,9 +133,9 @@ if __name__ == '__main__':
   model = lambda main, third = None: (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]+BINS[third] if not third is None else (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]
   
   cpp_function = '''
-std::vector<int> hash_list = {%s};
-int hash, line = 0;
-for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it++, line++){
+std::vector<ULong64_t> hash_list = {%s};
+ULong64_t hash, line = 0;
+for(std::vector<ULong64_t>::iterator it = hash_list.begin(); it != hash_list.end(); it++, line++){
  if (*it == %s) return line;
 } return line;'''
 
@@ -163,11 +163,11 @@ for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it
   ## binned distributions
   BINNED_VARIABLES = ['tauType', 'sampleType', 'uh_dataset_group_id'] + ['uh_dataset_id']*args.use_dataset_id
   ptrs_tau_pt = {
-    binned_variable: Lazy_container(dataframe.Histo3D(model('tau_pt', third = binned_variable), 'chunk_id', 'tau_pt', binned_variable))
+    binned_variable: Lazy_container(dataframe.Histo3D(model('boostedTau_pt', third = binned_variable), 'chunk_id', 'boostedTau_pt', binned_variable))
       for binned_variable in BINNED_VARIABLES
   }
   ptrs_tau_eta = {
-    binned_variable: Lazy_container(dataframe.Histo3D(model('tau_eta', third = binned_variable), 'chunk_id', 'tau_eta', binned_variable))
+    binned_variable: Lazy_container(dataframe.Histo3D(model('boostedTau_eta', third = binned_variable), 'chunk_id', 'boostedTau_eta', binned_variable))
       for binned_variable in BINNED_VARIABLES
   }
   ptrs_dataset_id = {
@@ -190,13 +190,13 @@ for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it
   entry_di  = Entry(var = 'uh_dataset_id'      , histo = ptr_di .hst)
 
   entries_tau_pt = [
-    Entry(var = 'tau_pt', histo = to_2D(ptrs_tau_pt[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_pt']))
+    Entry(var = 'boostedTau_pt', histo = to_2D(ptrs_tau_pt[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'boostedTau_pt']))
       for binned_variable in BINNED_VARIABLES
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ] ; entries_tau_pt = [ee for ee in entries_tau_pt if ee.hst.GetEntries()]
 
   entries_tau_eta = [
-    Entry(var = 'tau_eta', histo = to_2D(ptrs_tau_eta[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_eta']))
+    Entry(var = 'boostedTau_eta', histo = to_2D(ptrs_tau_eta[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'boostedTau_eta']))
       for binned_variable in BINNED_VARIABLES
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ] ; entries_tau_eta = [ee for ee in entries_tau_eta if ee.hst.GetEntries()]
