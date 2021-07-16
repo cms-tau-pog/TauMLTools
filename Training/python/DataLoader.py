@@ -61,7 +61,7 @@ def LoaderThread(queue_out, queue_files,  batch_counter, n_batches, #terminate,
         # Outer grid
         X_all += getgrid(data.x_grid, 0) # 500 21 21 176
 
-        # X_all = tuple(X_all)
+        X_all = tuple(X_all)
 
         if return_weights:
             weights = getdata(data.weight, -1)
@@ -79,7 +79,7 @@ def LoaderThread(queue_out, queue_files,  batch_counter, n_batches, #terminate,
         
         while batch_counter.value < n_batches or n_batches == -1:
             try:
-                queue_out.put(item, timeout=0.1)
+                queue_out.put(item, timeout=0.3)
                 batch_counter.value+=1
                 break
             except FullException:
@@ -87,7 +87,7 @@ def LoaderThread(queue_out, queue_files,  batch_counter, n_batches, #terminate,
 
     queue_out.put(TerminateGenerator())
 
-    ## For some reasons Thread can not exit
+    ## Thread can not exit
     ## while elements are present in the queue
     ## here LoadThread is put to sleep until
     ## all other processes are finished
@@ -196,7 +196,13 @@ class DataLoader:
                 processes[-1].start()
 
             while finish_counter < self.n_load_workers:
+
                 item = queue_out.get()
+                # try:
+                #     item = queue_out.get(block=True, timeout=0.05)
+                # except EmptyException:
+                #     continue
+
                 if isinstance(item, TerminateGenerator):
                     finish_counter+=1
                 else:
@@ -205,8 +211,8 @@ class DataLoader:
             ## queue_out should be empty
             ## before joining the processes
             ## uncomment if needed:
-            # while not queue_out.empty():
-            #     _ = queue_out.get()
+            while not queue_out.empty():
+                _ = queue_out.get()
             
             ## This line send signal to all workers indicating
             ## that all the processes were finished

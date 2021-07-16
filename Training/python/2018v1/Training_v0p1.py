@@ -255,8 +255,12 @@ def run_training(train_suffix, model_name, model, data_loader, is_profile):
     gen_train = dataloader.get_generator(primary_set = True)
     gen_val = dataloader.get_generator(primary_set = False)
 
-    # data_train = tf.data.Dataset.from_generator(gen_train, output_types = input_types, output_shapes = input_shape)
-    # data_val = tf.data.Dataset.from_generator(gen_val, output_types = input_types, output_shapes = input_shape)
+    data_train = tf.data.Dataset.from_generator(
+        gen_train, output_types = input_types, output_shapes = input_shape
+        ).prefetch(tf.data.AUTOTUNE)
+    data_val = tf.data.Dataset.from_generator(
+        gen_val, output_types = input_types, output_shapes = input_shape
+        ).prefetch(tf.data.AUTOTUNE)
 
     train_name = '%s_%s' % (model_name, train_suffix)
     log_name = "%s.log" % train_name
@@ -269,10 +273,10 @@ def run_training(train_suffix, model_name, model, data_loader, is_profile):
 
     if is_profile:
         logs = "logs/" + model_name + datetime.now().strftime("%Y%m%d-%H%M%S")
-        tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs, profile_batch='10, 50')
+        tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs, profile_batch='10, 30')
         callbacks.append(tboard_callback)
 
-    fit_hist = model.fit(gen_train(), validation_data = gen_val(),
+    fit_hist = model.fit(data_train, validation_data = data_val,
                          epochs = data_loader.n_epochs, initial_epoch = data_loader.epoch,
                          callbacks = callbacks)
 
@@ -298,5 +302,5 @@ model = create_model(netConf_full)
 compile_model(model, 1e-3)
 tf.keras.utils.plot_model(model, model_name + "_diagram.png", show_shapes=False)
 
-fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, False)
+fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, True)
 
