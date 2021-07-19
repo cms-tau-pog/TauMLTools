@@ -87,8 +87,8 @@ SetupNN:
     epoch                : 0
     n_epochs             : 10
     validation_split     : 0.3
-    max_queue_size       : 10
-    n_load_workers       : 5
+    max_queue_size       : 20
+    n_load_workers       : 4
     input_grids          : [
                             [ PfCand_electron, PfCand_gamma, Electron ], # e-gamma
                             [ PfCand_muon, Muon ], # muons
