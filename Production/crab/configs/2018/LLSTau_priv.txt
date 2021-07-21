@@ -1,0 +1,4 @@
+sampleType=MC_18 requireGenORRecoTauMatch=False
+
+#SUS_ctau_privat /SUS-RunIIFall18GS_ctau0p01-1000mm_mstau100_mlsp1-RAWSIM/myshched-SUS-RunIIFall18GS_ctau0p01-1000mm_mstau100_mlsp1-MiniAOD-3ee3afd6b5a1410aea6d0b4d52723d06/USER
+STAU_privat_new /SUS-RunIIFall18GS_ctau1000mm_mstau100_mlsp1-RAWSIM/myshched-SUS-RunIIFall18GS_ctau1000mm_mstau100_mlsp1-MiniAOD-3ee3afd6b5a1410aea6d0b4d52723d06/USER

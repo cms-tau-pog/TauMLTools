@@ -34,6 +34,30 @@
 #include "TauMLTools/Production/interface/MuonHitMatch.h"
 #include "TauMLTools/Production/interface/TauJet.h"
 
+// following group is needed for LumiBlock
+#include "FWCore/Framework/interface/Frameworkfwd.h"
+#include "FWCore/Framework/interface/EDProducer.h"
+#include "FWCore/Framework/interface/GetterOfProducts.h"
+#include "FWCore/Framework/interface/ProcessMatch.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "SimDataFormats/GeneratorProducts/interface/LHEEventProduct.h"
+#include "SimDataFormats/GeneratorProducts/interface/GenLumiInfoHeader.h"
+
+namespace susy_analysis {
+  //generalization for processing a line
+  void process(std::string line, char delim, std::vector<std::string>& fields)
+  {
+     std::stringstream ss(line);
+     std::string field;
+     while(std::getline(ss,field,delim)){
+             fields.push_back(field);
+     }
+  }
+}
+
+
+
 namespace tau_analysis {
 
 struct TauTupleProducerData {
@@ -124,7 +148,8 @@ public:
     TauTupleProducer(const edm::ParameterSet& cfg) :
         isMC(cfg.getParameter<bool>("isMC")),
         isEmbedded(cfg.getParameter<bool>("isEmbedded")),
-        requireGenMatch(cfg.getParameter<bool>("requireGenMatch")),
+        isSUSY(cfg.getParameter<bool>("isSUSY")), 
+	requireGenMatch(cfg.getParameter<bool>("requireGenMatch")),
         requireGenORRecoTauMatch(cfg.getParameter<bool>("requireGenORRecoTauMatch")),
         applyRecoPtSieve(cfg.getParameter<bool>("applyRecoPtSieve")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
@@ -144,6 +169,7 @@ public:
         cands_token(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("pfCandidates"))),
         isoTracks_token(consumes<pat::IsolatedTrackCollection>(cfg.getParameter<edm::InputTag>("isoTracks"))),
         lostTracks_token(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("lostTracks"))),
+        genLumiHeaderToken_(consumes<GenLumiInfoHeader,edm::InLumi>(edm::InputTag("generator"))),
         data(TauTupleProducerData::RequestGlobalData()),
         tauTuple(data->tauTuple),
         summaryTuple(data->summaryTuple)
@@ -184,6 +210,35 @@ public:
 private:
     static constexpr float default_value = tau_tuple::DefaultFillValue<float>();
     static constexpr int default_int_value = tau_tuple::DefaultFillValue<int>();
+
+    // ------------ method called when starting to processes a luminosity block  ------------
+    void beginLuminosityBlock(const edm::LuminosityBlock& iLumi, const edm::EventSetup& iSetup)
+    {
+      if(isSUSY){      
+      	edm::Handle<GenLumiInfoHeader> gen_header;
+      	iLumi.getByToken(genLumiHeaderToken_, gen_header);
+      	std::string model = gen_header->configDescription();
+
+      	//strip newline
+      	if(model.back()=='\n') model.pop_back();
+      	std::vector<std::string> fields;
+      	susy_analysis::process(model,'_',fields);
+
+      	tauTuple().susy_mstau = Parse<double>(fields[1]);
+      	tauTuple().susy_mlsp = Parse<double>(fields[2]);
+      	tauTuple().susy_ctau = Parse<double>(fields[3]);
+      } else {
+      	tauTuple().susy_mstau = -9;
+      	tauTuple().susy_mlsp = -9;
+      	tauTuple().susy_ctau = -9;
+      }
+    }
+
+    // ------------ method called when ending the processing of a luminosity block  ------------
+    void endLuminosityBlock(const edm::LuminosityBlock&, const edm::EventSetup&)
+    {
+    }
+
 
     virtual void analyze(const edm::Event& event, const edm::EventSetup& eventSetup) override
     {
@@ -897,7 +952,7 @@ private:
     }
 
 private:
-    const bool isMC, isEmbedded, requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve;
+    const bool isMC, isEmbedded, isSUSY,requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve;
     TauJetBuilderSetup builderSetup;
 
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;
@@ -914,6 +969,8 @@ private:
     edm::EDGetTokenT<pat::PackedCandidateCollection> cands_token;
     edm::EDGetTokenT<pat::IsolatedTrackCollection> isoTracks_token;
     edm::EDGetTokenT<pat::PackedCandidateCollection> lostTracks_token;
+    edm::EDGetTokenT<GenLumiInfoHeader> genLumiHeaderToken_;
+
 
 
     TauTupleProducerData* data;

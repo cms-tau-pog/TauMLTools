@@ -42,6 +42,8 @@ options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarPa
                 " If 'reclusterJets' set true a new collection of uncorrected ak4PFJets is built to seed taus (as at RECO), otherwise standard slimmedJets are used")
 options.register('rerunTauReco', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                 "If true, tau reconstruction is re-run on MINIAOD with a larger signal cone and no DM finding filter")
+options.register('isSUSY', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+		" if enable - SUSY information string will be read from the LumiBlock")
 options.parseArguments()
 
 sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
@@ -183,6 +185,7 @@ tauJetBuilderSetup = cms.PSet(
 process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     isMC                     = cms.bool(not isData),
     isEmbedded               = cms.bool(isEmbedded),
+    isSUSY		     = cms.bool(options.isSUSY),
     requireGenMatch          = cms.bool(options.requireGenMatch),
     requireGenORRecoTauMatch = cms.bool(options.requireGenORRecoTauMatch),
     applyRecoPtSieve         = cms.bool(options.applyRecoPtSieve),

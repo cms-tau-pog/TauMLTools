@@ -71,6 +71,10 @@
     VAR(Int_t, genLepton_kind) /* kind of the gen lepton:
                                   Electron = 1, Muon = 2, TauElectron = 3, TauMuon = 4, Tau = 5, Other = 6 */\
     VAR(Int_t, genLepton_charge) /* charge of the gen lepton */ \
+    /* SUSY stau Property */ \
+    VAR(Float_t, susy_mstau) /* mass of stau (taken from LuminosityBlock configDescription)*/ \
+    VAR(Float_t, susy_mlsp) /* mass of lsp (taken from LuminosityBlock configDescription)*/ \
+    VAR(Float_t, susy_ctau) /* life time of the stau (taken from LuminosityBlock configDescription)*/ \
     VAR4(Float_t, genLepton_vis_pt, genLepton_vis_eta, genLepton_vis_phi, genLepton_vis_mass) /* visible 4-momentum of
                                                                                                  the gen lepton */ \
     VAR(Int_t, genLepton_lastMotherIndex) /* index of the last mother in genParticle_* vectors:
