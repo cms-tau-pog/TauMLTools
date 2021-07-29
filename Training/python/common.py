@@ -1,9 +1,37 @@
-# import uproot
-# import pandas
+import time
+import gc
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras.callbacks import Callback, ModelCheckpoint, CSVLogger
 
 e, mu, tau, jet = 0, 1, 2, 3
+
+class TimeCheckpoint(Callback):
+    def __init__(self, time_interval, file_name_prefix):
+        self.time_interval = time_interval
+        self.file_name_prefix = file_name_prefix
+        self.initial_time = time.time()
+        self.last_check_time = self.initial_time
+
+    def on_batch_end(self, batch, logs=None):
+        if self.time_interval is None or batch % 100 != 0: return
+        current_time = time.time()
+        delta_t = current_time - self.last_check_time
+        if delta_t >= self.time_interval:
+            abs_delta_t_h = (current_time - self.initial_time) / 60. / 60.
+            self.model.save('{}_historic_b{}_{:.1f}h.tf'.format(self.file_name_prefix, batch, abs_delta_t_h),
+                            save_format="tf")
+            self.last_check_time = current_time
+
+    def on_epoch_end(self, epoch, logs=None):
+        self.model.save('{}_e{}.tf'.format(self.file_name_prefix, epoch),
+                        save_format="tf")
+        print("Epoch {} is ended.".format(epoch))
+
+def close_file(f_name):
+    file_objs = [ obj for obj in gc.get_objects() if ("TextIOWrapper" in str(type(obj))) and (obj.name == f_name)]
+    for obj in file_objs:
+        obj.close()
 
 def load_graph(graph_filename):
     with tf.gfile.GFile(graph_filename, 'rb') as f:

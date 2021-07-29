@@ -3,6 +3,7 @@ import multiprocessing as mp
 from queue import Empty as EmptyException
 from queue import Full as FullException
 
+import math
 import numpy as np
 import ROOT as R
 import config_parse
@@ -14,7 +15,57 @@ import time
 class TerminateGenerator:
     pass
 
-def LoaderThread(queue_out, queue_files,  batch_counter, n_batches, #terminate,
+class QueueEx:
+    def __init__(self, max_size=0, max_n_puts=math.inf):
+        self.n_puts = mp.Value('i', 0)
+        self.max_n_puts = max_n_puts
+        self.mp_queue = mp.Queue(max_size)
+
+    def put(self, item, retry_interval=0.3):
+        while True:
+            with self.n_puts.get_lock():
+                if self.n_puts.value >= self.max_n_puts:
+                    return False
+                try:
+                    self.mp_queue.put(item, False)
+                    self.n_puts.value += 1
+                    return True
+                except FullException:
+                    pass
+            time.sleep(retry_interval)
+    
+    def put_terminate(self):
+        self.mp_queue.put(TerminateGenerator())
+        
+    def get(self):
+        return self.mp_queue.get()
+    
+    def clear(self):
+        while not self.mp_queue.empty():
+            self.mp_queue.get()
+
+class DataSource:
+    def __init__(self, queue_files):
+        self.data_loader = R.DataLoader()
+        self.queue_files = queue_files
+        self.require_file = True
+    
+    def get(self):
+        while True:
+            if self.require_file:
+                try:
+                    file_name = self.queue_files.get(False)
+                    self.data_loader.ReadFile(R.std.string(file_name), 0, -1)
+                    self.require_file = False
+                except EmptyException:
+                    return None
+
+            if self.data_loader.MoveNext():
+                return self.data_loader.LoadData()
+            else:
+                self.require_file = True
+
+def LoaderThread(queue_out, queue_files,
                  input_grids, batch_size, n_inner_cells, n_outer_cells, n_flat_features,
                  n_grid_features, tau_types, return_truth, return_weights):
 
@@ -35,25 +86,16 @@ def LoaderThread(queue_out, queue_files,  batch_counter, n_batches, #terminate,
                 )
         return _X
 
-    _dl_worker = R.DataLoader()
-    _req_file = True
 
-    while batch_counter.value < n_batches or n_batches == -1:
+    data_source = DataSource(queue_files)
+    put_next = True
 
-        if _req_file:
-            try:
-                _filename = queue_files.get(False)
-                _dl_worker.ReadFile(R.std.string(_filename), 0, -1)
-                _req_file = False
-                continue
-            except EmptyException:
-                break
+    while put_next:
 
-        if not _dl_worker.MoveNext():
-            _req_file = True
-            continue
-        
-        data = _dl_worker.LoadData()
+        data = data_source.get()
+        if data is None:
+            break
+
         # Flat Tau features
         X_all = [tf.convert_to_tensor(getdata(data.x_tau, (batch_size, n_flat_features)))]
         # Inner grid
@@ -77,24 +119,9 @@ def LoaderThread(queue_out, queue_files,  batch_counter, n_batches, #terminate,
         else:
             item = X_all
         
-        while batch_counter.value < n_batches or n_batches == -1:
-            try:
-                queue_out.put(item, timeout=0.3)
-                batch_counter.value+=1
-                break
-            except FullException:
-                continue
+        put_next = queue_out.put(item)
 
-    queue_out.put(TerminateGenerator())
-
-    ## Thread can not exit
-    ## while elements are present in the queue
-    ## here LoadThread is put to sleep until
-    ## all other processes are finished
-    
-    ## Uncomment if needed: 
-    # while not terminate.value:
-    #     time.sleep(1)
+    queue_out.put_terminate()
 
 class DataLoader:
 
@@ -177,18 +204,17 @@ class DataLoader:
         def _generator():
 
             finish_counter = 0
-            batch_counter = mp.Value('i', 0)
-            # terminate_workers = mp.Value('b', False)
             
             queue_files = mp.Queue()
             [ queue_files.put(file) for file in _files ]
-            queue_out = mp.Queue(self.max_queue_size)
+
+            queue_out = QueueEx(max_size = self.max_queue_size, max_n_puts = n_batches)
 
             processes = []
             for i in range(self.n_load_workers):
                 processes.append(
                 mp.Process(target = LoaderThread, 
-                        args = (queue_out, queue_files, batch_counter, n_batches, #terminate_workers,
+                        args = (queue_out, queue_files,
                                 self.input_grids, self.batch_size, self.n_inner_cells,
                                 self.n_outer_cells, self.n_flat_features, self.n_grid_features,
                                 self.tau_types, return_truth, return_weights)))
@@ -196,28 +222,15 @@ class DataLoader:
                 processes[-1].start()
 
             while finish_counter < self.n_load_workers:
-
+            
                 item = queue_out.get()
-                # try:
-                #     item = queue_out.get(block=True, timeout=0.05)
-                # except EmptyException:
-                #     continue
 
                 if isinstance(item, TerminateGenerator):
                     finish_counter+=1
                 else:
                     yield item
 
-            ## queue_out should be empty
-            ## before joining the processes
-            ## uncomment if needed:
-            while not queue_out.empty():
-                _ = queue_out.get()
-            
-            ## This line send signal to all workers indicating
-            ## that all the processes were finished
-            ## and extra elements were removed (optional)
-            # terminate_workers.value = True
+            queue_out.clear()
 
             for i, pr in enumerate(processes):
                 pr.join()

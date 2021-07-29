@@ -202,7 +202,6 @@ public:
 
     void ReadFile(std::string file_name, Long64_t start_file, Long64_t end_file) { // put end_file=-1 to read all events from file
         tauTuple.reset();
-        if(file) file->Close();
         file = std::make_unique<TFile>(file_name.c_str());
         tauTuple = std::make_unique<tau_tuple::TauTuple>(file.get(), true);
         current_entry = start_file;
@@ -234,8 +233,7 @@ public:
           tauTuple->GetEntry(current_entry);
           const auto& tau = tauTuple->data();
           // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
-          if ( tau_types_names.find(tau.tauType) == tau_types_names.end() ) continue;
-          else {
+          if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
             data->y_onehot[ tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
             data->weight.at(tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
             FillTauBranches(tau, tau_i);
@@ -249,12 +247,12 @@ public:
         return true;
     }
 
-    Data LoadData() {
+    const Data* LoadData() {
       if(!fullData)
         throw std::runtime_error("Data was not loaded with MoveNext()");
       fullData = false;
       hasData = false;
-      return (*data.get());
+      return data.get();
     }
 
 
