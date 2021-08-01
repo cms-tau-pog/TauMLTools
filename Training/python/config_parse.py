@@ -53,6 +53,7 @@ def create_settings(input_file: str, verbose=False) -> str:
         string = "namespace Setup {\n"
         # variables from Setup section:
         for key in content["Setup"]:
+
             value = content["Setup"][key]
             if type(value) == list and (type(value[0]) == float or type(value[0]) == int):
                 string += "const inline std::vector<Double_t>" \
@@ -63,10 +64,12 @@ def create_settings(input_file: str, verbose=False) -> str:
             else:
                 string += "const inline " + types_map[type(value)] \
                        + " " + key + " = " + items_str(value) + ";\n"
+
         # variables that define the length of feature lists:
         for features in content["Features_all"]:
             number = len(content["Features_all"][features]) -  len(content["Features_disable"][features])
             string += "const inline size_t n_" + str(features) + " = " + str(number) + ";\n"
+
 
         string += "const inline std::vector<std::string> CellObjectTypes {\"" + \
                   "\",\"".join(content["CellObjectType"]) + \
