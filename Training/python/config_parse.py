@@ -29,6 +29,7 @@ def create_settings(input_file: str, verbose=False) -> str:
 
     def create_namestruc(content: dict) -> str:
         types_map = {
+                bool  : "Bool_t",
                 int   : "size_t",
                 float : "Double_t",
                 str   : "std::string",
@@ -43,6 +44,9 @@ def create_settings(input_file: str, verbose=False) -> str:
                 return "{{"+'},{'.join('{0},"{1}"'.format(key,input[key]) for key in input)+"}}"
             elif type(input) == str:
                 return "\"" + str(input) + "\""
+            elif type(input) == bool:
+                if input: return "true"
+                else: return "false"
             else:
                 return str(input)
         def items_float(input):
