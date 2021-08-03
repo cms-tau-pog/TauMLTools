@@ -5,6 +5,9 @@
 #include "TROOT.h"
 #include "TLorentzVector.h"
 
+#include "TauMLTools/Analysis/interface/TauSelection.h"
+#include "TauMLTools/Analysis/interface/AnalysisTypes.h"
+
 template <typename T, typename Tuple>
 struct ElementIndex;
 
@@ -231,15 +234,25 @@ public:
             return false;
           }
           tauTuple->GetEntry(current_entry);
-          const auto& tau = tauTuple->data();
-          // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
-          if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
-            data->y_onehot[ tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
-            data->weight.at(tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
-            FillTauBranches(tau, tau_i);
-            FillCellGrid(tau, tau_i, innerCellGridRef, true);
-            FillCellGrid(tau, tau_i, outerCellGridRef, false);
-            ++tau_i;
+          auto& tau = const_cast<tau_tuple::Tau&>(tauTuple->data());
+
+          const auto gen_match = analysis::GetGenLeptonMatch(tau);
+          const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
+
+          if (gen_match){
+            if (recompute_tautype){
+              tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
+            }
+
+            // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
+            if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
+              data->y_onehot[ tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
+              data->weight.at(tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
+              FillTauBranches(tau, tau_i);
+              FillCellGrid(tau, tau_i, innerCellGridRef, true);
+              FillCellGrid(tau, tau_i, outerCellGridRef, false);
+              ++tau_i;
+            }
           }
           ++current_entry;
         }

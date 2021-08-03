@@ -14,6 +14,7 @@ Setup:
     input_dir            : "<path_to_shuffle_and_merge_files>"
     input_spectrum       : "<path_to_shuffle_and_merge_spectrum>.root"
     target_spectrum      : "<path_to_shuffle_and_merge_spectrum>.root"
+    recompute_tautype    : True
     weight_thr           : 100000.0
 
     # here define variables for the Histogram_2D class
