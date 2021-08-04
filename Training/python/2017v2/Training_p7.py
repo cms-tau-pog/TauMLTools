@@ -267,7 +267,7 @@ def create_model(net_config):
 # In[11]:
 
 
-model_name = "DeepTau2017v2p7"
+model_name = "DeepBoostedTau2017v1"
 model = create_model(netConf_full)
 model.summary()
 

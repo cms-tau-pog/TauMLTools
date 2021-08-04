@@ -35,6 +35,7 @@ input_event_branches = [ 'rho' ]
 #                        'tau_gj_angle_diff_valid', 'tau_gj_angle_diff', 'tau_n_photons', 'tau_emFraction',
 #                        'tau_inside_ecal_crack', 'leadChargedCand_etaAtEcalEntrance_minus_tau_eta' ]
 
+"""
 input_tau_branches = [ 'tau_pt', 'tau_eta', 'tau_phi', 'tau_mass', 'tau_E_over_pt', 'tau_charge',
                        'tau_n_charged_prongs', 'tau_n_neutral_prongs', 'chargedIsoPtSum',
                        'chargedIsoPtSumdR03_over_dR05', 'footprintCorrection', 'neutralIsoPtSum',
@@ -47,9 +48,22 @@ input_tau_branches = [ 'tau_pt', 'tau_eta', 'tau_phi', 'tau_mass', 'tau_E_over_p
                        'tau_pt_weighted_dr_iso', 'tau_leadingTrackNormChi2', 'tau_e_ratio_valid', 'tau_e_ratio',
                        'tau_gj_angle_diff_valid', 'tau_gj_angle_diff', 'tau_n_photons', 'tau_emFraction',
                        'tau_inside_ecal_crack', 'leadChargedCand_etaAtEcalEntrance_minus_tau_eta' ]
+"""
+input_boostedTau_branches = [ 'boostedTau_pt', 'boostedTau_eta', 'boostedTau_phi', 'boostedTau_mass', 'boostedTau_E_over_pt', 'boostedTau_charge',
+                       'boostedTau_n_charged_prongs', 'boostedTau_n_neutral_prongs', 'chargedIsoPtSum',
+                       'chargedIsoPtSumdR03_over_dR05', 'footprintCorrection', 'neutralIsoPtSum',
+                       'neutralIsoPtSumWeight_over_neutralIsoPtSum', 'neutralIsoPtSumWeightdR03_over_neutralIsoPtSum',
+                       'neutralIsoPtSumdR03_over_dR05', 'photonPtSumOutsideSignalCone', 'puCorrPtSum',
+                       'boostedTau_dxy_valid', 'boostedTau_dxy', 'boostedTau_dxy_sig',
+                       'boostedTau_ip3d_valid', 'boostedTau_ip3d', 'boostedTau_ip3d_sig', 'boostedTau_dz', 'boostedTau_dz_sig_valid', 'boostedTau_dz_sig',
+                       'boostedTau_flightLength_x', 'boostedTau_flightLength_y', 'boostedTau_flightLength_z', 'boostedTau_flightLength_sig',
+                       'boostedTau_pt_weighted_deta_strip', 'boostedTau_pt_weighted_dphi_strip', 'boostedTau_pt_weighted_dr_signal',
+                       'boostedTau_pt_weighted_dr_iso', 'boostedTau_leadingTrackNormChi2', 'boostedTau_e_ratio_valid', 'boostedTau_e_ratio',
+                       'boostedTau_gj_angle_diff_valid', 'boostedTau_gj_angle_diff', 'boostedTau_n_photons', 'boostedTau_emFraction',
+                       'boostedTau_inside_ecal_crack', 'leadChargedCand_etaAtEcalEntrance_minus_boostedTau_eta' ]
 
 
-input_cell_external_branches = [ 'rho', 'tau_pt', 'tau_eta', 'tau_inside_ecal_crack' ]
+input_cell_external_branches = [ 'rho', 'boostedTau_pt', 'boostedTau_eta', 'boostedTau_inside_ecal_crack' ]
 
 cell_index_branches = [ 'eta_index', 'phi_index' ]
 input_cell_pfCand_ele_branches = [ 'pfCand_ele_valid', 'pfCand_ele_rel_pt', 'pfCand_ele_deta', 'pfCand_ele_dphi',
@@ -119,7 +133,7 @@ input_cell_muon_branches = [ 'muon_valid', 'muon_rel_pt', 'muon_deta', 'muon_dph
                              'muon_n_hits_CSC_4', 'muon_n_hits_RPC_1', 'muon_n_hits_RPC_2', 'muon_n_hits_RPC_3',
                              'muon_n_hits_RPC_4' ]
 
-df_tau_branches = truth_branches + weight_branches + navigation_branches + input_event_branches + input_tau_branches
+df_tau_branches = truth_branches + weight_branches + navigation_branches + input_event_branches + input_boostedTau_branches
 df_cell_branches = cell_index_branches + input_cell_pfCand_ele_branches + input_cell_pfCand_muon_branches + \
                    input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches + \
                    input_cell_pfCand_gamma_branches + input_cell_ele_branches + input_cell_muon_branches
@@ -140,7 +154,7 @@ class NetConf:
         self.comp_names = component_names
         self.comp_branches = component_branches
 
-netConf_preTau = NetConf("preTau", False, input_tau_branches, [], [], [])
+netConf_preTau = NetConf("preTau", False, input_boostedTau_branches, [], [], [])
 netConf_preInner = NetConf("preInner", False, [], ['inner'], ['egamma', 'muon', 'hadrons'], [
     input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches,
     input_cell_pfCand_muon_branches + input_cell_muon_branches,
@@ -154,7 +168,7 @@ netConf_full = NetConf("full", True, netConf_preTau.tau_branches,
                        netConf_preInner.cell_locations + netConf_preOuter.cell_locations,
                        netConf_preInner.comp_names, netConf_preInner.comp_branches)
 
-netConf_full_cmb = NetConf("full_cmb", True, input_tau_branches,
+netConf_full_cmb = NetConf("full_cmb", True, input_boostedTau_branches,
                            netConf_preInner.cell_locations + netConf_preOuter.cell_locations, ['cmb'],
                            [ input_cell_pfCand_ele_branches + input_cell_pfCand_muon_branches + \
                              input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches + \
