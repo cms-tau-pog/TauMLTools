@@ -181,7 +181,7 @@ public:
       std::shared_ptr<TH2D> target_th2d = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
       if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
       
-      for( auto const& [boostedTau_type, boostedTau_name] : boostedTau_types_names)
+      for( auto const& [boostedTau_type, boostedTau_name] : tau_types_names)
       {
         std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+boostedTau_name).c_str())));
         if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+boostedTau_name);
@@ -325,7 +325,7 @@ public:
             if(static_cast<int>(_fe) < 0) return;
             size_t _fe_ind = static_cast<size_t>(_fe);
             size_t index = start_array_index + _fe_ind;
-            data->x_tau.at(index) = Scale<Scaling::TauFlat>(_fe_ind, value, false);
+            data->x_boostedTau.at(index) = Scale<Scaling::TauFlat>(_fe_ind, value, false);
         };
 
         fill_tau(TauFlat_Features::boostedTau_pt, tau.boostedTau_pt);
