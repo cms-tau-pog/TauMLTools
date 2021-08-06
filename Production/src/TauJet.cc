@@ -106,13 +106,22 @@ TauJetBuilder::TauJetBuilder(const TauJetBuilderSetup& setup, const pat::TauColl
 
 void TauJetBuilder::Build()
 {
+    // step 0 (define .genLepton):
     for(size_t genLeptonIndex = 0; genLeptonIndex < genLeptons_.size(); ++genLeptonIndex) {
         TauJet tauJet;
         tauJet.genLepton.reset(genLeptons_.at(genLeptonIndex), genLeptonIndex);
         tauJets_.push_back(tauJet);
+        // after this step ->
+        // fill std::deque<TauJet> tauJets_
+        // for every TauJet, tauJet.genLepton is filled
     }
 
     std::set<size_t> unmatched;
+
+    // step 1 (define .genJet):
+    // tauJets_[i].genLepton is matched to genJets_[i]
+    // if tauJet[i] matches to genJets_[i] (only best match is choosen)
+    //    -> tauJet[i].genJet index is set to genJets_[i]
     if(genJets_) {
         unmatched = CreateIndexSet(genJets_->size());
         for(TauJet& tauJet : tauJets_) {
@@ -130,8 +139,12 @@ void TauJetBuilder::Build()
                 tauJet.genJet.reset(genJets_->at(*bestMatch.index), *bestMatch.index);
                 unmatched.erase(*bestMatch.index);
             }
+            // after this for matched tauJets_[i] ->
+            // .genLepton and .genJet are defined
         }
-
+        // step 1.2:
+        // for all unmatched genJets_[i] (to tauJets_[i].genLepton) 
+        // add TauJet to tauJets_ with defined .genJet only
         for(size_t idx : unmatched) {
             TauJet tauJet;
             tauJet.genJet.reset(genJets_->at(idx), idx);
@@ -139,6 +152,10 @@ void TauJetBuilder::Build()
         }
     }
 
+    // step 2 (define .tau)::
+    // tauJets_[i](.genLepton or .genJet) matched to taus_ (PAT::Taus)
+    // for best tauJets_[i](.genLepton or .genJet) match to taus_ ->
+    // tauJets_[i].tau is defined
     unmatched = CreateIndexSet(taus_.size());
     for(TauJet& tauJet : tauJets_) {
         MatchResult bestMatch;
@@ -159,7 +176,9 @@ void TauJetBuilder::Build()
             unmatched.erase(*bestMatch.index);
         }
     }
-
+    // step 2.2:
+    // if GenMatch is not required, for unmatched taus ->
+    // add TauJet to tauJets_ with defined .tau only
     if(!requireGenMatch_) {
         for(size_t idx : unmatched) {
             TauJet tauJet;
@@ -167,7 +186,11 @@ void TauJetBuilder::Build()
             tauJets_.push_back(tauJet);
         }
     }
-
+    
+    // step 3 (define .boostedTau):
+    // tauJets_[i](.genLepton or .genJet or .tau) is matched to boostedTaus_
+    // for best tauJets_[i](.genLepton or .genJet or .taus) match to boostedTaus ->
+    // tauJets_[i].boostedTau is defined
     unmatched = CreateIndexSet(boostedTaus_.size());
     for(TauJet& tauJet : tauJets_) {
         MatchResult bestMatch;
@@ -182,6 +205,7 @@ void TauJetBuilder::Build()
             if(tauJet.genJet)
                 match.SetDeltaR_genJet(boostedTauIndex, deltaR(p4, tauJet.genJet->polarP4()),
                                        setup_.genJet_boostedTau_dR);
+            // boosted tau is also matched to PAT::Tau
             if(tauJet.tau)
                 match.SetDeltaR_tau(boostedTauIndex, deltaR(p4, tauJet.tau->polarP4()), setup_.tau_boostedTau_dR);
             if(match < bestMatch)
@@ -194,6 +218,9 @@ void TauJetBuilder::Build()
         }
     }
 
+    // step 3.2:
+    // if GenMatch is not required, for unmatched boostedTau ->
+    // add TauJet to tauJets_ with defined .boostedTau only
     if(!requireGenMatch_) {
         for(size_t idx : unmatched) {
             TauJet tauJet;
@@ -202,6 +229,10 @@ void TauJetBuilder::Build()
         }
     }
 
+    // step 4 (define .jet):
+    // tauJets_[i](.genLepton or .genJet or .tau) is matched to jets_
+    // for best tauJets_[i](.genLepton or .genJet or .tau) match to jets_ ->
+    // tauJets_[i].jet is defined
     unmatched = CreateIndexSet(jets_.size());
     for(TauJet& tauJet : tauJets_) {
         MatchResult bestMatch;
@@ -230,6 +261,9 @@ void TauJetBuilder::Build()
         }
     }
 
+    // step 4.2:
+    // if GenMatch is not required, for unmatched jet ->
+    // add TauJet to tauJets_ with defined .jet only
     if(!requireGenMatch_) {
         for(size_t idx : unmatched) {
             TauJet tauJet;
@@ -238,6 +272,10 @@ void TauJetBuilder::Build()
         }
     }
 
+    // step 5 (define .fatJet):
+    // tauJets_[i](.genLepton or .genJet or .tau or .jet) is matched to fatJets_
+    // for best tauJets_[i](.genLepton or .genJet or .tau or .jet) match to fatJets_ ->
+    // tauJets_[i].fatJet is defined
     unmatched = CreateIndexSet(fatJets_.size());
     for(TauJet& tauJet : tauJets_) {
         MatchResult bestMatch;
@@ -267,6 +305,9 @@ void TauJetBuilder::Build()
         }
     }
 
+    // step 5.2:
+    // if GenMatch is not required, for unmatched fatJet ->
+    // add TauJet to tauJets_ with defined .fatJet only
     if(!requireGenMatch_) {
         for(size_t idx : unmatched) {
             TauJet tauJet;
@@ -275,10 +316,13 @@ void TauJetBuilder::Build()
         }
     }
 
+    // step 6:
+    // if requireGenORRecoTauMatch_ -> create prunedTauJets and put only ( matched kind()==5 || .tau || .boostedTau) 
+    // if applyRecoPtSieve_ -> also remove some high-pt candidates 
     if(requireGenORRecoTauMatch_ || applyRecoPtSieve_) {
         std::deque<TauJet> prunedTauJets;
         for(const TauJet& tauJet : tauJets_) {
-            const bool is_true_tau = tauJet.genLepton
+            const bool is_true_tau = tauJet.genLepton // -> True for TauDecayedToHadrons <-
                     && tauJet.genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToHadrons;
             if(requireGenORRecoTauMatch_ && !(tauJet.tau || tauJet.boostedTau || is_true_tau))
                 continue;
@@ -305,7 +349,13 @@ void TauJetBuilder::Build()
         tauJets_ = prunedTauJets;
     }
 
-
+    // Step 7 (FINAL):
+    // for every tauJets_ add matched:
+    // - pfCand
+    // - lostTracks
+    // - electrons
+    // - muons
+    // - isoTracks
     for(TauJet& tauJet : tauJets_) {
 
         const auto hasMatch = [&](const PolarLorentzVector& p4) {
@@ -331,7 +381,9 @@ void TauJetBuilder::Build()
                     out_col.emplace_back(obj, index);
             }
         };
-
+        
+        // Step 7.2:
+        // if pfCand matches to anything it is added + pfCandDesc info is filled
         for(size_t pfCandIndex = 0; pfCandIndex < cands_.size(); ++pfCandIndex) {
             const auto& pfCand = cands_.at(pfCandIndex);
             if(!hasMatch(pfCand.polarP4())) continue;
@@ -355,6 +407,8 @@ void TauJetBuilder::Build()
             tauJet.cands.push_back(pfCandDesc);
         }
 
+        // Step 7.3:
+        // if lostTracks_ matches to anything it is added + pfCandDesc info is filled
         for(size_t pfCandIndex = 0; pfCandIndex < lostTracks_.size(); ++pfCandIndex) {
             const auto& pfCand = lostTracks_.at(pfCandIndex);
             if(!hasMatch(pfCand.polarP4())) continue;
