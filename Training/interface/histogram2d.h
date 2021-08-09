@@ -16,7 +16,9 @@ void load_axis_into_vector(const TAxis* axis, std::vector<double>& vector);
 
 class Histogram_2D{
   public:
-    Histogram_2D(const char* name, std::vector<double> xaxis, const double ymin, const double ymax);
+    Histogram_2D(const char* name, std::vector<double> xaxis,
+                 std::vector<std::vector<double>> yaxis_list,
+                 const double ymin, const double ymax);
     Histogram_2D(Histogram_2D& histo) = delete;
     ~Histogram_2D();
 
@@ -24,7 +26,6 @@ class Histogram_2D{
     void divide   (const Histogram_2D& histo);
     void reset();
 
-    void add_y_binning_by_index(const int index, const std::vector<double> yaxis);
 
     bool can_be_imported(const TH2D& histo);
     void print(const char* dir);
@@ -33,6 +34,8 @@ class Histogram_2D{
     TH2D& get_weights_th2d(const char* name, const char* title);
 
   private:
+    void add_y_binning_by_index(const int index, const std::vector<double> yaxis);
+    
     int find_bin_by_value_(const double& x);
 
     std::string name_;
@@ -49,7 +52,10 @@ class Histogram_2D{
 Histogram_2D::~Histogram_2D(){
 }
 
-Histogram_2D::Histogram_2D(const char* name, std::vector<double> xaxis, const double ymin, const double ymax){
+Histogram_2D::Histogram_2D(const char* name, std::vector<double> xaxis, 
+                           std::vector<std::vector<double>> yaxis_list,
+                           const double ymin, 
+                           const double ymax){
   xaxis_ = xaxis;
   for (std::vector<double>::iterator it = xaxis.begin(); it != std::prev(xaxis.end()); it++){
     xaxis_content_.push_back(std::make_shared<TH1D>());
@@ -57,6 +63,9 @@ Histogram_2D::Histogram_2D(const char* name, std::vector<double> xaxis, const do
   ymin_ = ymin;
   ymax_ = ymax;
   name_ = name;
+
+  for (int i = 0; i < yaxis_list.size(); i++)
+    add_y_binning_by_index(i, yaxis_list[i]);
 }
 
 void Histogram_2D::add_y_binning_by_index(const int index, const std::vector<double> yaxis){

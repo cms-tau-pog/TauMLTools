@@ -171,12 +171,8 @@ public:
       auto file_input = std::make_shared<TFile>(input_spectrum.c_str());
       auto file_target = std::make_shared<TFile>(target_spectrum.c_str());
 
-      Histogram_2D target_histogram("target", xaxis, ymin, ymax);
-      Histogram_2D input_histogram ("input" , xaxis, ymin, ymax);
-      for (int i = 0; i < yaxis_list.size(); i++){
-          target_histogram.add_y_binning_by_index(i, yaxis_list[i]);
-          input_histogram .add_y_binning_by_index(i, yaxis_list[i]);
-      }
+      Histogram_2D target_histogram("target", xaxis, yaxis_list, ymin, ymax);
+      Histogram_2D input_histogram ("input" , xaxis, yaxis_list, ymin, ymax);
 
       std::shared_ptr<TH2D> target_th2d = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
       if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
