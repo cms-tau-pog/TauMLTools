@@ -171,18 +171,20 @@ public:
       auto file_input = std::make_shared<TFile>(input_spectrum.c_str());
       auto file_target = std::make_shared<TFile>(target_spectrum.c_str());
 
-      Histogram_2D target_histogram("target", xaxis, yaxis_list, ymin, ymax);
-      Histogram_2D input_histogram ("input" , xaxis, yaxis_list, ymin, ymax);
+      Histogram_2D target_histogram("target", xaxis, yaxis_list, ymin, ymax, target_format);
+      Histogram_2D input_histogram ("input" , xaxis, yaxis_list, ymin, ymax, "hist");
 
-      std::shared_ptr<TH2D> target_th2d = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
-      if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
-      
       for( auto const& [tau_type, tau_name] : tau_types_names)
       {
         std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
         if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+tau_name);
-        target_histogram.th2d_add(*(target_th2d.get()));
-        input_histogram .th2d_add(*(input_th2d .get()));
+
+        if (target_format == "hist" )
+          target_histogram.th2d_add(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
+        else
+          target_histogram.th2d_add(target_function);
+
+        input_histogram .th2d_add(input_th2d.get());
 
         target_histogram.divide(input_histogram);
         hist_weights[tau_type] = std::make_shared<TH2D>(target_histogram.get_weights_th2d(
@@ -190,8 +192,17 @@ public:
             ("w_1_"+tau_name).c_str()
         ));
 
+        hist_weights[tau_type]->Scale(input_th2d->Integral()/hist_weights[tau_type]->Integral());
+
+
         target_histogram.reset();
         input_histogram .reset();
+      }
+
+      // Balance tau types to tau_h (here we consider tau_type=2 for tau_h):
+      for( auto const& [tau_type, tau_name] : tau_types_names) {
+        hist_weights[tau_type]->Scale(hist_weights[2]->Integral() / hist_weights[tau_type]->Integral());
+        
       }
       MaxDisbCheck(hist_weights, weight_thr);
     }

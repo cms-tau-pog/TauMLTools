@@ -14,7 +14,16 @@ Setup:
     input_dir            : "<path_to_shuffle_and_merge_files>"
     input_spectrum       : "<path_to_shuffle_and_merge_spectrum>.root"
     target_spectrum      : "<path_to_shuffle_and_merge_spectrum>.root"
-    recompute_tautype    : True
+    # Target specrum formats:
+    # "hist" (basing on target histogram),
+    # "func" (basing on function),
+    # "func_i" (basing on function integrated within the bin)
+    target_format        : "func"
+    # target_function is valid for func || func_i cases
+    # example: "TMath::Exp(-0.01*x[0]*x[1])"
+    # where x[0] is pt-axis, x[1] is eta-axis
+    target_function      : "1.0"
+    recompute_tautype    : False
     weight_thr           : 100000.0
 
     # here define variables for the Histogram_2D class

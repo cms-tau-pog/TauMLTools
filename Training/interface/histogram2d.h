@@ -10,6 +10,7 @@ implementation of a 2d histogram with custom y-binning for each x bin.
 #include <algorithm>
 #include "TH2D.h"
 #include "TH1D.h"
+#include "TF2.h"
 #include "TCanvas.h"
 
 void load_axis_into_vector(const TAxis* axis, std::vector<double>& vector);
@@ -18,11 +19,13 @@ class Histogram_2D{
   public:
     Histogram_2D(const char* name, std::vector<double> xaxis,
                  std::vector<std::vector<double>> yaxis_list,
-                 const double ymin, const double ymax);
+                 const double ymin, const double ymax,
+                 const std::string input_format_);
     Histogram_2D(Histogram_2D& histo) = delete;
     ~Histogram_2D();
 
-    void th2d_add (const TH2D& histo);
+    void th2d_add (const TH2D* histo);
+    void th2d_add (const std::string input_function);
     void divide   (const Histogram_2D& histo);
     void reset();
 
@@ -35,7 +38,7 @@ class Histogram_2D{
 
   private:
     void add_y_binning_by_index(const int index, const std::vector<double> yaxis);
-    
+
     int find_bin_by_value_(const double& x);
 
     std::string name_;
@@ -47,6 +50,8 @@ class Histogram_2D{
 
     double ymin_ = std::numeric_limits<float>::max();
     double ymax_ = std::numeric_limits<float>::lowest();
+
+    std::string input_format;
 };
 
 Histogram_2D::~Histogram_2D(){
@@ -55,7 +60,8 @@ Histogram_2D::~Histogram_2D(){
 Histogram_2D::Histogram_2D(const char* name, std::vector<double> xaxis, 
                            std::vector<std::vector<double>> yaxis_list,
                            const double ymin, 
-                           const double ymax){
+                           const double ymax,
+                           const std::string input_format_){
   xaxis_ = xaxis;
   for (std::vector<double>::iterator it = xaxis.begin(); it != std::prev(xaxis.end()); it++){
     xaxis_content_.push_back(std::make_shared<TH1D>());
@@ -66,6 +72,8 @@ Histogram_2D::Histogram_2D(const char* name, std::vector<double> xaxis,
 
   for (int i = 0; i < yaxis_list.size(); i++)
     add_y_binning_by_index(i, yaxis_list[i]);
+
+  input_format = input_format_;
 }
 
 void Histogram_2D::add_y_binning_by_index(const int index, const std::vector<double> yaxis){
@@ -127,7 +135,14 @@ int Histogram_2D::find_bin_by_value_(const double& x){
   throw std::range_error("Value "+std::to_string(x)+" is not in the range of the x axis");
 }
 
-void Histogram_2D::th2d_add (const TH2D& histo){
+void Histogram_2D::th2d_add (const TH2D* histo_ptr){
+
+  if (!histo_ptr) throw std::runtime_error("Histogram could not be loaded from file");
+  TH2D histo  = *histo_ptr;
+
+  if(input_format!="hist")
+    throw std::invalid_argument("Corresponding object is not supposed to be run (Histogram_2D::th2d_add) with TH2D");
+
   if(!can_be_imported(histo)){
     throw std::invalid_argument("Given TH2D "+std::string(histo.GetName())+" can not be imported");
   }
@@ -153,6 +168,42 @@ void Histogram_2D::th2d_add (const TH2D& histo){
       // WORKAROUND to switch x and y axes
       yhisto->GetBinContent(yhisto->FindBin(bincy)) + histo.GetBinContent(iy, ix));
   }}
+}
+
+void Histogram_2D::th2d_add (const std::string function_string){
+
+  std::cout << "format: " << input_format <<std::endl;
+  if(input_format!="func" && input_format!="func_i")
+    throw std::invalid_argument("Corresponding object is not supposed to be run (Histogram_2D::th2d_add) with std::string");
+
+  double x_min_ = xaxis_[0];
+  double x_max_ = xaxis_.back();
+
+  auto target_function = TF2("target_function", function_string.c_str(),
+                                  x_min_, x_max_, ymin_, ymax_);
+
+  for (int ix = 0; ix < xaxis_.size() - 1; ix++){
+
+    auto yhisto = xaxis_content_[ix];
+    auto yhisto_axis = yhisto->GetXaxis();
+
+    for (int iy = 1; iy <= yhisto_axis->GetNbins(); iy++){
+      
+      double y_a = yhisto_axis->GetBinLowEdge(iy);
+      double y_b = yhisto_axis->GetBinUpEdge(iy);
+
+      auto bincy = yhisto_axis->GetBinCenter(iy);
+      auto bincx = yhisto_axis->GetBinCenter(ix);
+
+      if (input_format=="func")
+        yhisto->SetBinContent(iy, target_function(bincx, bincy));
+      else if (input_format=="func_i")
+        yhisto->SetBinContent(iy, target_function.Integral(xaxis_[ix], xaxis_[ix+1], y_a, y_b));
+      else throw std::invalid_argument("input_format is not defined correctly");
+
+    }
+
+  }                            
 }
 
 void Histogram_2D::divide(const Histogram_2D& histo){
