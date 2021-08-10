@@ -39,6 +39,7 @@ class Histogram_2D{
 
     std::vector<double>                 xaxis_;
     std::vector<std::shared_ptr<TH1D>>  xaxis_content_;
+    std::vector<bool> occupancy_;
 
     std::shared_ptr<TH2D> histo_ = std::make_shared<TH2D>();
 
@@ -53,6 +54,7 @@ Histogram_2D::Histogram_2D(const char* name, std::vector<double> xaxis, const do
   xaxis_ = xaxis;
   for (std::vector<double>::iterator it = xaxis.begin(); it != std::prev(xaxis.end()); it++){
     xaxis_content_.push_back(std::make_shared<TH1D>());
+    occupancy_.push_back(false);
   }
   ymin_ = ymin;
   ymax_ = ymax;
@@ -68,6 +70,7 @@ void Histogram_2D::add_y_binning_by_index(const int index, const std::vector<dou
     std::runtime_error("Input yaxis min or max values not matching specified min and max values");
   }
   xaxis_content_[index] = std::shared_ptr<TH1D>(new TH1D(name.c_str(), "", yaxis.size()-1, &yaxis[0]));
+  occupancy_[index] = true;
 }
 
 bool Histogram_2D::can_be_imported(const TH2D& histo){
@@ -151,6 +154,9 @@ void Histogram_2D::divide(const Histogram_2D& histo){
     return axis1 == axis2;
   };
 
+  if (!std::all_of(occupancy_.begin(), occupancy_.end(), [](bool i){return i;})){
+    throw std::logic_error("Not all the bins have been initialized");
+  }
   if (!check_axis(xaxis_, histo.xaxis_)){
     throw std::logic_error("Invalid x binning detected on denominator for Histogram_2D "+histo.name_);
   }
