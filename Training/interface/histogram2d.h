@@ -164,8 +164,8 @@ void Histogram_2D::divide(const Histogram_2D& histo){
   std::vector<double> thisyaxis;
   std::vector<double> yaxis;
   for (int ix = 0; ix < xaxis_content_.size(); ix++){
-    auto thisyhisto = xaxis_content_[ix];
-    auto yhisto     = histo.xaxis_content_[ix];
+    TH1D* thisyhisto = xaxis_content_[ix].get();
+    TH1D* yhisto     = histo.xaxis_content_[ix].get();
     load_axis_into_vector(thisyhisto->GetXaxis(), thisyaxis);
     load_axis_into_vector(yhisto->GetXaxis()    , yaxis    );
 
@@ -173,7 +173,9 @@ void Histogram_2D::divide(const Histogram_2D& histo){
       throw std::logic_error("Invalid y-axis binning found for denominator in x bin n. "+std::to_string(ix)+" for Histogram_2D "+histo.name_);
     }
 
-    (*thisyhisto).Divide(yhisto.get());
+    thisyhisto->Sumw2();
+    yhisto->Sumw2();
+    (*thisyhisto).Divide(yhisto);
   }
 }
 
@@ -213,10 +215,12 @@ TH2D& Histogram_2D::get_weights_th2d(const char* name, const char* title){
 
     auto yhisto    = xaxis_content_[find_bin_by_value_(bincx)];
     double content = yhisto->GetBinContent(yhisto->FindBin(bincy));
+    double error   = yhisto->GetBinError(yhisto->FindBin(bincy));
 
     //histo_->SetBinContent(ix, iy, content);
     // WORKAROUND to switch x and y axess
     histo_->SetBinContent(iy, ix, content);
+    histo_->SetBinError  (iy, ix, error  );
   }}
 
   return *histo_;
