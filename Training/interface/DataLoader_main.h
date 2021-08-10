@@ -4,6 +4,7 @@
 
 #include "TROOT.h"
 #include "TLorentzVector.h"
+#include "TMath.h" 
 
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 #include "TauMLTools/Analysis/interface/AnalysisTypes.h"
@@ -192,7 +193,7 @@ public:
             ("w_1_"+tau_name).c_str()
         ));
 
-        hist_weights[tau_type]->Scale(input_th2d->Integral()/hist_weights[tau_type]->Integral());
+        hist_weights[tau_type]->Scale((input_th2d->Integral()/hist_weights[tau_type]->Integral()));
 
 
         target_histogram.reset();
@@ -201,7 +202,9 @@ public:
 
       // Balance tau types to tau_h (here we consider tau_type=2 for tau_h):
       for( auto const& [tau_type, tau_name] : tau_types_names) {
-        hist_weights[tau_type]->Scale(hist_weights[2]->Integral() / hist_weights[tau_type]->Integral());
+        hist_weights[tau_type]->Scale(
+            TMath::Power(hist_weights[2]->Integral() / hist_weights[tau_type]->Integral(), 2)
+          );
         
       }
       MaxDisbCheck(hist_weights, weight_thr);

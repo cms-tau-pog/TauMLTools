@@ -172,7 +172,6 @@ void Histogram_2D::th2d_add (const TH2D* histo_ptr){
 
 void Histogram_2D::th2d_add (const std::string function_string){
 
-  std::cout << "format: " << input_format <<std::endl;
   if(input_format!="func" && input_format!="func_i")
     throw std::invalid_argument("Corresponding object is not supposed to be run (Histogram_2D::th2d_add) with std::string");
 
