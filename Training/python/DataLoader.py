@@ -185,12 +185,7 @@ class DataLoader:
 
         self.train_files, self.val_files = \
              np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
-            
-        if len(self.train_files) == 0:
-            raise RuntimeError("Taining file queue is empty.")
-        if len(self.val_files) == 0:
-            raise RuntimeError("Validation file queue is empty.")
-
+             
         print("Files for training:", len(self.train_files))
         print("Files for validation:", len(self.val_files))
 
@@ -198,6 +193,10 @@ class DataLoader:
     def get_generator(self, primary_set = True, return_truth = True, return_weights = False):
 
         _files = self.train_files if primary_set else self.val_files
+        if len(_files)==0:
+            raise RuntimeError(("Taining" if primary_set else "Validation")+\
+                               " file list is empty.")
+
         n_batches = self.n_batches if primary_set else self.n_batches_val
         print("Number of workers in DataLoader: ", self.n_load_workers)
 
