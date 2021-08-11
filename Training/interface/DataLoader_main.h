@@ -173,7 +173,7 @@ public:
 
       Histogram_2D target_histogram("target", yaxis, xmin, xmax);
       Histogram_2D input_histogram ("input" , yaxis, xmin, xmax);
-      for (int i = 0; i < yaxis_list.size(); i++){
+      for (int i = 0; i < xaxis_list.size(); i++){
           target_histogram.add_x_binning_by_index(i, xaxis_list[i]);
           input_histogram .add_x_binning_by_index(i, xaxis_list[i]);
       }
