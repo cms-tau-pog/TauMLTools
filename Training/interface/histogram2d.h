@@ -137,6 +137,12 @@ void Histogram_2D::th2d_add (const TH2D& histo){
       xhisto->FindBin(bincx),
       xhisto->GetBinContent(xhisto->FindBin(bincx)) + histo.GetBinContent(ix, iy));
   }}
+
+  for (auto xhisto : yaxis_content_){
+    if (!xhisto->GetSumw2N()){
+      xhisto->Sumw2();
+    }
+  }
 }
 
 void Histogram_2D::divide(const Histogram_2D& histo){
@@ -163,8 +169,6 @@ void Histogram_2D::divide(const Histogram_2D& histo){
       throw std::logic_error("Invalid x-axis binning found for denominator in y bin n. "+std::to_string(iy)+" for Histogram_2D "+histo.name_);
     }
 
-    thisxhisto->Sumw2();
-    xhisto->Sumw2();
     (*thisxhisto).Divide(xhisto);
   }
 }
