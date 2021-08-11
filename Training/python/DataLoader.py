@@ -24,7 +24,8 @@ class QueueEx:
     def put(self, item, retry_interval=0.3):
         while True:
             with self.n_puts.get_lock():
-                if self.n_puts.value >= self.max_n_puts:
+                if self.n_puts.value >= self.max_n_puts and \
+                   self.max_n_puts != -1:
                     return False
                 try:
                     self.mp_queue.put(item, False)
@@ -185,7 +186,7 @@ class DataLoader:
 
         self.train_files, self.val_files = \
              np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
-             
+
         print("Files for training:", len(self.train_files))
         print("Files for validation:", len(self.val_files))
 
