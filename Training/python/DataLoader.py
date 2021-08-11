@@ -19,13 +19,14 @@ class QueueEx:
     def __init__(self, max_size=0, max_n_puts=math.inf):
         self.n_puts = mp.Value('i', 0)
         self.max_n_puts = max_n_puts
+        if self.max_n_puts < 0:
+            self.max_n_puts = math.inf
         self.mp_queue = mp.Queue(max_size)
 
     def put(self, item, retry_interval=0.3):
         while True:
             with self.n_puts.get_lock():
-                if self.n_puts.value >= self.max_n_puts and \
-                   self.max_n_puts != -1:
+                if self.n_puts.value >= self.max_n_puts:
                     return False
                 try:
                     self.mp_queue.put(item, False)
