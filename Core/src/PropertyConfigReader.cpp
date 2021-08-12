@@ -8,7 +8,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <map>
 #include <boost/algorithm/string.hpp>
 
-#include "TauMLTools/Core/src/exception.hpp"
+#include "TauMLTools/Core/interface/exception.h"
 #include "TauMLTools/Core/interface/TextIO.h"
 
 

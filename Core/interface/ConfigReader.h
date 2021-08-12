@@ -11,7 +11,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <unordered_set>
 #include <functional>
 
-#include "TauMLTools/Core/src/exception.hpp"
+#include "exception.h"
 #include "EnumNameMap.h"
 #include "TextIO.h"
 

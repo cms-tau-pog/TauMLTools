@@ -6,7 +6,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <map>
 #include <iostream>
 
-#include "TauMLTools/Core/src/exception.hpp"
+#include "exception.h"
 
 #define ANA_CONFIG_PARAMETER(type, name, default_value) \
     type name() const { \

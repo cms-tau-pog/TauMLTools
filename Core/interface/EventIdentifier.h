@@ -4,7 +4,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #pragma once
 
 #include <map>
-#include "TauMLTools/Core/src/exception.hpp"
+#include "exception.h"
 
 namespace analysis {
 

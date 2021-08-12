@@ -14,7 +14,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <Compression.h>
 #include <TH2.h>
 
-#include "TauMLTools/Core/src/exception.hpp"
+#include "exception.h"
 
 namespace root_ext {
 

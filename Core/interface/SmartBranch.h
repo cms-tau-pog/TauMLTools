@@ -6,7 +6,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <TBranch.h>
 #include <TTree.h>
 #include <TClass.h>
-#include "TauMLTools/Core/src/exception.hpp"
+#include "exception.h"
 #include "AnalysisMath.h"
 
 namespace root_ext {
