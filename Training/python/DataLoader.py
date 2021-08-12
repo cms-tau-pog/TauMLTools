@@ -147,6 +147,7 @@ class DataLoader:
         R.gInterpreter.Declare(config_parse.create_scaling_input(file_scaling,file_config, verbose=False))
         R.gInterpreter.Declare(config_parse.create_settings(file_config, verbose=False))
         R.gInterpreter.Declare('#include "{}"'.format(_LOADPATH))
+        R.gInterpreter.Declare('#include "TauMLTools/Core/src/exception.hpp"')
 
 
     def __init__(self, file_config, file_scaling):
