@@ -10,7 +10,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include<initializer_list>
 #include<typeinfo>
 
-#include "exception.h"
+#include "TauMLTools/Core/src/exception.hpp"
 
 #define ENUM_NAMES(enum_type) \
     template<typename T=void> \

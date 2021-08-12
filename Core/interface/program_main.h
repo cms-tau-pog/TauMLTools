@@ -10,7 +10,7 @@ This file is part of https://github.com/hh-italian-group/AnalysisTools. */
 #include <TROOT.h>
 #include <TH1.h>
 #include <TH2.h>
-#include "exception.h"
+#include "TauMLTools/Core/src/exception.hpp"
 
 #define REQ_ARG(type, name) run::Argument<type> name{#name, ""}
 #define OPT_ARG(type, name, default_value) run::Argument<type> name{#name, "", default_value}

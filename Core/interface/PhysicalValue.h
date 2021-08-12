@@ -8,7 +8,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <cmath>
 #include <iomanip>
 
-#include "exception.h"
+#include "TauMLTools/Core/src/exception.hpp"
 
 namespace analysis {
 namespace detail {

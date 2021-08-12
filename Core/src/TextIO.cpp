@@ -9,7 +9,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <unordered_set>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include "TauMLTools/Core/interface/exception.h"
+#include "TauMLTools/Core/src/exception.hpp"
 
 namespace analysis {
 

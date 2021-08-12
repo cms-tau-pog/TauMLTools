@@ -3,7 +3,7 @@
 #include "TauMLTools/Analysis/interface/GenLepton.h"
 #include "TauMLTools/Analysis/interface/AnalysisTypes.h"
 #include "TauMLTools/Core/interface/AnalysisMath.h"
-#include "TauMLTools/Core/interface/exception.h"
+#include "TauMLTools/Core/src/exception.hpp"
 
 namespace analysis {
     boost::optional<GenLeptonMatch> GetGenLeptonMatch(const tau_tuple::Tau& tau)

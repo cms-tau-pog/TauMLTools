@@ -3,7 +3,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 #pragma once
 
-#include "exception.h"
+#include "TauMLTools/Core/src/exception.hpp"
 #include <iomanip>
 #include <unordered_set>
 #include <boost/algorithm/string.hpp>

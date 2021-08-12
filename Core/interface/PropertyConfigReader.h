@@ -7,7 +7,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <vector>
 #include <map>
 
-#include "exception.h"
+#include "TauMLTools/Core/src/exception.hpp"
 #include "TextIO.h"
 
 namespace analysis {
