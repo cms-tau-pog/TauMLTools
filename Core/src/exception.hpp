@@ -40,7 +40,7 @@ public:
         msg(std::move(e.msg)), msg_valid(std::move(e.msg_valid)), f_msg(std::move(e.f_msg)), f_str(e.f_str),
         stack_trace(e.stack_trace) {}
     virtual ~exception() noexcept override {}
-    virtual const char* what() const noexcept { return message().c_str(); }
+    virtual const char* what() const noexcept override { return message().c_str(); }
     const std::string& message() const noexcept
     {
         if(!*msg_valid) {
