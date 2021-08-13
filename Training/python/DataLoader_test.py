@@ -16,7 +16,7 @@ R.gInterpreter.Declare(config_parse.create_settings("../configs/training_v1.yaml
 
 print("Compiling DataLoader_main...")
 R.gInterpreter.Declare('#include "../interface/DataLoader_main.h"')
-R.gInterpreter.Declare('#include "TauMLTools/Core/src/exception.hpp"')
+R.gInterpreter.Declare('#include "TauMLTools/Core/interface/exception.h"')
 
 n_tau          = R.Setup.n_tau
 n_inner_cells  = R.Setup.n_inner_cells
