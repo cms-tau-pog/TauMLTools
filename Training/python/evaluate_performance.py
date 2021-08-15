@@ -31,13 +31,14 @@ import pandas
 import numpy as np
 import json
 import eval_tools
-import common
 
 def AddPredictionsToDataFrame(df, file_name, label = ''):
     df_pred = pandas.read_hdf(file_name)
-    for out in common.match_suffixes:
+    for out in match_suffixes:
         if out != 'tau':
-            tau_vs_other = common.TauLosses.tau_vs_other(df_pred['deepId_tau'].values, df_pred['deepId_' + out].values)
+            prob_tau = df_pred['deepId_tau'].values
+            prob_other = df_pred['deepId_' + out].values
+            tau_vs_other = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_other), np.zeros(prob_tau.shape))
             df['deepId{}_vs_{}'.format(label, out)] = pandas.Series(tau_vs_other, index=df.index)
         df['deepId{}_{}'.format(label, out)] = pandas.Series(df_pred['deepId_' + out].values, index=df.index)
     return df
@@ -97,6 +98,8 @@ setup_provider.Initialize(eval_tools, setup_args)
 discriminators = setup_provider.GetDiscriminators(args.other_type, args.deep_results_label,
                                                   args.prev_deep_results_label)
 
+
+match_suffixes = [ 'e', 'mu', 'tau', 'jet' ]
 core_branches = [ 'tau_pt', 'tau_decayModeFinding', 'tau_decayMode', 'gen_{}'.format(args.other_type), 'gen_tau',
                   'tau_charge', 'lepton_gen_charge' ]
 
@@ -210,5 +213,5 @@ for pt_index in range(len(pt_bins) - 1):
         roc_json_entry['pt_text'] = title_str
     roc_json.append(roc_json_entry)
 
-with open(os.path.splitext(args.output)[0] + '.json', 'w') as json_file:
+with open(args.output, 'w') as json_file:
     json_file.write(json.dumps(roc_json, indent=4, cls=eval_tools.CustomJsonEncoder))
