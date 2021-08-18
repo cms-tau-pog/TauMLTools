@@ -11,3 +11,4 @@ __init__.py
 .DS_Store
 *.svg
 *.swp
+/soft

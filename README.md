@@ -6,41 +6,23 @@ Tools to perform machine learning studies for tau lepton reconstruction and iden
 
 ## How to install
 
-### Setup for pre-processing
-Root-tuples production steps (both big-tuple and training tuple) require CMSSW environment
-```sh
-export SCRAM_ARCH=slc7_amd64_gcc700
-cmsrel CMSSW_10_6_20
-cd CMSSW_10_6_20/src
-cmsenv
-git cms-merge-topic -u cms-tau-pog:CMSSW_10_6_X_tau-pog_boostedTausMiniFix
-git clone -o cms-tau-pog -b master git@github.com:cms-tau-pog/TauMLTools.git
-scram b -j8
-```
+1. Clone package from the github without loading any additional environment (like CMSSW):
+   ```sh
+   git clone -o cms-tau-pog -b master git@github.com:cms-tau-pog/TauMLTools.git
+   ```
+2. Go to `TauMLTools` directory and load appropriate environment by running `env.sh`:
+   ```sh
+   source env.sh ENV_NAME
+   ```
+   where supported `ENV_NAME` are:
+   - `prod2018`: for production of root-tuples for 2018 pre-UL datasets and pre-processing steps up to Shuffle&Merge
+   - `phase2`: for production of root-tuples for Phase 2 datasets and pre-processing steps up to Shuffle&Merge
+   - `lcg`: using LCG environment, if it is available (e.g. lxplus)
+   - `conda`: using tau-ml conda environment -- this is the recommended environment to perform an actual NN training
 
-### Setup for training and testing
-The following steps (training, testing, etc.) should be run using LCG or conda-based environment setup.
+   N.B. If you want to use existing `conda` installation, make sure that it is activated and the path to the `conda` executable is included in `PATH` variable. If `conda` installation not found, `env.sh` will make install it from the official web site and configure it to work with the current TauMLTools installation.
 
-#### LCG environment
-On sites where LCG software distribution is available (e.g. lxplus) it is enough to source `setup.sh`:
-```sh
-source /cvmfs/sft.cern.ch/lcg/views/LCG_97apython3/x86_64-centos7-clang10-opt/setup.sh
-```
-Currently supported LCG distribution version is LCG_97apython3.
-
-#### conda environment
-In cases when LCG software is not available, we recommend to setup a dedicated conda environment:
-```sh
-conda create --name tau-ml python=3.7
-conda install tensorflow==1.14 pandas scikit-learn matplotlib statsmodels scipy pytables root==6.20.6 uproot lz4 xxhash cython
-```
-
-To activate it use `conda activate tau-ml`.
-
-N.B. All of the packages are available through the conda-forge channel, which should be added to conda configuration before creating the environment:
-```sh
-conda config --add channels conda-forge
-```
+The second step (`source env.sh ENV_NAME`) should be repeated each time you open a new shell session.
 
 ## How to produce inputs
 
@@ -219,16 +201,16 @@ ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
 - `--prefix` is the prefix which will be placed before the path of each file read form `--input`. Please note that this prefix will *not* be placed before the `--input-spec` value. This value can include a remote path compatible with xrootd.
 - the last pt bin is taken as a high pt region, all entries from it are taken without rejection.
 - `--tau-ratio "jet:1, e:1, mu:1, tau:1"` defines proportion of TauTypes in final root-tuple.
-- `--refill-spectrum` to recalculated spectrums of the input data on flight, only events and files that correspond to the current job `--job-idx` will be considered. It was studied that in case of heterogeneity within a data group, the common spectrum of the whole data group poorly represents the spectrum of the sub-chunk of this data group if we use `--n-jobs 500`, so it is needed to fill spectrum histograms in the beginning of every job, to obtain required uniformity of the output. 
+- `--refill-spectrum` to recalculated spectrums of the input data on flight, only events and files that correspond to the current job `--job-idx` will be considered. It was studied that in case of heterogeneity within a data group, the common spectrum of the whole data group poorly represents the spectrum of the sub-chunk of this data group if we use `--n-jobs 500`, so it is needed to fill spectrum histograms in the beginning of every job, to obtain required uniformity of the output.
 - `--lastbin-takeall` due to the poor statistic in the high-pt region the option to take all candidates from last pt-bin is included (contrary to `--lastbin-takeall false`, in this case we put the requirement on n_entries in the last bin to be equal to n_entries in other bins)
 - `--lastbin-disbalance` the argument is relevant in case of `-lastbin-takeall true`, it put the requirement on the ratio of (all entries up to the last bin) to the (number of entries in the last bin) not to be greater than required number, otherwise less events will be taken from all bins up to the last.
 - `--enable-emptybin` in case of empty pt-eta bin, the probability in this bin will be set to 0 (that is needed in cases when datasets are statistically poor or the number of jobs `--n-jobs` is big in case of `--refill-spectrum true` mode)
 - `--n-jobs 500 --job-idx 0` defines into how many parts to split the input files and the index of corresponding job
 
-In order to find appropriate binning and `--tau-ratio` in correspondence to the present statistics it might be useful to execute one job in `--refill-spectrum false --lastbin-takeall false` mode and study the output of `./out/*.root` files. In the \<DataGroupName>_n.root files the number of entries in required  `--pt-bins --eta-bins` can be found. \<DataGroupName>.root files show the probability of accepting candidate from corresponding pt-eta bin. 
+In order to find appropriate binning and `--tau-ratio` in correspondence to the present statistics it might be useful to execute one job in `--refill-spectrum false --lastbin-takeall false` mode and study the output of `./out/*.root` files. In the \<DataGroupName>_n.root files the number of entries in required  `--pt-bins --eta-bins` can be found. \<DataGroupName>.root files show the probability of accepting candidate from corresponding pt-eta bin.
 
 #### ShuffleMergeSpectral on HTCondor
-ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment 
+ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment
 ```sh
 cd $CMSSW_BASE/src
 cmsenv
