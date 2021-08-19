@@ -1,0 +1,17 @@
+# input
+input_folder: 'roc_json'
+discriminators: 
+  DeepTau: ['roc_curve', 'roc_wp']
+  MVA_jinst: ['roc_wp']
+  MVA_upd: ['roc_wp']
+reference: 
+  DeepTau: 'roc_curve'
+
+# region
+sample: 'TT'
+vs_type: 'jet'
+pt_bin: [20, 100] 
+
+# output
+output_folder: 'roc_plots'
+output_name: 'roc_curve'
