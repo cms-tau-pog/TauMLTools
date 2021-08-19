@@ -58,6 +58,7 @@ Setup:
 SetupNN:
     n_batches            : -1
     n_batches_val        : -1
+    n_batches_log        : 1000 # monitor every n batches in tensorboard
     epoch                : 0
     n_epochs             : 10
     validation_split     : 0.3
