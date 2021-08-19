@@ -1,12 +1,5 @@
 #!/usr/bin/env python
 
-import argparse
-parser = argparse.ArgumentParser(description='Plot ROC curves.')
-parser.add_argument('--input', required=True, type=str, help="Input JSON file with ROC curves")
-parser.add_argument('--output', required=True, type=str, help="Output PDF file")
-
-args = parser.parse_args()
-
 import json
 import numpy as np
 from scipy import interpolate
@@ -14,6 +7,13 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+
+def select_curve(curve_list, **selection):
+    filter_func = lambda x: all([x[k]==v if k in x else False for k,v in selection.items()])
+    filtered_curves = list(filter(filter_func, curve_list))
+    if len(filtered_curves)!=1:
+        raise Exception(f"Failed to find single reference curve for selection: {[f'{k}=={v}' for k,v in selection.items()]}")
+    return filtered_curves[0]
 
 def create_roc_ratio(x1, y1, x2, y2):
     sp = interpolate.interp1d(x2, y2)
@@ -26,21 +26,15 @@ def create_roc_ratio(x1, y1, x2, y2):
     ratio[1, :] = x1_clean
     return ratio
 
-def cm2inch(*tupl):
-    inch = 2.54
-    if isinstance(tupl[0], tuple):
-        return tuple(i/inch for i in tupl[0])
-    return tuple(i/inch for i in tupl)
-
 class RocCurve:
     def __init__(self, data, ref_roc=None):
         fpr = np.array(data['false_positive_rate'])
         n_points = len(fpr)
+        self.auc_score = data.get('auc_score')
         self.pr = np.empty((2, n_points))
         self.pr[0, :] = fpr
         self.pr[1, :] = data['true_positive_rate']
 
-        self.color = data['color']
         if 'false_positive_rate_up' in data:
             self.pr_err = np.empty((2, 2, n_points))
             self.pr_err[0, 0, :] = data['false_positive_rate_up']
@@ -56,10 +50,10 @@ class RocCurve:
         else:
             self.thresholds = None
 
-        self.auc_score = data.get('auc_score')
-        self.dots_only = data['dots_only']
-        self.dashed = data['dashed']
-        self.marker_size = data.get('marker_size', 5)
+        self.color = data['plot_setup']['color']
+        self.dots_only = data['plot_setup']['dots_only']
+        self.dashed = data['plot_setup']['dashed']
+        self.marker_size = data['plot_setup'].get('marker_size', 5)
 
         if ref_roc is None:
             ref_roc = self
@@ -140,66 +134,63 @@ class PlotSetup:
             ax_ratio.tick_params(labelsize=10)
             ax_ratio.grid(True, which='both')
 
+import hydra
+from hydra.utils import to_absolute_path
+from omegaconf import OmegaConf, DictConfig
 
+@hydra.main(config_path='.', config_name='plot_roc')
+def main(cfg: DictConfig) -> None:
+    # retrieve pt bin from input cfg 
+    assert len(cfg.pt_bin)==2 and cfg.pt_bin[0] <= cfg.pt_bin[1]
+    pt_min, pt_max = cfg.pt_bin[0], cfg.pt_bin[1]
 
-def create_discr_list(all_discr):
-    discr_map = { discr["name"] : discr for discr in all_discr }
-    discriminators = []
-    names = []
-    ref_index = -1
-    ordered_indices = []
-    for discr in all_discr:
-        name = discr['name']
-        if name.endswith(' WP'): continue
-        discr_wp = discr_map.get(name + ' WP')
-        if discr['is_ref']:
-            ref_index = len(names)
-        discriminators.append((discr, discr_wp))
-        names.append(name)
-    if ref_index >= 0:
-        ordered_indices.append(ref_index)
-    for index in range(len(names)):
-        if index != ref_index:
-            ordered_indices.append(index)
-    return discriminators, names, ref_index, ordered_indices
+    # retrieve reference curve
+    if len(cfg.reference)>1:
+        raise RuntimeError(f'Expect to have only one reference discriminator, got: {cfg.reference.keys()}')
+    reference_cfg = OmegaConf.to_object(cfg.reference) # convert to python dict to enable popitem()
+    ref_discr_name, ref_curve_type = reference_cfg.popitem()
+    reference_json = to_absolute_path(f'{cfg.input_folder}/{ref_discr_name}_tau_vs_{cfg.vs_type}_{cfg.sample}.json')
+    with open(reference_json, 'r') as f:
+        ref_discr_data = json.load(f)
+    ref_curve = select_curve(ref_discr_data['metrics'][ref_curve_type], pt_min=pt_min, pt_max=pt_max)
+    ref_roc = RocCurve(ref_curve, None)
 
+    curves_to_plot = []
+    curve_names = []
+    with PdfPages(to_absolute_path(f'{cfg.output_folder}/{cfg.output_name}.pdf')) as pdf:
+        for discr_name, curve_types in cfg.discriminators.items():
+            # retrieve discriminator data from corresponding json 
+            json_file = to_absolute_path(f'{cfg.input_folder}/{discr_name}_tau_vs_{cfg.vs_type}_{cfg.sample}.json')
+            with open(json_file, 'r') as f:
+                discr_data = json.load(f)
 
-with open(args.input, 'r') as f:
-    data = json.load(f)
-
-with PdfPages(args.output) as pdf:
-    for plot_data in data:
-        plot_setup = PlotSetup(plot_data["plot_setup"])
-
-        discriminators, names, ref_index, ordered_indices = create_discr_list(plot_data["discriminators"])
-        n_discr = len(discriminators)
-        rocs = [None] * n_discr
-        wp_rocs = [None] * n_discr
-
-        for n in ordered_indices:
-            ref_roc = rocs[ref_index] if ref_index >= 0 and n != ref_index else None
-            rocs[n] = RocCurve(discriminators[n][0], ref_roc)
-            if discriminators[n][1] is not None:
-                wp_rocs[n] = RocCurve(discriminators[n][1], ref_roc)
+            for curve_type in curve_types: 
+                discr_curve = select_curve(discr_data['metrics'][curve_type], pt_min=pt_min, pt_max=pt_max)
+                if (discr_name==ref_discr_name and curve_type==ref_curve_type) or ('wp' not in curve_type):
+                    curves_to_plot.append(RocCurve(discr_curve, ref_roc=None))
+                else:
+                    curves_to_plot.append(RocCurve(discr_curve, ref_roc=ref_roc))
+                    
+                curve_names.append(discr_data['name'])
 
         fig, (ax, ax_ratio) = plt.subplots(2, 1, figsize=(7, 7), sharex=True, gridspec_kw = {'height_ratios':[3, 1]})
-
         plot_entries = []
-        for n in range(n_discr):
-            plot_entry = rocs[n].Draw(ax, ax_ratio)
+        for curve_to_plot in curves_to_plot:
+            plot_entry = curve_to_plot.Draw(ax, ax_ratio)
             plot_entries.append(plot_entry)
-        for n in range(n_discr):
-            if wp_rocs[n] is not None:
-                wp_rocs[n].Draw(ax, ax_ratio)
 
-        plot_setup.Apply(names, plot_entries, ax, ax_ratio)
+        plot_setup = PlotSetup(ref_curve['plot_setup'])
+        plot_setup.Apply(curve_names, plot_entries, ax, ax_ratio)
 
         header_y = 1.02
-        ax.text(0.03, 0.92 - n_discr * 0.10, plot_data['pt_text'], fontsize=14, transform=ax.transAxes)
+        ax.text(0.03, 0.92 - len(plot_entries) * 0.10, ref_curve['plot_setup']['pt_text'], fontsize=14, transform=ax.transAxes)
         ax.text(0.01, header_y, 'CMS', fontsize=14, transform=ax.transAxes, fontweight='bold', fontfamily='sans-serif')
         ax.text(0.12, header_y, 'Simulation Preliminary', fontsize=14, transform=ax.transAxes, fontstyle='italic',
                 fontfamily='sans-serif')
-        ax.text(0.73, header_y, plot_data['period'], fontsize=13, transform=ax.transAxes, fontweight='bold',
+        ax.text(0.73, header_y, ref_discr_data['period'], fontsize=13, transform=ax.transAxes, fontweight='bold',
                 fontfamily='sans-serif')
         plt.subplots_adjust(hspace=0)
         pdf.savefig(fig, bbox_inches='tight')
+
+if __name__ == '__main__':
+    main()
