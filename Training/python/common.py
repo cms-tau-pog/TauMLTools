@@ -2,7 +2,8 @@ import time
 import gc
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.callbacks import Callback, ModelCheckpoint, CSVLogger
+from tensorflow.keras.callbacks import Callback
+from tensorflow.keras.models import load_model
 
 e, mu, tau, jet = 0, 1, 2, 3
 
@@ -258,7 +259,6 @@ class TauLosses:
 
 
 def LoadModel(model_file, compile=True):
-    from keras.models import load_model
     if compile:
         return load_model(model_file, custom_objects = {
             'tau_crossentropy': TauLosses.tau_crossentropy, 'tau_crossentropy_v2': TauLosses.tau_crossentropy_v2,
