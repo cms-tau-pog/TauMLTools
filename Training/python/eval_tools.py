@@ -187,7 +187,7 @@ class Discriminator:
 
     def CreateRocCurve(self, df, ref_roc = None):
         n_wp = len(self.working_points)
-        wp_roc = None
+        roc, wp_roc = None, None
         if self.raw:
             fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.column].values,
                                                      sample_weight=df.weight.values)
@@ -214,13 +214,6 @@ class Discriminator:
                             ci_low, ci_upp = eff - err, eff + err
                         wp_roc.pr_err[kind, 1, n_wp - n - 1] = ci_upp - eff
                         wp_roc.pr_err[kind, 0, n_wp - n - 1] = eff - ci_low
-        if not self.raw:
-            roc = wp_roc
-            wp_roc = None
-        if ref_roc is not None:
-            roc.ratio = create_roc_ratio(roc.pr[1], roc.pr[0], ref_roc.pr[1], ref_roc.pr[0])
-        elif roc.pr[1].shape[0] > 0:
-            roc.ratio = np.array([ [1, 1], [ roc.pr[1][0], roc.pr[1][-1] ] ])
 
         return roc, wp_roc
 
