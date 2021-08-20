@@ -1,0 +1,29 @@
+plot_setup:
+  public_plots: False # Apply public plot styles
+  inequality_in_title: False # Use inequality in the title to define pt range, instead of an interval
+
+  e: 
+    ylabel: 'Electron mis-id probability'
+    xlim: [0.5, 1]
+    ratio_yscale: 'log'
+    ylim: [2e-5, 1]
+    ratio_ylim: [0.5, 40]
+  mu:
+    ylabel: 'Muon mis-id probability'
+    xlim: [0.98, 1]
+    ratio_yscale: 'log'
+    ylim: [2e-5, 1]
+    ratio_ylim: [ [0.5, 20], [0.5, 20], [0.5, 20], [0.5, 20], [0.5, 20], 
+                  [0.5, 20], [0.5, 20], [0.5, 50], [0.5, 50], [0.5, 50] ] 
+  jet:
+    ylabel: 'Jet mis-id probability'
+    ratio_ylabel_pad: 30
+    xlim: [0.3, 1]
+    # ylim: [ [2e-3, 1], [3e-4, 1], [8e-5, 1], [2e-5, 1], [2e-5, 1],
+    #         [5e-6, 1], [5e-6, 1], [5e-6, 1], [5e-6, 1], [2e-6, 1] ]
+    ylim: [ [1e-3, 1], [2e-4, 1], [8e-5, 1], [2e-5, 1], [2e-5, 1],
+            [5e-6, 1], [5e-6, 1], [5e-6, 1], [5e-6, 1], [2e-6, 1] ]
+    ratio_ylim: [ [0.5, 4.5], [0.5, 6.5], [0.5, 2.5], [0.5, 2.5], [0.5, 2.5],
+                  [0.5, 3.5], [0.5, 3.5], [0.5, 3.5], [0.5, 10], [0.5, 10] ]
+    # ratio_ylim: [ [0.5, 3], [0.5, 5], [0.5, 2.5], [0.5, 2.5], [0.5, 2.5],
+    #               [0.5, 3.5], [0.5, 3.5], [0.5, 3.5], [0.5, 10], [0.5, 10] ] 
