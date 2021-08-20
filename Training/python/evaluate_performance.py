@@ -5,6 +5,7 @@ import numpy as np
 import json
 import eval_tools
 from collections import defaultdict
+from dataclasses import fields
 
 TAU_TYPES = [ 'e', 'mu', 'tau', 'jet' ]
 
@@ -56,7 +57,7 @@ import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import OmegaConf, DictConfig, ListConfig
 
-@hydra.main(config_path='.', config_name='run2')
+@hydra.main(config_path='configs', config_name='run2')
 def main(cfg: DictConfig) -> None:
     input_taus = to_absolute_path(cfg.input_taus)
     input_vs_type = to_absolute_path(cfg.input_vs_type)
@@ -64,12 +65,18 @@ def main(cfg: DictConfig) -> None:
     output_path = to_absolute_path(f'{cfg.output_folder}/{cfg.output_name}')
     weights = to_absolute_path(cfg.weights) if cfg.weights is not None else None
 
-    # init Discriminator() and PlotSetup() classes from input configuration
-    discriminator = eval_tools.Discriminator(**cfg.Discriminator)
-    plot_setup = eval_tools.PlotSetup(**cfg.PlotSetup[cfg.vs_type])
+    # init Discriminator() class from filtered input configuration
+    field_names = set(f_.name for f_ in fields(eval_tools.Discriminator))
+    init_params = {k:v for k,v in cfg.discriminator.items() if k in field_names}
+    discriminator = eval_tools.Discriminator(**init_params)
     discr_json = {
         'name': f'{discriminator.name} vs. {cfg.vs_type}', 'period': cfg.period, 'metrics': defaultdict(list), 
     }
+    
+    # init PlotSetup() class from filtered input configuration
+    field_names = set(f_.name for f_ in fields(eval_tools.PlotSetup))
+    init_params = {k:v for k,v in cfg.plot_setup.items() if k in field_names}
+    plot_setup = eval_tools.PlotSetup(**init_params)
 
     # construct branches to be read from input files
     read_branches = OmegaConf.to_object(cfg.read_branches)
@@ -149,7 +156,7 @@ def main(cfg: DictConfig) -> None:
                     curve_data['plot_setup'][param_name] = val
 
             # plot setup for the curve
-            if cfg.public_plots:
+            if cfg.plot_setup.public_plots:
                 if pt_max == 1000:
                     pt_text = r'$p_T > {}$ GeV'.format(pt_min)
                 elif pt_min == 20:
@@ -158,7 +165,7 @@ def main(cfg: DictConfig) -> None:
                     pt_text = r'$p_T\in ({}, {})$ GeV'.format(pt_min, pt_max)
                 curve_data['plot_setup']['pt_text'] = pt_text
             else:
-                if cfg.inequality_in_title and (pt_min == 20 or pt_max == 1000) \
+                if cfg.plot_setup.inequality_in_title and (pt_min == 20 or pt_max == 1000) \
                         and not (pt_min == 20 and pt_max == 1000):
                     if pt_min == 20:
                         title_str = 'tau vs {}. pt < {} GeV'.format(cfg.vs_type, pt_max)
