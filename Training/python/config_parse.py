@@ -73,11 +73,12 @@ def create_settings(input_file: str, verbose=False) -> str:
         for features in content["Features_all"]:
             number = len(content["Features_all"][features]) -  len(content["Features_disable"][features])
             string += "const inline size_t n_" + str(features) + " = " + str(number) + ";\n"
+            string += "const inline size_t nSeq_" + str(features) + " = " + str(content["SequenceLength"][features]) + ";\n"
 
 
-        string += "const inline std::vector<std::string> CellObjectTypes {\"" + \
-                  "\",\"".join(content["CellObjectType"]) + \
-                  "\"};\n"
+        # string += "const inline std::vector<std::string> CellObjectTypes {\"" + \
+        #           "\",\"".join(content["CellObjectType"]) + \
+        #           "\"};\n"
 
         string += "};\n"
         return string
@@ -101,30 +102,30 @@ def create_settings(input_file: str, verbose=False) -> str:
             string += feature +" = " + "-1" + ",\n"
         return string[:-2] + "};\n"
 
-    def create_gridobjects(content: dict) -> str:
-        string  = "\nenum class CellObjectType {\n"
-        string += ",\n".join(content["CellObjectType"])
-        string += "};\n\n"
+    # def create_gridobjects(content: dict) -> str:
+    #     string  = "\nenum class CellObjectType {\n"
+    #     string += ",\n".join(content["CellObjectType"])
+    #     string += "};\n\n"
 
-        string +="template<typename T> struct FeaturesHelper;\n"
-        for celltype in content["CellObjectType"]:
-            number = len(content["Features_all"][celltype]) - len(content["Features_disable"][celltype])
-            string += "template<> struct FeaturesHelper<{0}_Features> ".format(celltype) + "{\n"
-            string += "static constexpr CellObjectType object_type = CellObjectType::{0};\n".format(celltype)
-            string += "static constexpr size_t size = {0};\n".format(number)
-            string += "using scaler_type = Scaling::{0};\n".format(celltype) + "};\n\n"
+    #     string +="template<typename T> struct FeaturesHelper;\n"
+    #     for celltype in content["CellObjectType"]:
+    #         number = len(content["Features_all"][celltype]) - len(content["Features_disable"][celltype])
+    #         string += "template<> struct FeaturesHelper<{0}_Features> ".format(celltype) + "{\n"
+    #         string += "static constexpr CellObjectType object_type = CellObjectType::{0};\n".format(celltype)
+    #         string += "static constexpr size_t size = {0};\n".format(number)
+    #         string += "using scaler_type = Scaling::{0};\n".format(celltype) + "};\n\n"
 
-        string += "using FeatureTuple = std::tuple<" \
-               + "_Features,\n".join(content["CellObjectType"])\
-               + "_Features>;\n"
+    #     string += "using FeatureTuple = std::tuple<" \
+    #            + "_Features,\n".join(content["CellObjectType"])\
+    #            + "_Features>;\n"
 
-        return string
+    #     return string
 
     with open(input_file) as file:
         data = yaml.safe_load(file)
     settings  = create_namestruc(data)
     settings  += "\n".join([create_enum(k,data) for k in data["Features_all"]])
-    settings += create_gridobjects(data)
+    # settings += create_gridobjects(data)
     if verbose:
         print(settings)
     return settings

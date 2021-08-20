@@ -1,0 +1,56 @@
+Setup:
+    n_tau                :  500 # number of candidates in one batch 
+    n_threads            :  1
+    input_dir            : "/pnfs/desy.de/cms/tier2/store/user/myshched/Signal2018ctau_TauTuple_masspoints_v3/SUS-RunIIFall18GS_ctau1000mm_mstau100_250_400_mlsp1_20-RAWSIM/crab_STAU_m100_250_400_v2/210802_153659/0000/"
+    output_classes       :  4
+
+SetupNN:
+    n_batches            : -1
+    n_batches_val        : -1
+    epoch                : 0
+    n_epochs             : 10
+    validation_split     : 0.3
+    max_queue_size       : 10
+    n_load_workers       : 3
+
+SequenceLength:
+    PfCand : 50
+
+Features_all :
+    PfCand :
+          - pfCand_pt                   : []
+          - pfCand_eta                  : []
+          - pfCand_phi                  : []
+          - pfCand_mass                 : []
+          - pfCand_charge               : []
+          - pfCand_particleType         : []
+          - pfCand_pvAssociationQuality : []
+          - pfCand_fromPV               : []
+          - pfCand_puppiWeight          : []
+          - pfCand_puppiWeightNoLep     : []
+          - pfCand_lostInnerHits        : []
+          - pfCand_numberOfPixelHits    : []
+          - pfCand_numberOfHits         : []
+          - pfCand_hasTrackDetails      : []
+          - pfCand_dxy                  : []
+          - pfCand_dxy_error            : []
+          - pfCand_dz                   : []
+          - pfCand_dz_error             : []
+          - pfCand_track_chi2           : []
+          - pfCand_track_ndof           : []
+          - pfCand_caloFraction         : []
+          - pfCand_hcalFraction         : []
+          - pfCand_rawCaloFraction      : []
+          - pfCand_rawHcalFraction      : []
+          - pfCand_valid                : []
+          - pfCand_px                   : []
+          - pfCand_py                   : []
+          - pfCand_pz                   : []
+          - pfCand_E                    : []
+          - jet_eta                     : []
+          - jet_phi                     : []
+          - pfCand_rel_eta              : []
+          - pfCand_rel_phi              : []
+
+Features_disable :
+    PfCand : [ ]
