@@ -1,0 +1,37 @@
+# basic imports
+defaults:
+  - discriminator: DeepTau
+  - plot_setup
+  - selection
+
+# phase space region
+period: '2017 (13 TeV)'
+vs_type: jet
+sample_tau: 'HTT'
+sample_vs_type: 'TT'
+pt_bins: [20, 100, 1000]
+
+# selection
+read_branches: [ 'tau_pt', 'tau_decayModeFinding', 'tau_decayMode', 'gen_${vs_type}', 'gen_tau', 'tau_charge', 'lepton_gen_charge', 
+                  againstElectronMVA6', 'againstMuon3', 'byIsolationMVArun2017v2DBoldDMwLT2017', ]
+cuts: ${apply_dm_cuts}
+
+# I/O: will be mostly redundant once mlflow is integrated
+input_taus: 'eval_data/tau_${sample_tau}.h5' # Input file with taus
+input_vs_type: 'eval_data/jet_${sample_vs_type}.h5' # Input file with non-taus
+deep_results: 'eval_data' # Directory with deepId results
+weights: null # Directory with weights to correct the spectrum
+output_folder: 'roc_json'
+output_name: '${discriminator.name}_tau_vs_${vs_type}_${sample_vs_type}.json'
+
+# misc: to be moved elsewhere
+wp_name_to_index:
+  VVVLoose: 0
+  VVLoose: 1
+  VLoose: 2
+  Loose: 3
+  Medium: 4
+  Tight: 5
+  VTight: 6
+  VVTight: 7
+  VVVTight: 8

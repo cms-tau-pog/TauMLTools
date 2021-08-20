@@ -12,7 +12,7 @@ def select_curve(curve_list, **selection):
     filter_func = lambda x: all([x[k]==v if k in x else False for k,v in selection.items()])
     filtered_curves = list(filter(filter_func, curve_list))
     if len(filtered_curves)!=1:
-        raise Exception(f"Failed to find single reference curve for selection: {[f'{k}=={v}' for k,v in selection.items()]}")
+        raise Exception(f"Failed to find single curve for selection: {[f'{k}=={v}' for k,v in selection.items()]}")
     return filtered_curves[0]
 
 def create_roc_ratio(x1, y1, x2, y2):
@@ -149,10 +149,12 @@ def main(cfg: DictConfig) -> None:
         raise RuntimeError(f'Expect to have only one reference discriminator, got: {cfg.reference.keys()}')
     reference_cfg = OmegaConf.to_object(cfg.reference) # convert to python dict to enable popitem()
     ref_discr_name, ref_curve_type = reference_cfg.popitem()
-    reference_json = to_absolute_path(f'{cfg.input_folder}/{ref_discr_name}_tau_vs_{cfg.vs_type}_{cfg.sample}.json')
+    reference_json = to_absolute_path(f'{cfg.input_folder}/{ref_discr_name}_tau_vs_{cfg.vs_type}_{cfg.sample_vs_type}.json')
     with open(reference_json, 'r') as f:
         ref_discr_data = json.load(f)
-    ref_curve = select_curve(ref_discr_data['metrics'][ref_curve_type], pt_min=pt_min, pt_max=pt_max)
+    ref_curve = select_curve(ref_discr_data['metrics'][ref_curve_type], 
+                                pt_min=pt_min, pt_max=pt_max, vs_type=cfg.vs_type,
+                                sample_tau=cfg.sample_tau, sample_vs_type=cfg.sample_vs_type)
     ref_roc = RocCurve(ref_curve, None)
 
     curves_to_plot = []
@@ -160,12 +162,14 @@ def main(cfg: DictConfig) -> None:
     with PdfPages(to_absolute_path(f'{cfg.output_folder}/{cfg.output_name}.pdf')) as pdf:
         for discr_name, curve_types in cfg.discriminators.items():
             # retrieve discriminator data from corresponding json 
-            json_file = to_absolute_path(f'{cfg.input_folder}/{discr_name}_tau_vs_{cfg.vs_type}_{cfg.sample}.json')
+            json_file = to_absolute_path(f'{cfg.input_folder}/{discr_name}_tau_vs_{cfg.vs_type}_{cfg.sample_vs_type}.json')
             with open(json_file, 'r') as f:
                 discr_data = json.load(f)
 
             for curve_type in curve_types: 
-                discr_curve = select_curve(discr_data['metrics'][curve_type], pt_min=pt_min, pt_max=pt_max)
+                discr_curve = select_curve(discr_data['metrics'][curve_type], 
+                                            pt_min=pt_min, pt_max=pt_max, vs_type=cfg.vs_type,
+                                            sample_tau=cfg.sample_tau, sample_vs_type=cfg.sample_vs_type)
                 if (discr_name==ref_discr_name and curve_type==ref_curve_type) or ('wp' not in curve_type):
                     curves_to_plot.append(RocCurve(discr_curve, ref_roc=None))
                 else:

@@ -8,8 +8,9 @@ reference:
   DeepTau: 'roc_curve'
 
 # region
-sample: 'TT'
 vs_type: 'jet'
+sample_tau: 'HTT'
+sample_vs_type: 'TT'
 pt_bin: [20, 100] 
 
 # output

@@ -9,6 +9,7 @@ from _ctypes import PyObj_FromPtr
 import json
 import re
 import sys
+from dataclasses import dataclass, field
 
 if sys.version_info.major > 2:
     from statsmodels.stats.proportion import proportion_confint
@@ -107,17 +108,16 @@ class RocCurve:
             pruned.pr_err[:, :, :] = self.pr_err[:, :, idx]
         return pruned
 
+@dataclass
 class PlotSetup:
-    def __init__(self, xlim = None, ylim = None, ratio_ylim = None, ylabel = None, yscale='log',
-                 ratio_yscale='linear', legend_loc='upper left', ratio_ylabel_pad=20):
-        self.xlim = xlim
-        self.ylim = ylim
-        self.ratio_ylim = ratio_ylim
-        self.ylabel = ylabel
-        self.yscale = yscale
-        self.ratio_yscale = ratio_yscale
-        self.legend_loc = legend_loc
-        self.ratio_ylabel_pad = ratio_ylabel_pad
+    xlim: list = None
+    ylim: list = None
+    ratio_ylim: list = None
+    ylabel: str = None
+    yscale: str = 'log'
+    ratio_yscale: str = 'linear'
+    legend_loc: str = 'upper left'
+    ratio_ylabel_pad: int = 20
 
     def Apply(self, names, entries, range_index, ratio_title, ax, ax_ratio = None):
         if self.xlim is not None:
@@ -160,20 +160,24 @@ def find_threshold(pr, thresholds, target_pr):
         return None
     return thresholds[min_delta_index]
 
+@dataclass
 class Discriminator:
-    def __init__(self, name, column, raw, from_tuple, color, working_points = [], wp_column = None,
-                 working_points_thrs = None, dashed=False, draw_wp=True):
-        self.name = name
-        self.column = column
-        self.raw = raw
-        self.from_tuple = from_tuple
-        self.color = color
-        self.working_points = working_points
-        self.wp_column = wp_column if wp_column is not None else column
-        self.working_points_thrs = working_points_thrs
-        self.dashed = dashed
-        if not draw_wp and self.raw:
+    name: str
+    column: str
+    raw: bool
+    from_tuple: bool
+    color: str
+    working_points: list = field(default_factory=list)
+    wp_column: str = None
+    working_points_thrs: dict = None 
+    dashed: bool = False 
+    draw_wp: bool = True
+
+    def __post_init__(self):
+        if not self.draw_wp and self.raw:
             self.working_points = []
+        if self.wp_column is None:
+            self.wp_column = self.column
 
     def CountPassed(self, df, wp):
         if self.from_tuple:
