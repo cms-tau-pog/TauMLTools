@@ -1,14 +1,17 @@
-plot_setup:
-  public_plots: False # Apply public plot styles
-  inequality_in_title: False # Use inequality in the title to define pt range, instead of an interval
+plot_setup: ${.plot_setup_specific.${vs_type}}
 
+plot_setup_specific: 
   e: 
+    public_plots: False 
+    inequality_in_title: False # Use inequality in the title to define pt range, instead of an interval
     ylabel: 'Electron mis-id probability'
     xlim: [0.5, 1]
     ratio_yscale: 'log'
     ylim: [2e-5, 1]
     ratio_ylim: [0.5, 40]
   mu:
+    public_plots: False 
+    inequality_in_title: False 
     ylabel: 'Muon mis-id probability'
     xlim: [0.98, 1]
     ratio_yscale: 'log'
@@ -16,6 +19,8 @@ plot_setup:
     ratio_ylim: [ [0.5, 20], [0.5, 20], [0.5, 20], [0.5, 20], [0.5, 20], 
                   [0.5, 20], [0.5, 20], [0.5, 50], [0.5, 50], [0.5, 50] ] 
   jet:
+    public_plots: False 
+    inequality_in_title: False 
     ylabel: 'Jet mis-id probability'
     ratio_ylabel_pad: 30
     xlim: [0.3, 1]
