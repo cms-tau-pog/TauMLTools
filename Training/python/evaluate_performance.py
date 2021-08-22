@@ -14,9 +14,9 @@ def AddPredictionsToDataFrame(df, file_name, label = ''):
     for tau_type in TAU_TYPES:
         if tau_type != 'tau':
             prob_tau = df_pred['deepId_tau'].values
-            prob_other = df_pred['deepId_' + tau_type].values
-            tau_vs_other = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_other), np.zeros(prob_tau.shape))
-            df['deepId{}_vs_{}'.format(label, tau_type)] = pd.Series(tau_vs_other, index=df.index)
+            prob_vs_type = df_pred['deepId_' + tau_type].values
+            tau_vs_other_type = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_vs_type), np.zeros(prob_tau.shape))
+            df['deepId{}_vs_{}'.format(label, tau_type)] = pd.Series(tau_vs_other_type, index=df.index)
         df['deepId{}_{}'.format(label, tau_type)] = pd.Series(df_pred['deepId_' + tau_type].values, index=df.index)
     return df
 
@@ -51,7 +51,7 @@ import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import OmegaConf, DictConfig, ListConfig
 
-@hydra.main(config_path='configs', config_name='run2')
+@hydra.main(config_path='configs', config_name='run3')
 def main(cfg: DictConfig) -> None:
     input_taus = to_absolute_path(cfg.input_taus)
     input_vs_type = to_absolute_path(cfg.input_vs_type)
@@ -84,8 +84,8 @@ def main(cfg: DictConfig) -> None:
         df_all = CreateDF(input_taus, deep_results, read_branches, weights, ['tau', cfg.vs_type])
     else:
         df_taus = CreateDF(input_taus, deep_results, read_branches, weights, ['tau'])
-        df_other = CreateDF(input_vs_type, deep_results, read_branches, weights, [cfg.vs_type])
-        df_all = df_taus.append(df_other)
+        df_vs_type = CreateDF(input_vs_type, deep_results, read_branches, weights, [cfg.vs_type])
+        df_all = df_taus.append(df_vs_type)
 
     # apply selection cuts
     df_all = df_all.query(cfg.cuts)
@@ -116,6 +116,8 @@ def main(cfg: DictConfig) -> None:
 
             curve_data = {
                 'pt_min': pt_min, 'pt_max': pt_max, 
+                'vs_type': cfg.vs_type,
+                'sample_tau': cfg.sample_tau, 'sample_vs_type': cfg.sample_vs_type,
                 'auc_score': curve.auc_score,
                 'false_positive_rate': eval_tools.FloatList(curve.pr[0, :].tolist()),
                 'true_positive_rate': eval_tools.FloatList(curve.pr[1, :].tolist()),
