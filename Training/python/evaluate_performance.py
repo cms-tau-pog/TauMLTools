@@ -39,12 +39,6 @@ def CreateDF(file_name, deep_results, read_branches, weights, tau_types):
     else:
         df['weight'] = pd.Series(np.ones(df.shape[0]), index=df.index)
 
-    # TODO
-    # has_prev_results = len(args.prev_deep_results_label) > 0 and 'None' not in args.prev_deep_results_label
-    # if has_prev_results:
-    #     AddPredictionsToDataFrame(df, os.path.join(args.prev_deep_results, pred_file_name),
-    #                               args.prev_deep_results_label)
-
     # inverse linear scaling 
     df['tau_pt'] = pd.Series(df.tau_pt *(1000 - 20) + 20, index=df.index)
 

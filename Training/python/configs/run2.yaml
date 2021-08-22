@@ -1,14 +1,16 @@
+# basic imports
 defaults:
   - discriminator: DeepTau
   - plot_setup
   - selection
 
+# phase space region
 period: '2017 (13 TeV)'
 sample: 'TT'
 vs_type: 'jet'
 pt_bins: [20, 100, 1000]
 
-# input 
+# I/O 
 input_taus: 'eval_data/tau_HTT.h5' # Input file with taus
 input_vs_type: 'eval_data/jet_TT.h5' # Input file with non-taus
 deep_results: 'eval_data' # Directory with deepId results
@@ -16,10 +18,10 @@ read_branches: [ 'tau_pt', 'tau_decayModeFinding', 'tau_decayMode', 'gen_${vs_ty
                   againstElectronMVA6', 'againstMuon3', 'byIsolationMVArun2017v2DBoldDMwLT2017', ]
 cuts: ${apply_dm_cuts}
 weights: null # Directory with weights to correct the spectrum
-prev_deep_results: null # Directory with previous deepId results
 output_folder: 'roc_json'
 output_name: '${discriminator.name}_tau_vs_${vs_type}_${sample}_test.json'
 
+# misc: to be moved elsewhere
 wp_name_to_index:
   VVVLoose: 0
   VVLoose: 1
@@ -30,6 +32,3 @@ wp_name_to_index:
   VTight: 6
   VVTight: 7
   VVVTight: 8
-
-deep_results_label: '' # Label for deepId results
-prev_deep_results_label: '' # Label for deepId results
