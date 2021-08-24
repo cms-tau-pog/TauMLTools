@@ -191,11 +191,9 @@ public:
             getVecRef(PfType::pfCand_numberOfPixelHits)    = getValue<Int_t>("nPixelHits",pref).at(idx_srt);
             getVecRef(PfType::pfCand_numberOfHits)         = getValue<Int_t>("nHits",pref).at(idx_srt);
             getVecRef(PfType::pfCand_hasTrackDetails)      = getValue<Int_t>("hasTrackDetails",pref).at(idx_srt);
-            getVecRef(PfType::pfCand_dxy)                  = getValue<Float_t>("dxy",pref).at(idx_srt);
             
             Float_t dz = getValue<Float_t>("dz",pref).at(idx_srt);
-            if(std::isnormal(dz) || dz == 0)
-              getVecRef(PfType::pfCand_dz) =  dz;
+
             getVecRef(PfType::pfCand_caloFraction)         = getValue<Float_t>("caloFraction",pref).at(idx_srt);
             getVecRef(PfType::pfCand_hcalFraction)         = getValue<Float_t>("hcalFraction",pref).at(idx_srt);
             getVecRef(PfType::pfCand_rawCaloFraction)      = getValue<Float_t>("rawCaloFraction",pref).at(idx_srt);
@@ -215,18 +213,27 @@ public:
             getVecRef(PfType::pfCand_E)                    = v.E();
             
             if(getValue<Int_t>("hasTrackDetails",pref).at(idx_srt))
-                getVecRef(PfType::pfCand_dxy_error)        = getValue<Float_t>("dxy_error", pref).at(idx_srt);
-                getVecRef(PfType::pfCand_dz_error)         = getValue<Float_t>("dz_error", pref).at(idx_srt);
-                getVecRef(PfType::pfCand_track_chi2)       = getValue<Float_t>("track_chi2", pref).at(idx_srt);
-                getVecRef(PfType::pfCand_track_ndof)       = getValue<Float_t>("track_ndof", pref).at(idx_srt);
-
-            Float_t jet_eta = tauTuple->get<Float_t>("jet_eta");
-            Float_t jet_phi = tauTuple->get<Float_t>("jet_phi");
-
-            getVecRef(PfType::jet_eta)        = jet_eta;
-            getVecRef(PfType::jet_phi)        = jet_phi;
-            getVecRef(PfType::pfCand_rel_eta) = getValue<Float_t>("eta",pref).at(idx_srt) - jet_eta;
-            getVecRef(PfType::pfCand_rel_phi) = DeltaPhi<Float_t>(getValue<Float_t>("phi",pref).at(idx_srt), jet_phi);
+            {
+                if(std::isnormal(dz) || dz == 0) 
+                    getVecRef(PfType::pfCand_dz) =  dz;
+                getVecRef(PfType::pfCand_dxy)        = getValue<Float_t>("dxy",pref).at(idx_srt);
+                if(std::isnormal(pfCand_dxy_error) || pfCand_dxy_error == 0)
+                    getVecRef(PfType::pfCand_dxy_error)  = getValue<Float_t>("dxy_error", pref).at(idx_srt);
+                if(std::isnormal(pfCand_dz_error) || pfCand_dz_error == 0)
+                    getVecRef(PfType::pfCand_dz_error)   = getValue<Float_t>("dz_error", pref).at(idx_srt);
+                getVecRef(PfType::pfCand_track_chi2) = getValue<Float_t>("track_chi2", pref).at(idx_srt);
+                getVecRef(PfType::pfCand_track_ndof) = getValue<Float_t>("track_ndof", pref).at(idx_srt);
+            }
+            
+            if(tauTuple->get<Int_t>("jet_index")>=0)
+            {
+                Float_t jet_eta = tauTuple->get<Float_t>("jet_eta");
+                Float_t jet_phi = tauTuple->get<Float_t>("jet_phi");
+                // getVecRef(PfType::jet_eta)        = jet_eta;
+                // getVecRef(PfType::jet_phi)        = jet_phi;
+                getVecRef(PfType::pfCand_deta) = getValue<Float_t>("eta",pref).at(idx_srt) - jet_eta;
+                getVecRef(PfType::pfCand_dphi) = DeltaPhi<Float_t>(getValue<Float_t>("phi",pref).at(idx_srt), jet_phi);
+            }
         }
       }
 
