@@ -10,8 +10,9 @@ R.gROOT.ProcessLine(".include ../../..")
 
 print("Compiling Setup classes...")
 
-# R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_v1.json", "../configs/training_v1.yaml", verbose=False))
+R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_vReco_v1.json", "../configs/trainingReco_v1.yaml", verbose=True))
 R.gInterpreter.Declare(config_parse.create_settings("../configs/trainingReco_v1.yaml", verbose=True))
+# exit()
 
 print("Compiling DataLoader_main...")
 R.gInterpreter.Declare('#include "../interface/DataLoaderReco_main.h"')

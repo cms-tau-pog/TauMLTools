@@ -13,6 +13,8 @@ SetupNN:
     max_queue_size       : 10
     n_load_workers       : 3
 
+CellObjectType : [ PfCand ]
+
 SequenceLength:
     PfCand : 50
 
