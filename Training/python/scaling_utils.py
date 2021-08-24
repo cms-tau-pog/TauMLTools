@@ -244,9 +244,14 @@ def mask_inf(var_array, var_name=None, var_inf_counter=None):
             var_inf_counter[var_name].append(np.sum(is_inf_mask) / ak.count(var_array))
     return var_array
 
-def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
-                     var, var_type, file_i, file_name_id, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
-                     sums, sums2, counts, fill_scaling_params=False, scaling_params=None, quantile_params=None):
+# def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
+#                      var, var_type, file_i, file_name_id, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
+#                      sums, sums2, counts, fill_scaling_params=False, scaling_params=None, quantile_params=None):
+def fill_aggregators(tree, var, var_type, file_i, file_name_id, cone_type, cone_definition_dict, cone_selection_dict, inf_counter,
+                     selection_cut, aliases, sums, sums2, counts, fill_scaling_params=False, scaling_params=None, quantile_params=None):
+# fill_aggregators(var_array, constituent_eta_array, constituent_phi_array, var, var_type, file_i, file_name_id, cone_type, cone_definition_dict,
+#                     sums, sums2, counts, fill_scaling_params=log_scaling_params, scaling_params=scaling_params, quantile_params=quantile_params
+#                     )
     """
     Update `sums`, `sums2` and `counts` dictionaries with the values from `var_array` either inclusively or exclusively (based on `cone_type` argument) for inner/outer cones.
     In the latter case, derive `constituent_dR` with respect to the tau direction of flight and define cones as:
@@ -279,6 +284,14 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
     Returns:
         None
     """
+    constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
+    var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
+    var_array = mask_inf(var_array, var, inf_counter)
+    # for i in var_array:
+    #     print(i.to_numpy().shape)
+    # exit()
+    if ak.any(np.isinf(var_array)) or ak.any(np.isnan(var_array)):
+        raise ValueError('Nan detected')
     if cone_type == None:
         sums[var_type][var][file_i] += ak.sum(var_array)
         sums2[var_type][var][file_i] += ak.sum(var_array**2)
@@ -291,11 +304,14 @@ def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_ar
         if quantile_params:
             quantile_params[var_type][var]['global'][file_name_id] = get_quantiles(var_array)
     elif cone_type == 'inner' or cone_type == 'outer':
+        tau_pt_name, tau_eta_name, tau_phi_name = cone_selection_dict['TauFlat']['var_names']['pt'], cone_selection_dict['TauFlat']['var_names']['eta'], cone_selection_dict['TauFlat']['var_names']['phi']
+        tau_pt_array, tau_eta_array, tau_phi_array = tree.arrays([tau_pt_name, tau_eta_name, tau_phi_name], cut=None, aliases=None, how=tuple)
+        dR_tau_signal_cone = dR_signal_cone(tau_pt_array, cone_definition_dict['inner']['min_pt'], cone_definition_dict['inner']['min_radius'], cone_definition_dict['inner']['opening_coef'])
         constituent_dR = dR(tau_eta_array - constituent_eta_array, tau_phi_array - constituent_phi_array)
         if cone_type == 'inner':
             cone_mask = constituent_dR <= dR_tau_signal_cone
         elif cone_type == 'outer':
-            cone_mask = (constituent_dR > dR_tau_signal_cone) & (constituent_dR < dR_tau_outer_cone)
+            cone_mask = (constituent_dR > dR_tau_signal_cone) & (constituent_dR < cone_definition_dict['outer']['dR'])
         sums[var_type][var][cone_type][file_i] += ak.sum(var_array[cone_mask])
         sums2[var_type][var][cone_type][file_i] += ak.sum(var_array[cone_mask]**2)
         counts[var_type][var][cone_type][file_i] += ak.count(var_array[cone_mask])
