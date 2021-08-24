@@ -1,6 +1,6 @@
 # basic imports
 defaults:
-  - discriminator: DeepTau
+  - discriminator: ???
   - plot_setup
   - selection
 
@@ -16,13 +16,19 @@ read_branches: [ 'tau_pt', 'tau_decayModeFinding', 'tau_decayMode', 'gen_${vs_ty
                   againstElectronMVA6', 'againstMuon3', 'byIsolationMVArun2017v2DBoldDMwLT2017', ]
 cuts: ${apply_dm_cuts}
 
-# I/O: will be mostly redundant once mlflow is integrated
-input_taus: 'eval_data/tau_${sample_tau}.h5' # Input file with taus
-input_vs_type: 'eval_data/jet_${sample_vs_type}.h5' # Input file with non-taus
-deep_results: 'eval_data' # Directory with deepId results
-weights: null # Directory with weights to correct the spectrum
+# mflow run info
+experiment_name: ???
+run_id: ???
+
+# paths to input tuples used to make predictions
+input_taus: 'eval_data/tau_${sample_tau}.h5' 
+input_vs_type: 'eval_data/${vs_type}_${sample_vs_type}.h5' 
+weights: null
+
+# output path and name to save json file
+# will also log it into the corresponding run
 output_folder: 'roc_json'
-output_name: '${discriminator.name}_tau_vs_${vs_type}_${sample_vs_type}.json'
+output_name: 'performance'
 
 # misc: to be moved elsewhere
 wp_name_to_index:

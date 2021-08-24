@@ -1,11 +1,11 @@
 # input
-input_folder: 'roc_json'
+experiment_name: test
 discriminators: 
-  DeepTau: ['roc_curve', 'roc_wp']
-  MVA_jinst: ['roc_wp']
-  MVA_upd: ['roc_wp']
+  ???: ['roc_curve', 'roc_wp']
+  ???: ['roc_wp']
+  ???: ['roc_wp']
 reference: 
-  DeepTau: 'roc_curve'
+  ???: 'roc_curve'
 
 # region
 vs_type: 'jet'
@@ -13,6 +13,7 @@ sample_tau: 'HTT'
 sample_vs_type: 'TT'
 pt_bin: [20, 100] 
 
-# output
-output_folder: 'roc_plots'
-output_name: 'roc_curve'
+# output folder to store pdf plot
+# will also log it to the run of the first discriminator in the "discriminators" list
+output_folder: plots
+output_name: 'roc_curve_vs_${vs_type}_pt_${pt_bin[0]}_${pt_bin[1]}'

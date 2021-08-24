@@ -13,7 +13,7 @@ working_points:
   - ${wp_name_to_index.VTight}
   - ${wp_name_to_index.VVTight}
 working_points_thrs: ${.deep_wp_thrs.${vs_type}}
-deep_wp_thrs: # appears in discriminator init and apply selection
+deep_wp_thrs:
   e:
     "VVVLoose": 0.0630386
     "VVLoose": 0.1686942
