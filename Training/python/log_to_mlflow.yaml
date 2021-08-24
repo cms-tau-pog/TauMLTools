@@ -1,0 +1,7 @@
+path_to_mlflow: 2018v1/mlruns
+experiment_name: null # if null, will create a new experiment
+run_id: null # if null, will create a new run
+files_to_log: # path_to_file: target_folder_in_mlflow_run
+  # ???: null
+params_to_log: # param_name: value
+  # ???: null
