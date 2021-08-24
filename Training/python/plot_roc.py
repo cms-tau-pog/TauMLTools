@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import json
 import numpy as np
 from scipy import interpolate
@@ -134,12 +135,22 @@ class PlotSetup:
             ax_ratio.tick_params(labelsize=10)
             ax_ratio.grid(True, which='both')
 
+import mlflow
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import OmegaConf, DictConfig
 
 @hydra.main(config_path='.', config_name='plot_roc')
 def main(cfg: DictConfig) -> None:
+    mlflow.set_tracking_uri(f"file://{to_absolute_path('mlruns')}")
+    experiment = mlflow.get_experiment_by_name(cfg.experiment_name)
+    experiment_id = experiment.experiment_id
+
+    # set output paths
+    output_folder = to_absolute_path(cfg.output_folder)
+    os.makedirs(output_folder, exist_ok=True)
+    path_to_pdf = f'{output_folder}/{cfg.output_name}.pdf'
+
     # retrieve pt bin from input cfg 
     assert len(cfg.pt_bin)==2 and cfg.pt_bin[0] <= cfg.pt_bin[1]
     pt_min, pt_max = cfg.pt_bin[0], cfg.pt_bin[1]
@@ -149,7 +160,7 @@ def main(cfg: DictConfig) -> None:
         raise RuntimeError(f'Expect to have only one reference discriminator, got: {cfg.reference.keys()}')
     reference_cfg = OmegaConf.to_object(cfg.reference) # convert to python dict to enable popitem()
     ref_discr_name, ref_curve_type = reference_cfg.popitem()
-    reference_json = to_absolute_path(f'{cfg.input_folder}/{ref_discr_name}_tau_vs_{cfg.vs_type}_{cfg.sample_vs_type}.json')
+    reference_json = to_absolute_path(f'mlruns/{experiment_id}/{ref_discr_name}/artifacts/performance.json')
     with open(reference_json, 'r') as f:
         ref_discr_data = json.load(f)
     ref_curve = select_curve(ref_discr_data['metrics'][ref_curve_type], 
@@ -159,10 +170,10 @@ def main(cfg: DictConfig) -> None:
 
     curves_to_plot = []
     curve_names = []
-    with PdfPages(to_absolute_path(f'{cfg.output_folder}/{cfg.output_name}.pdf')) as pdf:
+    with PdfPages(path_to_pdf) as pdf:
         for discr_name, curve_types in cfg.discriminators.items():
             # retrieve discriminator data from corresponding json 
-            json_file = to_absolute_path(f'{cfg.input_folder}/{discr_name}_tau_vs_{cfg.vs_type}_{cfg.sample_vs_type}.json')
+            json_file = to_absolute_path(f'mlruns/{experiment_id}/{discr_name}/artifacts/performance.json')
             with open(json_file, 'r') as f:
                 discr_data = json.load(f)
 
@@ -195,6 +206,9 @@ def main(cfg: DictConfig) -> None:
                 fontfamily='sans-serif')
         plt.subplots_adjust(hspace=0)
         pdf.savefig(fig, bbox_inches='tight')
+
+    with mlflow.start_run(experiment_id=experiment_id, run_id=list(cfg.discriminators.keys())[0]):
+        mlflow.log_artifact(path_to_pdf, 'plots')
 
 if __name__ == '__main__':
     main()

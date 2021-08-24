@@ -32,7 +32,8 @@ def CreateDF(file_name, deep_results, read_branches, weights, tau_types):
     df = eval_tools.ReadBrancesToDataFrame(file_name, 'taus', read_branches)
     base_name = os.path.basename(file_name)
     pred_file_name = os.path.splitext(base_name)[0] + '_pred.h5'
-    AddPredictionsToDataFrame(df, os.path.join(deep_results, pred_file_name))
+    if deep_results is not None:
+        AddPredictionsToDataFrame(df, os.path.join(deep_results, pred_file_name))
     if weights is not None:
         weight_file_name = os.path.splitext(base_name)[0] + '_weights.h5'
         AddWeightsToDataFrame(df, os.path.join(weights, weight_file_name))
@@ -47,16 +48,21 @@ def CreateDF(file_name, deep_results, read_branches, weights, tau_types):
     df = df.query(gen_selection)
     return df
 
+import mlflow
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import OmegaConf, DictConfig, ListConfig
 
 @hydra.main(config_path='configs', config_name='run3')
 def main(cfg: DictConfig) -> None:
+    mlflow.set_tracking_uri(f"file://{to_absolute_path('mlruns')}")
+    experiment = mlflow.get_experiment_by_name(cfg.experiment_name)
+    experiment_id = experiment.experiment_id
+
     input_taus = to_absolute_path(cfg.input_taus)
     input_vs_type = to_absolute_path(cfg.input_vs_type)
-    deep_results = to_absolute_path(cfg.deep_results)
-    output_path = to_absolute_path(f'{cfg.output_folder}/{cfg.output_name}')
+    deep_results = to_absolute_path(f'mlruns/{experiment_id}/{cfg.run_id}/artifacts/predictions') if cfg.discriminator.name=='DeepTau' else None
+    output_json_path = to_absolute_path(f'{cfg.output_folder}/{cfg.output_name}.json')
     weights = to_absolute_path(cfg.weights) if cfg.weights is not None else None
 
     # init Discriminator() class from filtered input configuration
@@ -176,8 +182,12 @@ def main(cfg: DictConfig) -> None:
             discr_json['metrics'][curve_type].append(curve_data)
 
     # dump curves' data into json file
-    with open(output_path, 'w') as json_file:
+    with open(output_json_path, 'w') as json_file:
         json_file.write(json.dumps(discr_json, indent=4, cls=eval_tools.CustomJsonEncoder))
 
+    # log json to corresponding mlflow run
+    with mlflow.start_run(experiment_id=experiment.experiment_id, run_id=cfg.run_id) as run:
+        mlflow.log_artifact(output_json_path)
+       
 if __name__ == '__main__':
     main()
