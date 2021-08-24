@@ -16,41 +16,93 @@ SetupNN:
 SequenceLength:
     PfCand : 50
 
+Scaling_setup:
+    # --------------------------------------------------------
+    file_path: '/pnfs/desy.de/cms/tier2/store/user/myshched/Signal2018ctau_TauTuple_masspoints_v3/SUS-RunIIFall18GS_ctau1000mm_mstau100_250_400_mlsp1_20-RAWSIM/crab_STAU_m100_250_400_v2/210802_153659/0000/*.root' # input files to be used for computation of scaling params
+    output_json_folder: 'output_json' # directory where json files with scaling params will be stored
+    file_range: [0,10] # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
+    tree_name: taus # TTree name in input files to be read
+    log_step: 1 # will make a snapshot of scaling parameters per this number of input files
+    version: 'Reco_v1' # string to be added to a json filename
+
+    # --------------------------------------------------------
+    # aliases for selection cuts
+    selection:
+      - &mpi -3.141592653589793
+      - &pi 3.141592653589793
+      - &jet_valid 'jet_index >= 0'
+      - &hasTrackDetails 'pfCand_hasTrackDetails == 1'
+      # - &hasTrackDetails_track_ndof '(pfCand_hasTrackDetails == 1)  & (pfCand_track_ndof > 0)'
+
+        # parameters for inner/outer tau cones' definition
+    cone_definition:
+      null
+
+    cone_selection:
+      PfCand: 
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [null]
+
+
 Features_all :
     PfCand :
-          - pfCand_pt                   : []
-          - pfCand_eta                  : []
-          - pfCand_phi                  : []
-          - pfCand_mass                 : []
-          - pfCand_charge               : []
-          - pfCand_particleType         : []
-          - pfCand_pvAssociationQuality : []
-          - pfCand_fromPV               : []
-          - pfCand_puppiWeight          : []
-          - pfCand_puppiWeightNoLep     : []
-          - pfCand_lostInnerHits        : []
-          - pfCand_numberOfPixelHits    : []
-          - pfCand_numberOfHits         : []
-          - pfCand_hasTrackDetails      : []
-          - pfCand_dxy                  : []
-          - pfCand_dxy_error            : []
-          - pfCand_dz                   : []
-          - pfCand_dz_error             : []
-          - pfCand_track_chi2           : []
-          - pfCand_track_ndof           : []
-          - pfCand_caloFraction         : []
-          - pfCand_hcalFraction         : []
-          - pfCand_rawCaloFraction      : []
-          - pfCand_rawHcalFraction      : []
-          - pfCand_valid                : []
-          - pfCand_px                   : []
-          - pfCand_py                   : []
-          - pfCand_pz                   : []
-          - pfCand_E                    : []
-          - jet_eta                     : []
-          - jet_phi                     : []
-          - pfCand_rel_eta              : []
-          - pfCand_rel_phi              : []
+      
+      # Normal:
+      # {"pfCand_mass": [{"std": 0.06446, "mean": 0.09627}],
+      #   "pfCand_numberOfHits": [{"std": 8.484, "mean": 6.288}],
+      #   "pfCand_dxy": [{"std": 1.873, "mean": -0.007103}],
+      #   "pfCand_dxy_error": [{"std": 0.8858, "mean": 0.02706}],
+      #   "pfCand_dz": [{"std": 6.708, "mean": -0.004195}],
+      #   "pfCand_dz_error": [{"std": 0.2561, "mean": 0.04633}],
+      #   "pfCand_track_chi2": [{"std": 58.9, "mean": 11.13}],
+      #   "pfCand_track_ndof": [{"std": 6.76, "mean": 14.06}]}
+
+      # Liniar:
+      #   {"pfCand_pt": [{"max": 1000.0, "min": 0.0}],
+      #   "pfCand_eta": [{"max": 3.5, "min": -3.5}],
+      #   "pfCand_phi": [{"max": 3.1416, "min": -3.1416}],
+      #   "pfCand_caloFraction": [{"max": 1.0, "min": 0.0}],
+      #   "pfCand_hcalFraction": [{"max": 1.0, "min": 0.0}],
+      #   "pfCand_rawCaloFraction": [{"max": 1.5, "min": 0.0}],
+      #   "pfCand_rawHcalFraction": [{"max": 0.0, "min": 1.0}],
+      #   "pfCand_rel_eta": [{"max": 1.0, "min": -1.0}],
+      #   "pfCand_rel_phi": [{"max": 1.0, "min": -1.0}]}
+
+          - pfCand_pt                   : [ null, null, "linear", 0.0, 1000.0 ]
+          - pfCand_eta                  : [ null, null, "linear", -2.3, 2.3 ]
+          - pfCand_phi                  : [ null, null, "linear", *mpi, *pi ]
+          - pfCand_mass                 : [ null, null, "normal", -5, 5 ]
+          - pfCand_charge               : [ null, null, "categorical" ]
+          - pfCand_particleType         : [ null, null, "categorical" ]
+          - pfCand_pvAssociationQuality : [ null, null, "categorical" ]
+          - pfCand_fromPV               : [ null, null, "categorical" ]
+          - pfCand_puppiWeight          : [ null, null, "no_scaling" ]
+          - pfCand_puppiWeightNoLep     : [ null, null, "no_scaling" ]
+          - pfCand_lostInnerHits        : [ null, null, "linear", 0, 10 ] # ???
+          - pfCand_nPixelHits           : [ null, null, "linear", 0, 10 ]
+          - pfCand_nHits                : [ null, null, "normal", -5, 5 ]
+          - pfCand_hasTrackDetails      : [ null, null, "categorical" ]
+          - pfCand_dxy                  : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_dxy_error            : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_dz                   : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_dz_error             : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_track_chi2           : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_track_ndof           : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_caloFraction         : [ null, null, "linear", 0.0, 1.0 ]
+          - pfCand_hcalFraction         : [ null, null, "linear", 0.0, 1.0 ]
+          - pfCand_rawCaloFraction      : [ null, null, "linear", 0.0, 2.6 ]
+          - pfCand_rawHcalFraction      : [ null, null, "linear", 0.0, 1.0 ]
+          - pfCand_valid                : [ null, null, "categorical"]
+          - pfCand_px                   : [ null, null, "no_scaling" ]
+          - pfCand_py                   : [ null, null, "no_scaling" ]
+          - pfCand_pz                   : [ null, null, "no_scaling" ]
+          - pfCand_E                    : [ null, null, "no_scaling" ]
+          # - jet_eta                     : []
+          # - jet_phi                     : []
+          - pfCand_deta                 : [ *jet_valid, {"pfCand_ele_deta": "pfCand_eta - jet_eta"}, "no_scaling" ] #"linear", -1.0, 1.0]
+          - pfCand_dphi                 : [ *jet_valid, {"pfCand_ele_dphi": "pfCand_phi - jet_eta"}, "no_scaling" ] #"linear", -1.0, 1.0]
 
 Features_disable :
     PfCand : [ ]
