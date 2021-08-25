@@ -10,14 +10,16 @@ R.gROOT.ProcessLine(".include ../../..")
 
 print("Compiling Setup classes...")
 
-R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_vReco_v1.json", "../configs/trainingReco_v1.yaml", verbose=True))
-R.gInterpreter.Declare(config_parse.create_settings("../configs/trainingReco_v1.yaml", verbose=True))
-# exit()
+R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_vReco_v1.json", "../configs/trainingReco_v1.yaml", verbose=False))
+R.gInterpreter.Declare(config_parse.create_settings("../configs/trainingReco_v1.yaml", verbose=False))
 
 print("Compiling DataLoader_main...")
 R.gInterpreter.Declare('#include "../interface/DataLoaderReco_main.h"')
-# R.gInterpreter.Declare('#include "TauMLTools/Core/interface/exception.h"')
 
+n_tau          = R.Setup.n_tau
+pfCand_n       = R.Setup.nSeq_PfCand
+pfCand_fn      = R.Setup.n_PfCand
+outclass       = R.Setup.output_classes
 
 input_files = []
 for root, dirs, files in os.walk(os.path.abspath(R.Setup.input_dir)):
@@ -35,6 +37,11 @@ file_i = 0
 data_loader.ReadFile(R.std.string(input_files[file_i]), 0, -1)
 file_i += 1
 
+def getdata(_obj_f, _reshape, _dtype=np.float32):
+    return np.copy(np.frombuffer(_obj_f.data(),
+                                 dtype=_dtype,
+                                 count=_obj_f.size())).reshape(_reshape)
+
 for i in range(n_batches):
 
     start = time.time()
@@ -43,7 +50,13 @@ for i in range(n_batches):
        data_loader.ReadFile(R.std.string(input_files[file_i]), 0, -1)
        file_i += 1
        continue
+    
     data = data_loader.LoadData()
+    X = getdata(data.x, (n_tau, pfCand_n, pfCand_fn))
+    Y = getdata(data.y, (n_tau, outclass))
+
+    print(X[:1,:10,:1])
+    print(Y[:1,:])
 
     end = time.time()
     print(i, " end: ",end-start, ' s.')
