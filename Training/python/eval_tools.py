@@ -262,6 +262,17 @@ def cm2inch(*tupl):
         return tuple(i/inch for i in tupl[0])
     return tuple(i/inch for i in tupl)
 
+def select_curve(curve_list, **selection):
+    filter_func = lambda x: all([x[k]==v if k in x else False for k,v in selection.items()])
+    filtered_curves = list(filter(filter_func, curve_list))
+    if len(filtered_curves)==0:
+        return None
+    elif len(filtered_curves)==1:
+        return filtered_curves[0]
+    else:
+        raise Exception(f"Failed to find a single curve for selection: {[f'{k}=={v}' for k,v in selection.items()]}")
+    return filtered_curves
+
 class FloatList(object):
     def __init__(self, value):
         self.value = value

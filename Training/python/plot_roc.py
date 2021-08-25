@@ -8,13 +8,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-
-def select_curve(curve_list, **selection):
-    filter_func = lambda x: all([x[k]==v if k in x else False for k,v in selection.items()])
-    filtered_curves = list(filter(filter_func, curve_list))
-    if len(filtered_curves)!=1:
-        raise Exception(f"Failed to find single curve for selection: {[f'{k}=={v}' for k,v in selection.items()]}")
-    return filtered_curves[0]
+from eval_tools import select_curve
 
 def create_roc_ratio(x1, y1, x2, y2):
     sp = interpolate.interp1d(x2, y2)
