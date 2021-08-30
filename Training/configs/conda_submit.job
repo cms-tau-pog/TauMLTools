@@ -1,0 +1,6 @@
+Requirements = OpSysAndVer == "CentOS7"
+#Requirements = OpSysAndVer == "CentOS7" && (CUDAGlobalMemoryMb > 30000)
+Request_GPUs = 1
+RequestMemory = 30000
++RequestRuntime = 604800
+queue
