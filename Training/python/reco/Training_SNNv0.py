@@ -24,6 +24,11 @@ sys.path.insert(0, "..")
 from commonReco import *
 import DataLoader
 
+# tf.debugging.experimental.enable_dump_debug_info(
+#     "./debugv5_logdir",
+#     tensor_debug_mode="FULL_HEALTH",
+#     circular_buffer_size=-1)
+
 class MyGNNLayer(tf.keras.layers.Layer):
     def __init__(self, n_dim, num_outputs, regu_rate, **kwargs):
         super(MyGNNLayer, self).__init__(**kwargs)
@@ -171,16 +176,17 @@ class MyGNN(tf.keras.Model):
     def call(self, xx):
         x_mask = xx[:,:,self.map_features['pfCand_valid']]
 
-        # x_em1 = self.embedding1(tf.abs(xx[:,:,self.map_features['pfCand_particleType']]))
-        # x_em2 = self.embedding2(tf.abs(xx[:,:,self.map_features['pfCand_pvAssociationQuality']]))
-        # x_em3 = self.embedding3(tf.abs(xx[:,:,self.map_features['pfCand_fromPV']]))
+        x_em1 = self.embedding1(tf.abs(xx[:,:,self.map_features['pfCand_particleType']]))
+        x_em2 = self.embedding2(tf.abs(xx[:,:,self.map_features['pfCand_pvAssociationQuality']]))
+        x_em3 = self.embedding3(tf.abs(xx[:,:,self.map_features['pfCand_fromPV']]))
         # x = self.normalize(xx)
         # x = self.scale(x)
-        x = xx
 
-        # x_part1 = x[:,:,:self.map_features['pfCand_particleType']]
-        # x_part2 = x[:,:,(self.map_features["pfCand_fromPV"]+1):]
-        # x = tf.concat((x_em1,x_em2,x_em3,x_part1,x_part2),axis = 2)
+        x_part1 = xx[:,:,:self.map_features['pfCand_particleType']]
+        x_part2 = xx[:,:,(self.map_features["pfCand_fromPV"]+1):]
+        x = tf.concat((x_em1,x_em2,x_em3,x_part1,x_part2),axis = 2)
+
+        # x = xx
 
         if(self.wiring_mode=="m2"):
             for i in range(self.n_gnn_layers):
@@ -296,7 +302,7 @@ def compile_model(model, mode, learning_rate):
         metrics.extend([my_acc, my_mse_ch, my_mse_neu])
     if "p4" in mode:
         metrics.extend([my_mse_pt, my_mse_mass, pt_res, pt_res_rel, m2_res])
-    model.compile(loss=CustomMSE(), optimizer=opt, metrics=metrics, weighted_metrics=metrics)
+    model.compile(loss=CustomMSE(), optimizer=opt, metrics=metrics)
 
 
 def run_training(train_suffix, model_name, model, data_loader, is_profile):
@@ -347,16 +353,15 @@ setup_main = {
     "n_dense_layers"   : 4,
     "n_dense_nodes"    : 200,
     "wiring_mode"      : "m3",
-    "dropout_rate"     : 0.2 ,
+    "dropout_rate"     : 0.1 ,
     "regu_rate"        : 0.01
 }
-
-model_name = "RecoSNN_test"
+    
+model_name = "RecoSNNv0"
 model = create_model(setup_main, input_map)
-compile_model(model, setup_main["mode"], 1e-3)
+compile_model(model, setup_main["mode"], 1e-2)
 print(input_shape[0])
-# model.call(np.ones(input_shape[0],dtype=np.float32))
 model.build(input_shape[0])
 model.summary()
 # tf.keras.utils.plot_model(model, model_name + "_diagram.png", show_shapes=True)
-# fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, False)
+fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, False)

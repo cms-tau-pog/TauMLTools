@@ -1,6 +1,7 @@
 Setup:
     n_tau                :  500 # number of candidates in one batch 
     n_threads            :  1
+    # input_dir            : "/pnfs/desy.de/cms/tier2/store/user/myshched/Signal2018ctau_TauTuple_masspoints_v3/SUS-RunIIFall18GS_ctau1000mm_mstau100_250_400_mlsp1_20-RAWSIM/crab_STAU_m100_250_400_v2/210802_153659/0000/"
     input_dir            : "/pnfs/desy.de/cms/tier2/store/user/myshched/Signal2018ctau_TauTuple_masspoints_v3/SUS-RunIIFall18GS_ctau1000mm_mstau100_250_400_mlsp1_20-RAWSIM/crab_STAU_m100_250_400_v2/210802_153659/0000/"
     output_classes       :  4
 
@@ -9,9 +10,9 @@ SetupNN:
     n_batches_val        : -1
     epoch                : 0
     n_epochs             : 10
-    validation_split     : 0.3
-    max_queue_size       : 10
-    n_load_workers       : 3
+    validation_split     : 0.1
+    max_queue_size       : 15
+    n_load_workers       : 4
 
 CellObjectType : [ PfCand ]
 
@@ -22,9 +23,9 @@ Scaling_setup:
     # --------------------------------------------------------
     file_path: '/pnfs/desy.de/cms/tier2/store/user/myshched/Signal2018ctau_TauTuple_masspoints_v3/SUS-RunIIFall18GS_ctau1000mm_mstau100_250_400_mlsp1_20-RAWSIM/crab_STAU_m100_250_400_v2/210802_153659/0000/*.root' # input files to be used for computation of scaling params
     output_json_folder: 'output_json' # directory where json files with scaling params will be stored
-    file_range: [0,10] # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
+    file_range: [0,20] # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
     tree_name: taus # TTree name in input files to be read
-    log_step: 1 # will make a snapshot of scaling parameters per this number of input files
+    log_step: 10 # will make a snapshot of scaling parameters per this number of input files
     version: 'Reco_v1' # string to be added to a json filename
 
     # --------------------------------------------------------
@@ -50,29 +51,8 @@ Scaling_setup:
 
 Features_all :
     PfCand :
-      
-      # Normal:
-      # {"pfCand_mass": [{"std": 0.06446, "mean": 0.09627}],
-      #   "pfCand_numberOfHits": [{"std": 8.484, "mean": 6.288}],
-      #   "pfCand_dxy": [{"std": 1.873, "mean": -0.007103}],
-      #   "pfCand_dxy_error": [{"std": 0.8858, "mean": 0.02706}],
-      #   "pfCand_dz": [{"std": 6.708, "mean": -0.004195}],
-      #   "pfCand_dz_error": [{"std": 0.2561, "mean": 0.04633}],
-      #   "pfCand_track_chi2": [{"std": 58.9, "mean": 11.13}],
-      #   "pfCand_track_ndof": [{"std": 6.76, "mean": 14.06}]}
 
-      # Liniar:
-      #   {"pfCand_pt": [{"max": 1000.0, "min": 0.0}],
-      #   "pfCand_eta": [{"max": 3.5, "min": -3.5}],
-      #   "pfCand_phi": [{"max": 3.1416, "min": -3.1416}],
-      #   "pfCand_caloFraction": [{"max": 1.0, "min": 0.0}],
-      #   "pfCand_hcalFraction": [{"max": 1.0, "min": 0.0}],
-      #   "pfCand_rawCaloFraction": [{"max": 1.5, "min": 0.0}],
-      #   "pfCand_rawHcalFraction": [{"max": 0.0, "min": 1.0}],
-      #   "pfCand_rel_eta": [{"max": 1.0, "min": -1.0}],
-      #   "pfCand_rel_phi": [{"max": 1.0, "min": -1.0}]}
-
-          - pfCand_pt                   : [ null, null, "linear", 0.0, 1000.0 ]
+          - pfCand_pt                   : [ null, null, "normal", -5, 5 ]
           - pfCand_eta                  : [ null, null, "linear", -2.3, 2.3 ]
           - pfCand_phi                  : [ null, null, "linear", *mpi, *pi ]
           - pfCand_mass                 : [ null, null, "normal", -5, 5 ]

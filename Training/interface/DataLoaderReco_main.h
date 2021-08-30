@@ -74,7 +74,9 @@ public:
                 return false;
             }
             tauTuple->GetEntry(current_entry);
-            if ((*tauTuple)().genLepton_kind == 5) // only tau_h is considered for the reconstruction
+            // only tau_h is considered for the reconstruction + requerment to have jet
+            if ((*tauTuple)().genLepton_kind == 5 && (*tauTuple)().jet_index >= 0)
+            // if((*tauTuple)().genLepton_kind == 5)
             {
                 FillLabels(tau_i, Setup::output_classes);
                 FillPfSequence<PfCand_Features>(tau_i, Setup::nSeq_PfCand, Setup::n_PfCand, "pfCand_");

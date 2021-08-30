@@ -97,18 +97,18 @@ def LoaderThread(queue_out, queue_files, batch_size, pfCand_n, pfCand_fn,
 
 
         X_all = getdata(data.x, (batch_size, pfCand_n, pfCand_fn))
-        if np.isnan(X_all).any():
-            print("Nan detected X!")
-            continue
+        # if np.isnan(X_all).any() or np.isinf(X_all).any():
+        #     print("Nan detected X!")
+        #     continue
 
         # if return_weights:
         #     weights = getdata(data.weight, -1)
         if return_truth:
             Y = getdata(data.y, (batch_size, output_classes))
 
-        if np.isnan(Y).any():
-            print("Nan detected Y!")
-            continue
+        # if np.isnan(Y).any() or np.isinf(Y).any():
+        #     print("Nan detected Y!")
+        #     continue
         # if return_truth and return_weights:
         #     item = (X_all, Y, weights)
         if return_truth:
