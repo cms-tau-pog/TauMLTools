@@ -26,6 +26,7 @@ def ugly_clean(queue):
     if queue.qsize()!=0:
         raise RuntimeError("Error: queue was not clean properly.")
 
+
 class QueueEx:
     def __init__(self, max_size=0, max_n_puts=math.inf):
         self.n_puts = mp.Value('i', 0)
@@ -170,6 +171,7 @@ class DataLoader:
         self.n_load_workers   = self.config["SetupNN"]["n_load_workers"]
         self.n_batches        = self.config["SetupNN"]["n_batches"]
         self.n_batches_val    = self.config["SetupNN"]["n_batches_val"]
+        self.n_batches_log    = self.config["SetupNN"]["n_batches_log"]
         self.validation_split = self.config["SetupNN"]["validation_split"]
         self.max_queue_size   = self.config["SetupNN"]["max_queue_size"]
         self.n_epochs         = self.config["SetupNN"]["n_epochs"]
