@@ -64,7 +64,7 @@ def main(cfg: DictConfig) -> None:
     input_taus = to_absolute_path(cfg.input_taus)
     input_vs_type = to_absolute_path(cfg.input_vs_type)
     predictions = predictions_path if os.path.exists(predictions_path:=to_absolute_path(f'mlruns/{experiment_id}/{cfg.run_id}/artifacts/predictions'))  else None
-    output_json_path = to_absolute_path(f'{cfg.output_folder}/{cfg.output_name}.json')
+    output_json_path = to_absolute_path(f'mlruns/{experiment_id}/{cfg.run_id}/artifacts/performance.json')
     weights = to_absolute_path(cfg.weights) if cfg.weights is not None else None
 
     # init Discriminator() class from filtered input configuration
@@ -198,10 +198,6 @@ def main(cfg: DictConfig) -> None:
         json_file.seek(0) 
         json_file.write(json.dumps(performance_data, indent=4, cls=eval_tools.CustomJsonEncoder))
         json_file.truncate()
-
-    # log json to corresponding mlflow run
-    with mlflow.start_run(experiment_id=experiment.experiment_id, run_id=cfg.run_id) as run:
-        mlflow.log_artifact(output_json_path)
        
 if __name__ == '__main__':
     main()
