@@ -1,4 +1,4 @@
-name: MVA_upd_vs_jet
+name: MVA (updated decay modes)
 column: byIsolationMVArun2017v2DBnewDMwLT2017
 raw: False
 from_tuple: True

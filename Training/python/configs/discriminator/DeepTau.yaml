@@ -1,4 +1,4 @@
-name: DeepTau
+name: DeepTau vs. ${vs_type}
 column: deepId_vs_${vs_type}
 raw: True
 from_tuple: False

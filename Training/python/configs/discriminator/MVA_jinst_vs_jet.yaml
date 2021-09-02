@@ -1,4 +1,4 @@
-name: MVA_jinst_vs_jet
+name: MVA vs. jets (JINST 13 (2018) P10005)
 column: byIsolationMVArun2017v2DBoldDMwLT2017
 raw: False
 from_tuple: True
