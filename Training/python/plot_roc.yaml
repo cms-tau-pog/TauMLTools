@@ -1,5 +1,5 @@
 # input
-experiment_name: test
+experiment_name: ???
 discriminators: 
   ???: ['roc_curve', 'roc_wp']
   ???: ['roc_wp']
