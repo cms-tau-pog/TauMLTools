@@ -1,5 +1,5 @@
 
-def create_settings(input_file: str, verbose=False) -> str:
+def create_settings(data: dict, verbose=False) -> str:
     '''
     The following subroutine parses the yaml config file and
     returns the following structures in the string format:
@@ -120,8 +120,6 @@ def create_settings(input_file: str, verbose=False) -> str:
 
         return string
 
-    with open(input_file) as file:
-        data = yaml.safe_load(file)
     settings  = create_namestruc(data)
     settings  += "\n".join([create_enum(k,data) for k in data["Features_all"]])
     settings += create_gridobjects(data)
@@ -129,7 +127,7 @@ def create_settings(input_file: str, verbose=False) -> str:
         print(settings)
     return settings
 
-def create_scaling_input(input_scaling_file: str, input_cfg_file: str, verbose=False) -> str:
+def create_scaling_input(input_scaling_file: str, training_cfg_data: dict, verbose=False) -> str:
     '''
     The following subroutine parses the json config file and
     returns the string with Scaling namespace, where
@@ -193,9 +191,7 @@ def create_scaling_input(input_scaling_file: str, input_cfg_file: str, verbose=F
 
     with open(input_scaling_file) as scaling_file:
         scaling_data = json.load(scaling_file)
-    with open(input_cfg_file) as cfg_file:
-        cfg_data = yaml.safe_load(cfg_file)
-    settings  = create_scaling(scaling_data, cfg_data)
+    settings  = create_scaling(scaling_data, training_cfg_data)
     if verbose:
         print(settings)
     return settings

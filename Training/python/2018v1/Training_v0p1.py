@@ -1,4 +1,5 @@
 import os
+import yaml
 import gc
 import sys
 import glob
@@ -238,7 +239,8 @@ def run_training(train_suffix, model_name, model, data_loader, to_profile):
     return fit_hist
 
 
-config   = os.path.abspath( "../../configs/training_v1.yaml")
+with open(os.path.abspath( "../../configs/training_v1.yaml")) as f:
+    config = yaml.safe_load(f)
 scaling  = os.path.abspath("../../configs/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json")
 dataloader = DataLoader.DataLoader(config, scaling)
 netConf_full, input_shape, input_types  = dataloader.get_config()
