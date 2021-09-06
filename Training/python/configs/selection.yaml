@@ -10,10 +10,10 @@
 #               and (againstMuon3 & (1 << ${wp_name_to_index.Loose})) \
 #               and (tau_decayMode != 5) & (tau_decayMode != 6)"
 apply_deep_cuts:
-  e: "(deepId_vs_jet > ${discriminator.deep_wp_thrs.jet.VVVLoose}) \
-        and (deepId_vs_mu > ${discriminator.deep_wp_thrs.mu.VLoose})"
-  mu: "(deepId_vs_e > ${discriminator.deep_wp_thrs.e.VVVLoose}) \
-        and (deepId_vs_jet > ${discriminator.deep_wp_thrs.jet.VVVLoose})"
-  jet: "(deepId_vs_e > ${discriminator.deep_wp_thrs.e.VVVLoose}) \
-        and (deepId_vs_mu > ${discriminator.deep_wp_thrs.mu.VLoose})"
+  e: "(${discriminator.column_prefix}_vs_jet > ${discriminator.deep_wp_thrs.jet.VVVLoose}) \
+        and (${discriminator.column_prefix}_vs_mu > ${discriminator.deep_wp_thrs.mu.VLoose})"
+  mu: "(${discriminator.column_prefix}_vs_e > ${discriminator.deep_wp_thrs.e.VVVLoose}) \
+        and (${discriminator.column_prefix}_vs_jet > ${discriminator.deep_wp_thrs.jet.VVVLoose})"
+  jet: "(${discriminator.column_prefix}_vs_e > ${discriminator.deep_wp_thrs.e.VVVLoose}) \
+        and (${discriminator.column_prefix}_vs_mu > ${discriminator.deep_wp_thrs.mu.VLoose})"
 apply_dm_cuts: "(tau_decayMode != 5) & (tau_decayMode != 6)"

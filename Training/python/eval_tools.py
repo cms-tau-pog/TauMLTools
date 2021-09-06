@@ -1,11 +1,13 @@
 import numpy as np
-import pandas
+import pandas as pd
 import uproot
 import math
 import copy
 from sklearn import metrics
 from scipy import interpolate
 from _ctypes import PyObj_FromPtr
+import os
+import h5py
 import json
 import re
 import sys
@@ -248,6 +250,77 @@ def select_curve(curve_list, **selection):
     else:
         raise Exception(f"Failed to find a single curve for selection: {[f'{k}=={v}' for k,v in selection.items()]}")
     return filtered_curves
+
+def create_df(file_name, predictions, column_prefix, branches, weights, tau_types):
+    def read_branches(file_name, tree_name, branches):
+        if file_name.endswith('.root'):
+            with uproot.open(file_name) as f:
+                tree = f[tree_name]
+                df = tree.arrays(branches, library='pd')
+            return df
+        elif file_name.endswith('.h5') or file_name.endswith('.hdf5'):
+            return pd.read_hdf(file_name, tree_name, columns=branches)
+        raise RuntimeError("Unsupported file type.")
+
+    def add_predictions(df, file_name, column_prefix):
+        with h5py.File(file_name, 'r') as f:
+            file_keys = list(f.keys())
+        if 'predictions' in file_keys: 
+            df_pred = pd.read_hdf(file_name, 'predictions')
+        else:
+            df_pred = pd.read_hdf(file_name)
+        prob_tau = df_pred[f'{column_prefix}_tau'].values
+        for node_column in df_pred.columns:
+            tau_type = node_column.split(f'{column_prefix}_')[-1] # assume prediction column name to be "{column_prefix}_{tau_type}"
+            if tau_type != 'tau':
+                prob_vs_type = df_pred[column_prefix + '_' + tau_type].values
+                tau_vs_other_type = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_vs_type), np.zeros(prob_tau.shape))
+                df[f'{column_prefix}_vs_{tau_type}'] = pd.Series(tau_vs_other_type, index=df.index)
+            df[f'{column_prefix}_{tau_type}'] = pd.Series(df_pred[column_prefix + '_' + tau_type].values, index=df.index)
+        return df
+
+    def add_targets(df, file_name):
+        with h5py.File(file_name, 'r') as f:
+            file_keys = list(f.keys())
+        if 'targets' in file_keys: 
+            df_targets = pd.read_hdf(file_name, 'targets')
+        else:
+            return df
+        for node_column in df_targets.columns:
+            tau_type = node_column.split(f'{column_prefix}_')[-1]
+            df[f'gen_{tau_type}'] = df_targets[node_column]
+        return df
+    
+    def add_weights(df, file_name):
+        df_weights = pd.read_hdf(file_name)
+        df['weight'] = pd.Series(df_weights.weight.values, index=df.index)
+        return df
+
+    # TODO: add on the fly branching creation for uproot
+
+    df = read_branches(file_name, 'taus', branches)
+    base_name = os.path.basename(file_name)
+    if predictions is not None:
+        pred_file_name = os.path.splitext(base_name)[0] + '_pred.h5'
+        path_to_pred = os.path.join(predictions, pred_file_name)
+        add_predictions(df, path_to_pred, column_prefix)
+        add_targets(df, path_to_pred)
+    else:
+        print('[INFO] No predictions found for this run, will proceed without them.')
+    if weights is not None:
+        weight_file_name = os.path.splitext(base_name)[0] + '_weights.h5'
+        path_to_weights = os.path.join(weights, weight_file_name)
+        add_weights(df, path_to_weights)
+    else:
+        df['weight'] = pd.Series(np.ones(df.shape[0]), index=df.index)
+
+    # inverse linear scaling 
+    df['tau_pt'] = pd.Series(df.tau_pt *(1000 - 20) + 20, index=df.index)
+
+    # gen match selection of given tau types
+    gen_selection = ' or '.join([f'(gen_{tau_type}==1)' for tau_type in tau_types])
+    df = df.query(gen_selection)
+    return df
 
 class FloatList(object):
     def __init__(self, value):

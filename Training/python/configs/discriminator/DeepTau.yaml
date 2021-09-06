@@ -1,17 +1,34 @@
 name: DeepTau vs. ${vs_type}
-column: deepId_vs_${vs_type}
+column_prefix: deepId
+column: ${.column_prefix}_vs_${vs_type} # column in internally created pd.DataFrame to be used for metrics computation  
 raw: True
 from_tuple: False
 color: blue
-working_points: 
-  - ${wp_name_to_index.VVVLoose}
-  - ${wp_name_to_index.VVLoose}
-  - ${wp_name_to_index.VLoose}
-  - ${wp_name_to_index.Loose}
-  - ${wp_name_to_index.Medium}
-  - ${wp_name_to_index.Tight}
-  - ${wp_name_to_index.VTight}
-  - ${wp_name_to_index.VVTight}
+working_points: ${.working_points_map.${vs_type}} 
+working_points_map: 
+  e:
+    - ${wp_name_to_index.VVVLoose}
+    - ${wp_name_to_index.VVLoose}
+    - ${wp_name_to_index.VLoose}
+    - ${wp_name_to_index.Loose}
+    - ${wp_name_to_index.Medium}
+    - ${wp_name_to_index.Tight}
+    - ${wp_name_to_index.VTight}
+    - ${wp_name_to_index.VVTight}
+  mu:
+    - ${wp_name_to_index.VLoose}
+    - ${wp_name_to_index.Loose}
+    - ${wp_name_to_index.Medium}
+    - ${wp_name_to_index.Tight}
+  jet:
+    - ${wp_name_to_index.VVVLoose}
+    - ${wp_name_to_index.VVLoose}
+    - ${wp_name_to_index.VLoose}
+    - ${wp_name_to_index.Loose}
+    - ${wp_name_to_index.Medium}
+    - ${wp_name_to_index.Tight}
+    - ${wp_name_to_index.VTight}
+    - ${wp_name_to_index.VVTight}
 working_points_thrs: ${.deep_wp_thrs.${vs_type}}
 deep_wp_thrs:
   e:
