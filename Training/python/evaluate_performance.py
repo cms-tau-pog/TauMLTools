@@ -3,57 +3,15 @@ import math
 import pandas as pd
 import numpy as np
 import json
-import eval_tools
 from collections import defaultdict
 from dataclasses import fields
-from eval_tools import select_curve
-
-TAU_TYPES = [ 'e', 'mu', 'tau', 'jet' ]
-
-def AddPredictionsToDataFrame(df, file_name, label = ''):
-    df_pred = pd.read_hdf(file_name)
-    for tau_type in TAU_TYPES:
-        if tau_type != 'tau':
-            prob_tau = df_pred['deepId_tau'].values
-            prob_vs_type = df_pred['deepId_' + tau_type].values
-            tau_vs_other_type = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_vs_type), np.zeros(prob_tau.shape))
-            df['deepId{}_vs_{}'.format(label, tau_type)] = pd.Series(tau_vs_other_type, index=df.index)
-        df['deepId{}_{}'.format(label, tau_type)] = pd.Series(df_pred['deepId_' + tau_type].values, index=df.index)
-    return df
-
-def AddWeightsToDataFrame(df, file_name):
-    df_weights = pd.read_hdf(file_name)
-    df['weight'] = pd.Series(df_weights.weight.values, index=df.index)
-    return df
-
-def CreateDF(file_name, predictions, read_branches, weights, tau_types):
-
-    # TODO: add branching creation on the fly
-    
-    df = eval_tools.ReadBrancesToDataFrame(file_name, 'taus', read_branches)
-    base_name = os.path.basename(file_name)
-    pred_file_name = os.path.splitext(base_name)[0] + '_pred.h5'
-    if predictions is not None:
-        path_to_pred = os.path.join(predictions, pred_file_name)
-        AddPredictionsToDataFrame(df, path_to_pred)
-    if weights is not None:
-        weight_file_name = os.path.splitext(base_name)[0] + '_weights.h5'
-        AddWeightsToDataFrame(df, os.path.join(weights, weight_file_name))
-    else:
-        df['weight'] = pd.Series(np.ones(df.shape[0]), index=df.index)
-
-    # inverse linear scaling 
-    df['tau_pt'] = pd.Series(df.tau_pt *(1000 - 20) + 20, index=df.index)
-
-    # gen match selection of given tau types
-    gen_selection = ' or '.join([f'(gen_{tau_type}==1)' for tau_type in tau_types])
-    df = df.query(gen_selection)
-    return df
 
 import mlflow
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import OmegaConf, DictConfig, ListConfig
+
+import eval_tools
 
 @hydra.main(config_path='configs', config_name='run3')
 def main(cfg: DictConfig) -> None:
@@ -86,10 +44,10 @@ def main(cfg: DictConfig) -> None:
 
     # read original data and corresponging predictions into DataFrame 
     if input_vs_type is None:
-        df_all = CreateDF(input_taus, predictions, read_branches, weights, ['tau', cfg.vs_type])
+        df_all = eval_tools.create_df(input_taus, predictions, cfg.discriminator.column_prefix, read_branches, weights, ['tau', cfg.vs_type])
     else:
-        df_taus = CreateDF(input_taus, predictions, read_branches, weights, ['tau'])
-        df_vs_type = CreateDF(input_vs_type, predictions, read_branches, weights, [cfg.vs_type])
+        df_taus = eval_tools.create_df(input_taus, predictions, cfg.discriminator.column_prefix, read_branches, weights, ['tau'])
+        df_vs_type = eval_tools.create_df(input_vs_type, predictions, cfg.discriminator.column_prefix, read_branches, weights, [cfg.vs_type])
         df_all = df_taus.append(df_vs_type)
 
     # apply selection cuts
@@ -121,17 +79,17 @@ def main(cfg: DictConfig) -> None:
                 x_range = lim[1] - lim[0] if lim is not None else 1
                 roc = roc.Prune(tpr_decimals=max(0, round(math.log10(1000 / x_range))))
                 if roc.auc_score is not None:
-                    print('[{}, {}] {} roc_auc = {}'.format(pt_min, pt_max, discriminator.name,
+                    print('\n[{}, {}] {} roc_auc = {}'.format(pt_min, pt_max, discriminator.name,
                                                             roc.auc_score))
 
             # loop over [ROC curve, ROC curve WP] for a given discriminator and store its info into dict
             for curve_type, curve in zip(['roc_curve', 'roc_wp'], [roc, wp_roc]):
                 if curve is None: continue
                 if json_exists and curve_type in performance_data['metrics'] \
-                                and (existing_curve := select_curve(performance_data['metrics'][curve_type], 
+                                and (existing_curve := eval_tools.select_curve(performance_data['metrics'][curve_type], 
                                                                         pt_min=pt_min, pt_max=pt_max, vs_type=cfg.vs_type,
                                                                         sample_tau=cfg.sample_tau, sample_vs_type=cfg.sample_vs_type)) is not None:
-                    print(f'\n[INFO] Found already existing curve (type: {curve_type}) in json file for a specified set of parameters: will overwrite it.')
+                    print(f'[INFO] Found already existing curve (type: {curve_type}) in json file for a specified set of parameters: will overwrite it.')
                     performance_data['metrics'][curve_type].remove(existing_curve)
 
                 curve_data = {

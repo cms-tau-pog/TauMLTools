@@ -1,6 +1,6 @@
-plot_setup: ${.plot_setup_specific.${vs_type}}
+plot_setup: ${.plot_setup_map.${vs_type}}
 
-plot_setup_specific: 
+plot_setup_map: 
   e: 
     public_plots: False 
     inequality_in_title: False # Use inequality in the title to define pt range, instead of an interval
