@@ -24,19 +24,6 @@ sys.path.insert(0, "..")
 from common import *
 import DataLoader
 
-gpus = tf.config.list_physical_devices('GPU')
-if gpus:
-    # Restrict TensorFlow to only allocate 10GB of memory on the first GPU
-    try:
-        tf.config.experimental.set_virtual_device_configuration(
-            gpus[0],
-            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=10*1024)])
-        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-    except RuntimeError as e:
-        # Virtual devices must be set before GPUs have been initialized
-        print(e)
-
 class NetSetup:
     def __init__(self, activation, activation_shared_axes, dropout_rate, first_layer_size, last_layer_size, decay_factor,
                  kernel_regularizer, time_distributed):
@@ -220,8 +207,18 @@ def compile_model(model, learning_rate):
 
 def run_training(train_suffix, model_name, model, data_loader, to_profile):
 
-    gen_train = dataloader.get_generator(primary_set = True)
-    gen_val = dataloader.get_generator(primary_set = False)
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        try:
+            tf.config.experimental.set_virtual_device_configuration(gpus[data_loader.gpu_index],
+                [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=data_loader.gpu_mem*1024)])
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            print(e)
+
+    gen_train = data_loader.get_generator(primary_set = True)
+    gen_val = data_loader.get_generator(primary_set = False)
 
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
@@ -254,7 +251,7 @@ def run_training(train_suffix, model_name, model, data_loader, to_profile):
 
 
 config   = os.path.abspath( "../../configs/training_v1.yaml")
-scaling  = os.path.abspath("/nfs/dust/cms/user/mykytaua/dataDeepTau/DeepTauTraining/ShuffleMergeSpectral_TrainingScaling/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json")
+scaling  = os.path.abspath("../../configs/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json")
 dataloader = DataLoader.DataLoader(config, scaling)
 netConf_full, input_shape, input_types  = dataloader.get_config()
 

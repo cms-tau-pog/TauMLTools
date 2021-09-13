@@ -1,13 +1,15 @@
 Setup:
-    n_tau                :  500 # number of candidates in one batch 
-    # start_dataset        :  0
-    # end_dataset          :  9999999999999 #std::numeric_limits<Long64_t>::max()
+    n_tau                :  250 # number of candidates in one batch 
     iso_cone             :  0.5
     n_inner_cells        :  11
     inner_cell_size      :  0.02
     n_outer_cells        :  21
     outer_cell_size      :  0.05
     n_threads            :  1
+
+    # Hardware-setup 
+    gpu_mem              :  7 # in Gb
+    gpu_index            :  0
 
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }

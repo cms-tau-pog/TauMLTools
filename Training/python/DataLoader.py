@@ -11,7 +11,7 @@ import tensorflow as tf
 import os
 import yaml
 import time
-
+import glob
 class TerminateGenerator:
     pass
 
@@ -234,12 +234,10 @@ class DataLoader:
         self.epoch         = self.config["SetupNN"]["epoch"]
         self.input_grids        = self.config["SetupNN"]["input_grids"]
         self.n_cells = { 'inner': self.n_inner_cells, 'outer': self.n_outer_cells }
+        self.gpu_index        = self.config["Setup"]["gpu_index"]
+        self.gpu_mem          = self.config["Setup"]["gpu_mem"]
 
-        data_files = []
-        for root, dirs, files in os.walk(os.path.abspath(self.config["Setup"]["input_dir"])):
-            for file in files:
-                data_files.append(os.path.join(root, file))
-
+        data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
         self.train_files, self.val_files = \
              np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
 
