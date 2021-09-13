@@ -234,8 +234,14 @@ class DataLoader:
         self.epoch         = self.config["SetupNN"]["epoch"]
         self.input_grids        = self.config["SetupNN"]["input_grids"]
         self.n_cells = { 'inner': self.n_inner_cells, 'outer': self.n_outer_cells }
-        self.gpu_index        = self.config["Setup"]["gpu_index"]
-        self.gpu_mem          = self.config["Setup"]["gpu_mem"]
+        self.gpu_index        = self.config["SetupNN"]["gpu_index"]
+        self.gpu_mem          = self.config["SetupNN"]["gpu_mem"]
+        self.model_name       = self.config["SetupNN"]["model_name"]
+        self.TauLossesSFs     = self.config["SetupNN"]["TauLossesSFs"]
+        self.learning_rate    = self.config["SetupNN"]["learning_rate"]
+        self.tau_net_setup    = self.config["SetupNN"]["tau_net_setup"]
+        self.comp_net_setup   = self.config["SetupNN"]["comp_net_setup"]
+        self.dense_net_setup  = self.config["SetupNN"]["dense_net_setup"]
 
         data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
         self.train_files, self.val_files = \
@@ -336,7 +342,9 @@ class DataLoader:
 
         # code below is a shortened copy of common.py
         class NetConf:
-            def __init__(self, name, final, tau_branches, cell_locations, component_names, component_branches):
+            def __init__(self, name, final, tau_branches, cell_locations,
+                        component_names, component_branches,
+                        tau_net_setup, comp_net_setup, dense_net_setup):
                 self.name = name
                 self.final = final
                 self.tau_branches = tau_branches
@@ -344,19 +352,22 @@ class DataLoader:
                 self.comp_names = component_names
                 self.comp_branches = component_branches
 
-        netConf_preTau = NetConf("preTau", False, input_tau_branches, [], [], [])
+                self.tau_net_setup    = tau_net_setup  
+                self.comp_net_setup   = comp_net_setup
+                self.dense_net_setup  = dense_net_setup
+
+        netConf_preTau = NetConf("preTau", False, input_tau_branches, [], [], [], None, None, None)
         netConf_preInner = NetConf("preInner", False, [], ['inner'], ['egamma', 'muon', 'hadrons'], [
             input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches,
             input_cell_pfCand_muon_branches + input_cell_muon_branches,
             input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches
-        ])
-        # netConf_preTauInter = NetConf("preTauInter", False, netConf_preTau.tau_branches, netConf_preInner.cell_locations,
-        #                             netConf_preInner.comp_names, netConf_preInner.comp_branches)
+        ], None, None, None)
         netConf_preOuter = NetConf("preOuter", False, [], ['outer'], netConf_preInner.comp_names,
-                                netConf_preInner.comp_branches)
+                                netConf_preInner.comp_branches, None, None, None)
         netConf_full = NetConf("full", True, netConf_preTau.tau_branches,
                             netConf_preInner.cell_locations + netConf_preOuter.cell_locations,
-                            netConf_preInner.comp_names, netConf_preInner.comp_branches)
+                            netConf_preInner.comp_names, netConf_preInner.comp_branches,
+                            self.tau_net_setup, self.comp_net_setup, self.dense_net_setup)
 
         # Input tensor shape and type 
         input_shape, input_types = [], []

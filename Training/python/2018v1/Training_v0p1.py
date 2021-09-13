@@ -114,10 +114,9 @@ def reduce_n_features_2d(input_layer, net_setup, block_name):
     return prev_layer
 
 def create_model(net_config):
-    tau_net_setup = NetSetup('PReLU', None, 0.2, 128, 128, 1.4, None, False)
-    comp_net_setup = NetSetup('PReLU', [1, 2], 0.2, 1024, 64, 1.6, None, False)
-    #dense_net_setup = NetSetup('relu', 0, 512, 32, 1.4, tf.keras.regularizers.l1(1e-5))
-    dense_net_setup = NetSetup('PReLU', None, 0.2, 200, 64, 1.4, None, False)
+    tau_net_setup = NetSetup(*net_config.tau_net_setup)
+    comp_net_setup = NetSetup(*net_config.comp_net_setup)
+    dense_net_setup = NetSetup(*net_config.dense_net_setup)
 
     input_layers = []
     high_level_features = []
@@ -210,6 +209,7 @@ def run_training(train_suffix, model_name, model, data_loader, to_profile):
     gpus = tf.config.list_physical_devices('GPU')
     if gpus:
         try:
+            tf.config.set_visible_devices(gpus[data_loader.gpu_index], 'GPU')
             tf.config.experimental.set_virtual_device_configuration(gpus[data_loader.gpu_index],
                 [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=data_loader.gpu_mem*1024)])
             logical_gpus = tf.config.experimental.list_logical_devices('GPU')
@@ -259,13 +259,10 @@ n_cells_eta = dataloader.n_cells
 n_cells_phi = dataloader.n_cells
 n_outputs = dataloader.tau_types
 
-TauLosses.SetSFs(1, 2.5, 5, 1.5)
+TauLosses.SetSFs(*dataloader.TauLossesSFs)
 print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
-model_name = "DeepTau2018v0"
 model = create_model(netConf_full)
 
-compile_model(model, 1e-3)
-# tf.keras.utils.plot_model(model, model_name + "_diagram.png", show_shapes=False)
-
-fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, False)
+compile_model(model, dataloader.learning_rate)
+fit_hist = run_training('step{}'.format(1), dataloader.model_name, model, dataloader, False)
 

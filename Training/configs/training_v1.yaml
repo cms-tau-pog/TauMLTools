@@ -7,9 +7,6 @@ Setup:
     outer_cell_size      :  0.05
     n_threads            :  1
 
-    # Hardware-setup 
-    gpu_mem              :  7 # in Gb
-    gpu_index            :  0
 
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
@@ -58,6 +55,7 @@ Setup:
     xmax                 : 2.5
 
 SetupNN:
+    model_name           : "DeepTau2018v0"
     n_batches            : -1
     n_batches_val        : -1
     n_batches_log        : 1000 # monitor every n batches in tensorboard
@@ -71,6 +69,14 @@ SetupNN:
                             [ PfCand_muon, Muon ], # muons
                             [ PfCand_chHad, PfCand_nHad ] # hadrons
                            ]
+    TauLossesSFs         : [1, 2.5, 5, 1.5]
+    learning_rate        : 0.001
+    # Hardware-setup 
+    gpu_mem              : 7 # in Gb
+    gpu_index            : 0
+    tau_net_setup        : ['PReLU', null, 0.2, 128, 128, 1.4, null, False] 
+    comp_net_setup       : ['PReLU', [1, 2], 0.2, 1024, 64, 1.6, null, False]
+    dense_net_setup      : ['PReLU', null, 0.2, 200, 64, 1.4, null, False]
 
 CellObjectType : [
                  PfCand_electron,
