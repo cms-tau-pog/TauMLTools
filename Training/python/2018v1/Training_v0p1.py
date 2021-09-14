@@ -24,19 +24,6 @@ sys.path.insert(0, "..")
 from common import *
 import DataLoader
 
-gpus = tf.config.list_physical_devices('GPU')
-if gpus:
-    # Restrict TensorFlow to only allocate 10GB of memory on the first GPU
-    try:
-        tf.config.experimental.set_virtual_device_configuration(
-            gpus[0],
-            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=10*1024)])
-        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-    except RuntimeError as e:
-        # Virtual devices must be set before GPUs have been initialized
-        print(e)
-
 class NetSetup:
     def __init__(self, activation, activation_shared_axes, dropout_rate, first_layer_size, last_layer_size, decay_factor,
                  kernel_regularizer, time_distributed):
@@ -127,10 +114,9 @@ def reduce_n_features_2d(input_layer, net_setup, block_name):
     return prev_layer
 
 def create_model(net_config):
-    tau_net_setup = NetSetup('PReLU', None, 0.2, 128, 128, 1.4, None, False)
-    comp_net_setup = NetSetup('PReLU', [1, 2], 0.2, 1024, 64, 1.6, None, False)
-    #dense_net_setup = NetSetup('relu', 0, 512, 32, 1.4, tf.keras.regularizers.l1(1e-5))
-    dense_net_setup = NetSetup('PReLU', None, 0.2, 200, 64, 1.4, None, False)
+    tau_net_setup = NetSetup(*net_config.tau_net_setup)
+    comp_net_setup = NetSetup(*net_config.comp_net_setup)
+    dense_net_setup = NetSetup(*net_config.dense_net_setup)
 
     input_layers = []
     high_level_features = []
@@ -204,7 +190,7 @@ def create_model(net_config):
 
 def compile_model(model, learning_rate):
     # opt = keras.optimizers.Adam(lr=learning_rate)
-    opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, beta_1=1e-4)
+    opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, schedule_decay=1e-4)
     # opt = Nadam(lr=learning_rate, beta_1=1e-4)
 
     metrics = [
@@ -217,11 +203,10 @@ def compile_model(model, learning_rate):
     ]
     model.compile(loss=TauLosses.tau_crossentropy_v2, optimizer=opt, metrics=metrics, weighted_metrics=metrics)
 
+def run_training(train_suffix, model_name, model, data_loader, to_profile):
 
-def run_training(train_suffix, model_name, model, data_loader, is_profile):
-
-    gen_train = dataloader.get_generator(primary_set = True)
-    gen_val = dataloader.get_generator(primary_set = False)
+    gen_train = data_loader.get_generator(primary_set = True)
+    gen_val = data_loader.get_generator(primary_set = False)
 
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
@@ -239,10 +224,11 @@ def run_training(train_suffix, model_name, model, data_loader, is_profile):
     time_checkpoint = TimeCheckpoint(12*60*60, train_name)
     callbacks = [time_checkpoint, csv_log]
 
-    if is_profile:
-        logs = "logs/" + model_name + datetime.now().strftime("%Y%m%d-%H%M%S")
-        tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs, profile_batch='10, 30')
-        callbacks.append(tboard_callback)
+    logs = "logs/" + model_name + datetime.now().strftime("%Y.%m.%d(%H:%M)")
+    tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
+                                                     profile_batch = ('100, 300' if to_profile else 0),
+                                                     update_freq = ( 0 if data_loader.n_batches_log<=0 else data_loader.n_batches_log ))
+    callbacks.append(tboard_callback)
 
     fit_hist = model.fit(data_train, validation_data = data_val,
                          epochs = data_loader.n_epochs, initial_epoch = data_loader.epoch,
@@ -253,7 +239,7 @@ def run_training(train_suffix, model_name, model, data_loader, is_profile):
 
 
 config   = os.path.abspath( "../../configs/training_v1.yaml")
-scaling  = os.path.abspath("../../configs/scaling_params_v1.json")
+scaling  = os.path.abspath("../../configs/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json")
 dataloader = DataLoader.DataLoader(config, scaling)
 netConf_full, input_shape, input_types  = dataloader.get_config()
 
@@ -261,12 +247,12 @@ n_cells_eta = dataloader.n_cells
 n_cells_phi = dataloader.n_cells
 n_outputs = dataloader.tau_types
 
-TauLosses.SetSFs(1, 2.5, 5, 1.5)
-print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
-model_name = "DeepTau2018v0tests"
-model = create_model(netConf_full)
-compile_model(model, 1e-3)
-# tf.keras.utils.plot_model(model, model_name + "_diagram.png", show_shapes=False)
+setup_gpu(dataloader)
 
-fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, True)
+TauLosses.SetSFs(*dataloader.TauLossesSFs)
+print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
+model = create_model(netConf_full)
+
+compile_model(model, dataloader.learning_rate)
+fit_hist = run_training('step{}'.format(1), dataloader.model_name, model, dataloader, False)
 

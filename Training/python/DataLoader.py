@@ -11,9 +11,28 @@ import tensorflow as tf
 import os
 import yaml
 import time
-
+import glob
 class TerminateGenerator:
     pass
+
+def ugly_clean(queue):
+    while True:
+        try:
+            _ = queue.get_nowait()
+        except EmptyException:
+            time.sleep(0.2)
+            if queue.qsize()==0:
+                break
+    if queue.qsize()!=0:
+        raise RuntimeError("Error: queue was not clean properly.")
+
+def nan_check(Xf):
+    for x in Xf:
+        if np.isnan(x).any():
+            print("Nan detected! element=",x.shape) 
+            print(np.argwhere(np.isnan(x)))
+            return True
+    return False
 
 class QueueEx:
     def __init__(self, max_size=0, max_n_puts=math.inf):
@@ -67,27 +86,62 @@ class DataSource:
             else:
                 self.require_file = True
 
-def LoaderThread(queue_out, queue_files,
-                 input_grids, batch_size, n_inner_cells, n_outer_cells, n_flat_features,
-                 n_grid_features, tau_types, return_truth, return_weights):
+class GetData():
 
-    def getdata(_obj_f, _reshape, _dtype=np.float32):
+    @staticmethod
+    def getdata(_obj_f,
+                _reshape,
+                _dtype=np.float32):
         x = np.copy(np.frombuffer(_obj_f.data(), dtype=_dtype, count=_obj_f.size()))
         return x if _reshape==-1 else x.reshape(_reshape)
-    
-    def getgrid(_obj_grid, _inner):
-        _n_cells = n_inner_cells if _inner else n_outer_cells
+
+    @staticmethod
+    def getgrid(_obj_grid,
+                batch_size,
+                n_grid_features,
+                input_grids,
+                _n_cells,
+                _inner):
         _X = []
         for group in input_grids:
             _X.append(tf.convert_to_tensor(
                 np.concatenate(
-                    [ getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner],
+                    [ __class__.getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner],
                      (batch_size, _n_cells, _n_cells, n_grid_features[fname])) for fname in group ],
                     axis=-1
                     ),dtype=tf.float32)
                 )
         return _X
+    
+    @staticmethod
+    def getX(data,
+            batch_size,
+            n_grid_features,
+            n_flat_features,
+            input_grids,
+            n_inner_cells,
+            n_outer_cells):        
+        # Flat Tau features
+        X_all = [tf.convert_to_tensor(__class__.getdata(data.x_tau, (batch_size, n_flat_features)))]
+        # Inner grid
+        X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
+                                   input_grids, n_inner_cells, True) # 500 11 11 176
+        # Outer grid
+        X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
+                                   input_grids, n_outer_cells, False) # 500 11 11 176
+        return X_all
 
+def LoaderThread(queue_out,
+                 queue_files,
+                 input_grids,
+                 batch_size,
+                 n_inner_cells,
+                 n_outer_cells,
+                 n_flat_features,
+                 n_grid_features,
+                 tau_types,
+                 return_truth,
+                 return_weights):
 
     data_source = DataSource(queue_files)
     put_next = True
@@ -97,20 +151,19 @@ def LoaderThread(queue_out, queue_files,
         data = data_source.get()
         if data is None:
             break
-
-        # Flat Tau features
-        X_all = [tf.convert_to_tensor(getdata(data.x_tau, (batch_size, n_flat_features)))]
-        # Inner grid
-        X_all += getgrid(data.x_grid, 1) # 500 11 11 176
-        # Outer grid
-        X_all += getgrid(data.x_grid, 0) # 500 21 21 176
-
+        
+        X_all = GetData.getX(data, batch_size, n_grid_features, n_flat_features,
+                             input_grids, n_inner_cells, n_outer_cells)
+        
+        if nan_check(X_all):
+            break
+        
         X_all = tuple(X_all)
 
         if return_weights:
-            weights = getdata(data.weight, -1)
+            weights = GetData.getdata(data.weight, -1)
         if return_truth:
-            Y = getdata(data.y_onehot, (batch_size, tau_types))
+            Y = GetData.getdata(data.y_onehot, (batch_size, tau_types))
 
         if return_truth and return_weights:
             item = (X_all, Y, weights)
@@ -174,18 +227,23 @@ class DataLoader:
         self.n_load_workers   = self.config["SetupNN"]["n_load_workers"]
         self.n_batches        = self.config["SetupNN"]["n_batches"]
         self.n_batches_val    = self.config["SetupNN"]["n_batches_val"]
+        self.n_batches_log    = self.config["SetupNN"]["n_batches_log"]
         self.validation_split = self.config["SetupNN"]["validation_split"]
         self.max_queue_size   = self.config["SetupNN"]["max_queue_size"]
         self.n_epochs         = self.config["SetupNN"]["n_epochs"]
         self.epoch         = self.config["SetupNN"]["epoch"]
         self.input_grids        = self.config["SetupNN"]["input_grids"]
         self.n_cells = { 'inner': self.n_inner_cells, 'outer': self.n_outer_cells }
+        self.gpu_index        = self.config["SetupNN"]["gpu_index"]
+        self.gpu_mem          = self.config["SetupNN"]["gpu_mem"]
+        self.model_name       = self.config["SetupNN"]["model_name"]
+        self.TauLossesSFs     = self.config["SetupNN"]["TauLossesSFs"]
+        self.learning_rate    = self.config["SetupNN"]["learning_rate"]
+        self.tau_net_setup    = self.config["SetupNN"]["tau_net_setup"]
+        self.comp_net_setup   = self.config["SetupNN"]["comp_net_setup"]
+        self.dense_net_setup  = self.config["SetupNN"]["dense_net_setup"]
 
-        data_files = []
-        for root, dirs, files in os.walk(os.path.abspath(self.config["Setup"]["input_dir"])):
-            for file in files:
-                data_files.append(os.path.join(root, file))
-
+        data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
         self.train_files, self.val_files = \
              np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
 
@@ -233,6 +291,7 @@ class DataLoader:
                     yield item
 
             queue_out.clear()
+            ugly_clean(queue_files)
 
             for i, pr in enumerate(processes):
                 pr.join()
@@ -240,6 +299,28 @@ class DataLoader:
 
         return _generator
 
+    def get_predict_generator(self):
+        '''
+        The implementation of the deterministic generator
+        for suitable use of performance evaluation.
+        The use example:
+        >gen_file = dataloader.get_eval_generator()
+        >for file in files:
+        >   for x,y in en_file(file):
+        >       y_pred = ...
+        '''
+        assert self.batch_size == 1
+        data_loader = R.DataLoader()
+        def read_from_file(file_path):
+            data_loader.ReadFile(R.std.string(file_path), 0, -1)
+            while data_loader.MoveNext():
+                data = data_loader.LoadData()
+                x = GetData.getX(data, self.batch_size, self.n_grid_features,
+                                 self.n_flat_features, self.input_grids,
+                                 self.n_inner_cells, self.n_outer_cells)
+                y = GetData.getdata(data.y_onehot, (self.batch_size, self.tau_types))
+                yield tuple(x), y
+        return read_from_file
 
     def get_config(self):
 
@@ -261,7 +342,9 @@ class DataLoader:
 
         # code below is a shortened copy of common.py
         class NetConf:
-            def __init__(self, name, final, tau_branches, cell_locations, component_names, component_branches):
+            def __init__(self, name, final, tau_branches, cell_locations,
+                        component_names, component_branches,
+                        tau_net_setup, comp_net_setup, dense_net_setup):
                 self.name = name
                 self.final = final
                 self.tau_branches = tau_branches
@@ -269,19 +352,22 @@ class DataLoader:
                 self.comp_names = component_names
                 self.comp_branches = component_branches
 
-        netConf_preTau = NetConf("preTau", False, input_tau_branches, [], [], [])
+                self.tau_net_setup    = tau_net_setup  
+                self.comp_net_setup   = comp_net_setup
+                self.dense_net_setup  = dense_net_setup
+
+        netConf_preTau = NetConf("preTau", False, input_tau_branches, [], [], [], None, None, None)
         netConf_preInner = NetConf("preInner", False, [], ['inner'], ['egamma', 'muon', 'hadrons'], [
             input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches,
             input_cell_pfCand_muon_branches + input_cell_muon_branches,
             input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches
-        ])
-        # netConf_preTauInter = NetConf("preTauInter", False, netConf_preTau.tau_branches, netConf_preInner.cell_locations,
-        #                             netConf_preInner.comp_names, netConf_preInner.comp_branches)
+        ], None, None, None)
         netConf_preOuter = NetConf("preOuter", False, [], ['outer'], netConf_preInner.comp_names,
-                                netConf_preInner.comp_branches)
+                                netConf_preInner.comp_branches, None, None, None)
         netConf_full = NetConf("full", True, netConf_preTau.tau_branches,
                             netConf_preInner.cell_locations + netConf_preOuter.cell_locations,
-                            netConf_preInner.comp_names, netConf_preInner.comp_branches)
+                            netConf_preInner.comp_names, netConf_preInner.comp_branches,
+                            self.tau_net_setup, self.comp_net_setup, self.dense_net_setup)
 
         # Input tensor shape and type 
         input_shape, input_types = [], []
