@@ -7,6 +7,18 @@ from tensorflow.keras.models import load_model
 
 e, mu, tau, jet = 0, 1, 2, 3
 
+def setup_gpu(data_loader):
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        try:
+            tf.config.set_visible_devices(gpus[data_loader.gpu_index], 'GPU')
+            tf.config.experimental.set_virtual_device_configuration(gpus[data_loader.gpu_index],
+                [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=data_loader.gpu_mem*1024)])
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            print(e)
+
 class TimeCheckpoint(Callback):
     def __init__(self, time_interval, file_name_prefix):
         self.time_interval = time_interval

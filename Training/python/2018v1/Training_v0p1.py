@@ -203,19 +203,7 @@ def compile_model(model, learning_rate):
     ]
     model.compile(loss=TauLosses.tau_crossentropy_v2, optimizer=opt, metrics=metrics, weighted_metrics=metrics)
 
-
 def run_training(train_suffix, model_name, model, data_loader, to_profile):
-
-    gpus = tf.config.list_physical_devices('GPU')
-    if gpus:
-        try:
-            tf.config.set_visible_devices(gpus[data_loader.gpu_index], 'GPU')
-            tf.config.experimental.set_virtual_device_configuration(gpus[data_loader.gpu_index],
-                [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=data_loader.gpu_mem*1024)])
-            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-        except RuntimeError as e:
-            print(e)
 
     gen_train = data_loader.get_generator(primary_set = True)
     gen_val = data_loader.get_generator(primary_set = False)
@@ -258,6 +246,8 @@ netConf_full, input_shape, input_types  = dataloader.get_config()
 n_cells_eta = dataloader.n_cells
 n_cells_phi = dataloader.n_cells
 n_outputs = dataloader.tau_types
+
+setup_gpu(dataloader)
 
 TauLosses.SetSFs(*dataloader.TauLossesSFs)
 print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
