@@ -1,0 +1,16 @@
+defaults:
+  - ../../configs@_global_.training_cfg: training_v1
+  - _self_
+
+# mlflow
+path_to_mlflow: mlruns
+experiment_name: ???
+
+# setup
+scaling_cfg: ../../configs/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json # for DataLoader initialisation
+
+# logs
+log_suffix: step1
+path_to_csv_log: .
+path_to_log_dir: ./logs
+path_to_model: .
