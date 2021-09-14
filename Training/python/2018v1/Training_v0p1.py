@@ -137,7 +137,7 @@ def create_model(net_config):
             # n_comp_features = len(input_cell_external_branches) + len(net_config.comp_branches[comp_id])
             n_comp_features = len(net_config.comp_branches[comp_id])
             input_layer_comp = Input(name="input_{}_{}".format(loc, comp_name),
-                                     shape=(n_cells_eta[loc], n_cells_phi[loc], n_comp_features))
+                                     shape=(net_config.n_cells_eta[loc], net_config.n_cells_phi[loc], n_comp_features))
             input_layers.append(input_layer_comp)
             comp_net_setup.RecalcLayerSizes(n_comp_features, 2, 1)
             #input_layer_comp_masked = Masking(name="input_{}_{}_masking".format(loc, comp_name))(input_layer_comp)
@@ -155,7 +155,7 @@ def create_model(net_config):
         else:
             prev_layer = reduced_inputs[0]
         window_size = 3
-        current_size = n_cells_eta[loc]
+        current_size = net_config.n_cells_eta[loc]
         n = 1
         while current_size > 1:
             win_size = min(current_size, window_size)
@@ -176,13 +176,13 @@ def create_model(net_config):
         #dense_net_setup.RecalcLayerSizes(128, 1, 0.5, False)
         #final_dense = reduce_n_features_1d(features_concat, dense_net_setup, 'final')
         final_dense = dense_block_sequence(features_concat, dense_net_setup, 4, 'final')
-        output_layer = Dense(n_outputs, name="final_dense_last",
+        output_layer = Dense(net_config.n_outputs, name="final_dense_last",
                              kernel_initializer=dense_net_setup.kernel_init)(final_dense)
 
     else:
         final_dense = dense_block(features_concat, 1024, dense_net_setup,
                                   'tmp_{}'.format(net_config.name), 1)
-        output_layer = Dense(n_outputs, name="tmp_{}_dense_last".format(net_config.name),
+        output_layer = Dense(net_config.n_outputs, name="tmp_{}_dense_last".format(net_config.name),
                              kernel_initializer=dense_net_setup.kernel_init)(final_dense)
     softmax_output = Activation("softmax", name="main_output")(output_layer)
 
@@ -208,6 +208,7 @@ def run_training(train_suffix, model_name, model, data_loader, to_profile):
 
     gen_train = data_loader.get_generator(primary_set = True)
     gen_val = data_loader.get_generator(primary_set = False)
+    input_shape, input_types = data_loader.get_input_config()
 
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
@@ -243,18 +244,14 @@ with open(os.path.abspath( "../../configs/training_v1.yaml")) as f:
     config = yaml.safe_load(f)
 scaling  = os.path.abspath("../../configs/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json")
 dataloader = DataLoader.DataLoader(config, scaling)
-netConf_full, input_shape, input_types  = dataloader.get_config()
-
-n_cells_eta = dataloader.n_cells
-n_cells_phi = dataloader.n_cells
-n_outputs = dataloader.tau_types
 
 setup_gpu(dataloader)
 
 TauLosses.SetSFs(*dataloader.TauLossesSFs)
 print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
-model = create_model(netConf_full)
 
+netConf_full = dataloader.get_net_config()
+model = create_model(netConf_full)
 compile_model(model, dataloader.learning_rate)
 fit_hist = run_training('step{}'.format(1), dataloader.model_name, model, dataloader, False)
 

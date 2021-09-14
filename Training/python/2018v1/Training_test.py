@@ -15,7 +15,8 @@ dataloader = DataLoader.DataLoader(config, scaling)
 gen_train = dataloader.get_generator(primary_set = True)
 # gen_val = dataloader.get_generator(primary_set = False)
 
-netConf_full, input_shape, input_types  = dataloader.get_config()
+netConf_full = dataloader.get_net_config()
+input_shape, input_types = dataloader.get_input_config()
 
 data_train = tf.data.Dataset.from_generator(
     gen_train, output_types = input_types, output_shapes = input_shape

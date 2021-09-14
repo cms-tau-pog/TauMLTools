@@ -320,27 +320,29 @@ class DataLoader:
                 yield tuple(x), y
         return read_from_file
 
-    def get_config(self):
+    @staticmethod
+    def get_branches(config, group):
+        return list(
+            set(sum( [list(d.keys()) for d in config["Features_all"][group]],[])) - \
+            set(config["Features_disable"][group])
+        )
 
-        def get_branches(config, group):
-            return list(
-                set(sum( [list(d.keys()) for d in config["Features_all"][group]],[])) - \
-                set(config["Features_disable"][group])
-            )
+    def get_net_config(self):
 
         # copy of feature lists is not necessery
-        input_tau_branches = get_branches(self.config,"TauFlat")
-        input_cell_pfCand_ele_branches = get_branches(self.config,"PfCand_electron")
-        input_cell_pfCand_muon_branches = get_branches(self.config,"PfCand_muon")
-        input_cell_pfCand_chHad_branches = get_branches(self.config,"PfCand_chHad")
-        input_cell_pfCand_nHad_branches = get_branches(self.config,"PfCand_nHad")
-        input_cell_pfCand_gamma_branches = get_branches(self.config,"PfCand_gamma")
-        input_cell_ele_branches = get_branches(self.config,"Electron")
-        input_cell_muon_branches = get_branches(self.config,"Muon")
+        input_tau_branches = DataLoader.get_branches(self.config,"TauFlat")
+        input_cell_pfCand_ele_branches = DataLoader.get_branches(self.config,"PfCand_electron")
+        input_cell_pfCand_muon_branches = DataLoader.get_branches(self.config,"PfCand_muon")
+        input_cell_pfCand_chHad_branches = DataLoader.get_branches(self.config,"PfCand_chHad")
+        input_cell_pfCand_nHad_branches = DataLoader.get_branches(self.config,"PfCand_nHad")
+        input_cell_pfCand_gamma_branches = DataLoader.get_branches(self.config,"PfCand_gamma")
+        input_cell_ele_branches = DataLoader.get_branches(self.config,"Electron")
+        input_cell_muon_branches = DataLoader.get_branches(self.config,"Muon")
 
         # code below is a shortened copy of common.py
         class NetConf:
-            def __init__(self, name, final, tau_branches, cell_locations,
+            def __init__(self, name, final, tau_branches, cell_locations, 
+                        n_cells_eta, n_cells_phi, n_outputs,
                         component_names, component_branches,
                         tau_net_setup, comp_net_setup, dense_net_setup):
                 self.name = name
@@ -354,29 +356,37 @@ class DataLoader:
                 self.comp_net_setup   = comp_net_setup
                 self.dense_net_setup  = dense_net_setup
 
-        netConf_preTau = NetConf("preTau", False, input_tau_branches, [], [], [], None, None, None)
-        netConf_preInner = NetConf("preInner", False, [], ['inner'], ['egamma', 'muon', 'hadrons'], [
+                self.n_cells_eta  = n_cells_eta
+                self.n_cells_phi  = n_cells_phi
+                self.n_outputs  = n_outputs
+
+        netConf_preTau = NetConf("preTau", False, input_tau_branches, [], None, None, None, [], [], None, None, None)
+        netConf_preInner = NetConf("preInner", False, [], ['inner'], None, None, None, ['egamma', 'muon', 'hadrons'], [
             input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches,
             input_cell_pfCand_muon_branches + input_cell_muon_branches,
             input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches
         ], None, None, None)
-        netConf_preOuter = NetConf("preOuter", False, [], ['outer'], netConf_preInner.comp_names,
+        netConf_preOuter = NetConf("preOuter", False, [], ['outer'], None, None, None, netConf_preInner.comp_names,
                                 netConf_preInner.comp_branches, None, None, None)
         netConf_full = NetConf("full", True, netConf_preTau.tau_branches,
                             netConf_preInner.cell_locations + netConf_preOuter.cell_locations,
+                            self.n_cells, self.n_cells, self.tau_types,
                             netConf_preInner.comp_names, netConf_preInner.comp_branches,
                             self.tau_net_setup, self.comp_net_setup, self.dense_net_setup)
 
+        return netConf_full
+
+    def get_input_config(self):
         # Input tensor shape and type 
         input_shape, input_types = [], []
-        input_shape.append(tuple([None, len(get_branches(self.config,"TauFlat"))]))
+        input_shape.append(tuple([None, len(DataLoader.get_branches(self.config,"TauFlat"))]))
         input_types.append(tf.float32)
         for grid in ["inner","outer"]:
             for f_group in self.input_grids:
-                n_f = sum([len(get_branches(self.config,cell_type)) for cell_type in f_group])
+                n_f = sum([len(DataLoader.get_branches(self.config,cell_type)) for cell_type in f_group])
                 input_shape.append(tuple([None, self.n_cells[grid], self.n_cells[grid], n_f]))
                 input_types.append(tf.float32)
         input_shape = tuple([tuple(input_shape),(None, self.tau_types)])
         input_types = tuple([tuple(input_types),(tf.float32)])
 
-        return netConf_full, input_shape, input_types
+        return input_shape, input_types
