@@ -232,8 +232,6 @@ class DataLoader:
         self.epoch         = self.config["SetupNN"]["epoch"]
         self.input_grids        = self.config["SetupNN"]["input_grids"]
         self.n_cells = { 'inner': self.n_inner_cells, 'outer': self.n_outer_cells }
-        self.gpu_index        = self.config["SetupNN"]["gpu_index"]
-        self.gpu_mem          = self.config["SetupNN"]["gpu_mem"]
         self.model_name       = self.config["SetupNN"]["model_name"]
         self.TauLossesSFs     = self.config["SetupNN"]["TauLossesSFs"]
         self.learning_rate    = self.config["SetupNN"]["learning_rate"]

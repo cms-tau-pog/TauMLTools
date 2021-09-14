@@ -266,11 +266,10 @@ def main(cfg: DictConfig) -> None:
     
     # run the training with mlflow tracking
     with mlflow.start_run(**run_kwargs) as active_run:
+        setup_gpu(cfg.gpu_cfg)
         training_cfg = OmegaConf.to_object(cfg.training_cfg) # convert to python dictionary
         scaling_cfg = to_absolute_path(cfg.scaling_cfg)
         dataloader = DataLoader.DataLoader(training_cfg, scaling_cfg)
-
-        setup_gpu(dataloader)
 
         TauLosses.SetSFs(*dataloader.TauLossesSFs)
         print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
