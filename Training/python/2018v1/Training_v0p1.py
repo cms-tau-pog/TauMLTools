@@ -215,7 +215,7 @@ def compile_model(model, learning_rate):
     metric_names = {(m if isinstance(m, str) else m.__name__): '' for m in metrics}
     mlflow.log_dict(metric_names, 'input_cfg/metric_names.json')
 
-def run_training(model, data_loader, to_profile, log_suffix, path_to_csv_log, path_to_log_dir, path_to_model):
+def run_training(model, data_loader, to_profile, log_suffix):
 
     gen_train = data_loader.get_generator(primary_set = True)
     gen_val = data_loader.get_generator(primary_set = False)
@@ -230,7 +230,7 @@ def run_training(model, data_loader, to_profile, log_suffix, path_to_csv_log, pa
 
     model_name = data_loader.model_name
     log_name = '%s_%s' % (model_name, log_suffix)
-    csv_log_file = f"{path_to_csv_log}/{log_name}.log"
+    csv_log_file = "metrics.log"
     if os.path.isfile(csv_log_file):
         close_file(csv_log_file)
         os.remove(csv_log_file)
@@ -238,7 +238,7 @@ def run_training(model, data_loader, to_profile, log_suffix, path_to_csv_log, pa
     time_checkpoint = TimeCheckpoint(12*60*60, log_name)
     callbacks = [time_checkpoint, csv_log]
 
-    logs = path_to_log_dir + '/' + log_name + '_' + datetime.now().strftime("%Y.%m.%d(%H:%M)")
+    logs = log_name + '_' + datetime.now().strftime("%Y.%m.%d(%H:%M)")
     tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
                                                      profile_batch = ('100, 300' if to_profile else 0),
                                                      update_freq = ( 0 if data_loader.n_batches_log<=0 else data_loader.n_batches_log ))
@@ -248,7 +248,7 @@ def run_training(model, data_loader, to_profile, log_suffix, path_to_csv_log, pa
                          epochs = data_loader.n_epochs, initial_epoch = data_loader.epoch,
                          callbacks = callbacks)
 
-    model_path = f"{path_to_model}/{log_name}_final.tf"
+    model_path = f"{log_name}_final.tf"
     model.save(model_path, save_format="tf")
 
     # mlflow logs
@@ -284,8 +284,7 @@ def main(cfg: DictConfig) -> None:
         netConf_full = dataloader.get_net_config()
         model = create_model(netConf_full)
         compile_model(model, dataloader.learning_rate)
-        fit_hist = run_training(model, dataloader, False, cfg.log_suffix, 
-                                to_absolute_path(cfg.path_to_csv_log), to_absolute_path(cfg.path_to_log_dir), to_absolute_path(cfg.path_to_model))
+        fit_hist = run_training(model, dataloader, False, cfg.log_suffix)
 
         mlflow.log_dict(training_cfg, 'input_cfg/training_cfg.yaml')
         mlflow.log_artifact(scaling_cfg, 'input_cfg')
