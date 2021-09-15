@@ -2,7 +2,7 @@ import os
 import yaml
 import gc
 import sys
-import glob
+from glob import glob
 import time
 import math
 import numpy as np
@@ -250,7 +250,14 @@ def run_training(model, data_loader, to_profile, log_suffix, path_to_csv_log, pa
 
     model_path = f"{path_to_model}/{log_name}_final.tf"
     model.save(model_path, save_format="tf")
+
+    # mlflow logs
+    for checkpoint_dir in glob(f'{log_name}*.tf'):
+         mlflow.log_artifacts(checkpoint_dir, f"model_checkpoints/{checkpoint_dir}")
     mlflow.log_artifacts(model_path, "model")
+    mlflow.log_artifacts(logs, "custom_tensorboard_logs")
+    mlflow.log_artifact(csv_log_file)
+
     return fit_hist
 
 @hydra.main(config_path='.', config_name='train')
@@ -280,10 +287,11 @@ def main(cfg: DictConfig) -> None:
         fit_hist = run_training(model, dataloader, False, cfg.log_suffix, 
                                 to_absolute_path(cfg.path_to_csv_log), to_absolute_path(cfg.path_to_log_dir), to_absolute_path(cfg.path_to_model))
 
-        mlflow.log_dict(training_cfg, 'input_cfg/training.yaml')
+        mlflow.log_dict(training_cfg, 'input_cfg/training_cfg.yaml')
         mlflow.log_artifact(scaling_cfg, 'input_cfg')
         mlflow.log_artifact(to_absolute_path("Training_v0p1.py"), 'input_cfg')
         mlflow.log_artifact(to_absolute_path("../common.py"), 'input_cfg')
+        mlflow.log_artifact('.hydra/config.yaml', 'input_cfg')
         mlflow.log_param('run_id', active_run.info.run_id)
         print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {active_run.info.run_id}\n')
 
