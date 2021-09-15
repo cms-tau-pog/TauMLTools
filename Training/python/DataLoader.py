@@ -328,14 +328,14 @@ class DataLoader:
     def get_net_config(self):
 
         # copy of feature lists is not necessery
-        input_tau_branches = DataLoader.get_branches(self.config,"TauFlat")
-        input_cell_pfCand_ele_branches = DataLoader.get_branches(self.config,"PfCand_electron")
-        input_cell_pfCand_muon_branches = DataLoader.get_branches(self.config,"PfCand_muon")
-        input_cell_pfCand_chHad_branches = DataLoader.get_branches(self.config,"PfCand_chHad")
-        input_cell_pfCand_nHad_branches = DataLoader.get_branches(self.config,"PfCand_nHad")
-        input_cell_pfCand_gamma_branches = DataLoader.get_branches(self.config,"PfCand_gamma")
-        input_cell_ele_branches = DataLoader.get_branches(self.config,"Electron")
-        input_cell_muon_branches = DataLoader.get_branches(self.config,"Muon")
+        input_tau_branches = self.get_branches(self.config,"TauFlat")
+        input_cell_pfCand_ele_branches = self.get_branches(self.config,"PfCand_electron")
+        input_cell_pfCand_muon_branches = self.get_branches(self.config,"PfCand_muon")
+        input_cell_pfCand_chHad_branches = self.get_branches(self.config,"PfCand_chHad")
+        input_cell_pfCand_nHad_branches = self.get_branches(self.config,"PfCand_nHad")
+        input_cell_pfCand_gamma_branches = self.get_branches(self.config,"PfCand_gamma")
+        input_cell_ele_branches = self.get_branches(self.config,"Electron")
+        input_cell_muon_branches = self.get_branches(self.config,"Muon")
 
         # code below is a shortened copy of common.py
         class NetConf:
@@ -377,11 +377,11 @@ class DataLoader:
     def get_input_config(self):
         # Input tensor shape and type 
         input_shape, input_types = [], []
-        input_shape.append(tuple([None, len(DataLoader.get_branches(self.config,"TauFlat"))]))
+        input_shape.append(tuple([None, len(self.get_branches(self.config,"TauFlat"))]))
         input_types.append(tf.float32)
         for grid in ["inner","outer"]:
             for f_group in self.input_grids:
-                n_f = sum([len(DataLoader.get_branches(self.config,cell_type)) for cell_type in f_group])
+                n_f = sum([len(self.get_branches(self.config,cell_type)) for cell_type in f_group])
                 input_shape.append(tuple([None, self.n_cells[grid], self.n_cells[grid], n_f]))
                 input_types.append(tf.float32)
         input_shape = tuple([tuple(input_shape),(None, self.tau_types)])
