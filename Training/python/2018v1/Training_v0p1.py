@@ -290,7 +290,8 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_artifact(scaling_cfg, 'input_cfg')
         mlflow.log_artifact(to_absolute_path("Training_v0p1.py"), 'input_cfg')
         mlflow.log_artifact(to_absolute_path("../common.py"), 'input_cfg')
-        mlflow.log_artifact('.hydra/config.yaml', 'input_cfg')
+        mlflow.log_artifacts('.hydra', 'input_cfg/hydra')
+        mlflow.log_artifact('Training_v0p1.log', 'input_cfg/hydra')
         mlflow.log_param('run_id', active_run.info.run_id)
         print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {active_run.info.run_id}\n')
 
