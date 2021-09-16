@@ -29,7 +29,7 @@ def ugly_clean(queue):
 def nan_check(Xf):
     for x in Xf:
         if np.isnan(x).any():
-            print("Nan detected! element=",x.shape) 
+            print("Nan detected! element=",x.shape)
             print(np.argwhere(np.isnan(x)))
             return True
     return False
@@ -54,13 +54,13 @@ class QueueEx:
                 except FullException:
                     pass
             time.sleep(retry_interval)
-    
+
     def put_terminate(self):
         self.mp_queue.put(TerminateGenerator())
-        
+
     def get(self):
         return self.mp_queue.get()
-    
+
     def clear(self):
         while not self.mp_queue.empty():
             self.mp_queue.get()
@@ -70,7 +70,7 @@ class DataSource:
         self.data_loader = R.DataLoader()
         self.queue_files = queue_files
         self.require_file = True
-    
+
     def get(self):
         while True:
             if self.require_file:
@@ -112,7 +112,7 @@ class GetData():
                     ),dtype=tf.float32)
                 )
         return _X
-    
+
     @staticmethod
     def getX(data,
             batch_size,
@@ -120,7 +120,7 @@ class GetData():
             n_flat_features,
             input_grids,
             n_inner_cells,
-            n_outer_cells):        
+            n_outer_cells):
         # Flat Tau features
         X_all = [tf.convert_to_tensor(__class__.getdata(data.x_tau, (batch_size, n_flat_features)))]
         # Inner grid
@@ -151,13 +151,13 @@ def LoaderThread(queue_out,
         data = data_source.get()
         if data is None:
             break
-        
+
         X_all = GetData.getX(data, batch_size, n_grid_features, n_flat_features,
                              input_grids, n_inner_cells, n_outer_cells)
-        
+
         if nan_check(X_all):
             break
-        
+
         X_all = tuple(X_all)
 
         if return_weights:
@@ -173,7 +173,7 @@ def LoaderThread(queue_out,
             item = (X_all, weights)
         else:
             item = X_all
-        
+
         put_next = queue_out.put(item)
 
     queue_out.put_terminate()
@@ -217,7 +217,7 @@ class DataLoader:
         self.n_flat_features = len(self.config["Features_all"]["TauFlat"]) - \
                                len(self.config["Features_disable"]["TauFlat"])
 
-        # global variables after compile are read out here 
+        # global variables after compile are read out here
         self.batch_size     = self.config["Setup"]["n_tau"]
         self.n_inner_cells  = self.config["Setup"]["n_inner_cells"]
         self.n_outer_cells  = self.config["Setup"]["n_outer_cells"]
@@ -238,6 +238,7 @@ class DataLoader:
         self.tau_net_setup    = self.config["SetupNN"]["tau_net_setup"]
         self.comp_net_setup   = self.config["SetupNN"]["comp_net_setup"]
         self.dense_net_setup  = self.config["SetupNN"]["dense_net_setup"]
+        self.conv_2d_setup = self.config["SetupNN"]["conv_2d_setup"]
 
         data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
         self.train_files, self.val_files = \
@@ -260,7 +261,7 @@ class DataLoader:
         def _generator():
 
             finish_counter = 0
-            
+
             queue_files = mp.Queue()
             [ queue_files.put(file) for file in _files ]
 
@@ -269,7 +270,7 @@ class DataLoader:
             processes = []
             for i in range(self.n_load_workers):
                 processes.append(
-                mp.Process(target = LoaderThread, 
+                mp.Process(target = LoaderThread,
                         args = (queue_out, queue_files,
                                 self.input_grids, self.batch_size, self.n_inner_cells,
                                 self.n_outer_cells, self.n_flat_features, self.n_grid_features,
@@ -278,7 +279,7 @@ class DataLoader:
                 processes[-1].start()
 
             while finish_counter < self.n_load_workers:
-            
+
                 item = queue_out.get()
 
                 if isinstance(item, TerminateGenerator):
@@ -339,7 +340,7 @@ class DataLoader:
 
         # code below is a shortened copy of common.py
         class NetConf:
-            def __init__(self, name, final, tau_branches, cell_locations, 
+            def __init__(self, name, final, tau_branches, cell_locations,
                         n_cells_eta, n_cells_phi, n_outputs,
                         component_names, component_branches,
                         tau_net_setup, comp_net_setup, dense_net_setup):
@@ -350,7 +351,7 @@ class DataLoader:
                 self.comp_names = component_names
                 self.comp_branches = component_branches
 
-                self.tau_net_setup    = tau_net_setup  
+                self.tau_net_setup    = tau_net_setup
                 self.comp_net_setup   = comp_net_setup
                 self.dense_net_setup  = dense_net_setup
 
@@ -371,11 +372,11 @@ class DataLoader:
                             self.n_cells, self.n_cells, self.tau_types,
                             netConf_preInner.comp_names, netConf_preInner.comp_branches,
                             self.tau_net_setup, self.comp_net_setup, self.dense_net_setup)
-
+        netConf_full.conv_2d_setup = self.conv_2d_setup
         return netConf_full
 
     def get_input_config(self):
-        # Input tensor shape and type 
+        # Input tensor shape and type
         input_shape, input_types = [], []
         input_shape.append(tuple([None, len(self.get_branches(self.config,"TauFlat"))]))
         input_types.append(tf.float32)

@@ -6,8 +6,6 @@ from glob import glob
 import time
 import math
 import numpy as np
-# import uproot
-# import pandas
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
 
@@ -121,10 +119,19 @@ def reduce_n_features_2d(input_layer, net_setup, block_name):
         n += 1
     return prev_layer
 
-def create_model(net_config):
+def get_n_filters_conv2d(n_input, current_size, window_size, reduction_rate):
+    if reduction_rate is None:
+        return n_input
+    if window_size <= 1 or current_size < window_size:
+        raise RuntineError("Unable to compute number of filters for the next Conv2D layer.")
+    n_filters = ((float(current_size) / float(current_size - window_size + 1)) ** 2) * n_input / reduction_rate
+    return int(math.ceil(n_filters))
+
+def create_model(net_config, model_name):
     tau_net_setup = NetSetup(*net_config.tau_net_setup)
     comp_net_setup = NetSetup(*net_config.comp_net_setup)
     dense_net_setup = NetSetup(*net_config.dense_net_setup)
+    conv_2d_window_size, conv_2d_n_inputs, conv_2d_reduction = net_config.conv_2d_setup
 
     input_layers = []
     high_level_features = []
@@ -153,23 +160,25 @@ def create_model(net_config):
             reduced_comp = reduce_n_features_2d(input_layer_comp, comp_net_setup, "{}_{}".format(loc, comp_name))
             reduced_inputs.append(reduced_comp)
 
-        cell_output_size = 64
+
         if len(net_config.comp_names) > 1:
             conv_all_start = Concatenate(name="{}_cell_concat".format(loc), axis=3)(reduced_inputs)
             comp_net_setup.first_layer_size = conv_all_start.shape.as_list()[3]
-            comp_net_setup.last_layer_size = 64
+            comp_net_setup.last_layer_size = conv_2d_n_inputs
             prev_layer = reduce_n_features_2d(conv_all_start, comp_net_setup, "{}_all".format(loc))
         else:
             prev_layer = reduced_inputs[0]
-        window_size = 3
         current_size = net_config.n_cells_eta[loc]
+        n_inputs = conv_2d_n_inputs
         n = 1
         while current_size > 1:
-            win_size = min(current_size, window_size)
-            prev_layer = conv_block(prev_layer, cell_output_size, (win_size, win_size), comp_net_setup,
+            win_size = min(current_size, conv_2d_window_size)
+            n_filters = get_n_filters_conv2d(n_inputs, current_size, win_size, conv_2d_reduction)
+            prev_layer = conv_block(prev_layer, n_filters, (win_size, win_size), comp_net_setup,
                                     "{}_all_{}x{}".format(loc, win_size, win_size), n)
             n += 1
-            current_size -= window_size - 1
+            current_size -= conv_2d_window_size - 1
+            n_inputs = n_filters
 
         cells_flatten = Flatten(name="{}_cells_flatten".format(loc))(prev_layer)
         high_level_features.append(cells_flatten)
@@ -193,7 +202,7 @@ def create_model(net_config):
                              kernel_initializer=dense_net_setup.kernel_init)(final_dense)
     softmax_output = Activation("softmax", name="main_output")(output_layer)
 
-    model = Model(input_layers, softmax_output, name="DeepTau2017v2")
+    model = Model(input_layers, softmax_output, name=model_name)
     return model
 
 def compile_model(model, learning_rate):
@@ -266,11 +275,11 @@ def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
     experiment = mlflow.get_experiment_by_name(cfg.experiment_name)
     if experiment is not None: # fetch existing experiment id
-        run_kwargs = {'experiment_id': experiment.experiment_id} 
+        run_kwargs = {'experiment_id': experiment.experiment_id}
     else: # create new experiment
         experiment_id = mlflow.create_experiment(cfg.experiment_name)
-        run_kwargs = {'experiment_id': experiment_id} 
-    
+        run_kwargs = {'experiment_id': experiment_id}
+
     # run the training with mlflow tracking
     with mlflow.start_run(**run_kwargs) as active_run:
         setup_gpu(cfg.gpu_cfg)
@@ -282,7 +291,7 @@ def main(cfg: DictConfig) -> None:
         print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
 
         netConf_full = dataloader.get_net_config()
-        model = create_model(netConf_full)
+        model = create_model(netConf_full, dataloader.model_name)
         compile_model(model, dataloader.learning_rate)
         fit_hist = run_training(model, dataloader, False, cfg.log_suffix)
 
@@ -296,4 +305,4 @@ def main(cfg: DictConfig) -> None:
         print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {active_run.info.run_id}\n')
 
 if __name__ == '__main__':
-    main() 
+    main()
