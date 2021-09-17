@@ -198,7 +198,7 @@ def create_model(net_config):
 
 def compile_model(model, learning_rate):
     # opt = keras.optimizers.Adam(lr=learning_rate)
-    opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, beta_1=1e-4)
+    opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, schedule_decay=1e-4)
     # opt = Nadam(lr=learning_rate, beta_1=1e-4)
 
     metrics = [
