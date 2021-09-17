@@ -1,91 +1,10 @@
 import gc
-import multiprocessing as mp
-from queue import Empty as EmptyException
-from queue import Full as FullException
-
-import math
-import numpy as np
-import ROOT as R
-import config_parse
-import tensorflow as tf
-import os
-import yaml
-import time
-
-class TerminateGenerator:
-    pass
-
-def ugly_clean(queue):
-    while True:
-        try:
-            _ = queue.get_nowait()
-        except EmptyException:
-            time.sleep(0.2)
-            if queue.qsize()==0:
-                break
-    if queue.qsize()!=0:
-        raise RuntimeError("Error: queue was not clean properly.")
-
-
-class QueueEx:
-    def __init__(self, max_size=0, max_n_puts=math.inf):
-        self.n_puts = mp.Value('i', 0)
-        self.max_n_puts = max_n_puts
-        if self.max_n_puts < 0:
-            self.max_n_puts = math.inf
-        self.mp_queue = mp.Queue(max_size)
-
-    def put(self, item, retry_interval=0.3):
-        while True:
-            with self.n_puts.get_lock():
-                if self.n_puts.value >= self.max_n_puts:
-                    return False
-                try:
-                    self.mp_queue.put(item, False)
-                    self.n_puts.value += 1
-                    return True
-                except FullException:
-                    pass
-            time.sleep(retry_interval)
-    
-    def put_terminate(self):
-        self.mp_queue.put(TerminateGenerator())
-        
-    def get(self):
-        return self.mp_queue.get()
-    
-    def clear(self):
-        while not self.mp_queue.empty():
-            self.mp_queue.get()
-
-class DataSource:
-    def __init__(self, queue_files):
-        self.data_loader = R.DataLoader()
-        self.queue_files = queue_files
-        self.require_file = True
-    
-    def get(self):
-        while True:
-            if self.require_file:
-                try:
-                    file_name = self.queue_files.get(False)
-                    self.data_loader.ReadFile(R.std.string(file_name), 0, -1)
-                    self.require_file = False
-                except EmptyException:
-                    return None
-
-            if self.data_loader.MoveNext():
-                return self.data_loader.LoadData()
-            else:
-                self.require_file = True
+import glob
+from DataLoaderBase import *
 
 def LoaderThread(queue_out, queue_files, batch_size, pfCand_n, pfCand_fn,
                  output_classes, return_truth, return_weights):
 
-    def getdata(_obj_f, _reshape, _dtype=np.float32):
-        return np.copy(np.frombuffer(_obj_f.data(),
-                                    dtype=_dtype,
-                                    count=_obj_f.size())).reshape(_reshape)
 
     data_source = DataSource(queue_files)
     put_next = True
@@ -97,7 +16,7 @@ def LoaderThread(queue_out, queue_files, batch_size, pfCand_n, pfCand_fn,
             break
 
 
-        X_all = getdata(data.x, (batch_size, pfCand_n, pfCand_fn))
+        X_all = GetData.getdata(data.x, (batch_size, pfCand_n, pfCand_fn))
         # if np.isnan(X_all).any() or np.isinf(X_all).any():
         #     print("Nan detected X!")
         #     continue
@@ -105,7 +24,7 @@ def LoaderThread(queue_out, queue_files, batch_size, pfCand_n, pfCand_fn,
         # if return_weights:
         #     weights = getdata(data.weight, -1)
         if return_truth:
-            Y = getdata(data.y, (batch_size, output_classes))
+            Y = GetData.getdata(data.y, (batch_size, output_classes))
 
         # if np.isnan(Y).any() or np.isinf(Y).any():
         #     print("Nan detected Y!")
@@ -123,38 +42,14 @@ def LoaderThread(queue_out, queue_files, batch_size, pfCand_n, pfCand_fn,
 
     queue_out.put_terminate()
 
-class DataLoader:
+class DataLoader (DataLoaderBase):
 
-    @staticmethod
-    def compile_classes(file_config, file_scaling):
-
-        _rootpath = os.path.abspath(os.path.dirname(__file__)+"/../../..")
-        R.gROOT.ProcessLine(".include "+_rootpath)
-
-        _LOADPATH = "TauMLTools/Training/interface/DataLoaderReco_main.h"
-
-        if not(os.path.isfile(file_config) \
-           and os.path.isfile(file_scaling)):
-            raise RuntimeError("file_config or file_scaling do not exist")
-
-        if not(os.path.isfile(_rootpath+"/"+_LOADPATH)):
-            raise RuntimeError("c++ dataloader does not exist")
-
-        # compilation should be done in corresponding order:
-        print("Compiling DataLoader headers.")
-        R.gInterpreter.Declare(config_parse.create_scaling_input(file_scaling,file_config, verbose=False))
-        R.gInterpreter.Declare(config_parse.create_settings(file_config, verbose=False))
-        R.gInterpreter.Declare('#include "{}"'.format(_LOADPATH))
-        R.gInterpreter.Declare('#include "TauMLTools/Core/interface/exception.h"')
-
-
-    def __init__(self, file_config, file_scaling):
+    def __init__(self, config, file_scaling):
 
         self.dataloader_core = config["Setup"]["dataloader_core"]
         self.compile_classes(config, file_scaling, self.dataloader_core)
 
-        with open(file_config) as file:
-            self.config = yaml.safe_load(file)
+        self.config = config
 
         self.input_map = {} #[pfCand_type, feature, feature_int]
         for pfCand_type in self.config["CellObjectType"]:
@@ -179,10 +74,8 @@ class DataLoader:
         self.epoch            = self.config["SetupNN"]["epoch"]
         self.sequence_len     = self.config["SequenceLength"]
 
-        data_files = []
-        for root, dirs, files in os.walk(os.path.abspath(self.config["Setup"]["input_dir"])):
-            for file in files:
-                data_files.append(os.path.join(root, file))
+
+        data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
 
         self.train_files, self.val_files = \
              np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
