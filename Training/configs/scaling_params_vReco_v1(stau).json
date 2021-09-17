@@ -11,7 +11,7 @@
         "pfCand_eta": {
             "global": {
                 "mean": 0.0,
-                "std": 2.3,
+                "std": 3.0,
                 "lim_min": -1.0,
                 "lim_max": 1.0
             }
