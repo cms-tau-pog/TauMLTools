@@ -1,4 +1,5 @@
 import os
+import yaml
 import sys
 import time
 
@@ -6,14 +7,16 @@ sys.path.insert(0, "..")
 from common import *
 import DataLoader
 
-config   = os.path.abspath( "../../configs/training_v1.yaml")
+with open(os.path.abspath( "../../configs/training_v1.yaml")) as f:
+    config = yaml.safe_load(f)
 scaling  = os.path.abspath("../../configs/scaling_params_v1.json")
 dataloader = DataLoader.DataLoader(config, scaling)
 
 gen_train = dataloader.get_generator(primary_set = True)
 # gen_val = dataloader.get_generator(primary_set = False)
 
-netConf_full, input_shape, input_types  = dataloader.get_config()
+netConf_full = dataloader.get_net_config()
+input_shape, input_types = dataloader.get_input_config()
 
 data_train = tf.data.Dataset.from_generator(
     gen_train, output_types = input_types, output_shapes = input_shape

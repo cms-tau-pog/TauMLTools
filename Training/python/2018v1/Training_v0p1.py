@@ -1,7 +1,8 @@
 import os
+import yaml
 import gc
 import sys
-import glob
+from glob import glob
 import time
 import math
 import numpy as np
@@ -20,22 +21,16 @@ from tensorflow.keras.layers import Input, Dense, Conv2D, Dropout, AlphaDropout,
 from tensorflow.keras.callbacks import Callback, ModelCheckpoint, CSVLogger
 from datetime import datetime
 
+import mlflow
+mlflow.tensorflow.autolog(log_models=False)
+
+import hydra
+from hydra.utils import to_absolute_path
+from omegaconf import DictConfig, OmegaConf
+
 sys.path.insert(0, "..")
 from common import *
 import DataLoader
-
-gpus = tf.config.list_physical_devices('GPU')
-if gpus:
-    # Restrict TensorFlow to only allocate 10GB of memory on the first GPU
-    try:
-        tf.config.experimental.set_virtual_device_configuration(
-            gpus[0],
-            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=10*1024)])
-        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-    except RuntimeError as e:
-        # Virtual devices must be set before GPUs have been initialized
-        print(e)
 
 class NetSetup:
     def __init__(self, activation, activation_shared_axes, dropout_rate, first_layer_size, last_layer_size, decay_factor,
@@ -127,10 +122,9 @@ def reduce_n_features_2d(input_layer, net_setup, block_name):
     return prev_layer
 
 def create_model(net_config):
-    tau_net_setup = NetSetup('PReLU', None, 0.2, 128, 128, 1.4, None, False)
-    comp_net_setup = NetSetup('PReLU', [1, 2], 0.2, 1024, 64, 1.6, None, False)
-    #dense_net_setup = NetSetup('relu', 0, 512, 32, 1.4, tf.keras.regularizers.l1(1e-5))
-    dense_net_setup = NetSetup('PReLU', None, 0.2, 200, 64, 1.4, None, False)
+    tau_net_setup = NetSetup(*net_config.tau_net_setup)
+    comp_net_setup = NetSetup(*net_config.comp_net_setup)
+    dense_net_setup = NetSetup(*net_config.dense_net_setup)
 
     input_layers = []
     high_level_features = []
@@ -150,7 +144,7 @@ def create_model(net_config):
             # n_comp_features = len(input_cell_external_branches) + len(net_config.comp_branches[comp_id])
             n_comp_features = len(net_config.comp_branches[comp_id])
             input_layer_comp = Input(name="input_{}_{}".format(loc, comp_name),
-                                     shape=(n_cells_eta[loc], n_cells_phi[loc], n_comp_features))
+                                     shape=(net_config.n_cells_eta[loc], net_config.n_cells_phi[loc], n_comp_features))
             input_layers.append(input_layer_comp)
             comp_net_setup.RecalcLayerSizes(n_comp_features, 2, 1)
             #input_layer_comp_masked = Masking(name="input_{}_{}_masking".format(loc, comp_name))(input_layer_comp)
@@ -168,7 +162,7 @@ def create_model(net_config):
         else:
             prev_layer = reduced_inputs[0]
         window_size = 3
-        current_size = n_cells_eta[loc]
+        current_size = net_config.n_cells_eta[loc]
         n = 1
         while current_size > 1:
             win_size = min(current_size, window_size)
@@ -189,13 +183,13 @@ def create_model(net_config):
         #dense_net_setup.RecalcLayerSizes(128, 1, 0.5, False)
         #final_dense = reduce_n_features_1d(features_concat, dense_net_setup, 'final')
         final_dense = dense_block_sequence(features_concat, dense_net_setup, 4, 'final')
-        output_layer = Dense(n_outputs, name="final_dense_last",
+        output_layer = Dense(net_config.n_outputs, name="final_dense_last",
                              kernel_initializer=dense_net_setup.kernel_init)(final_dense)
 
     else:
         final_dense = dense_block(features_concat, 1024, dense_net_setup,
                                   'tmp_{}'.format(net_config.name), 1)
-        output_layer = Dense(n_outputs, name="tmp_{}_dense_last".format(net_config.name),
+        output_layer = Dense(net_config.n_outputs, name="tmp_{}_dense_last".format(net_config.name),
                              kernel_initializer=dense_net_setup.kernel_init)(final_dense)
     softmax_output = Activation("softmax", name="main_output")(output_layer)
 
@@ -217,11 +211,15 @@ def compile_model(model, learning_rate):
     ]
     model.compile(loss=TauLosses.tau_crossentropy_v2, optimizer=opt, metrics=metrics, weighted_metrics=metrics)
 
+    # log metric names for passing them during model loading
+    metric_names = {(m if isinstance(m, str) else m.__name__): '' for m in metrics}
+    mlflow.log_dict(metric_names, 'input_cfg/metric_names.json')
 
-def run_training(train_suffix, model_name, model, data_loader, to_profile):
+def run_training(model, data_loader, to_profile, log_suffix):
 
-    gen_train = dataloader.get_generator(primary_set = True)
-    gen_val = dataloader.get_generator(primary_set = False)
+    gen_train = data_loader.get_generator(primary_set = True)
+    gen_val = data_loader.get_generator(primary_set = False)
+    input_shape, input_types = data_loader.get_input_config()
 
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
@@ -230,16 +228,17 @@ def run_training(train_suffix, model_name, model, data_loader, to_profile):
         gen_val, output_types = input_types, output_shapes = input_shape
         ).prefetch(tf.data.AUTOTUNE)
 
-    train_name = '%s_%s' % (model_name, train_suffix)
-    log_name = "%s.log" % train_name
-    if os.path.isfile(log_name):
-        close_file(log_name)
-        os.remove(log_name)
-    csv_log = CSVLogger(log_name, append=True)
-    time_checkpoint = TimeCheckpoint(12*60*60, train_name)
+    model_name = data_loader.model_name
+    log_name = '%s_%s' % (model_name, log_suffix)
+    csv_log_file = "metrics.log"
+    if os.path.isfile(csv_log_file):
+        close_file(csv_log_file)
+        os.remove(csv_log_file)
+    csv_log = CSVLogger(csv_log_file, append=True)
+    time_checkpoint = TimeCheckpoint(12*60*60, log_name)
     callbacks = [time_checkpoint, csv_log]
 
-    logs = "logs/" + model_name + datetime.now().strftime("%Y.%m.%d(%H:%M)")
+    logs = log_name + '_' + datetime.now().strftime("%Y.%m.%d(%H:%M)")
     tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
                                                      profile_batch = ('100, 300' if to_profile else 0),
                                                      update_freq = ( 0 if data_loader.n_batches_log<=0 else data_loader.n_batches_log ))
@@ -249,26 +248,52 @@ def run_training(train_suffix, model_name, model, data_loader, to_profile):
                          epochs = data_loader.n_epochs, initial_epoch = data_loader.epoch,
                          callbacks = callbacks)
 
-    model.save("%s_final.tf" % train_name, save_format="tf")
+    model_path = f"{log_name}_final.tf"
+    model.save(model_path, save_format="tf")
+
+    # mlflow logs
+    for checkpoint_dir in glob(f'{log_name}*.tf'):
+         mlflow.log_artifacts(checkpoint_dir, f"model_checkpoints/{checkpoint_dir}")
+    mlflow.log_artifacts(model_path, "model")
+    mlflow.log_artifacts(logs, "custom_tensorboard_logs")
+    mlflow.log_artifact(csv_log_file)
+
     return fit_hist
 
+@hydra.main(config_path='.', config_name='train')
+def main(cfg: DictConfig) -> None:
+    # set up mlflow experiment id
+    mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
+    experiment = mlflow.get_experiment_by_name(cfg.experiment_name)
+    if experiment is not None: # fetch existing experiment id
+        run_kwargs = {'experiment_id': experiment.experiment_id} 
+    else: # create new experiment
+        experiment_id = mlflow.create_experiment(cfg.experiment_name)
+        run_kwargs = {'experiment_id': experiment_id} 
+    
+    # run the training with mlflow tracking
+    with mlflow.start_run(**run_kwargs) as active_run:
+        setup_gpu(cfg.gpu_cfg)
+        training_cfg = OmegaConf.to_object(cfg.training_cfg) # convert to python dictionary
+        scaling_cfg = to_absolute_path(cfg.scaling_cfg)
+        dataloader = DataLoader.DataLoader(training_cfg, scaling_cfg)
 
-config   = os.path.abspath( "../../configs/training_v1.yaml")
-scaling  = os.path.abspath("/nfs/dust/cms/user/mykytaua/dataDeepTau/DeepTauTraining/ShuffleMergeSpectral_TrainingScaling/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json")
-dataloader = DataLoader.DataLoader(config, scaling)
-netConf_full, input_shape, input_types  = dataloader.get_config()
+        TauLosses.SetSFs(*dataloader.TauLossesSFs)
+        print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
 
-n_cells_eta = dataloader.n_cells
-n_cells_phi = dataloader.n_cells
-n_outputs = dataloader.tau_types
+        netConf_full = dataloader.get_net_config()
+        model = create_model(netConf_full)
+        compile_model(model, dataloader.learning_rate)
+        fit_hist = run_training(model, dataloader, False, cfg.log_suffix)
 
-TauLosses.SetSFs(1, 2.5, 5, 1.5)
-print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
-model_name = "DeepTau2018v0"
-model = create_model(netConf_full)
+        mlflow.log_dict(training_cfg, 'input_cfg/training_cfg.yaml')
+        mlflow.log_artifact(scaling_cfg, 'input_cfg')
+        mlflow.log_artifact(to_absolute_path("Training_v0p1.py"), 'input_cfg')
+        mlflow.log_artifact(to_absolute_path("../common.py"), 'input_cfg')
+        mlflow.log_artifacts('.hydra', 'input_cfg/hydra')
+        mlflow.log_artifact('Training_v0p1.log', 'input_cfg/hydra')
+        mlflow.log_param('run_id', active_run.info.run_id)
+        print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {active_run.info.run_id}\n')
 
-compile_model(model, 1e-3)
-# tf.keras.utils.plot_model(model, model_name + "_diagram.png", show_shapes=False)
-
-fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, False)
-
+if __name__ == '__main__':
+    main() 
