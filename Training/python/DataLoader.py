@@ -181,30 +181,29 @@ def LoaderThread(queue_out,
 class DataLoader:
 
     @staticmethod
-    def compile_classes(config, file_scaling):
+    def compile_classes(config, file_scaling, dataloader_core):
 
         _rootpath = os.path.abspath(os.path.dirname(__file__)+"/../../..")
         R.gROOT.ProcessLine(".include "+_rootpath)
 
-        _LOADPATH = "TauMLTools/Training/interface/DataLoader_main.h"
-
         if not os.path.isfile(file_scaling):
             raise RuntimeError("file_scaling do not exist")
 
-        if not(os.path.isfile(_rootpath+"/"+_LOADPATH)):
+        if not(os.path.isfile(_rootpath+"/"+dataloader_core)):
             raise RuntimeError("c++ dataloader does not exist")
 
         # compilation should be done in corresponding order:
         print("Compiling DataLoader headers.")
         R.gInterpreter.Declare(config_parse.create_scaling_input(file_scaling, config, verbose=False))
         R.gInterpreter.Declare(config_parse.create_settings(config, verbose=False))
-        R.gInterpreter.Declare('#include "{}"'.format(_LOADPATH))
+        R.gInterpreter.Declare('#include "{}"'.format(dataloader_core))
         R.gInterpreter.Declare('#include "TauMLTools/Core/interface/exception.h"')
 
 
     def __init__(self, config, file_scaling):
 
-        self.compile_classes(config, file_scaling)
+        self.dataloader_core = config["Setup"]["dataloader_core"]
+        self.compile_classes(config, file_scaling, self.dataloader_core)
 
         self.config = config
 

@@ -150,7 +150,8 @@ class DataLoader:
 
     def __init__(self, file_config, file_scaling):
 
-        self.compile_classes(file_config, file_scaling)
+        self.dataloader_core = config["Setup"]["dataloader_core"]
+        self.compile_classes(config, file_scaling, self.dataloader_core)
 
         with open(file_config) as file:
             self.config = yaml.safe_load(file)

@@ -73,8 +73,8 @@ def create_settings(data: dict, verbose=False) -> str:
         for features in content["Features_all"]:
             number = len(content["Features_all"][features]) -  len(content["Features_disable"][features])
             string += "const inline size_t n_" + str(features) + " = " + str(number) + ";\n"
-            string += "const inline size_t nSeq_" + str(features) + " = " + str(content["SequenceLength"][features]) + ";\n"
-
+            if "SequenceLength" in  content: # sequence length
+                string += "const inline size_t nSeq_" + str(features) + " = " + str(content["SequenceLength"][features]) + ";\n"
 
         string += "const inline std::vector<std::string> CellObjectTypes {\"" + \
                   "\",\"".join(content["CellObjectType"]) + \
@@ -167,7 +167,15 @@ def create_scaling_input(input_scaling_file: str, training_cfg_data: dict, verbo
         string = "namespace Scaling {\n"
         for FeatureT in content_scaling:
             string += "struct "+FeatureT+"{\n"
-            # duplicate = FeatureT in content_cfg['CellObjectType'] # whether to duplicate scaling param values across cone_groups
+            # whether to duplicate scaling param values across cone_groups
+            if FeatureT in content_cfg['CellObjectType'] and \
+               content_cfg['Scaling_setup']['cone_selection'][FeatureT]['cone_types'] == ["inner", "outer"]:
+                duplicate = True
+            elif content_cfg['Scaling_setup']['cone_selection'][FeatureT]['cone_types'] == [None]:
+                duplicate = False
+            else:
+                raise Exception(f"Undefined cone_types for {FeatureT}")
+
             for i, subg in enumerate(subgroups):
                 string += "inline static const "
                 string += "std::vector<std::vector<float>> "
@@ -179,10 +187,10 @@ def create_scaling_input(input_scaling_file: str, training_cfg_data: dict, verbo
                     if len(var_params)==len(cone_groups) and all([g in var_params.keys() for g in cone_groups]):
                         var_string.append(",".join([conv_str(var_params[cone_group][subg]) for cone_group in cone_groups]))
                     elif len(var_params)==1 and global_group in var_params.keys():
-                        # if duplicate:
-                        #     var_string.append(",".join([conv_str(var_params[global_group][subg]) for cone_group in cone_groups]))
-                        # else:
-                        var_string.append(conv_str(var_params[global_group][subg]))
+                        if duplicate:
+                            var_string.append(",".join([conv_str(var_params[global_group][subg]) for cone_group in cone_groups]))
+                        else:
+                            var_string.append(conv_str(var_params[global_group][subg]))
                     else:
                         raise Exception(f"wrong format for scaling params in json for variable {var}: expect either dictionary with either a key {global_group}, or keys {cone_groups}")
                 string += "{{"+"},{".join(var_string)+"}};\n"

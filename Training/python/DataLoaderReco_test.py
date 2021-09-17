@@ -5,13 +5,16 @@ import numpy as np
 import time
 import config_parse
 import os
+import yaml
 
 R.gROOT.ProcessLine(".include ../../..")
 
 print("Compiling Setup classes...")
 
-R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_vReco_v1.json", "../configs/trainingReco_v1.yaml", verbose=False))
-R.gInterpreter.Declare(config_parse.create_settings("../configs/trainingReco_v1.yaml", verbose=False))
+with open(os.path.abspath( "../configs/trainingReco_v1.yaml")) as f:
+    config = yaml.safe_load(f)
+R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_vReco_v1(stau).json", config, verbose=False))
+R.gInterpreter.Declare(config_parse.create_settings(config, verbose=False))
 
 print("Compiling DataLoader_main...")
 R.gInterpreter.Declare('#include "../interface/DataLoaderReco_main.h"')
@@ -25,7 +28,6 @@ input_files = []
 for root, dirs, files in os.walk(os.path.abspath(R.Setup.input_dir)):
     for file in files:
         input_files.append(os.path.join(root, file))
-# print(input_files)
 
 data_loader = R.DataLoader()
 
@@ -54,9 +56,6 @@ for i in range(n_batches):
     data = data_loader.LoadData()
     X = getdata(data.x, (n_tau, pfCand_n, pfCand_fn))
     Y = getdata(data.y, (n_tau, outclass))
-
-    print(X[:1,:10,:1])
-    print(Y[:1,:])
 
     end = time.time()
     print(i, " end: ",end-start, ' s.')
