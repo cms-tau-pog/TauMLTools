@@ -71,9 +71,6 @@ SetupNN:
                            ]
     TauLossesSFs         : [1, 2.5, 5, 1.5]
     learning_rate        : 0.001
-    # Hardware-setup 
-    gpu_mem              : 7 # in Gb
-    gpu_index            : 0
     tau_net_setup        : ['PReLU', null, 0.2, 128, 128, 1.4, null, False] 
     comp_net_setup       : ['PReLU', [1, 2], 0.2, 1024, 64, 1.6, null, False]
     dense_net_setup      : ['PReLU', null, 0.2, 200, 64, 1.4, null, False]
