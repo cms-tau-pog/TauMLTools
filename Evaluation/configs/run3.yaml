@@ -3,9 +3,10 @@ defaults:
   - discriminator: ???
   - plot_setup
   - selection
+  - _self_
 
 # mflow run info
-path_to_mlflow: 2018v1/mlruns
+path_to_mlflow: ../Training/python/2018v1/mlruns
 run_id: ???
 
 # phase space region

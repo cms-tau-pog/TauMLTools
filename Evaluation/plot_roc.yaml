@@ -1,12 +1,12 @@
 # input
-path_to_mlflow: 2018v1/mlruns
-experiment_name: ???
+path_to_mlflow: ../Training/python/2018v1/mlruns
+experiment_name: demo
 discriminators: 
-  ???: ['roc_curve', 'roc_wp']
-  ???: ['roc_wp']
-  ???: ['roc_wp']
+  75069419b22944c79881aff9135d9954: ['roc_curve', 'roc_wp']
+  c65c2bc8774c4112bac9101b8a7970b2: ['roc_wp']
+  44cbb5fba0d244ff9354c46e1f161905: ['roc_wp']
 reference: 
-  ???: 'roc_curve'
+  75069419b22944c79881aff9135d9954: 'roc_curve'
 
 # region
 vs_type: 'jet'

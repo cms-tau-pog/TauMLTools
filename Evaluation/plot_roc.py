@@ -189,6 +189,7 @@ def main(cfg: DictConfig) -> None:
 
     with mlflow.start_run(experiment_id=experiment_id, run_id=list(cfg.discriminators.keys())[0]):
         mlflow.log_artifact(path_to_pdf, 'plots')
+    print(f'\n    Saved the plot under runID={list(cfg.discriminators.keys())[0]} folder\n')
 
 if __name__ == '__main__':
     main()
