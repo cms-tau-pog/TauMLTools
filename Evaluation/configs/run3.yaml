@@ -3,9 +3,11 @@ defaults:
   - discriminator: ???
   - plot_setup
   - selection
+  - _self_
 
 # mflow run info
-path_to_mlflow: 2018v1/mlruns
+path_to_mlflow: ../Training/python/2018v1/mlruns
+experiment_id: ???
 run_id: ???
 
 # phase space region
@@ -16,13 +18,12 @@ sample_vs_type: TT
 pt_bins: [20, 100, 1000]
 
 # selection
-read_branches: [ 'tau_pt', 'tau_decayModeFinding', 'tau_decayMode', 'gen_${vs_type}', 'gen_tau', 'tau_charge', 'lepton_gen_charge', 
-                  againstElectronMVA6', 'againstMuon3', 'byIsolationMVArun2017v2DBoldDMwLT2017', ]
+read_branches: [ 'tau_pt', 'tau_decayMode' ] # 'gen_${vs_type}', 'gen_tau',
 cuts: ${apply_dm_cuts}
 
 # paths to input tuples used to make predictions
-input_taus: 'eval_data/tau_${sample_tau}.h5' 
-input_vs_type: 'eval_data/${vs_type}_${sample_vs_type}.h5' 
+input_taus: 'eval_data/${sample_tau}.h5' 
+input_vs_type: 'eval_data/${sample_vs_type}.h5' 
 weights: null
 
 # misc: to be moved elsewhere

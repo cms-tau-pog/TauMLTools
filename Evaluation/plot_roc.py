@@ -127,8 +127,6 @@ from omegaconf import OmegaConf, DictConfig
 def main(cfg: DictConfig) -> None:
     path_to_mlflow = to_absolute_path(cfg.path_to_mlflow)
     mlflow.set_tracking_uri(f"file://{path_to_mlflow}")
-    experiment = mlflow.get_experiment_by_name(cfg.experiment_name)
-    experiment_id = experiment.experiment_id
     path_to_pdf = f'./{cfg.output_name}.pdf' # hydra log directory
 
     # retrieve pt bin from input cfg 
@@ -140,7 +138,7 @@ def main(cfg: DictConfig) -> None:
         raise RuntimeError(f'Expect to have only one reference discriminator, got: {cfg.reference.keys()}')
     reference_cfg = OmegaConf.to_object(cfg.reference) # convert to python dict to enable popitem()
     ref_discr_name, ref_curve_type = reference_cfg.popitem()
-    reference_json = f'{path_to_mlflow}/{experiment_id}/{ref_discr_name}/artifacts/performance.json'
+    reference_json = f'{path_to_mlflow}/{cfg.experiment_id}/{ref_discr_name}/artifacts/performance.json'
     with open(reference_json, 'r') as f:
         ref_discr_data = json.load(f)
     ref_curve = select_curve(ref_discr_data['metrics'][ref_curve_type], 
@@ -153,7 +151,7 @@ def main(cfg: DictConfig) -> None:
     with PdfPages(path_to_pdf) as pdf:
         for discr_name, curve_types in cfg.discriminators.items():
             # retrieve discriminator data from corresponding json 
-            json_file = f'{path_to_mlflow}/{experiment_id}/{discr_name}/artifacts/performance.json'
+            json_file = f'{path_to_mlflow}/{cfg.experiment_id}/{discr_name}/artifacts/performance.json'
             with open(json_file, 'r') as f:
                 discr_data = json.load(f)
 
@@ -187,8 +185,9 @@ def main(cfg: DictConfig) -> None:
         plt.subplots_adjust(hspace=0)
         pdf.savefig(fig, bbox_inches='tight')
 
-    with mlflow.start_run(experiment_id=experiment_id, run_id=list(cfg.discriminators.keys())[0]):
+    with mlflow.start_run(experiment_id=cfg.experiment_id, run_id=list(cfg.discriminators.keys())[0]):
         mlflow.log_artifact(path_to_pdf, 'plots')
+    print(f'\n    Saved the plot in artifacts/plots for runID={list(cfg.discriminators.keys())[0]}\n')
 
 if __name__ == '__main__':
     main()

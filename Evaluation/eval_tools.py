@@ -251,65 +251,62 @@ def select_curve(curve_list, **selection):
         raise Exception(f"Failed to find a single curve for selection: {[f'{k}=={v}' for k,v in selection.items()]}")
     return filtered_curves
 
-def create_df(file_name, predictions, column_prefix, branches, weights, tau_types):
-    def read_branches(file_name, tree_name, branches):
-        if file_name.endswith('.root'):
-            with uproot.open(file_name) as f:
+def create_df(path_to_input_file, input_branches, tau_types, path_to_pred_file, pred_column_prefix, path_to_weights):
+    def read_branches(path_to_file, tree_name, branches):
+        if path_to_file.endswith('.root'):
+            with uproot.open(path_to_file) as f:
                 tree = f[tree_name]
                 df = tree.arrays(branches, library='pd')
             return df
-        elif file_name.endswith('.h5') or file_name.endswith('.hdf5'):
-            return pd.read_hdf(file_name, tree_name, columns=branches)
+        elif path_to_file.endswith('.h5') or path_to_file.endswith('.hdf5'):
+            return pd.read_hdf(path_to_file, tree_name, columns=branches)
         raise RuntimeError("Unsupported file type.")
 
-    def add_predictions(df, file_name, column_prefix):
-        with h5py.File(file_name, 'r') as f:
+    def add_predictions(df, path_to_pred_file, pred_column_prefix):
+        with h5py.File(path_to_pred_file, 'r') as f:
             file_keys = list(f.keys())
         if 'predictions' in file_keys: 
-            df_pred = pd.read_hdf(file_name, 'predictions')
+            df_pred = pd.read_hdf(path_to_pred_file, 'predictions')
         else:
-            df_pred = pd.read_hdf(file_name)
-        prob_tau = df_pred[f'{column_prefix}_tau'].values
+            df_pred = pd.read_hdf(path_to_pred_file)
+        prob_tau = df_pred[f'{pred_column_prefix}_tau'].values
         for node_column in df_pred.columns:
-            tau_type = node_column.split(f'{column_prefix}_')[-1] # assume prediction column name to be "{column_prefix}_{tau_type}"
+            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}_{tau_type}"
+            tau_type = node_column.split(f'{pred_column_prefix}_')[-1] 
             if tau_type != 'tau':
-                prob_vs_type = df_pred[column_prefix + '_' + tau_type].values
+                prob_vs_type = df_pred[pred_column_prefix + '_' + tau_type].values
                 tau_vs_other_type = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_vs_type), np.zeros(prob_tau.shape))
-                df[f'{column_prefix}_vs_{tau_type}'] = pd.Series(tau_vs_other_type, index=df.index)
-            df[f'{column_prefix}_{tau_type}'] = pd.Series(df_pred[column_prefix + '_' + tau_type].values, index=df.index)
+                df[f'{pred_column_prefix}_vs_{tau_type}'] = pd.Series(tau_vs_other_type, index=df.index)
+            df[f'{pred_column_prefix}_{tau_type}'] = pd.Series(df_pred[pred_column_prefix + '_' + tau_type].values, index=df.index)
         return df
 
-    def add_targets(df, file_name):
-        with h5py.File(file_name, 'r') as f:
+    def add_targets(df, path_to_target_file):
+        with h5py.File(path_to_target_file, 'r') as f:
             file_keys = list(f.keys())
         if 'targets' in file_keys: 
-            df_targets = pd.read_hdf(file_name, 'targets')
+            df_targets = pd.read_hdf(path_to_target_file, 'targets')
         else:
             return df
         for node_column in df_targets.columns:
-            tau_type = node_column.split(f'{column_prefix}_')[-1]
+            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}_{tau_type}"
+            tau_type = node_column.split(f'{pred_column_prefix}_')[-1]
             df[f'gen_{tau_type}'] = df_targets[node_column]
         return df
     
-    def add_weights(df, file_name):
-        df_weights = pd.read_hdf(file_name)
+    def add_weights(df, path_to_weight_file):
+        df_weights = pd.read_hdf(path_to_weight_file)
         df['weight'] = pd.Series(df_weights.weight.values, index=df.index)
         return df
 
     # TODO: add on the fly branching creation for uproot
 
-    df = read_branches(file_name, 'taus', branches)
-    base_name = os.path.basename(file_name)
-    if predictions is not None:
-        pred_file_name = os.path.splitext(base_name)[0] + '_pred.h5'
-        path_to_pred = os.path.join(predictions, pred_file_name)
-        add_predictions(df, path_to_pred, column_prefix)
-        add_targets(df, path_to_pred)
+    df = read_branches(path_to_input_file, 'taus', input_branches)
+    if path_to_pred_file is not None:
+        add_predictions(df, path_to_pred_file, pred_column_prefix)
+        add_targets(df, path_to_pred_file)
     else:
-        print('[INFO] No predictions found for this run, will proceed without them.')
-    if weights is not None:
-        weight_file_name = os.path.splitext(base_name)[0] + '_weights.h5'
-        path_to_weights = os.path.join(weights, weight_file_name)
+        print('[INFO] No predictions found in mlflow artifacts for this run, will proceed without them.')
+    if path_to_weights is not None:
         add_weights(df, path_to_weights)
     else:
         df['weight'] = pd.Series(np.ones(df.shape[0]), index=df.index)
