@@ -52,10 +52,6 @@ class RocCurve:
             y = self.pr[0]
             entry = ax.errorbar(x, y, xerr=self.pr_err[1], yerr=self.pr_err[0], color=self.color,
                         fmt='o', markersize=self.marker_size, linewidth=1)
-            # sp = interpolate.interp1d(x, y, kind='linear', fill_value="extrapolate")
-            # x_fine = np.arange(x[0], x[-1], step=(x[-1] - x[0]) / 1000)
-            # y_fine = sp(x_fine)
-            # ax.errorbar(x_fine, y_fine, color=self.color, linewidth=1, fmt='--')
 
         else:
             if self.dots_only:
@@ -231,20 +227,6 @@ def ReadBrancesToDataFrame(file_name, tree_name, branches):
         return pandas.read_hdf(file_name, tree_name, columns=branches)
     raise RuntimeError("Unsupported file type.")
 
-# def create_roc_ratio(x1, y1, x2, y2):
-#     idx_min = np.argmax((x2 >= x1[0]) & (y2 > 0))
-#     if x2[-1] <= x1[-1]:
-#         idx_max = x2.shape[0]
-#     else:
-#          idx_max = np.argmax(x2 > x1[-1])
-#     sp = interpolate.interp1d(x1, y1, kind='cubic')
-#     x1_upd = x2[idx_min:idx_max]
-#     y1_upd = sp(x1_upd)
-#     ratio = np.empty((2, x1_upd.shape[0]))
-#     ratio[0, :] = y1_upd / y2[idx_min:idx_max]
-#     ratio[1, :] = x1_upd
-#     return ratio
-
 def create_roc_ratio(x1, y1, x2, y2):
     sp = interpolate.interp1d(x2, y2)
     y2_upd = sp(x1)
@@ -255,12 +237,6 @@ def create_roc_ratio(x1, y1, x2, y2):
     ratio[0, :] = y1_clean / y2_upd_clean
     ratio[1, :] = x1_clean
     return ratio
-
-def cm2inch(*tupl):
-    inch = 2.54
-    if isinstance(tupl[0], tuple):
-        return tuple(i/inch for i in tupl[0])
-    return tuple(i/inch for i in tupl)
 
 def select_curve(curve_list, **selection):
     filter_func = lambda x: all([x[k]==v if k in x else False for k,v in selection.items()])

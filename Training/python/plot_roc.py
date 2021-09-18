@@ -8,18 +8,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from eval_tools import select_curve
-
-def create_roc_ratio(x1, y1, x2, y2):
-    sp = interpolate.interp1d(x2, y2)
-    y2_upd = sp(x1)
-    y2_upd_clean = y2_upd[y2_upd > 0]
-    x1_clean = x1[y2_upd > 0]
-    y1_clean = y1[y2_upd > 0]
-    ratio = np.empty((2, x1_clean.shape[0]))
-    ratio[0, :] = y1_clean / y2_upd_clean
-    ratio[1, :] = x1_clean
-    return ratio
+from eval_tools import select_curve, create_roc_ratio
 
 class RocCurve:
     def __init__(self, data, ref_roc=None):
