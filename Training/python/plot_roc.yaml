@@ -1,4 +1,5 @@
 # input
+path_to_mlflow: 2018v1/mlruns
 experiment_name: ???
 discriminators: 
   ???: ['roc_curve', 'roc_wp']
@@ -13,7 +14,5 @@ sample_tau: 'HTT'
 sample_vs_type: 'TT'
 pt_bin: [20, 100] 
 
-# output folder to store pdf plot
-# will also log it to the run of the first discriminator in the "discriminators" list
-output_folder: plots
+# will log it to the run of the first discriminator in the "discriminators" list
 output_name: 'roc_curve_vs_${vs_type}_pt_${pt_bin[0]}_${pt_bin[1]}'

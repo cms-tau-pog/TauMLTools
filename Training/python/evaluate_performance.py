@@ -15,14 +15,19 @@ import eval_tools
 
 @hydra.main(config_path='configs', config_name='run3')
 def main(cfg: DictConfig) -> None:
-    mlflow.set_tracking_uri(f"file://{to_absolute_path('mlruns')}")
-    experiment = mlflow.get_experiment_by_name(cfg.experiment_name)
-    experiment_id = experiment.experiment_id
+    mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
+    with mlflow.start_run(run_id=cfg.run_id) as active_run:
+        path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{active_run.info.experiment_id}/{cfg.run_id}/artifacts/')
 
     input_taus = to_absolute_path(cfg.input_taus)
     input_vs_type = to_absolute_path(cfg.input_vs_type)
-    predictions = predictions_path if os.path.exists(predictions_path:=to_absolute_path(f'mlruns/{experiment_id}/{cfg.run_id}/artifacts/predictions'))  else None
-    output_json_path = to_absolute_path(f'mlruns/{experiment_id}/{cfg.run_id}/artifacts/performance.json')
+    if os.path.exists(predictions_path:=f'{path_to_artifacts}/predictions'):
+        predictions = predictions_path 
+        column_prefix = cfg.discriminator.column_prefix
+    else:
+        predictions = None
+        column_prefix = None
+    output_json_path = f'{path_to_artifacts}/performance.json'
     weights = to_absolute_path(cfg.weights) if cfg.weights is not None else None
 
     # init Discriminator() class from filtered input configuration
@@ -44,10 +49,10 @@ def main(cfg: DictConfig) -> None:
 
     # read original data and corresponging predictions into DataFrame 
     if input_vs_type is None:
-        df_all = eval_tools.create_df(input_taus, predictions, cfg.discriminator.column_prefix, read_branches, weights, ['tau', cfg.vs_type])
+        df_all = eval_tools.create_df(input_taus, predictions, column_prefix, read_branches, weights, ['tau', cfg.vs_type])
     else:
-        df_taus = eval_tools.create_df(input_taus, predictions, cfg.discriminator.column_prefix, read_branches, weights, ['tau'])
-        df_vs_type = eval_tools.create_df(input_vs_type, predictions, cfg.discriminator.column_prefix, read_branches, weights, [cfg.vs_type])
+        df_taus = eval_tools.create_df(input_taus, predictions, column_prefix, read_branches, weights, ['tau'])
+        df_vs_type = eval_tools.create_df(input_vs_type, predictions, column_prefix, read_branches, weights, [cfg.vs_type])
         df_all = df_taus.append(df_vs_type)
 
     # apply selection cuts

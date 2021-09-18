@@ -125,14 +125,11 @@ from omegaconf import OmegaConf, DictConfig
 
 @hydra.main(config_path='.', config_name='plot_roc')
 def main(cfg: DictConfig) -> None:
-    mlflow.set_tracking_uri(f"file://{to_absolute_path('mlruns')}")
+    path_to_mlflow = to_absolute_path(cfg.path_to_mlflow)
+    mlflow.set_tracking_uri(f"file://{path_to_mlflow}")
     experiment = mlflow.get_experiment_by_name(cfg.experiment_name)
     experiment_id = experiment.experiment_id
-
-    # set output paths
-    output_folder = to_absolute_path(cfg.output_folder)
-    os.makedirs(output_folder, exist_ok=True)
-    path_to_pdf = f'{output_folder}/{cfg.output_name}.pdf'
+    path_to_pdf = f'./{cfg.output_name}.pdf' # hydra log directory
 
     # retrieve pt bin from input cfg 
     assert len(cfg.pt_bin)==2 and cfg.pt_bin[0] <= cfg.pt_bin[1]
@@ -143,7 +140,7 @@ def main(cfg: DictConfig) -> None:
         raise RuntimeError(f'Expect to have only one reference discriminator, got: {cfg.reference.keys()}')
     reference_cfg = OmegaConf.to_object(cfg.reference) # convert to python dict to enable popitem()
     ref_discr_name, ref_curve_type = reference_cfg.popitem()
-    reference_json = to_absolute_path(f'mlruns/{experiment_id}/{ref_discr_name}/artifacts/performance.json')
+    reference_json = f'{path_to_mlflow}/{experiment_id}/{ref_discr_name}/artifacts/performance.json'
     with open(reference_json, 'r') as f:
         ref_discr_data = json.load(f)
     ref_curve = select_curve(ref_discr_data['metrics'][ref_curve_type], 
@@ -156,7 +153,7 @@ def main(cfg: DictConfig) -> None:
     with PdfPages(path_to_pdf) as pdf:
         for discr_name, curve_types in cfg.discriminators.items():
             # retrieve discriminator data from corresponding json 
-            json_file = to_absolute_path(f'mlruns/{experiment_id}/{discr_name}/artifacts/performance.json')
+            json_file = f'{path_to_mlflow}/{experiment_id}/{discr_name}/artifacts/performance.json'
             with open(json_file, 'r') as f:
                 discr_data = json.load(f)
 
