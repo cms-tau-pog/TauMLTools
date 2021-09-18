@@ -254,6 +254,14 @@ public:
               FillCellGrid(tau, tau_i, outerCellGridRef, false);
               ++tau_i;
             }
+            else {
+              if (include_mismatched)
+                ++tau_i;
+            }
+          }
+          else {
+            if (include_mismatched)
+              ++tau_i;
           }
           ++current_entry;
         }
