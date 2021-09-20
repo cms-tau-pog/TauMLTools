@@ -23,6 +23,8 @@ class Training(Task, HTCondorWorkflow, law.LocalWorkflow):
     conda_path   = luigi.Parameter(description = 'e.g: /nfs/dust/cms/user/mykytaua/softML/miniconda3/bin/conda')
     env_name     = luigi.Parameter(default = 'tau-ml',
                         description = 'conda env name (e.g: tau-ml): $ conda activate tau-ml')
+    comp_facility = luigi.Parameter(default = 'desy-naf',
+                        description = 'Computing facility for specific setups e.g: desy-naf, lxplus')
 
     def htcondor_bootstrap_file(self):
         # each job can define a bootstrap file that is executed prior to the actual job
@@ -56,11 +58,17 @@ class Training(Task, HTCondorWorkflow, law.LocalWorkflow):
         else:
             config.custom_content.append(("requirements", "(OpSysAndVer =?= \"CentOS7\")"))
 
-        # maximum runtime
-        config.custom_content.append(("+MaxRuntime", int(math.floor(self.max_runtime * 3600)) - 1))
+        if self.comp_facility=="desy-naf":
+            config.custom_content.append(("+RequestRuntime", int(math.floor(self.max_runtime * 3600)) - 1))
+            config.custom_content.append(('RequestMemory', '{}'.format(self.max_memory)))
+        elif self.comp_facility=="lxplus":
+            config.custom_content.append(("+MaxRuntime", int(math.floor(self.max_runtime * 3600)) - 1))
+            config.custom_content.append(('request_memory', '{}'.format(self.max_memory)))
+        else:
+            raise Exception('no specific setups for {self.comp_facility} computing facility')
+
         config.custom_content.append(("getenv", "true"))
         config.custom_content.append(('JobBatchName'  , self.batch_name))
-        config.custom_content.append(('request_memory', '{}'.format(self.max_memory)))
 
         config.custom_content.append(("error" , '/'.join([err_dir, 'err_{}.txt'.format(job_num)])))
         config.custom_content.append(("output", '/'.join([out_dir, 'out_{}.txt'.format(job_num)])))
