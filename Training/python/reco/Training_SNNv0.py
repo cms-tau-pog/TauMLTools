@@ -20,14 +20,17 @@ from tensorflow.keras.layers import Input, Dense, Conv2D, Dropout, AlphaDropout,
 from tensorflow.keras.callbacks import Callback, ModelCheckpoint, CSVLogger
 from datetime import datetime
 
+import mlflow
+mlflow.tensorflow.autolog(log_models=False)
+
+import hydra
+from hydra.utils import to_absolute_path
+from omegaconf import DictConfig, OmegaConf
+
 sys.path.insert(0, "..")
 from commonReco import *
-import DataLoader
-
-# tf.debugging.experimental.enable_dump_debug_info(
-#     "./debugv5_logdir",
-#     tensor_debug_mode="FULL_HEALTH",
-#     circular_buffer_size=-1)
+from common import setup_gpu
+import DataLoaderReco
 
 class MyGNNLayer(tf.keras.layers.Layer):
     def __init__(self, n_dim, num_outputs, regu_rate, **kwargs):
@@ -295,7 +298,8 @@ def create_model(setup_main, input_map):
 
 def compile_model(model, mode, learning_rate):
     # opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, beta_1=1e-4)
-    opt = tf.keras.optimizers.Adam(learning_rate = learning_rate)
+    opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, schedule_decay=1e-4)
+    # opt = tf.keras.optimizers.Adam(learning_rate = learning_rate)
     CustomMSE.mode = mode
     metrics = []
     if "dm" in mode:
@@ -303,12 +307,17 @@ def compile_model(model, mode, learning_rate):
     if "p4" in mode:
         metrics.extend([my_mse_pt, my_mse_mass, pt_res, pt_res_rel, m2_res])
     model.compile(loss=CustomMSE(), optimizer=opt, metrics=metrics)
+    
+    # log metric names for passing them during model loading
+    metric_names = {(m if isinstance(m, str) else m.__name__): '' for m in metrics}
+    mlflow.log_dict(metric_names, 'input_cfg/metric_names.json')
 
 
-def run_training(train_suffix, model_name, model, data_loader, is_profile):
+def run_training(model, data_loader, to_profile, log_suffix):
 
-    gen_train = dataloader.get_generator(primary_set = True)
-    gen_val = dataloader.get_generator(primary_set = False)
+    gen_train = data_loader.get_generator(primary_set = True)
+    gen_val = data_loader.get_generator(primary_set = False)
+    _, input_shape, input_types = data_loader.get_config()
 
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
@@ -317,51 +326,72 @@ def run_training(train_suffix, model_name, model, data_loader, is_profile):
         gen_val, output_types = input_types, output_shapes = input_shape
         ).prefetch(tf.data.AUTOTUNE)
 
-    train_name = '%s_%s' % (model_name, train_suffix)
-    log_name = "%s.log" % train_name
-    if os.path.isfile(log_name):
-        close_file(log_name)
-        os.remove(log_name)
-    csv_log = CSVLogger(log_name, append=True)
-    time_checkpoint = TimeCheckpoint(1*60*60, train_name)
+    model_name = data_loader.model_name
+    log_name = '%s_%s' % (model_name, log_suffix)
+    csv_log_file = "metrics.log"
+    if os.path.isfile(csv_log_file):
+        close_file(csv_log_file)
+        os.remove(csv_log_file)
+    csv_log = CSVLogger(csv_log_file, append=True)
+    time_checkpoint = TimeCheckpoint(12*60*60, log_name)
     callbacks = [time_checkpoint, csv_log]
 
-    if is_profile:
-        logs = "logs/" + model_name + datetime.now().strftime("%Y%m%d-%H%M%S")
-        tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs, profile_batch='10, 30')
-        callbacks.append(tboard_callback)
+    logs = log_name + '_' + datetime.now().strftime("%Y.%m.%d(%H:%M)")
+    tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
+                                                     profile_batch = ('100, 300' if to_profile else 0),
+                                                     update_freq = ( 0 if data_loader.n_batches_log<=0 else data_loader.n_batches_log ))
+    callbacks.append(tboard_callback)
 
     fit_hist = model.fit(data_train, validation_data = data_val,
                          epochs = data_loader.n_epochs, initial_epoch = data_loader.epoch,
                          callbacks = callbacks)
+    
+    model_path = f"{log_name}_final.tf"
+    model.save(model_path, save_format="tf")
 
-    model.save("%s_final.tf" % train_name, save_format="tf")
+    # mlflow logs
+    for checkpoint_dir in glob(f'{log_name}*.tf'):
+         mlflow.log_artifacts(checkpoint_dir, f"model_checkpoints/{checkpoint_dir}")
+    mlflow.log_artifacts(model_path, "model")
+    mlflow.log_artifacts(logs, "custom_tensorboard_logs")
+    mlflow.log_artifact(csv_log_file)
+
     return fit_hist
 
-
-config   = os.path.abspath( "../../configs/trainingReco_v1.yaml")
-scaling  = os.path.abspath("../../configs/scaling_params_vReco_v1.json")
-dataloader = DataLoader.DataLoader(config, scaling)
-input_map, input_shape, input_types  = dataloader.get_config()
-
-setup_main = {
-    "mode"             : "p4_dm",
-    "n_gnn_layers"     : 5,
-    "n_dim_gnn"        : 2,
-    "n_output_gnn"     : 50,
-    "n_output_gnn_last": 50,
-    "n_dense_layers"   : 4,
-    "n_dense_nodes"    : 200,
-    "wiring_mode"      : "m3",
-    "dropout_rate"     : 0.1 ,
-    "regu_rate"        : 0.01
-}
+@hydra.main(config_path='.', config_name='train')
+def main(cfg: DictConfig) -> None:
+    # set up mlflow experiment id
+    mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
+    experiment = mlflow.get_experiment_by_name(cfg.experiment_name)
+    if experiment is not None: # fetch existing experiment id
+        run_kwargs = {'experiment_id': experiment.experiment_id} 
+    else: # create new experiment
+        experiment_id = mlflow.create_experiment(cfg.experiment_name)
+        run_kwargs = {'experiment_id': experiment_id} 
     
-model_name = "RecoSNNv0"
-model = create_model(setup_main, input_map)
-compile_model(model, setup_main["mode"], 1e-2)
-print(input_shape[0])
-model.build(input_shape[0])
-model.summary()
-# tf.keras.utils.plot_model(model, model_name + "_diagram.png", show_shapes=True)
-fit_hist = run_training('step{}'.format(1), model_name, model, dataloader, False)
+    # run the training with mlflow tracking
+    with mlflow.start_run(**run_kwargs) as active_run:
+        setup_gpu(cfg.gpu_cfg)
+        training_cfg = OmegaConf.to_object(cfg.training_cfg) # convert to python dictionary
+        scaling_cfg = to_absolute_path(cfg.scaling_cfg)
+        dataloader = DataLoaderReco.DataLoader(training_cfg, scaling_cfg)
+
+        setup_main =  dataloader.setup_main
+
+        input_map, input_shape, _  = dataloader.get_config()
+        model = create_model(setup_main, input_map)
+        model.build(input_shape[0])
+        compile_model(model, setup_main["mode"], dataloader.learning_rate)
+        fit_hist = run_training(model, dataloader, False, cfg.log_suffix)
+
+        mlflow.log_dict(training_cfg, 'input_cfg/training_cfg.yaml')
+        mlflow.log_artifact(scaling_cfg, 'input_cfg')
+        mlflow.log_artifact(to_absolute_path("Training_SNNv0.py"), 'input_cfg')
+        mlflow.log_artifact(to_absolute_path("../commonReco.py"), 'input_cfg')
+        mlflow.log_artifacts('.hydra', 'input_cfg/hydra')
+        mlflow.log_artifact('Training_SNNv0.log', 'input_cfg/hydra')
+        mlflow.log_param('run_id', active_run.info.run_id)
+        print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {active_run.info.run_id}\n')
+
+if __name__ == '__main__':
+    main() 

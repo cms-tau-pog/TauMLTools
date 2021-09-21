@@ -72,8 +72,11 @@ class DataLoader (DataLoaderBase):
         self.max_queue_size   = self.config["SetupNN"]["max_queue_size"]
         self.n_epochs         = self.config["SetupNN"]["n_epochs"]
         self.epoch            = self.config["SetupNN"]["epoch"]
+        self.learning_rate    = self.config["SetupNN"]["learning_rate"]
+        self.model_name       = self.config["SetupNN"]["model_name"]
         self.sequence_len     = self.config["SequenceLength"]
 
+        self.setup_main       = self.config["SetupNN"]
 
         data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
 
