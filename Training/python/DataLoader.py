@@ -233,12 +233,6 @@ class DataLoader:
         self.input_grids        = self.config["SetupNN"]["input_grids"]
         self.n_cells = { 'inner': self.n_inner_cells, 'outer': self.n_outer_cells }
         self.model_name       = self.config["SetupNN"]["model_name"]
-        self.TauLossesSFs     = self.config["SetupNN"]["TauLossesSFs"]
-        self.learning_rate    = self.config["SetupNN"]["learning_rate"]
-        self.tau_net_setup    = self.config["SetupNN"]["tau_net_setup"]
-        self.comp_net_setup   = self.config["SetupNN"]["comp_net_setup"]
-        self.dense_net_setup  = self.config["SetupNN"]["dense_net_setup"]
-        self.conv_2d_setup = self.config["SetupNN"]["conv_2d_setup"]
 
         data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
         self.train_files, self.val_files = \
@@ -338,42 +332,27 @@ class DataLoader:
         input_cell_ele_branches = self.get_branches(self.config,"Electron")
         input_cell_muon_branches = self.get_branches(self.config,"Muon")
 
-        # code below is a shortened copy of common.py
         class NetConf:
-            def __init__(self, name, final, tau_branches, cell_locations,
-                        n_cells_eta, n_cells_phi, n_outputs,
-                        component_names, component_branches,
-                        tau_net_setup, comp_net_setup, dense_net_setup):
-                self.name = name
-                self.final = final
-                self.tau_branches = tau_branches
-                self.cell_locations = cell_locations
-                self.comp_names = component_names
-                self.comp_branches = component_branches
+            pass
 
-                self.tau_net_setup    = tau_net_setup
-                self.comp_net_setup   = comp_net_setup
-                self.dense_net_setup  = dense_net_setup
+        netConf = NetConf()
+        netConf.tau_net = self.config["SetupNN"]["tau_net"]
+        netConf.comp_net = self.config["SetupNN"]["comp_net"]
+        netConf.comp_merge_net = self.config["SetupNN"]["comp_merge_net"]
+        netConf.conv_2d_net = self.config["SetupNN"]["conv_2d_net"]
+        netConf.dense_net = self.config["SetupNN"]["dense_net"]
+        netConf.n_tau_branches = len(input_tau_branches)
+        netConf.cell_locations = ['inner', 'outer']
+        netConf.comp_names = ['egamma', 'muon', 'hadrons']
+        netConf.n_comp_branches = [
+            len(input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches),
+            len(input_cell_pfCand_muon_branches + input_cell_muon_branches),
+            len(input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches)
+        ]
+        netConf.n_cells = self.n_cells
+        netConf.n_outputs = self.tau_types
 
-                self.n_cells_eta  = n_cells_eta
-                self.n_cells_phi  = n_cells_phi
-                self.n_outputs  = n_outputs
-
-        netConf_preTau = NetConf("preTau", False, input_tau_branches, [], None, None, None, [], [], None, None, None)
-        netConf_preInner = NetConf("preInner", False, [], ['inner'], None, None, None, ['egamma', 'muon', 'hadrons'], [
-            input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches,
-            input_cell_pfCand_muon_branches + input_cell_muon_branches,
-            input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches
-        ], None, None, None)
-        netConf_preOuter = NetConf("preOuter", False, [], ['outer'], None, None, None, netConf_preInner.comp_names,
-                                netConf_preInner.comp_branches, None, None, None)
-        netConf_full = NetConf("full", True, netConf_preTau.tau_branches,
-                            netConf_preInner.cell_locations + netConf_preOuter.cell_locations,
-                            self.n_cells, self.n_cells, self.tau_types,
-                            netConf_preInner.comp_names, netConf_preInner.comp_branches,
-                            self.tau_net_setup, self.comp_net_setup, self.dense_net_setup)
-        netConf_full.conv_2d_setup = self.conv_2d_setup
-        return netConf_full
+        return netConf
 
     def get_input_config(self):
         # Input tensor shape and type
