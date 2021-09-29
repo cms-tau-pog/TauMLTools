@@ -1,0 +1,3 @@
+sampleType=MC_18 requireGenMatch=False requireGenORRecoTauMatch=False isSUSY=True
+
+STAU_m100_250_400_v2 /SUS-RunIIFall18GS_ctau1000mm_mstau100_250_400_mlsp1_20-RAWSIM/myshched-SUS-RunIIFall18GS_ctau1000mm_mstau100_250_400_mlsp1_20-MiniAOD-3ee3afd6b5a1410aea6d0b4d52723d06/USER

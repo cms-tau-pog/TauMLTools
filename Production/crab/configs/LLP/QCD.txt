@@ -1,0 +1,3 @@
+sampleType=MC_18 requireGenMatch=False requireGenORRecoTauMatch=False isSUSY=False
+
+QCD_Pt_15to7000_Flat_ext1      /QCD_Pt-15to7000_TuneCP5_Flat_13TeV_pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15_ext1-v1/MINIAODSIM
