@@ -5,15 +5,18 @@ import numpy as np
 import time
 import config_parse
 import os
+import yaml
 from glob import glob
 
 R.gROOT.ProcessLine(".include ../../..")
 
 print("Compiling Setup classes...")
 
-R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_v1.json", "../configs/training_v1.yaml", verbose=False))
-R.gInterpreter.Declare(config_parse.create_settings("../configs/training_v1.yaml", verbose=False))
-
+with open(os.path.abspath( "../configs/training_v1.yaml")) as f:
+    config = yaml.safe_load(f)
+R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_v1.json", config, verbose=True))
+R.gInterpreter.Declare(config_parse.create_settings(config, verbose=True))
+exit()
 print("Compiling DataLoader_main...")
 R.gInterpreter.Declare('#include "../interface/DataLoader_main.h"')
 R.gInterpreter.Declare('#include "TauMLTools/Core/interface/exception.h"')

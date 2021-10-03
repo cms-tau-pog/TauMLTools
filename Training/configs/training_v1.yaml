@@ -11,9 +11,9 @@ Setup:
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
     recompute_tautype    : True
-    input_dir            : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_trainingSamples-2/"
-    input_spectrum       : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_TrainingSpectrum/ShuffleMergeSpectral_trainingSamples-2_spectrum.root"
-    target_spectrum      : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_TrainingSpectrum/ShuffleMergeSpectral_trainingSamples-2_spectrum.root"
+    input_dir            : "/nfs/dust/cms/user/mykytaua/dataDeepTau/DeepTauTraining/ShuffleMergeSpectral_trainingSamples-2/"
+    input_spectrum       : "/nfs/dust/cms/user/mykytaua/dataDeepTau/DeepTauTraining/ShuffleMergeSpectral_TrainingSpectrum/ShuffleMergeSpectral_trainingSamples-2_spectrum.root"
+    target_spectrum      : "/nfs/dust/cms/user/mykytaua/dataDeepTau/DeepTauTraining/ShuffleMergeSpectral_TrainingSpectrum/ShuffleMergeSpectral_trainingSamples-2_spectrum.root"
     weight_thr           : 100000.0
 
     # here define variables for the Histogram_2D class
@@ -79,6 +79,7 @@ SetupNN:
     dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 200, "last_layer_width": 200, "min_n_layers": 4 }
 
 CellObjectType : [
+                 GridGlobalFeatures,
                  PfCand_electron,
                  PfCand_muon,
                  PfCand_chHad,
@@ -149,6 +150,12 @@ Scaling_setup:
       TauFlat:
         var_names: # used to derive dR selection query
           pt: tau_pt
+          eta: tau_eta
+          phi: tau_phi
+        cone_types: [null] # [null] in case of no split into cones (i.e. inclusive computation)
+      # ----------------------------
+      GridGlobalFeatures:
+        var_names: # used to derive dR selection query
           eta: tau_eta
           phi: tau_phi
         cone_types: [null] # [null] in case of no split into cones (i.e. inclusive computation)
@@ -262,6 +269,12 @@ Features_all :
                 - tau_emFraction: [null, null, "linear", -1., 1.]
                 - tau_inside_ecal_crack: [null, null, "no_scaling"]
                 - tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta: [null, {"tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta": "tau_leadChargedCand_etaAtEcalEntrance - tau_eta"}, "normal", -5, 5]
+    
+    GridGlobalFeatures:
+                - rho: [null, null, "linear", 0, 50]
+                - tau_pt: [null, null, "linear", 20, 1000]
+                - tau_eta: [null, null, "linear", -2.3, 2.3]
+                - tau_inside_ecal_crack: [null, null, "no_scaling"]
 
     PfCand_electron :
                 - pfCand_ele_valid: [*is_pfElectron, null, "no_scaling"]
@@ -455,6 +468,7 @@ Features_all :
 
 Features_disable :
     TauFlat : ["tau_phi"]
+    GridGlobalFeatures : []
     PfCand_electron : [ ]
     PfCand_muon : [ ]
     PfCand_chHad : [ ]
