@@ -324,6 +324,7 @@ class DataLoader:
 
         # copy of feature lists is not necessery
         input_tau_branches = self.get_branches(self.config,"TauFlat")
+        input_cell_external_branches = self.get_branches(self.config,"GridGlobal")
         input_cell_pfCand_ele_branches = self.get_branches(self.config,"PfCand_electron")
         input_cell_pfCand_muon_branches = self.get_branches(self.config,"PfCand_muon")
         input_cell_pfCand_chHad_branches = self.get_branches(self.config,"PfCand_chHad")
@@ -345,9 +346,9 @@ class DataLoader:
         netConf.cell_locations = ['inner', 'outer']
         netConf.comp_names = ['egamma', 'muon', 'hadrons']
         netConf.n_comp_branches = [
-            len(input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches),
-            len(input_cell_pfCand_muon_branches + input_cell_muon_branches),
-            len(input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches)
+            len(input_cell_external_branches + input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches),
+            len(input_cell_external_branches + input_cell_pfCand_muon_branches + input_cell_muon_branches),
+            len(input_cell_external_branches + input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches)
         ]
         netConf.n_cells = self.n_cells
         netConf.n_outputs = self.tau_types
