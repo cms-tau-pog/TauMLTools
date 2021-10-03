@@ -70,11 +70,13 @@ SetupNN:
                             [ PfCand_chHad, PfCand_nHad ] # hadrons
                            ]
     TauLossesSFs         : [1, 2.5, 5, 1.5]
+    optimizer_name       : "Nadam"
     learning_rate        : 0.001
-    tau_net_setup        : ['PReLU', null, 0.2, 128, 128, 1.4, null, False]
-    comp_net_setup       : ['PReLU', [1, 2], 0.2, 1024, 64, 1.6, null, False]
-    dense_net_setup      : ['PReLU', null, 0.2, 200, 64, 1.4, null, False]
-    conv_2d_setup        : [ 3, 64, null ] # window_size, n_inputs_first_layer, reduction_rate
+    tau_net              : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.4, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
+    comp_net             : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
+    comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "n", "last_layer_width": 64 }
+    conv_2d_net          : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": null, "window_size": 3 }
+    dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 200, "last_layer_width": 200, "min_n_layers": 4 }
 
 CellObjectType : [
                  PfCand_electron,
