@@ -79,7 +79,7 @@ SetupNN:
     dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 200, "last_layer_width": 200, "min_n_layers": 4 }
 
 CellObjectType : [
-                 GridGlobalFeatures,
+                 GridGlobal,
                  PfCand_electron,
                  PfCand_muon,
                  PfCand_chHad,
@@ -154,7 +154,7 @@ Scaling_setup:
           phi: tau_phi
         cone_types: [null] # [null] in case of no split into cones (i.e. inclusive computation)
       # ----------------------------
-      GridGlobalFeatures:
+      GridGlobal:
         var_names: # used to derive dR selection query
           eta: tau_eta
           phi: tau_phi
@@ -270,7 +270,7 @@ Features_all :
                 - tau_inside_ecal_crack: [null, null, "no_scaling"]
                 - tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta: [null, {"tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta": "tau_leadChargedCand_etaAtEcalEntrance - tau_eta"}, "normal", -5, 5]
     
-    GridGlobalFeatures:
+    GridGlobal:
                 - rho: [null, null, "linear", 0, 50]
                 - tau_pt: [null, null, "linear", 20, 1000]
                 - tau_eta: [null, null, "linear", -2.3, 2.3]
@@ -468,7 +468,7 @@ Features_all :
 
 Features_disable :
     TauFlat : ["tau_phi"]
-    GridGlobalFeatures : []
+    GridGlobal : []
     PfCand_electron : [ ]
     PfCand_muon : [ ]
     PfCand_chHad : [ ]

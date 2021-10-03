@@ -345,7 +345,7 @@
             }
         }
     },
-    "GridGlobalFeatures": {
+    "GridGlobal": {
         "rho": {
             "global": {
                 "mean": 25,
