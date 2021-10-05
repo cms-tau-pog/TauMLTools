@@ -1,5 +1,13 @@
 {
     "TauFlat": {
+        "rho": {
+            "global": {
+                "mean": 25,
+                "std": 25,
+                "lim_min": "-1",
+                "lim_max": "1"
+            }
+        },
         "tau_pt": {
             "global": {
                 "mean": 510.0,

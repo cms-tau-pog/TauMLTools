@@ -152,7 +152,7 @@ public:
         innerCellGridRef(n_inner_cells, n_inner_cells, inner_cell_size, inner_cell_size),
         outerCellGridRef(n_outer_cells, n_outer_cells, outer_cell_size, outer_cell_size),
         hasData(false), fullData(false), hasFile(false)
-    { 
+    {
       ROOT::EnableThreadSafety();
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
 
@@ -181,7 +181,7 @@ public:
 
       std::shared_ptr<TH2D> target_th2d = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
       if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
-      
+
       for( auto const& [tau_type, tau_name] : tau_types_names)
       {
         std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
@@ -212,7 +212,7 @@ public:
         end_entry = tauTuple->GetEntries();
         if(end_file!=-1) end_entry = std::min(end_file, end_entry);
         hasFile = true;
-    } 
+    }
 
     bool MoveNext() {
         if(!hasFile)
@@ -329,6 +329,7 @@ public:
             data->x_tau.at(index) = Scale<Scaling::TauFlat>(_fe_ind, value, false);
         };
 
+        fill_tau(TauFlat_Features::rho, tau.rho);
         fill_tau(TauFlat_Features::tau_pt, tau.tau_pt);
         fill_tau(TauFlat_Features::tau_eta, tau.tau_eta);
         fill_tau(TauFlat_Features::tau_phi, tau.tau_phi);
@@ -826,7 +827,7 @@ public:
       }
 
       static bool isSameCellObjectType(int particleType, CellObjectType type)
-      { 
+      {
           static const std::set<int> other_types = {0, 6, 7};
 
           static const std::map<int, CellObjectType> obj_types = {
@@ -836,7 +837,7 @@ public:
               { 5, CellObjectType::PfCand_nHad },
               { 1, CellObjectType::PfCand_chHad }
           };
-          
+
           if(other_types.find(particleType) != other_types.end()) return false;
           auto iter = obj_types.find(particleType);
           if(iter == obj_types.end())
