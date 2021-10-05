@@ -3,7 +3,7 @@
         "pfCand_pt": {
             "global": {
                 "mean": 1.791,
-                "std": 14.76,
+                "std": 14.75,
                 "lim_min": -5,
                 "lim_max": 5
             }
@@ -26,37 +26,13 @@
         },
         "pfCand_mass": {
             "global": {
-                "mean": 0.0917,
-                "std": 0.06614,
+                "mean": 0.09171,
+                "std": 0.06613,
                 "lim_min": -5,
                 "lim_max": 5
             }
         },
         "pfCand_charge": {
-            "global": {
-                "mean": 0,
-                "std": 1,
-                "lim_min": "-inf",
-                "lim_max": "inf"
-            }
-        },
-        "pfCand_particleType": {
-            "global": {
-                "mean": 0,
-                "std": 1,
-                "lim_min": "-inf",
-                "lim_max": "inf"
-            }
-        },
-        "pfCand_pvAssociationQuality": {
-            "global": {
-                "mean": 0,
-                "std": 1,
-                "lim_min": "-inf",
-                "lim_max": "inf"
-            }
-        },
-        "pfCand_fromPV": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -98,8 +74,8 @@
         },
         "pfCand_nHits": {
             "global": {
-                "mean": 5.764,
-                "std": 8.223,
+                "mean": 5.765,
+                "std": 8.224,
                 "lim_min": -5,
                 "lim_max": 5
             }
@@ -114,32 +90,32 @@
         },
         "pfCand_dxy": {
             "global": {
-                "mean": -0.01442,
-                "std": 2.344,
+                "mean": -0.01459,
+                "std": 2.34,
                 "lim_min": -5,
                 "lim_max": 5
             }
         },
         "pfCand_dxy_error": {
             "global": {
-                "mean": 0.02773,
-                "std": 0.09069,
+                "mean": 0.02774,
+                "std": 0.08977,
                 "lim_min": -5,
                 "lim_max": 5
             }
         },
         "pfCand_dz": {
             "global": {
-                "mean": -0.01004,
-                "std": 7.818,
+                "mean": -0.0212,
+                "std": 7.826,
                 "lim_min": -5,
                 "lim_max": 5
             }
         },
         "pfCand_dz_error": {
             "global": {
-                "mean": 0.04803,
-                "std": 0.7465,
+                "mean": 0.0479,
+                "std": 0.686,
                 "lim_min": -5,
                 "lim_max": 5
             }
@@ -147,7 +123,7 @@
         "pfCand_track_chi2": {
             "global": {
                 "mean": 10.52,
-                "std": 57.22,
+                "std": 57.13,
                 "lim_min": -5,
                 "lim_max": 5
             }
@@ -155,7 +131,7 @@
         "pfCand_track_ndof": {
             "global": {
                 "mean": 13.59,
-                "std": 6.871,
+                "std": 6.872,
                 "lim_min": -5,
                 "lim_max": 5
             }
@@ -241,6 +217,32 @@
             }
         },
         "pfCand_dphi": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        }
+    },
+    "PfCandCategorical": {
+        "pfCand_particleType": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_pvAssociationQuality": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_fromPV": {
             "global": {
                 "mean": 0,
                 "std": 1,
