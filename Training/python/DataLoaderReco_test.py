@@ -13,16 +13,21 @@ print("Compiling Setup classes...")
 
 with open(os.path.abspath( "../configs/trainingReco_v1.yaml")) as f:
     config = yaml.safe_load(f)
-R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_vReco_v1(stau).json", config, verbose=False))
+R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_vReco_v1_stau.json", config, verbose=False))
 R.gInterpreter.Declare(config_parse.create_settings(config, verbose=False))
 
 print("Compiling DataLoader_main...")
 R.gInterpreter.Declare('#include "../interface/DataLoaderReco_main.h"')
 
-n_tau          = R.Setup.n_tau
-pfCand_n       = R.Setup.nSeq_PfCand
-pfCand_fn      = R.Setup.n_PfCand
-outclass       = R.Setup.output_classes
+n_tau          = config["Setup"]["n_tau"]
+outclass       = config["Setup"]["output_classes"]
+n_features = {}
+n_seq = {}
+for celltype in config["Features_all"]:
+    n_features[str(celltype)] = len(config["Features_all"][celltype]) - \
+                                len(config["Features_disable"][celltype])
+    n_seq[str(celltype)] = config["SequenceLength"][celltype]
+input_grids = config["CellObjectType"]
 
 input_files = []
 for root, dirs, files in os.walk(os.path.abspath(R.Setup.input_dir)):
@@ -44,6 +49,11 @@ def getdata(_obj_f, _reshape, _dtype=np.float32):
                                  dtype=_dtype,
                                  count=_obj_f.size())).reshape(_reshape)
 
+def getgrid(_obj_grid):
+    return [ getdata(_obj_grid[getattr(R.CellObjectType,group)],
+                    (n_tau, n_seq[group], n_features[group]))
+                    for group in input_grids]
+
 for i in range(n_batches):
 
     start = time.time()
@@ -54,7 +64,7 @@ for i in range(n_batches):
        continue
     
     data = data_loader.LoadData()
-    X = getdata(data.x, (n_tau, pfCand_n, pfCand_fn))
+    X = getgrid(data.x)
     Y = getdata(data.y, (n_tau, outclass))
 
     end = time.time()

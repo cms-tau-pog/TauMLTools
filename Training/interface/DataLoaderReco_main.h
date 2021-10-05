@@ -8,15 +8,18 @@
 
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 #include "TauMLTools/Analysis/interface/AnalysisTypes.h"
+
+
 struct Data {
-    Data(size_t n_tau,
-         size_t pfCand_SeqSize,
-         size_t pfCand_nfeatures,
-         size_t output_size) :
-         x(n_tau * pfCand_SeqSize * pfCand_nfeatures, 0),
-         y(n_tau * output_size, 0)
-         { }
-    std::vector<float> x, y;
+    template<typename grid> void init_grid() {
+        x[grid::object_type].resize(Setup::n_tau * grid::size * grid::length,0);
+    }
+    template<typename T, T... I> Data(std::integer_sequence<T, I...> int_seq)
+    : y(Setup::n_tau * Setup::output_classes, 0) {
+        ((init_grid<FeaturesHelper<std::tuple_element_t<I, FeatureTuple>>>()),...);
+    }
+    std::unordered_map<CellObjectType, std::vector<float>> x;
+    std::vector<float> y;
 };
 
 // using namespace Setup;
@@ -27,6 +30,7 @@ public:
     using Tau = tau_tuple::Tau;
     using TauTuple = tau_tuple::TauTuple;
     using LorentzVectorM = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>;
+    static constexpr size_t nFeaturesTypes = std::tuple_size_v<FeatureTuple>;
 
     DataLoader() :
         hasData(false),
@@ -63,8 +67,7 @@ public:
 
         if(!hasData)
         {
-            data = std::make_unique<Data>(Setup::n_tau, Setup::nSeq_PfCand,
-                                          Setup::n_PfCand, Setup::output_classes);
+            data = std::make_unique<Data>(std::make_index_sequence<nFeaturesTypes>{});
             tau_i = 0;
             hasData = true;
         }
@@ -80,7 +83,6 @@ public:
             if (tau.genLepton_kind == 5 && tau.jet_index >= 0 && tau.genLepton_vis_pt > 15.0) {
                 FillLabels(tau_i, tau, Setup::output_classes);
                 FillPfCand(tau_i, tau);
-                // FillPfCand<PfCand_Features>(tau_i, Setup::nSeq_lostTrack, Setup::n_lostTrack, "lostTrack_");
                 ++tau_i;
             }
             ++current_entry;
@@ -151,8 +153,7 @@ public:
       void FillPfCand(Long64_t tau_i,
                       Tau& tau)
       {
-        size_t start_index = Setup::nSeq_PfCand *  Setup::n_PfCand * tau_i;
-
+          
         std::vector<size_t> indices(tau.pfCand_pt.size());
         std::iota(indices.begin(), indices.end(), 0);
 
@@ -164,73 +165,82 @@ public:
         size_t upper_index = std::min(Setup::nSeq_PfCand, indices.size());
         for(size_t pfCand_i = 0; pfCand_i < upper_index; pfCand_i++)
         {
-            auto getVecRef = [&](PfCand_Features _fe, Float_t value){
+            auto getVecRef = [&](auto _fe, Float_t value){
                 size_t _feature_idx = static_cast<size_t>(_fe);
                 if(_feature_idx < 0) return;
-                size_t index = start_index +  Setup::n_PfCand * pfCand_i + _feature_idx;
-                data->x.at(index) = 
+                const size_t start_index =  FeaturesHelper<decltype(_fe)>::length * FeaturesHelper<decltype(_fe)>::size * tau_i;
+                const size_t index = start_index + FeaturesHelper<decltype(_fe)>::size * pfCand_i + _feature_idx;
+                data->x[FeaturesHelper<decltype(_fe)>::object_type].at(index) = 
                     Scale<typename  FeaturesHelper<decltype(_fe)>::scaler_type>(
                         _feature_idx, value, false);
             };
 
             size_t idx_srt = indices.at(pfCand_i);
-            getVecRef(PfCand_Features::pfCand_valid                ,1.0);
-            getVecRef(PfCand_Features::pfCand_pt                   ,tau.pfCand_pt.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_eta                  ,tau.pfCand_eta.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_phi                  ,tau.pfCand_phi.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_mass                 ,tau.pfCand_mass.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_particleType         ,tau.pfCand_particleType.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_charge               ,tau.pfCand_charge.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_pvAssociationQuality ,tau.pfCand_pvAssociationQuality.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_fromPV               ,tau.pfCand_fromPV.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_puppiWeight          ,tau.pfCand_puppiWeight.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_puppiWeightNoLep     ,tau.pfCand_puppiWeightNoLep.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_lostInnerHits        ,tau.pfCand_lostInnerHits.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_nPixelHits           ,tau.pfCand_nPixelHits.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_nHits                ,tau.pfCand_nHits.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_hasTrackDetails      ,tau.pfCand_hasTrackDetails.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_caloFraction         ,tau.pfCand_caloFraction.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_hcalFraction         ,tau.pfCand_hcalFraction.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_rawCaloFraction      ,tau.pfCand_rawCaloFraction.at(idx_srt));
-            getVecRef(PfCand_Features::pfCand_rawHcalFraction      ,tau.pfCand_rawHcalFraction.at(idx_srt));
 
-            TLorentzVector v;
-            v.SetPtEtaPhiM(
-                tau.pfCand_pt.at(idx_srt),
-                tau.pfCand_eta.at(idx_srt),
-                tau.pfCand_phi.at(idx_srt),
-                tau.pfCand_mass.at(idx_srt)
-              );
-
-            getVecRef(PfCand_Features::pfCand_px, v.Px());
-            getVecRef(PfCand_Features::pfCand_py, v.Py());
-            getVecRef(PfCand_Features::pfCand_pz, v.Pz());
-            getVecRef(PfCand_Features::pfCand_E, v.E());
-            
-            if( tau.pfCand_hasTrackDetails.at(idx_srt) )
-            {   
-                getVecRef(PfCand_Features::pfCand_hasTrackDetails,tau.pfCand_hasTrackDetails.at(idx_srt));
-                
-                if(std::isnormal(tau.pfCand_dz.at(idx_srt)))
-                    getVecRef(PfCand_Features::pfCand_dz        ,tau.pfCand_dz.at(idx_srt));
-                if(std::isnormal( tau.pfCand_dz_error.at(idx_srt)))
-                    getVecRef(PfCand_Features::pfCand_dz_error  ,tau.pfCand_dz_error.at(idx_srt));
-                if(std::isnormal(tau.pfCand_dxy_error.at(idx_srt)))
-                    getVecRef(PfCand_Features::pfCand_dxy_error ,tau.pfCand_dxy_error.at(idx_srt));
-
-                getVecRef(PfCand_Features::pfCand_dxy           ,tau.pfCand_dxy.at(idx_srt));
-                getVecRef(PfCand_Features::pfCand_track_chi2    ,tau.pfCand_track_chi2.at(idx_srt));
-                getVecRef(PfCand_Features::pfCand_track_ndof    ,tau.pfCand_track_ndof.at(idx_srt));
+            {   // Categorical features
+                typedef PfCandCategorical_Features Br;
+                getVecRef(Br::pfCand_particleType         ,tau.pfCand_particleType.at(idx_srt));
+                getVecRef(Br::pfCand_pvAssociationQuality ,tau.pfCand_pvAssociationQuality.at(idx_srt));
+                getVecRef(Br::pfCand_fromPV               ,tau.pfCand_fromPV.at(idx_srt));
             }
-            
-            if(tau.jet_index>=0)
-            {
-                Float_t jet_eta = tau.jet_eta;
-                Float_t jet_phi = tau.jet_phi;
-                // getVecRef(PfCand_Features::jet_eta)        = jet_eta;
-                // getVecRef(PfCand_Features::jet_phi)        = jet_phi;
-                getVecRef(PfCand_Features::pfCand_deta, tau.pfCand_eta.at(idx_srt) - jet_eta);
-                getVecRef(PfCand_Features::pfCand_dphi, DeltaPhi<Float_t>(tau.pfCand_phi.at(idx_srt), jet_phi));
+
+            {   // General features
+                typedef PfCand_Features Br;
+                getVecRef(Br::pfCand_valid                ,1.0);
+                getVecRef(Br::pfCand_pt                   ,tau.pfCand_pt.at(idx_srt));
+                getVecRef(Br::pfCand_eta                  ,tau.pfCand_eta.at(idx_srt));
+                getVecRef(Br::pfCand_phi                  ,tau.pfCand_phi.at(idx_srt));
+                getVecRef(Br::pfCand_mass                 ,tau.pfCand_mass.at(idx_srt));
+                getVecRef(Br::pfCand_charge               ,tau.pfCand_charge.at(idx_srt));
+                getVecRef(Br::pfCand_puppiWeight          ,tau.pfCand_puppiWeight.at(idx_srt));
+                getVecRef(Br::pfCand_puppiWeightNoLep     ,tau.pfCand_puppiWeightNoLep.at(idx_srt));
+                getVecRef(Br::pfCand_lostInnerHits        ,tau.pfCand_lostInnerHits.at(idx_srt));
+                getVecRef(Br::pfCand_nPixelHits           ,tau.pfCand_nPixelHits.at(idx_srt));
+                getVecRef(Br::pfCand_nHits                ,tau.pfCand_nHits.at(idx_srt));
+                getVecRef(Br::pfCand_hasTrackDetails      ,tau.pfCand_hasTrackDetails.at(idx_srt));
+                getVecRef(Br::pfCand_caloFraction         ,tau.pfCand_caloFraction.at(idx_srt));
+                getVecRef(Br::pfCand_hcalFraction         ,tau.pfCand_hcalFraction.at(idx_srt));
+                getVecRef(Br::pfCand_rawCaloFraction      ,tau.pfCand_rawCaloFraction.at(idx_srt));
+                getVecRef(Br::pfCand_rawHcalFraction      ,tau.pfCand_rawHcalFraction.at(idx_srt));
+
+                TLorentzVector v;
+                v.SetPtEtaPhiM(
+                    tau.pfCand_pt.at(idx_srt),
+                    tau.pfCand_eta.at(idx_srt),
+                    tau.pfCand_phi.at(idx_srt),
+                    tau.pfCand_mass.at(idx_srt)
+                );
+
+                getVecRef(Br::pfCand_px, v.Px());
+                getVecRef(Br::pfCand_py, v.Py());
+                getVecRef(Br::pfCand_pz, v.Pz());
+                getVecRef(Br::pfCand_E, v.E());
+                
+                if( tau.pfCand_hasTrackDetails.at(idx_srt) )
+                {   
+                    getVecRef(Br::pfCand_hasTrackDetails,tau.pfCand_hasTrackDetails.at(idx_srt));
+                    
+                    if(std::isnormal(tau.pfCand_dz.at(idx_srt)))
+                        getVecRef(Br::pfCand_dz        ,tau.pfCand_dz.at(idx_srt));
+                    if(std::isnormal( tau.pfCand_dz_error.at(idx_srt)))
+                        getVecRef(Br::pfCand_dz_error  ,tau.pfCand_dz_error.at(idx_srt));
+                    if(std::isnormal(tau.pfCand_dxy_error.at(idx_srt)))
+                        getVecRef(Br::pfCand_dxy_error ,tau.pfCand_dxy_error.at(idx_srt));
+
+                    getVecRef(Br::pfCand_dxy           ,tau.pfCand_dxy.at(idx_srt));
+                    getVecRef(Br::pfCand_track_chi2    ,tau.pfCand_track_chi2.at(idx_srt));
+                    getVecRef(Br::pfCand_track_ndof    ,tau.pfCand_track_ndof.at(idx_srt));
+                }
+                
+                if(tau.jet_index>=0)
+                {
+                    Float_t jet_eta = tau.jet_eta;
+                    Float_t jet_phi = tau.jet_phi;
+                    // getVecRef(PfCand_Features::jet_eta)        = jet_eta;
+                    // getVecRef(PfCand_Features::jet_phi)        = jet_phi;
+                    getVecRef(PfCand_Features::pfCand_deta, tau.pfCand_eta.at(idx_srt) - jet_eta);
+                    getVecRef(PfCand_Features::pfCand_dphi, DeltaPhi<Float_t>(tau.pfCand_phi.at(idx_srt), jet_phi));
+                }
             }
         }
       }
