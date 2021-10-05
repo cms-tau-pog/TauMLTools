@@ -113,6 +113,10 @@ def create_settings(data: dict, verbose=False) -> str:
             string += "template<> struct FeaturesHelper<{0}_Features> ".format(celltype) + "{\n"
             string += "static constexpr CellObjectType object_type = CellObjectType::{0};\n".format(celltype)
             string += "static constexpr size_t size = {0};\n".format(number)
+            if "SequenceLength" in content:
+                if celltype in content["SequenceLength"]:
+                    string += "static constexpr size_t length = {0};\n".format(
+                        content["SequenceLength"][celltype])
             string += "using scaler_type = Scaling::{0};\n".format(celltype) + "};\n\n"
 
         string += "using FeatureTuple = std::tuple<" \
