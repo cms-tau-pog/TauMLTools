@@ -27,7 +27,14 @@ SetupNN:
     dropout_rate         : 0.1 
     regu_rate            : 0.01
 
-CellObjectType : [ PfCand,  PfCandCategorical ]
+CellObjectType : [ PfCand,  PfCandCategorical ] # All Cell Objects
+
+# Embedded Cell Objects:
+# For the features inside this group embedding will be used
+# Embedding parameters will be taken from the cooresponding feature list:
+# e.g: -> pfCand_particleType  : [ null, null, "categorical", 0, 8]
+# cooresponding embedding parameters: -> tf.keras.layers.Embedding(8,  2)
+EmbeddedCellObjectType : [ PfCandCategorical ]
 
 SequenceLength:
     PfCand : 50
@@ -104,9 +111,9 @@ Features_all :
           - pfCand_dphi                 : [ *jet_valid, {"pfCand_ele_dphi": "pfCand_phi - jet_eta"}, "no_scaling" ] #"linear", -1.0, 1.0]
 
     PfCandCategorical:
-          - pfCand_particleType         : [ null, null, "categorical" ]
-          - pfCand_pvAssociationQuality : [ null, null, "categorical" ]
-          - pfCand_fromPV               : [ null, null, "categorical" ]
+          - pfCand_particleType         : [ null, null, "categorical", 8, 2]
+          - pfCand_pvAssociationQuality : [ null, null, "categorical", 8, 2]
+          - pfCand_fromPV               : [ null, null, "categorical", 4, 2]
 
 Features_disable :
     PfCand : [ ]

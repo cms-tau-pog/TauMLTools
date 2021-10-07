@@ -133,6 +133,16 @@ class GetData():
         return _X
     
     @staticmethod
+    def getsequence(_obj_grid,
+                    _n_tau,
+                    _input_grids,
+                    _n_seq,
+                    _n_features):
+        return [ __class__.getdata(_obj_grid[getattr(R.CellObjectType,group)],
+                (_n_tau, _n_seq[group], _n_features[group]))
+                for group in _input_grids]
+
+    @staticmethod
     def getX(data,
             batch_size,
             n_grid_features,
