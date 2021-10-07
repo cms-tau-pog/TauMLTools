@@ -111,26 +111,24 @@ class MyGNNLayer(tf.keras.layers.Layer):
 
 class MyGNN(tf.keras.Model):
 
-    def __init__(self, map_features, **kwargs):
+    def __init__(self, dl_config):
         super(MyGNN, self).__init__()
-        self.map_features = map_features
-        self.mode = kwargs["mode"]
 
-        self.n_gnn_layers      = kwargs["n_gnn_layers"]
-        self.n_dim_gnn         = kwargs["n_dim_gnn"]
-        self.n_output_gnn      = kwargs["n_output_gnn"]
-        self.n_output_gnn_last = kwargs["n_output_gnn_last"]
-        self.n_dense_layers    = kwargs["n_dense_layers"]
-        self.n_dense_nodes     = kwargs["n_dense_nodes"]
-        self.wiring_mode       = kwargs["wiring_mode"]
-        self.dropout_rate      = kwargs["dropout_rate"]
-        self.regu_rate         = kwargs["regu_rate"]
+        self.map_features = dl_config["input_map"]["PfCand"]
 
-        self.embedding1   = tf.keras.layers.Embedding(8,  2)
-        self.embedding2   = tf.keras.layers.Embedding(8  ,2)
-        self.embedding3   = tf.keras.layers.Embedding(4  ,2)
-        # self.normalize    = StdLayer('mean_std.txt', self.map_features, 5, name='std_layer')
-        # self.scale        = ScaleLayer('min_max.txt', self.map_features, [-1,1], name='scale_layer')
+        self.mode = dl_config["SetupNN"]["mode"]
+
+        self.n_gnn_layers      = dl_config["SetupNN"]["n_gnn_layers"]
+        self.n_dim_gnn         = dl_config["SetupNN"]["n_dim_gnn"]
+        self.n_output_gnn      = dl_config["SetupNN"]["n_output_gnn"]
+        self.n_output_gnn_last = dl_config["SetupNN"]["n_output_gnn_last"]
+        self.n_dense_layers    = dl_config["SetupNN"]["n_dense_layers"]
+        self.n_dense_nodes     = dl_config["SetupNN"]["n_dense_nodes"]
+        self.wiring_mode       = dl_config["SetupNN"]["wiring_mode"]
+        self.dropout_rate      = dl_config["SetupNN"]["dropout_rate"]
+        self.regu_rate         = dl_config["SetupNN"]["regu_rate"]
+        self.embedding_n       = dl_config["n_features"]["PfCandCategorical"]
+        self.embedding         = self.embedding_n * [None]
 
         self.GNN_layers  = []
         self.batch_norm  = []
@@ -146,6 +144,13 @@ class MyGNN(tf.keras.Model):
         list_n_dim   = [2] + [self.n_dim_gnn] * (self.n_gnn_layers-1)
         self.n_gnn_layers = len(list_outputs)
         self.n_dense_layers = self.n_dense_layers
+
+        # enumerate embedding in the correct order
+        # based on enume class PfCandCategorical
+        for var in dl_config["input_map"]["PfCandCategorical"]:
+            self.embedding[dl_config["input_map"]["PfCandCategorical"][var]] = \
+                tf.keras.layers.Embedding(dl_config['embedded_param']['PfCandCategorical'][var][0],
+                                          dl_config['embedded_param']['PfCandCategorical'][var][1])
 
         for i in range(self.n_gnn_layers):
             self.GNN_layers.append(MyGNNLayer(n_dim=list_n_dim[i], num_outputs=list_outputs[i], regu_rate = self.regu_rate, name='GNN_layer_{}'.format(i)))
@@ -176,21 +181,15 @@ class MyGNN(tf.keras.Model):
                                 bias_initializer="he_uniform", name='dense2')
 
     @tf.function
-    def call(self, xx):
+    def call(self, input_):
+        xx = input_[0]
         x_mask = xx[:,:,self.map_features['pfCand_valid']]
+        
+        # xx_cat = tf.split(input[1], num_or_size_splits=self.embedding_n, axis=-1)
+        xx_cat = input_[1]
+        xx_emb = [self.embedding[i](xx_cat[:,:,i]) for i in range(self.embedding_n)]
 
-        x_em1 = self.embedding1(tf.abs(xx[:,:,self.map_features['pfCand_particleType']]))
-        x_em2 = self.embedding2(tf.abs(xx[:,:,self.map_features['pfCand_pvAssociationQuality']]))
-        x_em3 = self.embedding3(tf.abs(xx[:,:,self.map_features['pfCand_fromPV']]))
-        # x = self.normalize(xx)
-        # x = self.scale(x)
-
-        x_part1 = xx[:,:,:self.map_features['pfCand_particleType']]
-        x_part2 = xx[:,:,(self.map_features["pfCand_fromPV"]+1):]
-        x = tf.concat((x_em1,x_em2,x_em3,x_part1,x_part2),axis = 2)
-
-        # x = xx
-
+        x = tf.concat((xx, *xx_emb),axis = 2)
         if(self.wiring_mode=="m2"):
             for i in range(self.n_gnn_layers):
                 if i > 1:
@@ -292,10 +291,6 @@ class MyGNN(tf.keras.Model):
 
         return tf.stack([mypt,mymass], axis=1)
 
-def create_model(setup_main, input_map):
-    model = MyGNN(map_features = input_map, **setup_main) # creates the model
-    return model
-
 def compile_model(model, mode, learning_rate):
     # opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, beta_1=1e-4)
     opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, schedule_decay=1e-4)
@@ -317,7 +312,7 @@ def run_training(model, data_loader, to_profile, log_suffix):
 
     gen_train = data_loader.get_generator(primary_set = True)
     gen_val = data_loader.get_generator(primary_set = False)
-    _, input_shape, input_types = data_loader.get_config()
+    input_shape, input_types = data_loader.get_shape()
 
     data_train = tf.data.Dataset.from_generator(
         gen_train, output_types = input_types, output_shapes = input_shape
@@ -326,7 +321,8 @@ def run_training(model, data_loader, to_profile, log_suffix):
         gen_val, output_types = input_types, output_shapes = input_shape
         ).prefetch(tf.data.AUTOTUNE)
 
-    model_name = data_loader.model_name
+    net_setups =  data_loader.config["SetupNN"]
+    model_name = net_setups["model_name"]
     log_name = '%s_%s' % (model_name, log_suffix)
     csv_log_file = "metrics.log"
     if os.path.isfile(csv_log_file):
@@ -339,11 +335,11 @@ def run_training(model, data_loader, to_profile, log_suffix):
     logs = log_name + '_' + datetime.now().strftime("%Y.%m.%d(%H:%M)")
     tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
                                                      profile_batch = ('100, 300' if to_profile else 0),
-                                                     update_freq = ( 0 if data_loader.n_batches_log<=0 else data_loader.n_batches_log ))
+                                                     update_freq = ( 0 if net_setups["n_batches_log"]<=0 else net_setups["n_batches_log"] ))
     callbacks.append(tboard_callback)
 
     fit_hist = model.fit(data_train, validation_data = data_val,
-                         epochs = data_loader.n_epochs, initial_epoch = data_loader.epoch,
+                         epochs = net_setups["n_epochs"], initial_epoch = net_setups["epoch"],
                          callbacks = callbacks)
     
     model_path = f"{log_name}_final.tf"
@@ -376,12 +372,13 @@ def main(cfg: DictConfig) -> None:
         scaling_cfg = to_absolute_path(cfg.scaling_cfg)
         dataloader = DataLoaderReco.DataLoader(training_cfg, scaling_cfg)
 
-        setup_main =  dataloader.setup_main
-
-        input_map, input_shape, _  = dataloader.get_config()
-        model = create_model(setup_main, input_map)
-        model.build(input_shape[0])
-        compile_model(model, setup_main["mode"], dataloader.learning_rate)
+        dl_config =  dataloader.config
+        model = model = MyGNN(dl_config)
+        input_shape, _  = dataloader.get_shape()
+        # print(input_shape[0])
+        # compile_build = tf.ones(input_shape[0], dtype=tf.float32, name=None)
+        model.build(list(input_shape[0]))
+        compile_model(model, dl_config["SetupNN"]["mode"], dl_config["SetupNN"]["learning_rate"])
         fit_hist = run_training(model, dataloader, False, cfg.log_suffix)
 
         mlflow.log_dict(training_cfg, 'input_cfg/training_cfg.yaml')
