@@ -49,10 +49,14 @@ def getdata(_obj_f, _reshape, _dtype=np.float32):
                                  dtype=_dtype,
                                  count=_obj_f.size())).reshape(_reshape)
 
-def getgrid(_obj_grid):
+def getsequence(_obj_grid,
+                _n_tau,
+                _input_grids,
+                _n_features,
+                _n_seq):
     return [ getdata(_obj_grid[getattr(R.CellObjectType,group)],
-                    (n_tau, n_seq[group], n_features[group]))
-                    for group in input_grids]
+            (_n_tau, _n_seq[group], _n_features[group]))
+            for group in _input_grids]
 
 for i in range(n_batches):
 
@@ -64,7 +68,7 @@ for i in range(n_batches):
        continue
     
     data = data_loader.LoadData()
-    X = getgrid(data.x)
+    X = getsequence(data.x, n_tau, input_grids, n_features, n_seq)
     Y = getdata(data.y, (n_tau, outclass))
 
     end = time.time()
