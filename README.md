@@ -299,18 +299,72 @@ The script to that performs conversion is defined in [TauMLTools/Analysis/script
 
 ## Training NN
 
-1. The code to read the input grids from the file is implemented in cython in order to provide acceptable I/O performance.
-   Cython code should be compiled before starting the training. To do that, you should go to `TauMLTools/Training/python/` directory and run
+### Single run
+In order to have organized storage of models and its associated files, [mlflow](https://mlflow.org/docs/latest/index.html) is used from the training step onwards. At the training step, it takes care of logging necessary configuration parameters used to run the given training, plus additional artifacts, i.e. associated files like model/cfg files or output logs). Conceptually, mlflow augments the training code with additional logging of requested parameters/files whenever it is requested. Please note that hereafter mlflow notions of __run__ (a single training) and __experiment__ (a group of runs) will be used. 
+
+The script to perform the training is [TauMLTools/Training/python/2018v1/Training_v0p1.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/2018v1/Training_v0p1.py). It is supplied with a corresponding [TauMLTools/Training/python/2018v1/train.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/2018v1/train.yaml) configuration file which specifies input configuration parameters. Here, [hydra](https://hydra.cc/docs/intro/) is used to compose the final configuration given the specification inside of `train.yaml` and, optionally, from a command line (see below), which is then passed as [OmegaConf](https://omegaconf.readthedocs.io/) dictionary to `main()` function. 
+
+The specification consists of:
+* the main training configuration file [`TauMLTools/Training/configs/training_v1.yaml`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/configs/training_v1.yaml) describing `DataLoader` and model configurations, which is "imported" by hydra as a [defaults list](https://hydra.cc/docs/advanced/defaults_list/)
+* mlflow parameters, specifically `path_to_mlflow` (to the folder storing mlflow runs, usually its default name is `mlruns`) and `experiment_name`.  These two parameters are needed to either create an mlflow experiment with a given `experiment_name` (if it doesn't exist) or to find the experiment to which attribute the current run
+* `scaling_cfg` which specifies the path to the json file with feature scaling parameters
+* `gpu_cfg` which sets the gpu related parameters 
+* `log_suffix` used as a postfix in output directory names
+
+Also note that one can conveniently [add/remove/override](https://hydra.cc/docs/advanced/override_grammar/basic/) __any__ configuration items from the command line. Otherwise, running `python Training_v0p1.py` will use default values as they are composed by hydra based on `train.yaml`.
+
+An example of running the training would be:
+```sh
+python Training_v0p1.py experiment_name=run3_cnn_ho2 'training_cfg.SetupNN.tau_net={ activation: "PReLU", dropout_rate: 0.2, reduction_rate: 1.4, first_layer_width: "2*n*(1+drop)", last_layer_width: "n*(1+drop)" }' 'training_cfg.SetupNN.comp_net={ activation: "PReLU", dropout_rate: 0.2, reduction_rate: 1.6, first_layer_width: "2*n*(1+drop)", last_layer_width: "n*(1+drop)" }' 'training_cfg.SetupNN.comp_merge_net={ activation: "PReLU", dropout_rate: 0.2, reduction_rate: 1.6, first_layer_width: "n", last_layer_width: 64 }' 'training_cfg.SetupNN.conv_2d_net={ activation: "PReLU", dropout_rate: 0.2, reduction_rate: null, window_size: 3 }' 'training_cfg.SetupNN.dense_net={ activation: "PReLU", dropout_rate: 0.2, reduction_rate: 1, first_layer_width: 200, last_layer_width: 200, min_n_layers: 4 }'
+```
+
+Here, a new mlflow run will be created under the "run3_cnn_ho2" experiment (if the experiment doesn't exist, it will be created). Then, the model is composed and compiled and the training proceeds via a usual `fit()` method with `DataLoader` class instance used as a batch yielder. Several callbacks are also implemented to monitor the training process, specifically `CSVLogger`, `TimeCheckpoint` and `TensorBoard` callback. Lastly, note that the parameters related to the NN setup and initially specified in `training_v1.yaml` are overriden via the command line (`training_cfg.SetupNN.{param}=...`)
+
+Furthermore, for the sake of convenience, submission of multiple trainings in parallel to the batch system is implemented as a dedicated law task. As an example, running the following commands will set up law and submit the trainings specified in `TauMLTools/Training/configs/input_run3_cnn_ho1.txt` to `htcondor`: 
+
+```sh
+source setup.sh
+law index
+law run Training --version input_run3_cnn_ho1 --workflow htcondor --working-dir /nfs/dust/cms/user/mykytaua/softDeepTau/DeepTau_master_hyperparam-law/TauMLTools/Training/python/2018v1 --input-cmds /nfs/dust/cms/user/mykytaua/softDeepTau/DeepTau_master_hyperparam-law/TauMLTools/Training/configs/input_run3_cnn_ho1.txt --conda-path /nfs/dust/cms/user/mykytaua/softML/miniconda3/bin/conda --max-memory 40000 --max-runtime 20
+```
+
+### Combining multiple runs
+It might be the case that trainings from a common mlflow experiment are distributed amongst several people (e.g. for the purpose of hyperparameter optimisation), so that each person runs their fraction on their personal/institute hardware, and then all the mlflow runs are to be combined together under the same folder. Naive copying and merging of `mlruns` folders under the common folder wouldn't work because several parameters in `meta.yaml` files (mlflow internal cfg files stored per run and per experiment in corresponding folders) are not synchronised accross the team in their mlflow experiments. Specifically, in each of those files the following parameters require changes:
+
+1. `artifact_location` (`meta.yaml` for each experiment) needs to be set to a common merged directory and the same change needs to be propagated to `artifact_uri` (`meta.yaml` for each run).
+1. `experiment_id` needs to be set to a new common experiment ID (`meta.yaml` for each experiment and for each run).
+
+These points are not a problem if the end goal is a simple file storage. However, mlflow is being used in the current training procedure mostly to improve UX with dedicated [`mlflow UI`](https://www.mlflow.org/docs/latest/tracking.html#tracking-ui) for a better navigation through the trainings and their convenient comparison. In that case, mlflow UI requires a properly structured `mlruns` folder to correctly read and visualise run-related information.
+
+For the purpose of preparing individual's `mlruns` folder for merging, [`set_mlflow_paths.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/set_mlflow_paths.py) script was written. What it does is:
+1. recursively going through the folders in user-specified `path_to_mlflow` and corresponding experiment `exp_id` therein, opening firstly the experiment-related `meta.yaml` and resetting there `artifact_location` to `new_path_to_exp`, which is defined as a concatenation of user-specified `new_path_to_mlflow` and `exp_id` or `new_exp_id` (if passed)
+1. opening run-related `meta.yaml` files and resetting `artifact_uri` key to `new_path_to_exp`, plus resetting `experiment_id` to `new_exp_id` (if passed)
+1. in case `new_exp_id` argument is provided, the whole experiment folder is renamed to this new ID  
+
+It has the following input arguments:
+* `-p`, `--path-to-mlflow`: (required) Path to local folder with mlflow experiments
+* `-id`, `--exp-id`: (required) Experiment id in the specified mlflow folder to be modified.
+* `-np`, `--new-path-to-mlflow`: (required) New path to be set throughout `meta.yaml` configs for a specified mlflow experiment.
+* `-nid`, `--new-exp-id`: (optional, default=None) If passed, will also reset the current experiment id.
+* `-nn`, `--new-exp-name`: (optional, default=None) If passed, will also reset the current experiment name.
+
+Therefore, the following workflow is suggested:
+1. One runs their fraction of a common mlflow experiment at machine(s) of their choice. At this point it is not really important to have a common experiment name/experiment ID across all the team since it will be anyway unified afterwards. The outcome of this step is one has got locally a folder `${WORKDIR}/mlruns/${EXP_ID}` which contains the trainings as mlflow run folders + experiment-related `meta.yaml`.
+1. The team aggrees that the combined experiment name is `${NEW_EXP_NAME}` with a corresponding ID `${NEW_EXP_ID}` and the directory where the runs distributed across the team are to be stored is `${SHARED_DIR}/mlruns`. Below will assume that this directory is located on `lxplus`.
+1. Everyone in the team runs `set_mlflow_paths.py` script at the machine where the training was happening:
    ```sh
-   python _fill_grid_setup.py build
+   python set_mlflow_paths.py -p ${WORKDIR}/mlruns -id ${exp_id} -np ${SHARED_DIR}/mlruns -nid ${NEW_EXP_ID} -nn ${NEW_EXP_NAME}
    ```
-1. DeepTau v2 training is defined in [TauMLTools/Training/python/2017v2/Training_p6.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/2017v2/Training_p6.py). You should modify input path, number of epoch and other parameters according to your needs in [L286](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/2017v2/Training_p6.py#L286) and then run the training in `TauMLTools/Training/python/2017v2` directory:
+1. Everyone in the team copies runs from the shared experiment from their local machines to `${SHARED_DIR}`, e.g. using `rsync` (note that below `--dry-run` option is on, remove it to do the actual synching):
    ```sh
-   python Training_p6.py
+   rsync --archive --compress --verbose --human-readable --progress --inplace --dry-run ${WORKDIR}/mlruns ${USERNAME}@lxplus.cern.ch:${SHARED_DIR}
    ```
-1. Once training is finished, the model can be converted to the constant graph suitable for inference:
+   **NB:** this command will synchronise **all** experiment folders inside of `${WORKDIR}/mlruns` with those of `${SHARED_DIR}/mlruns`. Make sure that this won't cause troubles and clashes for experiments which are not `${EXP_ID}`.
+1. Now, it should be possible to bring up mlflow UI and inspect the merged runs altogether:
    ```sh
-   python TauMLTools/Analysis/python/deploy_model.py --input MODEL_FILE.hdf5
+   cd ${SHARED_DIR}
+   mlflow ui -p 5000 # 5000 is the default port
+   # forward this port to a machine with graphics
    ```
 
 ## Testing NN performance

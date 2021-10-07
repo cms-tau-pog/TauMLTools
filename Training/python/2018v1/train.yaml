@@ -1,3 +1,6 @@
+hydra:
+  run:
+    dir: outputs/${experiment_name}/${training_cfg.SetupNN.model_name}/${now:%Y-%m-%d_%H-%M-%S}
 defaults:
   - ../../configs@_global_.training_cfg: training_v1
   - _self_

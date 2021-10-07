@@ -4,11 +4,11 @@ import yaml
 import click
 
 @click.command()
-@click.option('-p', '--path-to-mlflow', help='Path to folder with mlflow experiments')
-@click.option('-id', '--exp-id', help='Experiment id in the specified mlflow runs folder to be modified.')
-@click.option('-np', '--new-path-to-mlflow', help='New (absolute) path to be set throughout meta.yaml configs for a specified mlflow experiment.')
-@click.option('-nid', '--new-exp-id', default=None, help='If passed, will also change current experiment id.')
-@click.option('-nn', '--new-exp-name', default=None, help='If passed, will also change current experiment name.')
+@click.option('-p', '--path-to-mlflow', help='Path to local folder with mlflow experiments')
+@click.option('-id', '--exp-id', help='Experiment id in the specified mlflow folder to be modified.')
+@click.option('-np', '--new-path-to-mlflow', help='New path to be set throughout meta.yaml configs for a specified mlflow experiment.')
+@click.option('-nid', '--new-exp-id', default=None, help='If passed, will also reset the current experiment id.')
+@click.option('-nn', '--new-exp-name', default=None, help='If passed, will also reset the current experiment name.')
 def main(path_to_mlflow, exp_id, new_path_to_mlflow, new_exp_id, new_exp_name):
     path_to_exp = os.path.abspath(path_to_mlflow) + '/' + exp_id
     if not os.path.exists(path_to_exp):

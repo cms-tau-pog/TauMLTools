@@ -1,5 +1,5 @@
 Setup:
-    n_tau                :  250 # number of candidates in one batch 
+    n_tau                :  250 # number of candidates in one batch
     iso_cone             :  0.5
     n_inner_cells        :  11
     inner_cell_size      :  0.02
@@ -57,26 +57,30 @@ Setup:
 
 SetupNN:
     model_name           : "DeepTau2018v0"
-    n_batches            : -1
-    n_batches_val        : -1
+    n_batches            : 80000
+    n_batches_val        : 80000
     n_batches_log        : 1000 # monitor every n batches in tensorboard
     epoch                : 0
-    n_epochs             : 10
+    n_epochs             : 1
     validation_split     : 0.3
-    max_queue_size       : 20
+    max_queue_size       : 10
     n_load_workers       : 4
     input_grids          : [
-                            [ PfCand_electron, PfCand_gamma, Electron ], # e-gamma
-                            [ PfCand_muon, Muon ], # muons
-                            [ PfCand_chHad, PfCand_nHad ] # hadrons
+                            [ GridGlobal, PfCand_electron, PfCand_gamma, Electron ], # e-gamma
+                            [ GridGlobal, PfCand_muon, Muon ], # muons
+                            [ GridGlobal, PfCand_chHad, PfCand_nHad ] # hadrons
                            ]
     TauLossesSFs         : [1, 2.5, 5, 1.5]
+    optimizer_name       : "Nadam"
     learning_rate        : 0.001
-    tau_net_setup        : ['PReLU', null, 0.2, 128, 128, 1.4, null, False] 
-    comp_net_setup       : ['PReLU', [1, 2], 0.2, 1024, 64, 1.6, null, False]
-    dense_net_setup      : ['PReLU', null, 0.2, 200, 64, 1.4, null, False]
+    tau_net              : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.4, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
+    comp_net             : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
+    comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "n", "last_layer_width": 64 }
+    conv_2d_net          : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": null, "window_size": 3 }
+    dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 200, "last_layer_width": 200, "min_n_layers": 4 }
 
 CellObjectType : [
+                 GridGlobal,
                  PfCand_electron,
                  PfCand_muon,
                  PfCand_chHad,
@@ -151,6 +155,12 @@ Scaling_setup:
           phi: tau_phi
         cone_types: [null] # [null] in case of no split into cones (i.e. inclusive computation)
       # ----------------------------
+      GridGlobal:
+        var_names: # used to derive dR selection query
+          eta: tau_eta
+          phi: tau_phi
+        cone_types: [null] # [null] in case of no split into cones (i.e. inclusive computation)
+      # ----------------------------
       PfCand_electron:
         var_names:
           eta: pfCand_eta
@@ -217,6 +227,7 @@ Scaling_setup:
 
 Features_all :
     TauFlat :
+                - rho: [null, null, "linear", 0, 50]
                 - tau_pt: [null, null, "linear", 20, 1000]
                 - tau_eta: [null, null, "linear", -2.3, 2.3]
                 - tau_phi: [null, null, "linear", *mpi, *pi]
@@ -260,6 +271,12 @@ Features_all :
                 - tau_emFraction: [null, null, "linear", -1., 1.]
                 - tau_inside_ecal_crack: [null, null, "no_scaling"]
                 - tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta: [null, {"tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta": "tau_leadChargedCand_etaAtEcalEntrance - tau_eta"}, "normal", -5, 5]
+
+    GridGlobal:
+                - rho: [null, null, "linear", 0, 50]
+                - tau_pt: [null, null, "linear", 20, 1000]
+                - tau_eta: [null, null, "linear", -2.3, 2.3]
+                - tau_inside_ecal_crack: [null, null, "no_scaling"]
 
     PfCand_electron :
                 - pfCand_ele_valid: [*is_pfElectron, null, "no_scaling"]
@@ -453,6 +470,7 @@ Features_all :
 
 Features_disable :
     TauFlat : ["tau_phi"]
+    GridGlobal : []
     PfCand_electron : [ ]
     PfCand_muon : [ ]
     PfCand_chHad : [ ]

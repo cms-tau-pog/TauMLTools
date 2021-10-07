@@ -1,4 +1,38 @@
 {
+    "GridGlobal": {
+        "rho": {
+            "global": {
+                "mean": 25,
+                "std": 25,
+                "lim_min": "-1",
+                "lim_max": "1"
+            }
+        },
+        "tau_pt": {
+            "global": {
+                "mean": 510.0,
+                "std": 490.0,
+                "lim_min": -1.0,
+                "lim_max": 1.0
+            }
+        },
+        "tau_eta": {
+            "global": {
+                "mean": 0.0,
+                "std": 2.3,
+                "lim_min": -1.0,
+                "lim_max": 1.0
+            }
+        },
+        "tau_inside_ecal_crack": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        }
+    },
     "TauFlat": {
         "tau_pt": {
             "global": {

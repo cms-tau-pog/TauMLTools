@@ -101,13 +101,14 @@ struct Data {
     typedef std::unordered_map<CellObjectType, std::unordered_map<bool, std::vector<float>>> GridMap;
 
     Data(size_t n_tau, size_t tau_fn, size_t n_inner_cells,
-         size_t n_outer_cells, size_t pfelectron_fn, size_t pfmuon_fn,
+         size_t n_outer_cells, size_t globalgrid_fn, size_t pfelectron_fn, size_t pfmuon_fn,
          size_t pfchargedhad_fn, size_t pfneutralhad_fn, size_t pfgamma_fn,
          size_t electron_fn, size_t muon_fn, size_t tau_labels) :
          x_tau(n_tau * tau_fn, 0), weight(n_tau, 0), y_onehot(n_tau * tau_labels, 0)
          {
-          // pf electron
-           // x_grid[CellObjectType::PfCand_electron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfelectron_fn,0);
+           x_grid[CellObjectType::GridGlobal][0].resize(n_tau * n_outer_cells * n_outer_cells * globalgrid_fn,0);
+           x_grid[CellObjectType::GridGlobal][1].resize(n_tau * n_inner_cells * n_inner_cells * globalgrid_fn,0);
+           // pf electron
            x_grid[CellObjectType::PfCand_electron][0].resize(n_tau * n_outer_cells * n_outer_cells * pfelectron_fn,0);
            x_grid[CellObjectType::PfCand_electron][1].resize(n_tau * n_inner_cells * n_inner_cells * pfelectron_fn,0);
            // pf muons
@@ -151,7 +152,7 @@ public:
         innerCellGridRef(n_inner_cells, n_inner_cells, inner_cell_size, inner_cell_size),
         outerCellGridRef(n_outer_cells, n_outer_cells, outer_cell_size, outer_cell_size),
         hasData(false), fullData(false), hasFile(false)
-    { 
+    {
       ROOT::EnableThreadSafety();
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
 
@@ -180,7 +181,7 @@ public:
 
       std::shared_ptr<TH2D> target_th2d = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
       if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
-      
+
       for( auto const& [tau_type, tau_name] : tau_types_names)
       {
         std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
@@ -211,7 +212,7 @@ public:
         end_entry = tauTuple->GetEntries();
         if(end_file!=-1) end_entry = std::min(end_file, end_entry);
         hasFile = true;
-    } 
+    }
 
     bool MoveNext() {
         if(!hasFile)
@@ -221,7 +222,7 @@ public:
           throw std::runtime_error("TauTuple is not loaded!");
 
         if(!hasData) {
-          data = std::make_unique<Data>(n_tau, n_TauFlat, n_inner_cells, n_outer_cells,
+          data = std::make_unique<Data>(n_tau, n_TauFlat, n_inner_cells, n_outer_cells, n_GridGlobal,
                                         n_PfCand_electron, n_PfCand_muon, n_PfCand_chHad, n_PfCand_nHad,
                                         n_PfCand_gamma, n_Electron, n_Muon, tau_types_names.size()
                                         );
@@ -328,6 +329,7 @@ public:
             data->x_tau.at(index) = Scale<Scaling::TauFlat>(_fe_ind, value, false);
         };
 
+        fill_tau(TauFlat_Features::rho, tau.rho);
         fill_tau(TauFlat_Features::tau_pt, tau.tau_pt);
         fill_tau(TauFlat_Features::tau_eta, tau.tau_eta);
         fill_tau(TauFlat_Features::tau_phi, tau.tau_phi);
@@ -478,6 +480,13 @@ public:
                 }
             }
         };
+        { // CellObjectType::GridGlobal
+            typedef GridGlobal_Features Br;
+            fillGrid(Br::rho, tau.rho);
+            fillGrid(Br::tau_pt, tau.tau_pt);
+            fillGrid(Br::tau_eta, tau.tau_eta);
+            fillGrid(Br::tau_inside_ecal_crack, tau.tau_inside_ecal_crack);
+        }
 
         { // CellObjectType::PfCand_electron
 
@@ -818,7 +827,7 @@ public:
       }
 
       static bool isSameCellObjectType(int particleType, CellObjectType type)
-      { 
+      {
           static const std::set<int> other_types = {0, 6, 7};
 
           static const std::map<int, CellObjectType> obj_types = {
@@ -828,7 +837,7 @@ public:
               { 5, CellObjectType::PfCand_nHad },
               { 1, CellObjectType::PfCand_chHad }
           };
-          
+
           if(other_types.find(particleType) != other_types.end()) return false;
           auto iter = obj_types.find(particleType);
           if(iter == obj_types.end())
