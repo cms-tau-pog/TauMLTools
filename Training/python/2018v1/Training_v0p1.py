@@ -290,6 +290,7 @@ def run_training(model, data_loader, to_profile, log_suffix):
     mlflow.log_artifacts(model_path, "model")
     mlflow.log_artifacts(logs, "custom_tensorboard_logs")
     mlflow.log_artifact(csv_log_file)
+    mlflow.log_param('model_name', model_name)
 
     return fit_hist
 
@@ -306,6 +307,7 @@ def main(cfg: DictConfig) -> None:
 
     # run the training with mlflow tracking
     with mlflow.start_run(**run_kwargs) as active_run:
+        run_id = active_run.info.run_id
         setup_gpu(cfg.gpu_cfg)
         training_cfg = OmegaConf.to_object(cfg.training_cfg) # convert to python dictionary
         scaling_cfg = to_absolute_path(cfg.scaling_cfg)
@@ -319,14 +321,27 @@ def main(cfg: DictConfig) -> None:
         compile_model(model, setup["optimizer_name"], setup["learning_rate"])
         fit_hist = run_training(model, dataloader, False, cfg.log_suffix)
 
+        # log NN params
+        for net_type in ['tau_net', 'comp_net', 'comp_merge_net', 'conv_2d_net', 'dense_net']:
+            mlflow.log_params({f'{net_type}_{k}': v for k,v in cfg.training_cfg.SetupNN[net_type].items()})
+        mlflow.log_params({f'TauLossesSFs_{i}': v for i,v in enumerate(cfg.training_cfg.SetupNN.TauLossesSFs)})
+        with open(to_absolute_path(f'{cfg.path_to_mlflow}/{run_kwargs["experiment_id"]}/{run_id}/artifacts/model_summary.txt')) as f:
+            for l in f:
+                if (s:='Trainable params: ') in l:
+                    mlflow.log_param('n_train_params', int(l.split(s)[-1].replace(',', '')))
+
+        # log training related files
         mlflow.log_dict(training_cfg, 'input_cfg/training_cfg.yaml')
         mlflow.log_artifact(scaling_cfg, 'input_cfg')
         mlflow.log_artifact(to_absolute_path("Training_v0p1.py"), 'input_cfg')
         mlflow.log_artifact(to_absolute_path("../common.py"), 'input_cfg')
+
+        # log hydra files
         mlflow.log_artifacts('.hydra', 'input_cfg/hydra')
         mlflow.log_artifact('Training_v0p1.log', 'input_cfg/hydra')
-        mlflow.log_param('run_id', active_run.info.run_id)
-        print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {active_run.info.run_id}\n')
+
+        mlflow.log_param('run_id', run_id)
+        print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {run_id}\n')
 
 if __name__ == '__main__':
     main()
