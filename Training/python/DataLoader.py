@@ -28,7 +28,7 @@ def LoaderThread(queue_out,
                              input_grids, n_inner_cells, n_outer_cells)
 
         if nan_check(X_all):
-            break
+            raise RuntimeError("Terminate: nans detected in the tensor.")
 
         X_all = tuple(X_all)
 

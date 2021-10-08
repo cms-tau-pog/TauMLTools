@@ -171,15 +171,7 @@ def create_scaling_input(input_scaling_file: str, training_cfg_data: dict, verbo
         string = "namespace Scaling {\n"
         for FeatureT in content_scaling:
             string += "struct "+FeatureT+"{\n"
-            # whether to duplicate scaling param values across cone_groups
-            if FeatureT in content_cfg['CellObjectType'] and \
-               content_cfg['Scaling_setup']['cone_selection'][FeatureT]['cone_types'] == ["inner", "outer"]:
-                duplicate = True
-            elif content_cfg['Scaling_setup']['cone_selection'][FeatureT]['cone_types'] == [None]:
-                duplicate = False
-            else:
-                raise Exception(f"Undefined cone_types for {FeatureT}")
-
+            duplicate = FeatureT in content_cfg['CellObjectType'] # whether to duplicate scaling param values across cone_groups
             for i, subg in enumerate(subgroups):
                 string += "inline static const "
                 string += "std::vector<std::vector<float>> "

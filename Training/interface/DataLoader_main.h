@@ -313,8 +313,8 @@ public:
       template <typename FeatureT>
       const float Scale(const int idx, const float value, const bool inner)
       {
-        return std::clamp((value - FeatureT::mean[idx][inner]) / FeatureT::std[idx][inner],
-                          FeatureT::lim_min[idx][inner], FeatureT::lim_max[idx][inner]);
+        return std::clamp((value - FeatureT::mean.at(idx).at(inner)) / FeatureT::std.at(idx).at(inner),
+                          FeatureT::lim_min.at(idx).at(inner), FeatureT::lim_max.at(idx).at(inner));
       }
 
       void FillTauBranches(const Tau& tau, Long64_t tau_i)
