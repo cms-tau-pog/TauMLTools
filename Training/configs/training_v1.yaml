@@ -15,7 +15,7 @@ Setup:
     input_spectrum       : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_TrainingSpectrum/ShuffleMergeSpectral_trainingSamples-2_spectrum.root"
     target_spectrum      : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_TrainingSpectrum/ShuffleMergeSpectral_trainingSamples-2_spectrum.root"
     weight_thr           : 100000.0
-    dataloader_core      : "TauMLTools/Training/interface/DataLoaderReco_main.h"
+    dataloader_core      : "TauMLTools/Training/interface/DataLoader_main.h"
 
     # here define variables for the Histogram_2D class
     yaxis                : [
