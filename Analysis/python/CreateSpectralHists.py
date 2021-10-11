@@ -42,25 +42,36 @@ for dir_path in input_path:
     split_path = dir_path.split("/")
     if not os.path.isdir(dir_path): continue
 
-    output_file = args.output + "/" \
+    output_root = args.output + "/" \
                 + split_path[-1] + ".root"
+    output_entries = args.output + "/" \
+                + split_path[-1] + ".txt"
+                
 
-    if os.path.exists(output_file):
+    if os.path.exists(output_root):
         print("{} was already processed.".format(dir_path))
         if args.rewrite:
-            print("{} was removed".format(output_file))
-            os.remove(output_file)
+            print("{} was removed".format(output_root))
+            os.remove(output_root)
+        else:
+            continue
+    if os.path.exists(output_entries):
+        print("{} was already processed.".format(dir_path))
+        if args.rewrite:
+            print("{} was removed".format(output_entries))
+            os.remove(output_entries)
         else:
             continue
 
     print("Added {}...".format(dir_path))
 
-    cmd = 'CreateSpectralHists --output "{}" --input-dir "{}" --pt-hist "{}" --eta-hist "{}" --n-threads {}' \
-        .format(output_file, dir_path, pt_hist, eta_hist, args.n_threads)
+    cmd = 'CreateSpectralHists --outputfile "{}" --output_entries "{}" --input-dir "{}" --pt-hist "{}" --eta-hist "{}" --n-threads {}' \
+        .format(output_root, output_entries, dir_path, pt_hist, eta_hist, args.n_threads)
     result = subprocess.call([cmd], shell=True)
 
     if result != 0:
-        if os.path.exists(output_file):
-            os.remove(output_file)
+        if os.path.exists(output_root):
+            os.remove(output_root)
         raise RuntimeError("MergeTuples has failed.")
     print("{} has been successfully processed".format(dir_path))
+

@@ -15,6 +15,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <TFile.h>
 #include <TTree.h>
 #include <Rtypes.h>
+#include <TChain.h>
 
 #define DECLARE_BRANCH_VARIABLE(type, name) type name;
 #define ADD_DATA_TREE_BRANCH(name) AddBranch(#name, _data->name);
@@ -33,6 +34,10 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
                         const std::set<std::string>& disabled_branches = {}, \
                         const std::set<std::string>& enabled_branches = {}) \
             : BaseSmartTree(name, directory, readMode, disabled_branches,enabled_branches) { Initialize(); } \
+        tree_class_name(const std::string& name, const std::vector<std::string>& files_list, \
+                        const std::set<std::string>& disabled_branches = {}, \
+                        const std::set<std::string>& enabled_branches = {}) \
+            : BaseSmartTree(name, files_list, disabled_branches, enabled_branches) { Initialize(); } \
     private: \
         inline void Initialize(); \
     }; \
@@ -198,6 +203,7 @@ public:
             if(!directory)
                 throw std::runtime_error("Can't read tree from nonexistent directory.");
             tree = dynamic_cast<TTree*>(directory->Get(name.c_str()));
+            tree->SetMaxVirtualSize(maxVirtualSize);
             if(!tree)
                 throw std::runtime_error("Tree not found.");
             if(tree->GetNbranches())
@@ -212,6 +218,25 @@ public:
             }
         }
     }
+
+    SmartTree(const std::string& _name, const std::vector<std::string>& list,
+              const std::set<std::string>& _disabled_branches = {}, const std::set<std::string>& _enabled_branches ={})
+        : name(_name), directory(nullptr), readMode(true), disabled_branches(_disabled_branches),
+          enabled_branches(_enabled_branches)
+    {
+        static constexpr Long64_t maxVirtualSize = 100 * 1024 * 1024;
+
+        TChain* fchain = new TChain("taus");
+        for(const std::string& file: list)
+          fchain->Add(file.c_str());
+        tree = fchain;
+        tree->SetMaxVirtualSize(maxVirtualSize);
+        if(!tree)
+            throw std::runtime_error("Tree not found.");
+        if(tree->GetNbranches())
+            tree->SetBranchStatus("*", 0);
+    }
+
     SmartTree(const SmartTree& other) = delete;
     SmartTree(const SmartTree&& other)
         : name(other.name), directory(other.directory), tree(other.tree),

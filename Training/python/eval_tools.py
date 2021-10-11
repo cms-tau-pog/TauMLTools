@@ -1,9 +1,13 @@
 import numpy as np
 import pandas
 import uproot
+import math
+import copy
 from sklearn import metrics
 from scipy import interpolate
-
+from _ctypes import PyObj_FromPtr
+import json
+import re
 import sys
 
 if sys.version_info.major > 2:
@@ -87,9 +91,25 @@ class RocCurve:
                 ax_ratio.plot(x, y, color=self.color, linewidth=1, linestyle=linestyle)
         return entry
 
+    def Prune(self, tpr_decimals=3):
+        pruned = copy.deepcopy(self)
+        rounded_tpr = np.round(self.pr[1, :], decimals=tpr_decimals)
+        unique_tpr, idx = np.unique(rounded_tpr, return_index=True)
+        idx = np.sort(idx)
+        n_points = len(idx)
+        pruned.pr = np.zeros((2, n_points))
+        pruned.pr[0, :] = self.pr[0, idx]
+        pruned.pr[1, :] = self.pr[1, idx]
+        if self.thresholds is not None:
+            pruned.thresholds = self.thresholds[idx]
+        if self.pr_err is not None:
+            pruned.pr_err = np.zeros((2, 2, n_points))
+            pruned.pr_err[:, :, :] = self.pr_err[:, :, idx]
+        return pruned
+
 class PlotSetup:
     def __init__(self, xlim = None, ylim = None, ratio_ylim = None, ylabel = None, yscale='log',
-                 ratio_yscale='linear', legend_loc='upper left', ratio_ylable_pad=20):
+                 ratio_yscale='linear', legend_loc='upper left', ratio_ylabel_pad=20):
         self.xlim = xlim
         self.ylim = ylim
         self.ratio_ylim = ratio_ylim
@@ -97,7 +117,7 @@ class PlotSetup:
         self.yscale = yscale
         self.ratio_yscale = ratio_yscale
         self.legend_loc = legend_loc
-        self.ratio_ylable_pad = ratio_ylable_pad
+        self.ratio_ylabel_pad = ratio_ylabel_pad
 
     def Apply(self, names, entries, range_index, ratio_title, ax, ax_ratio = None):
         if self.xlim is not None:
@@ -123,7 +143,7 @@ class PlotSetup:
             ax_ratio.set_yscale(self.ratio_yscale)
             ax_ratio.set_xlabel('Tau ID efficiency', fontsize=16)
             #ratio_title = 'MVA/DeepTau' if args.other_type != 'mu' else 'cut based/DeepTau'
-            ax_ratio.set_ylabel(ratio_title, fontsize=14, labelpad=self.ratio_ylable_pad)
+            ax_ratio.set_ylabel(ratio_title, fontsize=14, labelpad=self.ratio_ylabel_pad)
             ax_ratio.tick_params(labelsize=10)
 
             ax_ratio.grid(True, which='both')
@@ -244,3 +264,30 @@ def cm2inch(*tupl):
     if isinstance(tupl[0], tuple):
         return tuple(i/inch for i in tupl[0])
     return tuple(i/inch for i in tupl)
+
+class FloatList(object):
+    def __init__(self, value):
+        self.value = value
+
+class CustomJsonEncoder(json.JSONEncoder):
+    placeholder = '@@{}@@'
+    placeholder_re = re.compile(placeholder.format(r'(\d+)'))
+
+    def __init__(self, **kwargs):
+        self.__sort_keys = kwargs.get('sort_keys', None)
+        super(CustomJsonEncoder, self).__init__(**kwargs)
+
+    def default(self, obj):
+        if isinstance(obj, FloatList):
+            return self.placeholder.format(id(obj))
+        return super(CustomJsonEncoder, self).default(obj)
+
+    def encode(self, obj):
+        json_repr = super(CustomJsonEncoder, self).encode(obj)
+        for match in self.placeholder_re.finditer(json_repr):
+            id = int(match.group(1))
+            float_list = PyObj_FromPtr(id)
+            json_obj_repr = '[ ' + ', '.join([ '{:.4e}'.format(x) for x in float_list.value ]) + ' ]'
+            json_repr = json_repr.replace('"{}"'.format(self.placeholder.format(id)), json_obj_repr)
+
+        return json_repr

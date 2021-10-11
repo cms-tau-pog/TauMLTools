@@ -64,11 +64,13 @@ process.load('Configuration.StandardSequences.MagneticField_cff')
 # include Phase2 specific configuration only after 11_0_X
 if isPhase2:
     process.load('Configuration.Geometry.GeometryExtended2026D49Reco_cff')
+    process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+    from Configuration.AlCa.GlobalTag import GlobalTag
+    process.GlobalTag = GlobalTag(process.GlobalTag, sampleConfig.GetGlobalTag(options.sampleType), '')
 else:
     process.load('Configuration.Geometry.GeometryRecoDB_cff')
-process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
-
-process.GlobalTag.globaltag = sampleConfig.GetGlobalTag(options.sampleType)
+    process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
+    process.GlobalTag.globaltag = sampleConfig.GetGlobalTag(options.sampleType)
 process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring())
 process.TFileService = cms.Service('TFileService', fileName = cms.string(options.tupleOutput) )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
@@ -212,11 +214,18 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
 
 process.tupleProductionSequence = cms.Sequence(process.tauTupleProducer)
 
-process.p = cms.Path(
-    getattr(process, updatedTauName + 'rerunMvaIsolationSequence') *
-    getattr(process, updatedTauName) *
-    process.tupleProductionSequence
-)
+if isPhase2:
+    process.p = cms.Path(
+        getattr(process, 'rerunMvaIsolationSequence') *
+        getattr(process, updatedTauName) *
+        process.tupleProductionSequence
+    )
+else:
+    process.p = cms.Path(
+        getattr(process, updatedTauName + 'rerunMvaIsolationSequence') *
+        getattr(process, updatedTauName) *
+        process.tupleProductionSequence
+    )
 
 if isPhase2:
     process.p.insert(0, process.slimmedElectronsMerged)

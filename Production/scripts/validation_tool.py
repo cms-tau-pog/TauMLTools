@@ -17,15 +17,16 @@ NOTE: pvalue = 99 means that one of the two histograms is empty.
 parser.add_argument('--input'         , required = True, type = str, help = 'input directory. Will loop inside all subdirectories')
 parser.add_argument('--regex'  , default  = '.*\.root$', type = str, help = 'regular expression to match to input files')
 parser.add_argument('--output'        , required = True, type = str, help = 'output directory name')
+parser.add_argument('--test'          , default ='Chi2', type = str, help = 'test to perform. Accepts Chi2 and KS')
 parser.add_argument('--nsplit'        , default  = 100 , type = int, help = 'number of chunks per file')
-parser.add_argument('--pvthreshold'   , default  = .05 , type = str, help = 'threshold of KS test (above = ok)')
+parser.add_argument('--pvthreshold'   , default  = .05 , type=float, help = 'threshold of KS test (above = ok)')
 parser.add_argument('--n_threads'     , default  = 1   , type = int, help = 'enable ROOT implicit multithreading')
 parser.add_argument('--id_json'       , required = True, type = str, help = 'dataset id json file')
 parser.add_argument('--group_id_json' , required = True, type = str, help = 'dataset group id json file')
 parser.add_argument('--use_dataset_id', action = 'store_true', help = 'Add \'dataset_id\' column for comparison and binning')
 
 parser.add_argument('--visual', action = 'store_true', help = 'Won\'t run the script in batch mode')
-parser.add_argument('--legend', action = 'store_true', help = 'Draw a TLegent on canvases')
+parser.add_argument('--legend', action = 'store_true', help = 'Draw a TLegend on canvases')
 args = parser.parse_args()
 
 ROOT.gROOT.SetBatch(not args.visual)
@@ -62,7 +63,7 @@ class Entry:  ## 2D entry (chunk_id x variable)
     self.hst = histo
     self.tdir = tdir if not tdir is None else self.var
 
-  def run_KS_test(self, norm = True):    
+  def run_test(self, test, norm = True):
     self.chunks = [self.hst.ProjectionY('chunk_{}'.format(cc), cc+1, cc+1).Clone() for cc in range(N_SPLIT)]
 
     self.chunks[0].SetMarkerStyle(20)
@@ -78,8 +79,16 @@ class Entry:  ## 2D entry (chunk_id x variable)
 
     if not self.chunks[0].Integral():
       print ('[WARNING] control histogram is empty inside {}'.format(self.tdir))
-    
-    self.pvalues = [self.chunks[0].KolmogorovTest(hh) if self.chunks[0].Integral()*hh.Integral() else 99 for hh in self.chunks]
+
+    if test == 'Chi2':
+      # see https://root.cern.ch/doc/master/classTH1.html#a6c281eebc0c0a848e7a0d620425090a5
+      self.pvalues = [self.chunks[0].Chi2Test(hh, "NORM" if norm else "UU") if self.chunks[0].Integral()*hh.Integral() else 99 for hh in self.chunks]
+    elif test == 'KS':
+      # see https://root.cern.ch/doc/master/classTH1.html#aeadcf087afe6ba203bcde124cfabbee4
+      self.pvalues = [self.chunks[0].KolmogorovTest(hh)   if self.chunks[0].Integral()*hh.Integral() else 99 for hh in self.chunks]
+    else:
+      raise ValueError("Test {} not valid".format(args.test))
+
     if not all([pv >= PVAL_THRESHOLD for pv in self.pvalues]):
       print ('[WARNING] KS test failed for step {}. p-values are:'.format(self.tdir))
       print ('\t', self.pvalues)
@@ -126,17 +135,17 @@ if __name__ == '__main__':
   input_files = ROOT.std.vector('std::string')()
   file_list = ['/'.join([root, ff]) for root, dirs, files in os.walk(args.input) for ff in files]
   file_list = sorted([ff for ff in file_list if not re.match(args.regex, ff) is None])
-  
+
   for ff in file_list:
     input_files.push_back(ff)
 
   model = lambda main, third = None: (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]+BINS[third] if not third is None else (main, '', N_SPLIT, 0, N_SPLIT)+BINS[main]
   
   cpp_function = '''
-std::vector<int> hash_list = {%s};
+std::vector<ULong64_t> hash_list = {%s};
 int hash, line = 0;
-for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it++, line++){
- if (*it == %s) return line;
+for(std::vector<ULong64_t>::iterator it = hash_list.begin(); it != hash_list.end(); it++, line++){
+if (*it == %s) return line;
 } return line;'''
 
   id_json       = json.load(open(args.id_json, 'r'))
@@ -214,9 +223,9 @@ for(std::vector<int>::iterator it = hash_list.begin(); it != hash_list.end(); it
     [ee for ee in entries_dataset_id]
 
   for ee in entries:
-    ee.run_KS_test()
+    ee.run_test(test = args.test)
     ee.save_data()
 
   OUTPUT_ROOT.Close()
   json.dump(JSON_DICT, OUTPUT_JSON, indent = 4)
-  print ('[INFO] all done. Files saved in', args.output)
+  print ('[INFO] all done. Files saved in', args.output, '. N. of processed events:', tot_entries)

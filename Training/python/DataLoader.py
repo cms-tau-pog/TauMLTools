@@ -1,228 +1,371 @@
-import glob
-import math
 import gc
-from queue import Queue
-from threading import Thread, Lock
+import multiprocessing as mp
+from queue import Empty as EmptyException
+from queue import Full as FullException
+
+import math
 import numpy as np
-import pandas
-import uproot
-from common import *
-from fill_grid import FillGrid, FillSequence
+import ROOT as R
+import config_parse
+import tensorflow as tf
+import os
+import yaml
+import time
+import glob
+class TerminateGenerator:
+    pass
 
-read_hdf_lock = Lock()
-def read_hdf(file_name, key, columns, start, stop):
-    read_hdf_lock.acquire()
-    df = pandas.read_hdf(file_name, key, columns=columns, start=start, stop=stop)
-    read_hdf_lock.release()
-    return df
+def ugly_clean(queue):
+    while True:
+        try:
+            _ = queue.get_nowait()
+        except EmptyException:
+            time.sleep(0.2)
+            if queue.qsize()==0:
+                break
+    if queue.qsize()!=0:
+        raise RuntimeError("Error: queue was not clean properly.")
 
-read_root_lock = Lock()
-uproot_cache = None
-def read_root(tree, branches, start, stop):
-    global uproot_cache
-    read_root_lock.acquire()
-    if uproot_cache is None:
-        uproot_cache = uproot.ArrayCache("2 GB")
-    data = tree.arrays(branches=branches, outputtype=pandas.DataFrame, namedecode='utf-8',
-                       entrystart=start, entrystop=stop, cache=uproot_cache)
-    read_root_lock.release()
-    return data
+def nan_check(Xf):
+    for x in Xf:
+        if np.isnan(x).any():
+            print("Nan detected! element=",x.shape)
+            print(np.argwhere(np.isnan(x)))
+            return True
+    return False
 
-def LoaderThread(file_entries, queue, net_config, batch_size, chunk_size, return_truth, return_weights, return_grid):
-    FillFn = FillGrid if return_grid else FillSequence
-    for file_name, tau_begin, tau_end in file_entries:
-        root_input = file_name.endswith('.root')
-        if root_input:
-            root_file = uproot.open(file_name)
-            taus_tree = root_file['taus']
-            taus_tree._recover()
-            cells_tree = {}
+class QueueEx:
+    def __init__(self, max_size=0, max_n_puts=math.inf):
+        self.n_puts = mp.Value('i', 0)
+        self.max_n_puts = max_n_puts
+        if self.max_n_puts < 0:
+            self.max_n_puts = math.inf
+        self.mp_queue = mp.Queue(max_size)
 
-            for loc in net_config.cell_locations:
-                cells_tree[loc] = root_file[loc + '_cells']
-                cells_tree[loc]._recover()
+    def put(self, item, retry_interval=0.3):
+        while True:
+            with self.n_puts.get_lock():
+                if self.n_puts.value >= self.max_n_puts:
+                    return False
+                try:
+                    self.mp_queue.put(item, False)
+                    self.n_puts.value += 1
+                    return True
+                except FullException:
+                    pass
+            time.sleep(retry_interval)
 
-        expected_n_batches = int(math.ceil((tau_end - tau_begin) / float(batch_size)))
-        tau_current = tau_begin
-        global_batch_id = 0
-        while tau_current < tau_end:
-            entry_stop = min(tau_current + chunk_size, tau_end)
-            if root_input:
-                df_taus = read_root(taus_tree, df_tau_branches, tau_current, entry_stop)
+    def put_terminate(self):
+        self.mp_queue.put(TerminateGenerator())
+
+    def get(self):
+        return self.mp_queue.get()
+
+    def clear(self):
+        while not self.mp_queue.empty():
+            self.mp_queue.get()
+
+class DataSource:
+    def __init__(self, queue_files):
+        self.data_loader = R.DataLoader()
+        self.queue_files = queue_files
+        self.require_file = True
+
+    def get(self):
+        while True:
+            if self.require_file:
+                try:
+                    file_name = self.queue_files.get(False)
+                    self.data_loader.ReadFile(R.std.string(file_name), 0, -1)
+                    self.require_file = False
+                except EmptyException:
+                    return None
+
+            if self.data_loader.MoveNext():
+                return self.data_loader.LoadData()
             else:
-                df_taus = read_hdf(file_name, 'taus', df_tau_branches, tau_current, entry_stop)
+                self.require_file = True
 
-            df_cells = {}
-            cells_begin_ref = {}
-            for loc in net_config.cell_locations:
-                cells_begin = df_taus[loc + 'Cells_begin'].values[0]
-                cells_end = df_taus[loc + 'Cells_end'].values[-1]
-                if root_input:
-                    df_cells[loc] = read_root(cells_tree[loc], df_cell_branches, cells_begin, cells_end)
-                else:
-                    df_cells[loc] = read_hdf(file_name, loc + '_cells', df_cell_branches, cells_begin, cells_end)
-                cells_begin_ref[loc] = cells_begin
-            current_chunk_size = entry_stop - tau_current
-            n_batches = int(math.ceil(current_chunk_size / float(batch_size)))
-            for batch_id in range(n_batches):
-                if global_batch_id >= expected_n_batches:
-                    raise RuntimeError("Too many batches")
-                global_batch_id += 1
-                b_tau_begin = batch_id * batch_size
-                b_tau_end = min(df_taus.shape[0], (batch_id + 1) * batch_size)
-                b_size = b_tau_end - b_tau_begin
+class GetData():
 
-                X_all = [ ]
-                if len(net_config.tau_branches):
-                    X_taus = np.empty((b_size, len(net_config.tau_branches)), dtype=np.float32)
-                    X_taus[:, :] = df_taus[net_config.tau_branches].values[b_tau_begin:b_tau_end, :]
-                    X_all.append(X_taus)
-
-                Y = np.empty((b_size, n_outputs), dtype=np.int)
-                Y[:, :] = df_taus[truth_branches].values[b_tau_begin:b_tau_end, :]
-
-                for loc in net_config.cell_locations:
-                    b_cells_begins = df_taus[loc + 'Cells_begin'].values[b_tau_begin:b_tau_end]
-                    b_cells_ends = df_taus[loc + 'Cells_end'].values[b_tau_begin:b_tau_end]
-                    b_cells_begin = b_cells_begins[0] - cells_begin_ref[loc]
-                    b_cells_end = b_cells_ends[-1] - cells_begin_ref[loc]
-                    for cmp_branches in net_config.comp_branches:
-                        X_cells_comp = FillFn(b_cells_begins, b_cells_ends, n_cells_eta[loc], n_cells_phi[loc],
-                            df_cells[loc][cell_index_branches].values[b_cells_begin:b_cells_end, :],
-                            df_cells[loc][cmp_branches].values[b_cells_begin:b_cells_end, :],
-                            df_taus[input_cell_external_branches].values[b_tau_begin:b_tau_end, :])
-                        X_all.append(X_cells_comp)
-
-                if return_weights:
-                    weights = np.empty(b_size, dtype=np.float32)
-                    weights[:] = df_taus[weight_branches[0]].values[b_tau_begin:b_tau_end]
-                    X_all.append(weights)
-
-                if return_truth and return_weights:
-                    item = (X_all, Y, weights)
-                elif return_truth:
-                    item = (X_all, Y)
-                elif return_weights:
-                    item = (X_all, weights)
-                else:
-                    item = X_all
-                queue.put(item)
-            tau_current = entry_stop
-            del df_taus
-            for loc in net_config.cell_locations:
-                del df_cells[loc]
-            gc.collect()
-
-class FileEntry:
     @staticmethod
-    def GetNumberOfSteps(data_size, batch_size):
-        return int(math.ceil(data_size / float(batch_size)))
+    def getdata(_obj_f,
+                _reshape,
+                _dtype=np.float32):
+        x = np.copy(np.frombuffer(_obj_f.data(), dtype=_dtype, count=_obj_f.size()))
+        return x if _reshape==-1 else x.reshape(_reshape)
 
-    def __init__(self, file_name, n_entries, batch_size, evt_left, val_evt_left):
-        self.file_name = file_name
-        self.tau_begin = None
-        self.tau_end = None
-        self.val_tau_begin = None
-        self.val_tau_end = None
-        self.size = 0
-        self.val_size = 0
-        self.steps = 0
-        self.val_steps = 0
-        if n_entries is None or n_entries <= 0: return
-        if val_evt_left is not None and val_evt_left > 0:
-            self.val_tau_begin = 0
-            self.val_tau_end = min(n_entries, val_evt_left)
-            self.val_size = self.val_tau_end - self.val_tau_begin
-            self.val_steps = FileEntry.GetNumberOfSteps(self.val_size, batch_size)
-        if (evt_left is None or evt_left > 0) and (self.val_tau_end is None or self.val_tau_end < n_entries):
-            self.tau_begin = self.val_tau_end if self.val_tau_end is not None else 0
-            self.tau_end = min(n_entries, evt_left) if evt_left is not None else n_entries
-            self.size = self.tau_end - self.tau_begin
-            self.steps = FileEntry.GetNumberOfSteps(self.size, batch_size)
+    @staticmethod
+    def getgrid(_obj_grid,
+                batch_size,
+                n_grid_features,
+                input_grids,
+                _n_cells,
+                _inner):
+        _X = []
+        for group in input_grids:
+            _X.append(tf.convert_to_tensor(
+                np.concatenate(
+                    [ __class__.getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner],
+                     (batch_size, _n_cells, _n_cells, n_grid_features[fname])) for fname in group ],
+                    axis=-1
+                    ),dtype=tf.float32)
+                )
+        return _X
 
-    def __repr__(self):
-        return str(self)
-    def __str__(self):
-        return '{}: size = {}, val_size = {}'.format(self.file_name, self.size, self.val_size)
+    @staticmethod
+    def getX(data,
+            batch_size,
+            n_grid_features,
+            n_flat_features,
+            input_grids,
+            n_inner_cells,
+            n_outer_cells):
+        # Flat Tau features
+        X_all = [tf.convert_to_tensor(__class__.getdata(data.x_tau, (batch_size, n_flat_features)))]
+        # Inner grid
+        X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
+                                   input_grids, n_inner_cells, True) # 500 11 11 176
+        # Outer grid
+        X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
+                                   input_grids, n_outer_cells, False) # 500 11 11 176
+        return X_all
+
+def LoaderThread(queue_out,
+                 queue_files,
+                 input_grids,
+                 batch_size,
+                 n_inner_cells,
+                 n_outer_cells,
+                 n_flat_features,
+                 n_grid_features,
+                 tau_types,
+                 return_truth,
+                 return_weights):
+
+    data_source = DataSource(queue_files)
+    put_next = True
+
+    while put_next:
+
+        data = data_source.get()
+        if data is None:
+            break
+
+        X_all = GetData.getX(data, batch_size, n_grid_features, n_flat_features,
+                             input_grids, n_inner_cells, n_outer_cells)
+
+        if nan_check(X_all):
+            break
+
+        X_all = tuple(X_all)
+
+        if return_weights:
+            weights = GetData.getdata(data.weight, -1)
+        if return_truth:
+            Y = GetData.getdata(data.y_onehot, (batch_size, tau_types))
+
+        if return_truth and return_weights:
+            item = (X_all, Y, weights)
+        elif return_truth:
+            item = (X_all, Y)
+        elif return_weights:
+            item = (X_all, weights)
+        else:
+            item = X_all
+
+        put_next = queue_out.put(item)
+
+    queue_out.put_terminate()
 
 class DataLoader:
+
     @staticmethod
-    def GetNumberOfEntries(file_name, tree_name):
-        if file_name.endswith('.root'):
-            with uproot.open(file_name) as file:
-                tree = file[tree_name]
-                return tree.numentries
-        else:
-            with pandas.HDFStore(file_name, mode='r') as h5:
-                return h5.get_storer('taus').nrows
+    def compile_classes(config, file_scaling):
 
-    def __init__(self, file_name_pattern, net_config, batch_size, chunk_size, validation_size = None,
-                 max_data_size = None, max_queue_size = 8, n_passes = -1, return_grid = True):
-        if type(batch_size) != int or type(chunk_size) != int or batch_size <= 0 or chunk_size <= 0:
-            raise RuntimeError("batch_size and chunk_size should be positive integer numbers")
-        if batch_size > chunk_size or chunk_size % batch_size != 0:
-            raise RuntimeError("chunk_size should be greater or equal to batch_size, and be proportional to it")
+        _rootpath = os.path.abspath(os.path.dirname(__file__)+"/../../..")
+        R.gROOT.ProcessLine(".include "+_rootpath)
+
+        _LOADPATH = "TauMLTools/Training/interface/DataLoader_main.h"
+
+        if not os.path.isfile(file_scaling):
+            raise RuntimeError("file_scaling do not exist")
+
+        if not(os.path.isfile(_rootpath+"/"+_LOADPATH)):
+            raise RuntimeError("c++ dataloader does not exist")
+
+        # compilation should be done in corresponding order:
+        print("Compiling DataLoader headers.")
+        R.gInterpreter.Declare(config_parse.create_scaling_input(file_scaling, config, verbose=False))
+        R.gInterpreter.Declare(config_parse.create_settings(config, verbose=False))
+        R.gInterpreter.Declare('#include "{}"'.format(_LOADPATH))
+        R.gInterpreter.Declare('#include "TauMLTools/Core/interface/exception.h"')
 
 
-        self.net_config = net_config
-        self.batch_size = batch_size
-        self.chunk_size = chunk_size
-        self.n_passes = n_passes
-        self.max_queue_size = max_queue_size
-        self.return_grid = return_grid
-        self.has_validation_set = validation_size is not None
+    def __init__(self, config, file_scaling):
 
-        all_files = [ f.replace('\\', '/') for f in sorted(glob.glob(file_name_pattern)) ]
-        evt_left = max_data_size
-        val_evt_left = validation_size
-        self.file_entries = []
-        self.data_size = 0
-        self.validation_size = 0
-        self.steps_per_epoch = 0
-        self.validation_steps = 0
-        for file_name in all_files:
-            file_size = DataLoader.GetNumberOfEntries(file_name, 'taus')
-            file_entry = FileEntry(file_name, file_size, batch_size, evt_left, val_evt_left)
-            if evt_left is not None:
-                evt_left -= file_entry.size
-            if val_evt_left is not None:
-                val_evt_left -= file_entry.val_size
-            self.data_size += file_entry.size
-            self.validation_size += file_entry.val_size
-            self.steps_per_epoch += file_entry.steps
-            self.validation_steps += file_entry.val_steps
-            self.file_entries.append(file_entry)
-        self.total_size = self.data_size + self.validation_size
+        self.compile_classes(config, file_scaling)
 
-        if val_evt_left is not None and val_evt_left != 0:
-            raise RuntimeError("Insufficient number of events to create validation set.")
-        if self.data_size == 0:
-            raise RuntimeError("Insufficent number of events to create data set.")
+        self.config = config
 
-    def generator(self, primary_set = True, return_truth = True, return_weights = True):
-        file_entries = []
-        if primary_set:
-            for entry in self.file_entries:
-                if entry.size > 0:
-                    file_entries.append( (entry.file_name, entry.tau_begin, entry.tau_end) )
-            steps_per_epoch = self.steps_per_epoch
-        else:
-            for entry in self.file_entries:
-                if entry.val_size > 0:
-                    file_entries.append( (entry.file_name, entry.val_tau_begin, entry.val_tau_end) )
-            steps_per_epoch = self.validation_steps
+        self.n_grid_features = {}
+        for celltype in self.config["Features_all"]:
+            if celltype!="TauFlat":
+                self.n_grid_features[str(celltype)] = len(self.config["Features_all"][celltype]) - \
+                                                      len(self.config["Features_disable"][celltype])
 
-        queue = Queue(maxsize=self.max_queue_size)
-        current_pass = 0
-        while self.n_passes < 0 or current_pass < self.n_passes:
-            thread = Thread(target=LoaderThread,
-                     args=( file_entries, queue, self.net_config, self.batch_size, self.chunk_size,
-                            return_truth, return_weights, self.return_grid ))
-            thread.daemon = True
-            thread.start()
-            for step_id in range(steps_per_epoch):
-                item = queue.get()
-                yield item
-            thread.join()
+        self.n_flat_features = len(self.config["Features_all"]["TauFlat"]) - \
+                               len(self.config["Features_disable"]["TauFlat"])
+
+        # global variables after compile are read out here
+        self.batch_size     = self.config["Setup"]["n_tau"]
+        self.n_inner_cells  = self.config["Setup"]["n_inner_cells"]
+        self.n_outer_cells  = self.config["Setup"]["n_outer_cells"]
+        self.tau_types      = len(self.config["Setup"]["tau_types_names"])
+        self.n_load_workers   = self.config["SetupNN"]["n_load_workers"]
+        self.n_batches        = self.config["SetupNN"]["n_batches"]
+        self.n_batches_val    = self.config["SetupNN"]["n_batches_val"]
+        self.n_batches_log    = self.config["SetupNN"]["n_batches_log"]
+        self.validation_split = self.config["SetupNN"]["validation_split"]
+        self.max_queue_size   = self.config["SetupNN"]["max_queue_size"]
+        self.n_epochs         = self.config["SetupNN"]["n_epochs"]
+        self.epoch         = self.config["SetupNN"]["epoch"]
+        self.input_grids        = self.config["SetupNN"]["input_grids"]
+        self.n_cells = { 'inner': self.n_inner_cells, 'outer': self.n_outer_cells }
+        self.model_name       = self.config["SetupNN"]["model_name"]
+
+        data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
+        self.train_files, self.val_files = \
+             np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
+
+        print("Files for training:", len(self.train_files))
+        print("Files for validation:", len(self.val_files))
+
+
+    def get_generator(self, primary_set = True, return_truth = True, return_weights = False):
+
+        _files = self.train_files if primary_set else self.val_files
+        if len(_files)==0:
+            raise RuntimeError(("Taining" if primary_set else "Validation")+\
+                               " file list is empty.")
+
+        n_batches = self.n_batches if primary_set else self.n_batches_val
+        print("Number of workers in DataLoader: ", self.n_load_workers)
+
+        def _generator():
+
+            finish_counter = 0
+
+            queue_files = mp.Queue()
+            [ queue_files.put(file) for file in _files ]
+
+            queue_out = QueueEx(max_size = self.max_queue_size, max_n_puts = n_batches)
+
+            processes = []
+            for i in range(self.n_load_workers):
+                processes.append(
+                mp.Process(target = LoaderThread,
+                        args = (queue_out, queue_files,
+                                self.input_grids, self.batch_size, self.n_inner_cells,
+                                self.n_outer_cells, self.n_flat_features, self.n_grid_features,
+                                self.tau_types, return_truth, return_weights)))
+                processes[-1].deamon = True
+                processes[-1].start()
+
+            while finish_counter < self.n_load_workers:
+
+                item = queue_out.get()
+
+                if isinstance(item, TerminateGenerator):
+                    finish_counter+=1
+                else:
+                    yield item
+
+            queue_out.clear()
+            ugly_clean(queue_files)
+
+            for i, pr in enumerate(processes):
+                pr.join()
             gc.collect()
-            current_pass += 1
+
+        return _generator
+
+    def get_predict_generator(self):
+        '''
+        The implementation of the deterministic generator
+        for suitable use of performance evaluation.
+        The use example:
+        >gen_file = dataloader.get_eval_generator()
+        >for file in files:
+        >   for x,y in en_file(file):
+        >       y_pred = ...
+        '''
+        assert self.batch_size == 1
+        data_loader = R.DataLoader()
+        def read_from_file(file_path):
+            data_loader.ReadFile(R.std.string(file_path), 0, -1)
+            while data_loader.MoveNext():
+                data = data_loader.LoadData()
+                x = GetData.getX(data, self.batch_size, self.n_grid_features,
+                                 self.n_flat_features, self.input_grids,
+                                 self.n_inner_cells, self.n_outer_cells)
+                y = GetData.getdata(data.y_onehot, (self.batch_size, self.tau_types))
+                yield tuple(x), y
+        return read_from_file
+
+    @staticmethod
+    def get_branches(config, group):
+        return list(
+            set(sum( [list(d.keys()) for d in config["Features_all"][group]],[])) - \
+            set(config["Features_disable"][group])
+        )
+
+    def get_net_config(self):
+
+        # copy of feature lists is not necessery
+        input_tau_branches = self.get_branches(self.config,"TauFlat")
+        input_cell_external_branches = self.get_branches(self.config,"GridGlobal")
+        input_cell_pfCand_ele_branches = self.get_branches(self.config,"PfCand_electron")
+        input_cell_pfCand_muon_branches = self.get_branches(self.config,"PfCand_muon")
+        input_cell_pfCand_chHad_branches = self.get_branches(self.config,"PfCand_chHad")
+        input_cell_pfCand_nHad_branches = self.get_branches(self.config,"PfCand_nHad")
+        input_cell_pfCand_gamma_branches = self.get_branches(self.config,"PfCand_gamma")
+        input_cell_ele_branches = self.get_branches(self.config,"Electron")
+        input_cell_muon_branches = self.get_branches(self.config,"Muon")
+
+        class NetConf:
+            pass
+
+        netConf = NetConf()
+        netConf.tau_net = self.config["SetupNN"]["tau_net"]
+        netConf.comp_net = self.config["SetupNN"]["comp_net"]
+        netConf.comp_merge_net = self.config["SetupNN"]["comp_merge_net"]
+        netConf.conv_2d_net = self.config["SetupNN"]["conv_2d_net"]
+        netConf.dense_net = self.config["SetupNN"]["dense_net"]
+        netConf.n_tau_branches = len(input_tau_branches)
+        netConf.cell_locations = ['inner', 'outer']
+        netConf.comp_names = ['egamma', 'muon', 'hadrons']
+        netConf.n_comp_branches = [
+            len(input_cell_external_branches + input_cell_pfCand_ele_branches + input_cell_ele_branches + input_cell_pfCand_gamma_branches),
+            len(input_cell_external_branches + input_cell_pfCand_muon_branches + input_cell_muon_branches),
+            len(input_cell_external_branches + input_cell_pfCand_chHad_branches + input_cell_pfCand_nHad_branches)
+        ]
+        netConf.n_cells = self.n_cells
+        netConf.n_outputs = self.tau_types
+
+        return netConf
+
+    def get_input_config(self):
+        # Input tensor shape and type
+        input_shape, input_types = [], []
+        input_shape.append(tuple([None, len(self.get_branches(self.config,"TauFlat"))]))
+        input_types.append(tf.float32)
+        for grid in ["inner","outer"]:
+            for f_group in self.input_grids:
+                n_f = sum([len(self.get_branches(self.config,cell_type)) for cell_type in f_group])
+                input_shape.append(tuple([None, self.n_cells[grid], self.n_cells[grid], n_f]))
+                input_types.append(tf.float32)
+        input_shape = tuple([tuple(input_shape),(None, self.tau_types)])
+        input_types = tuple([tuple(input_types),(tf.float32)])
+
+        return input_shape, input_types

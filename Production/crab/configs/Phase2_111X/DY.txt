@@ -1,0 +1,5 @@
+sampleType=MC_Phase2_111X
+
+DYToLL_M-50_NoPU  /DYToLL_M-50_TuneCP5_14TeV-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-NoPU_pilot_111X_mcRun4_realistic_T15_v1-v1/FEVT
+DYToLL_M-50_PU140 /DYToLL_M-50_TuneCP5_14TeV-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-PU140_pilot_111X_mcRun4_realistic_T15_v1-v1/FEVT
+DYToLL_M-50_PU200 /DYToLL_M-50_TuneCP5_14TeV-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-PU200_pilot_111X_mcRun4_realistic_T15_v1-v1/FEVT
