@@ -11,15 +11,14 @@ training_cfg_upd:
     n_load_workers: 1
 
 # mlflow info
-path_to_mlflow: ../Training/python/2018v1/mlruns
+path_to_mlflow: ???
+experiment_id: ???
 run_id: ???
 
 # training/scaling cfg to init DataLoader class
 path_to_training_cfg: ${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/input_cfg/training_cfg.yaml
 scaling_cfg: ${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/input_cfg/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json
 
-# input files section
-files_to_predict:
- - eval_data/ShuffleMergeSpectral_0.root: # relative path
-     vs_type: jet
-     alias: SM # will be used in downstream modules for referencing this dataset
+# input file for prediction
+path_to_file: ??? 
+file_alias: ??? # will be used in downstream modules for referencing this dataset
