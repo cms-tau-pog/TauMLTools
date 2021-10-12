@@ -1,10 +1,5 @@
-defaults:
-  - ../Training/configs@_global_.training_cfg: training_v1
-  - _self_
-
-# # override training cfg params for those for evaluation
-# `training_cfg` then will be passed to DataLoader class init
-training_cfg:
+# will update baseline training cfg (retrieved from run artifacts) with these parameters
+training_cfg_upd:
   Setup:
     n_tau: 1
     include_mismatched: True
@@ -19,8 +14,9 @@ training_cfg:
 path_to_mlflow: ../Training/python/2018v1/mlruns
 run_id: ???
 
-# for DataLoader class init, will be retrieved from run's artifacts
-scaling_cfg: ShuffleMergeSpectral_trainingSamples-2_files_0_50.json 
+# training/scaling cfg to init DataLoader class
+path_to_training_cfg: ${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/input_cfg/training_cfg.yaml
+scaling_cfg: ${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/input_cfg/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json
 
 # input files section
 files_to_predict:

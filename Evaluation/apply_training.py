@@ -29,9 +29,14 @@ def main(cfg: DictConfig) -> None:
     path_to_model = f'{path_to_artifacts}/model'
     model = load_model(path_to_model, {name: lambda _: None for name in metric_names.keys()})
 
+    # load baseline training cfg and update it with parsed arguments
+    training_cfg = OmegaConf.load(to_absolute_path(cfg.path_to_training_cfg))
+    if cfg.training_cfg_upd is not None:
+        training_cfg = OmegaConf.merge(training_cfg, cfg.training_cfg_upd)
+    training_cfg = OmegaConf.to_object(training_cfg)
+
     # instantiate DataLoader and get generator
-    training_cfg   = OmegaConf.to_object(cfg.training_cfg) # convert to a classical dictionary
-    scaling_cfg  = f'{path_to_artifacts}/input_cfg/{cfg.scaling_cfg}'
+    scaling_cfg  = to_absolute_path(cfg.scaling_cfg)
     dataloader = DataLoader.DataLoader(training_cfg, scaling_cfg)
     gen_predict = dataloader.get_predict_generator()
     tau_types_names = training_cfg['Setup']['tau_types_names']
