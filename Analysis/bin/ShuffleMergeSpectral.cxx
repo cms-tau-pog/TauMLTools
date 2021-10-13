@@ -115,7 +115,6 @@ struct SourceDesc {
     bool DoNextStep()
     {
       do {
-        
         if(current_file_index == point_exit.first && current_entry > entries_end ) return false;
         while(!current_file_index || current_entry > entries_end) {
             if(!current_file_index)
@@ -141,6 +140,7 @@ struct SourceDesc {
         current_tuple->GetEntry(current_entry++);
         ++total_n_processed;
 
+        current_tau_type = boost::none;
         const auto gen_match = GetGenLeptonMatch((*current_tuple)());
         const auto sample_type = static_cast<SampleType>((*current_tuple)().sampleType);
 
@@ -148,9 +148,9 @@ struct SourceDesc {
 
         current_tau_type = GenMatchToTauType(*gen_match, sample_type);
 
-      } while (tau_types.find(current_tau_type) == tau_types.end());
+        } while (!current_tau_type || tau_types.find(current_tau_type.get()) == tau_types.end());
 
-      (*current_tuple)().tauType = static_cast<Int_t>(current_tau_type);
+      (*current_tuple)().tauType = static_cast<Int_t>(current_tau_type.get());
       (*current_tuple)().dataset_id = dataset_hash;
       (*current_tuple)().dataset_group_id = group_hash;
       return true;
@@ -159,7 +159,7 @@ struct SourceDesc {
     const Tau& GetNextTau() { return current_tuple->data(); }
     const size_t GetNumberOfProcessed() const { return total_n_processed; }
     const size_t GetTotalEntries() const { return total_entries; }
-    const TauType GetType() { return current_tau_type; }
+    const TauType GetType() { return current_tau_type.get(); }
 
   private:
     const std::string name;
@@ -180,7 +180,7 @@ struct SourceDesc {
     size_t entries_end;
     size_t current_entry;
     size_t total_n_processed;
-    TauType current_tau_type;
+    boost::optional<TauType> current_tau_type;
     ULong64_t dataset_hash;
   };
 
