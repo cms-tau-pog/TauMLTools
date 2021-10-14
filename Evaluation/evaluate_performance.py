@@ -54,8 +54,12 @@ def main(cfg: DictConfig) -> None:
         df_vs_type = eval_tools.create_df(path_to_input_vs_type, read_branches, [cfg.vs_type], path_to_predictions, column_prefix, path_to_weights)
         df_all = df_taus.append(df_vs_type)
 
-    # apply selection cuts
-    df_all = df_all.query(cfg.cuts)
+    # apply selection and gen cuts
+    gen_selection = ' or '.join([f'(gen_{tau_type}==1)' for tau_type in ['tau', cfg.vs_type]])
+    df_all = df_all.query(f'({gen_selection})')
+
+    # # inverse scaling
+    # df_all['tau_pt'] = df_all.tau_pt*(1000 - 20) + 20
     
     # dump curves' data into json file
     json_exists = os.path.exists(output_json_path)

@@ -310,13 +310,6 @@ def create_df(path_to_input_file, input_branches, tau_types, path_to_pred_file, 
         add_weights(df, path_to_weights)
     else:
         df['weight'] = pd.Series(np.ones(df.shape[0]), index=df.index)
-
-    # inverse linear scaling 
-    df['tau_pt'] = pd.Series(df.tau_pt *(1000 - 20) + 20, index=df.index)
-
-    # gen match selection of given tau types
-    gen_selection = ' or '.join([f'(gen_{tau_type}==1)' for tau_type in tau_types])
-    df = df.query(gen_selection)
     return df
 
 class FloatList(object):
