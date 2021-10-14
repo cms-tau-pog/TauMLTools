@@ -1,7 +1,5 @@
 import os
 import math
-import pandas as pd
-import numpy as np
 import json
 from collections import defaultdict
 from dataclasses import fields
@@ -16,19 +14,20 @@ import eval_tools
 @hydra.main(config_path='configs', config_name='run3')
 def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
-    with mlflow.start_run(run_id=cfg.run_id) as active_run:
-        path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{active_run.info.experiment_id}/{cfg.run_id}/artifacts/')
-
-    input_taus = to_absolute_path(cfg.input_taus)
-    input_vs_type = to_absolute_path(cfg.input_vs_type)
-    if os.path.exists(predictions_path:=f'{path_to_artifacts}/predictions'):
-        predictions = predictions_path 
+    
+    # setting paths
+    path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.experiment_id}/{cfg.run_id}/artifacts/')
+    path_to_input_vs_type = to_absolute_path(cfg.input_vs_type) if cfg.input_vs_type is not None else None
+    path_to_input_taus = to_absolute_path(cfg.input_taus)
+    base_name = os.path.splitext(os.path.basename(path_to_input_taus))[0]
+    if os.path.exists(predictions_dir:=f'{path_to_artifacts}/predictions'): # will search for predictions there
+        path_to_predictions = f'{predictions_dir}/{base_name}_pred.h5' 
         column_prefix = cfg.discriminator.column_prefix
-    else:
-        predictions = None
+    else: # will read predictions from input tuples themselves
+        path_to_predictions = None
         column_prefix = None
+    path_to_weights = f'{to_absolute_path(cfg.weights)}/{base_name}_weights.h5' if cfg.weights is not None else None
     output_json_path = f'{path_to_artifacts}/performance.json'
-    weights = to_absolute_path(cfg.weights) if cfg.weights is not None else None
 
     # init Discriminator() class from filtered input configuration
     field_names = set(f_.name for f_ in fields(eval_tools.Discriminator))
@@ -48,11 +47,11 @@ def main(cfg: DictConfig) -> None:
             read_branches.append(discriminator.wp_column)
 
     # read original data and corresponging predictions into DataFrame 
-    if input_vs_type is None:
-        df_all = eval_tools.create_df(input_taus, predictions, column_prefix, read_branches, weights, ['tau', cfg.vs_type])
+    if path_to_input_vs_type is None:
+        df_all = eval_tools.create_df(path_to_input_taus, read_branches, ['tau', cfg.vs_type], path_to_predictions, column_prefix, path_to_weights)
     else:
-        df_taus = eval_tools.create_df(input_taus, predictions, column_prefix, read_branches, weights, ['tau'])
-        df_vs_type = eval_tools.create_df(input_vs_type, predictions, column_prefix, read_branches, weights, [cfg.vs_type])
+        df_taus = eval_tools.create_df(path_to_input_taus, read_branches, ['tau'], path_to_predictions, column_prefix, path_to_weights)
+        df_vs_type = eval_tools.create_df(path_to_input_vs_type, read_branches, [cfg.vs_type], path_to_predictions, column_prefix, path_to_weights)
         df_all = df_taus.append(df_vs_type)
 
     # apply selection cuts

@@ -7,6 +7,7 @@ defaults:
 
 # mflow run info
 path_to_mlflow: ../Training/python/2018v1/mlruns
+experiment_id: ???
 run_id: ???
 
 # phase space region
@@ -22,8 +23,8 @@ read_branches: [ 'tau_pt', 'tau_decayModeFinding', 'tau_decayMode', 'gen_${vs_ty
 cuts: ${apply_dm_cuts}
 
 # paths to input tuples used to make predictions
-input_taus: 'eval_data/tau_${sample_tau}.h5' 
-input_vs_type: 'eval_data/${vs_type}_${sample_vs_type}.h5' 
+input_taus: 'eval_data/${sample_tau}.h5' 
+input_vs_type: 'eval_data/${sample_vs_type}.h5' 
 weights: null
 
 # misc: to be moved elsewhere
