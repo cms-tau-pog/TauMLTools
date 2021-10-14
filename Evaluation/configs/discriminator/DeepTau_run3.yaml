@@ -1,0 +1,6 @@
+name: DeepTau vs. ${vs_type} (Run 3)
+column_prefix: node
+column: ${.column_prefix}_vs_${vs_type} # column in internally created pd.DataFrame to be used for metrics computation  
+raw: True
+from_tuple: False
+color: orange
