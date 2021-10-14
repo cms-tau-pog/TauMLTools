@@ -1,18 +1,17 @@
 # input
-path_to_mlflow: ../Training/python/2018v1/mlruns
-experiment_name: demo
-discriminators: 
-  75069419b22944c79881aff9135d9954: ['roc_curve', 'roc_wp']
-  c65c2bc8774c4112bac9101b8a7970b2: ['roc_wp']
-  44cbb5fba0d244ff9354c46e1f161905: ['roc_wp']
+path_to_mlflow: ???
+experiment_name: ???
+discriminators: # in the format -> run_id: ['curve_type_1', 'curve_type_2', ...]
+  ???: ['roc_curve', 'roc_wp']
+  ???: ['roc_wp']
 reference: 
-  75069419b22944c79881aff9135d9954: 'roc_curve'
+  ???: 'roc_curve'
 
 # region
-vs_type: 'jet'
-sample_tau: 'HTT'
-sample_vs_type: 'TT'
-pt_bin: [20, 100] 
+vs_type: ??? # jet/e/mu/tau
+sample_tau: ??? # dataset alias 
+sample_vs_type: ??? # dataset alias 
+pt_bin: ??? # list, e.g [20, 100] 
 
-# will log it to the run of the first discriminator in the "discriminators" list
+# will log the plot to the run of the first discriminator in the "discriminators" list
 output_name: 'roc_curve_vs_${vs_type}_pt_${pt_bin[0]}_${pt_bin[1]}'

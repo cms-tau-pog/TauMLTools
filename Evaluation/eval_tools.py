@@ -288,6 +288,7 @@ def create_df(path_to_input_file, input_branches, tau_types, path_to_pred_file, 
         else:
             return df
         for node_column in df_targets.columns:
+            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}_{tau_type}"
             tau_type = node_column.split(f'{pred_column_prefix}_')[-1]
             df[f'gen_{tau_type}'] = df_targets[node_column]
         return df

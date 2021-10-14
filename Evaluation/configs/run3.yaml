@@ -18,8 +18,7 @@ sample_vs_type: TT
 pt_bins: [20, 100, 1000]
 
 # selection
-read_branches: [ 'tau_pt', 'tau_decayModeFinding', 'tau_decayMode', 'gen_${vs_type}', 'gen_tau', 'tau_charge', 'lepton_gen_charge', 
-                  againstElectronMVA6', 'againstMuon3', 'byIsolationMVArun2017v2DBoldDMwLT2017', ]
+read_branches: [ 'tau_pt', 'tau_decayMode' ] # 'gen_${vs_type}', 'gen_tau',
 cuts: ${apply_dm_cuts}
 
 # paths to input tuples used to make predictions
