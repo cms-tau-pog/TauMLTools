@@ -105,6 +105,7 @@ struct SourceDesc {
             current_tuple = std::make_shared<TauTuple>("taus",
                 current_file.get(), true, disabled_branches, enabled_branches
                 );
+            current_entry = 0;
             entries_end = current_tuple->GetEntries();
 
             if(entries_end==0)
@@ -116,7 +117,7 @@ struct SourceDesc {
 
         signal_class = GetSignalClass((*current_tuple)());
 
-      } while (!signal_class && signal_class == source_class);
+      } while (!signal_class || signal_class != source_class);
 
       (*current_tuple)().signal_class = static_cast<Int_t>(signal_class.get());
       (*current_tuple)().dataset_group_id = group_hash;
@@ -180,13 +181,12 @@ struct EntryDesc {
         const regex dir_pattern (dir_pattern_str );
         const regex file_pattern(file_pattern_str);
 
-        std::ifstream input_files (input_txt, std::ifstream::in);
-        if (!input_files){
-          throw exception("The input txt file %1% could not be opened")
-            %input_txt;
-        }
-
         if( pathtype=="xrd" ) {
+            std::ifstream input_files (input_txt, std::ifstream::in);
+            if (!input_files){
+              throw exception("The input txt file %1% could not be opened")
+                %input_txt;
+            }
             std::string ifile;
             while(std::getline(input_files, ifile)){
               std::string file_name = ifile.substr(ifile.find_last_of("/") + 1,
@@ -310,34 +310,38 @@ public:
     {
       Generator gen(args.seed());
 
-      std::cout << "Output: " << args.output() << std::endl;
-      auto output_file = root_ext::CreateRootFile(args.output(), compression, args.compression_level());
+      std::cout << "Output template: " << args.output() << std::endl;
+      int file_n = 0;
+      std::string file_name_temp = args.output().substr(0,args.output().find_last_of("."));
+      std::string file_name = file_name_temp + "_" + std::to_string(file_n++) + ".root";
+      auto output_file = root_ext::CreateRootFile(file_name, compression, args.compression_level());
       auto output_tuple = std::make_shared<TauTuple>("taus", output_file.get(), false);
 
       DataSetProcessor processor(entries, gen, disabled_branches, true);
 
       size_t n_processed = 0;
       std::cout << "Starting loops." <<std::endl;
-      while(processor.DoNextStep()){
+      while(processor.DoNextStep()) {
         const auto& tau = processor.GetNextTau();
         n_processed++;
         (*output_tuple)() = tau;
         output_tuple->Fill();
-
-        if(n_processed % 1000 == 0){
+        if(n_processed % 1000 == 0) {
           std::cout << n_processed << " is selected" << std::endl;
         }
-
-        if(n_processed>=args.max_entries()){
+        if(n_processed>=args.max_entries() ){
           std::cout << "Stop: number of entries exceeded max_entries" << std::endl;
           break;
         }
+        if(n_processed>0 && (n_processed % args.file_entries() == 0)) {
+          output_tuple->Write();
+          output_tuple.reset();
+          std::string file_name = file_name_temp + "_" + std::to_string(file_n++) + ".root";
+          output_file = root_ext::CreateRootFile(file_name, compression, args.compression_level());
+          output_tuple = std::make_shared<TauTuple>("taus", output_file.get(), false);
+        } 
       }
-
-      output_tuple->Write();
-      output_tuple.reset();
-      std::cout << args.output() << " has been successfully created." << std::endl;
-
+      std::cout << "DataSet has been successfully created." << std::endl;
     }
 
 private:
