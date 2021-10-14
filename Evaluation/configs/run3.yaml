@@ -24,7 +24,7 @@ cuts: ${apply_dm_cuts}
 # paths to input tuples used to make predictions
 input_taus: 'eval_data/${sample_tau}.h5' 
 input_vs_type: 'eval_data/${sample_vs_type}.h5' 
-weights: null
+weights_dir: null
 
 # misc: to be moved elsewhere
 wp_name_to_index:
