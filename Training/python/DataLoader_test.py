@@ -7,6 +7,7 @@ import config_parse
 import os
 import yaml
 from glob import glob
+import yaml
 
 R.gROOT.ProcessLine(".include ../../..")
 
