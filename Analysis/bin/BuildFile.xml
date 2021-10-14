@@ -3,6 +3,10 @@
   <use name="boost_program_options"/>
   <use name="TauMLTools/Core"/>
 </bin>
+<bin name="ShuffleMergeFlat" file="ShuffleMergeFlat.cxx">
+  <use name="boost_program_options"/>
+  <use name="TauMLTools/Core"/>
+</bin>
 <bin name="CreateSpectralHists" file="CreateSpectralHists.cxx">
   <use name="boost_program_options"/>
   <use name="TauMLTools/Core"/>

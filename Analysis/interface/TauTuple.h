@@ -72,6 +72,7 @@
                                   Electron = 1, Muon = 2, TauElectron = 3, TauMuon = 4, Tau = 5, Other = 6 */\
     VAR(Int_t, genLepton_charge) /* charge of the gen lepton */ \
     /* SUSY stau Property */ \
+    VAR(Float_t, signal_class) /* class for tau-jet tag*/ \
     VAR(Float_t, susy_mstau) /* mass of stau (taken from LuminosityBlock configDescription)*/ \
     VAR(Float_t, susy_mlsp) /* mass of lsp (taken from LuminosityBlock configDescription)*/ \
     VAR(Float_t, susy_ctau) /* life time of the stau (taken from LuminosityBlock configDescription)*/ \
