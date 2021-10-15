@@ -20,6 +20,7 @@ from tensorflow.keras.callbacks import Callback, ModelCheckpoint, CSVLogger
 from datetime import datetime
 
 import mlflow
+from mlflow.tracking.context.git_context import _get_git_commit
 mlflow.tensorflow.autolog(log_models=False)
 
 import hydra
@@ -340,7 +341,9 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_artifacts('.hydra', 'input_cfg/hydra')
         mlflow.log_artifact('Training_v0p1.log', 'input_cfg/hydra')
 
+        # log misc. info
         mlflow.log_param('run_id', run_id)
+        mlflow.log_param('git_commit', _get_git_commit(to_absolute_path('.')))
         print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {run_id}\n')
 
 if __name__ == '__main__':
