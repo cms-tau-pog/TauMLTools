@@ -42,6 +42,49 @@ boost::optional<SignalClass> GetSignalClass(const tau_tuple::Tau& tau)
     return boost::none;
 }
 
+struct IterIdx {
+  size_t file_idx;
+  size_t event_idx;
+  IterIdx () {}
+  IterIdx(const size_t _file_idx, 
+          const size_t _event_idx) 
+          : file_idx(_file_idx),
+            event_idx(_event_idx) {}
+};
+
+class FilesSplit {
+
+  public:
+
+    IterIdx point_entry;
+    IterIdx point_exit;
+    size_t step;
+    
+    FilesSplit() {}
+    FilesSplit(const std::vector<size_t>& files_entries,
+               const size_t job_idx,
+               const size_t n_job)
+    {
+      // FilesSplit splits files into n_job sub-intervals
+      // the entry events for the job number job_idx are [point_entry, point_exit]...
+      // if sum(files_entries) % n_job != 0 some events will be lost in datagroup
+      if(job_idx>=n_job) throw exception("Error: job_idx should be < n_job");
+
+      step = std::accumulate(files_entries.begin(), files_entries.end(), 0) / n_job;
+      auto find_idx = [&](const size_t index, const bool isExit) -> IterIdx {
+        size_t sum_accumulate = 0;
+        for(size_t f_i = 0; f_i < files_entries.size(); f_i++) {
+          if(step*(index+isExit) - sum_accumulate - isExit < files_entries[f_i])
+            return IterIdx(f_i, step*(index+isExit) - sum_accumulate  - isExit);
+          sum_accumulate+=files_entries[f_i];
+        }
+        throw exception("Error: sum-based splitting error!");
+      };
+      point_entry = find_idx(job_idx, false);
+      point_exit = find_idx(job_idx, true);
+    }
+};
+
 struct Arguments {
     run::Argument<std::string> cfg{"cfg", "configuration file with the list of input sources", ""};
     run::Argument<std::string> input{"input", "Input file with the list of files to read. ", ""};
@@ -53,6 +96,8 @@ struct Arguments {
     run::Argument<std::string> disabled_branches{"disabled-branches", "list of branches to disabled in the input tuples", ""};
     run::Argument<std::string> compression_algo{"compression-algo","ZLIB, LZMA, LZ4","LZMA"};
     run::Argument<unsigned> compression_level{"compression-level", "compression level of output file", 9};
+    run::Argument<unsigned> job_idx{"job-idx", "index of the job (starts from 0)"};
+    run::Argument<unsigned> n_jobs{"n-jobs", "the number by which to divide all files"};
     // run::Argument<unsigned> parity{"parity","take only even:0, take only odd:1, take all entries:3", 3};
 };
 
@@ -64,12 +109,13 @@ struct SourceDesc {
                const ULong64_t  _group_hash,
                const SignalClass source_class,
                const std::vector<std::string>& _file_names,
+               const FilesSplit _spliter,
                const std::set<std::string> _disabled_branches = {},
                const std::set<std::string> _enabled_branches = {}) :
 
         name(_name), group_hash(_group_hash), source_class(source_class), file_names(_file_names), 
-        disabled_branches(_disabled_branches), enabled_branches(_enabled_branches),
-        current_entry(0), total_n_processed(0), file_index_end(file_names.size()),
+        spliter(_spliter), disabled_branches(_disabled_branches), 
+        enabled_branches(_enabled_branches), current_entry(0), total_n_processed(0),
         entries_end(std::numeric_limits<size_t>::max()), current_file_index(boost::none),
         signal_class(boost::none)
     {
@@ -84,32 +130,32 @@ struct SourceDesc {
     {
       do {
         
-        if(current_file_index == file_index_end && current_entry >= entries_end )
+        if(current_file_index == spliter.point_exit.file_idx && current_entry > entries_end ) {
+            std::cout << "No more entries in: " << name << std::endl;
             return false;
-
-        while(!current_file_index || current_entry >= entries_end) {
-        
-            if(!current_file_index) current_file_index = 0;
+          }
+        while(!current_file_index || current_entry > entries_end) {
+            if(!current_file_index) current_file_index = spliter.point_entry.file_idx ;
             else ++(*current_file_index);
-
-            if(*current_file_index >= file_index_end)
+            if(*current_file_index >= file_names.size())
                 throw exception("File index: %1% is out of file_names array '%2%', DataGroup: '%3%'")
-                      % current_file_index % file_index_end % name;
+                      % current_file_index % file_names.size() % name;
 
             const std::string& file_name = file_names.at(*current_file_index);
             std::cout << "Opening: " << name << " " << file_name << std::endl;
             current_tuple.reset();
             if(current_file) current_file->Close();
-
             current_file = root_ext::OpenRootFile(file_name);
             current_tuple = std::make_shared<TauTuple>("taus",
                 current_file.get(), true, disabled_branches, enabled_branches
                 );
-            current_entry = 0;
             entries_end = current_tuple->GetEntries();
-
-            if(entries_end==0)
-              throw exception("Root file %1% is empty.") % file_name;
+            current_entry = current_file_index == spliter.point_entry.file_idx
+                          ? spliter.point_entry.event_idx : 0; 
+            entries_end = current_file_index == spliter.point_exit.file_idx
+                        ? spliter.point_exit.event_idx : entries_end - 1;
+            if(entries_end-current_entry<=0)
+              throw exception("Error: interval is zero.");
         }
 
         current_tuple->GetEntry(current_entry++);
@@ -132,6 +178,7 @@ struct SourceDesc {
     const ULong64_t group_hash;
     const SignalClass source_class;
     const std::vector<std::string> file_names;
+    const FilesSplit spliter;
     const std::set<std::string> disabled_branches;
     const std::set<std::string> enabled_branches;
     size_t current_entry;
@@ -154,16 +201,20 @@ struct EntryDesc {
     std::vector<std::string> data_files{};
     SignalClass signal_class;
     double ratio;
-    std::string pathtype;
-    std::string path;
-
+    FilesSplit spliter;
+    
     EntryDesc(const PropertyConfigReader::Item& item,
-              const std::string input_txt)
+              const std::string input_txt,
+              const size_t job_idx,
+              const size_t n_jobs)
     {
         using boost::regex;
         using boost::regex_match;
         using boost::filesystem::is_regular_file;
         using boost::filesystem::is_directory;
+
+        std::string path;
+        std::vector<size_t> files_entries;
 
         name = item.name;
         name_hash = std::hash<std::string>{}(name);
@@ -171,7 +222,6 @@ struct EntryDesc {
         auto isSignal = item.Get<int>("isSignal");
         signal_class = isSignal ? SignalClass::TauJet : SignalClass::OtherJet;
 
-        pathtype = item.Get<std::string>("pathtype");
         ratio    = item.Get<float>("ratio");
         path     = item.Get<std::string>("path");
 
@@ -181,46 +231,34 @@ struct EntryDesc {
         const regex dir_pattern (dir_pattern_str );
         const regex file_pattern(file_pattern_str);
 
-        if( pathtype=="xrd" ) {
-            std::ifstream input_files (input_txt, std::ifstream::in);
-            if (!input_files){
-              throw exception("The input txt file %1% could not be opened")
-                %input_txt;
-            }
-            std::string ifile;
-            while(std::getline(input_files, ifile)){
-              std::string file_name = ifile.substr(ifile.find_last_of("/") + 1,
-                                       ifile.rfind(" ")-ifile.find_last_of("/")-1);
-              std::string dir_name = ifile.substr(0,ifile.find_last_of("/"));
-              dir_name  = dir_name.substr(dir_name.find_last_of("/")+1);
-              if(!regex_match(dir_name , dir_pattern )) continue;
-              if(!regex_match(path , dir_pattern )) continue;
-              if(!regex_match(file_name, file_pattern)) continue;
-              std::string file_path = path + "/" + file_name;
-              data_files.push_back(file_path);
-            }
-
-        } else if( pathtype=="loc" ){
-            if (!is_directory(path)){
-              throw exception("The path %1% does not exists")
-                %path;
-            }
-            data_files = analysis::RootFilesMerger::FindInputFiles(
-              std::vector<std::string>{path},file_pattern_str,"",""
-              );
-        } else {
-          throw exception("Undefined pathtype: %1%,'loc' or 'xrd' are available")
-            % pathtype;
+        std::ifstream input_files (input_txt, std::ifstream::in);
+        if (!input_files){
+          throw exception("The input txt file %1% could not be opened")
+            %input_txt;
         }
+        std::string ifile;
+        while(std::getline(input_files, ifile)){
+            size_t n_entries = analysis::Parse<double>(ifile.substr(ifile.rfind(" ")));
+            std::string file_name = ifile.substr(ifile.find_last_of("/") + 1,
+                                      ifile.rfind(" ")-ifile.find_last_of("/")-1);
+            std::string dir_name = ifile.substr(0,ifile.find_last_of("/"));
+            if(!regex_match(dir_name , dir_pattern )) continue;
+            if(!regex_match(path , dir_pattern )) continue;
+            if(!regex_match(file_name, file_pattern)) continue;
+            std::string file_path = path + "/" + file_name;
+            data_files.push_back(file_path);
+            files_entries.push_back(n_entries);
+          }
 
-       if(data_files.size()==0) {
-         throw exception("No files available for datagroup: %1%")
-            % name;
-       } else {
-         std::cout << "Group: " << name << " "
-                   << "n_files: " << data_files.size()
-                   << std::endl;
-       }
+        if(data_files.size()==0) 
+          throw exception("No files available for datagroup: %1%")
+              % name;
+
+        spliter = FilesSplit(files_entries, job_idx, n_jobs);
+        std::cout <<  name << ": " 
+            << "Entry point: " << spliter.point_entry.file_idx << " " << spliter.point_entry.event_idx << ", " 
+            << "Exit point: " << spliter.point_exit.file_idx << " " << spliter.point_exit.event_idx << ", "
+            << "Total entries: " << spliter.step << std::endl;
     }
 };
 
@@ -240,14 +278,9 @@ public:
       WriteHashTables("./out",entries);
 
       for(auto entry: entries){
-        // std::shared_ptr<SourceDesc> source = 
-        //     std::make_shared<SourceDesc>(entry.name, entry.name_hash,
-        //                                  entry.data_files, disabled_branches);
-        // sources[entry.name] = source;
         sources.push_back(std::make_unique<SourceDesc>(entry.name, entry.name_hash, entry.signal_class,
-                                                       entry.data_files, disabled_branches));
+                                                       entry.data_files, entry.spliter, disabled_branches));
         datagroup_probs.push_back(entry.ratio);
-        // datagroup_names.push_back(entry.second->name);
       }
       dist_dataset = Discret(datagroup_probs.begin(), datagroup_probs.end());
     }
@@ -341,6 +374,8 @@ public:
           output_tuple = std::make_shared<TauTuple>("taus", output_file.get(), false);
         } 
       }
+      output_tuple->Write();
+      output_tuple.reset();
       std::cout << "DataSet has been successfully created." << std::endl;
     }
 
@@ -352,7 +387,7 @@ private:
         std::cout << args.cfg() << std::endl;
         reader.Parse(args.cfg());
         for(const auto& item : reader.GetItems()){
-            entries.emplace_back(item.second, args.input());
+            entries.emplace_back(item.second, args.input(), args.job_idx(), args.n_jobs());
         }
         return entries;
     }
