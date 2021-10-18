@@ -1,7 +1,5 @@
 Setup:
-    n_tau                :  500 # number of candidates in one batch 
-    # start_dataset        :  0
-    # end_dataset          :  9999999999999 #std::numeric_limits<Long64_t>::max()
+    n_tau                :  250 # number of candidates in one batch
     iso_cone             :  0.5
     n_inner_cells        :  11
     inner_cell_size      :  0.02
@@ -9,97 +7,83 @@ Setup:
     outer_cell_size      :  0.05
     n_threads            :  1
 
+
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
+    recompute_tautype    : True
     #input_dir            : "<path_to_shuffle_and_merge_files>"
     input_dir            : "/data/aloeliger/proofOfConceptShuffleAndMerge/complete/"
     #input_spectrum       : "<path_to_shuffle_and_merge_spectrum>.root"
     input_spectrum       : "/afs/cern.ch/work/a/aloelige/private/DeepBoostedTau/CMSSW_10_6_20/src/TauMLTools/AllBoostedSpectralHists/*.root"
     #target_spectrum      : "<path_to_shuffle_and_merge_spectrum>.root"
     target_spectrum      : "/afs/cern.ch/work/a/aloelige/private/DeepBoostedTau/CMSSW_10_6_20/src/TauMLTools/AllBoostedSpectralHists/*.root"
-    recompute_tautype    : True
     weight_thr           : 100000.0
+    dataloader_core      : "TauMLTools/Training/interface/DataLoader_main.h"
 
     # here define variables for the Histogram_2D class
-    xaxis                : [20,
-                            30,
-                            40,
-                            50,
-                            60,
-                            70,
-                            80,
-                            90,
-                            100,
-                            120,
-                            140,
-                            160,
-                            180,
-                            200,
-                            220,
-                            240,
-                            260,
-                            280,
-                            300,
-                            320,
-                            340,
-                            360,
-                            380,
-                            400,
-                            500,
-                            600,
-                            700,
-                            800,
-                            900,
-                            1000]
-    yaxis_list           : [
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.5],
-                            [0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.5]
+    yaxis                : [
+      20. , 30. , 40. , 50. , 60. , 70. , 80. , 90. , 100., 110.,
+      120., 130., 140., 150., 160., 170., 180., 190., 200.,
+      250., 300., 350., 400., 450., 500., 600., 700., 1000.
+    ]
+    xaxis_list           : [
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #20-30
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #30-40
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #40-50
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #50-60
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #60-70
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #70-80
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #80-90
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #90-100
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #100-110
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #110-120
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #120-130
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #130-140
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #140-150
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #150-160
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #160-170
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #170-180
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #180-190
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #190-200
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #200-250
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5], #250-300
+      [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.5, 1.8, 2.1, 2.5], #300-350
+      [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.5, 1.8, 2.1, 2.5], #350-400
+      [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.5, 1.8, 2.1, 2.5], #400-450
+      [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.5, 1.8, 2.1, 2.5], #450-500
+      [0.0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.5], #500-600
+      [0.0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.5], #600-700
+      [0.0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.5], #700-1000
                             ]
-    ymin                 : 0
-    ymax                 : 2.5
+    xmin                 : 0
+    xmax                 : 2.5
 
 SetupNN:
-    n_batches            : -1
-    n_batches_val        : -1
+    model_name           : "DeepTau2018v0"
+    n_batches            : 80000
+    n_batches_val        : 80000
+    n_batches_log        : 1000 # monitor every n batches in tensorboard
     epoch                : 0
-    n_epochs             : 10
+    n_epochs             : 1
     validation_split     : 0.3
-    max_queue_size       : 20
+    max_queue_size       : 10
     n_load_workers       : 4
     input_grids          : [
-                            [ PfCand_electron, PfCand_gamma, Electron ], # e-gamma
-                            [ PfCand_muon, Muon ], # muons
-                            [ PfCand_chHad, PfCand_nHad ] # hadrons
+                            [ GridGlobal, PfCand_electron, PfCand_gamma, Electron ], # e-gamma
+                            [ GridGlobal, PfCand_muon, Muon ], # muons
+                            [ GridGlobal, PfCand_chHad, PfCand_nHad ] # hadrons
                            ]
+    TauLossesSFs         : [1, 2.5, 5, 1.5]
+    optimizer_name       : "Nadam"
+    learning_rate        : 0.001
+    tau_net              : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.4, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
+    comp_net             : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
+    comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "n", "last_layer_width": 64 }
+    conv_2d_net          : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": null, "window_size": 3 }
+    dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 200, "last_layer_width": 200, "min_n_layers": 4 }
 
 CellObjectType : [
+                 GridGlobal,
                  PfCand_electron,
                  PfCand_muon,
                  PfCand_chHad,
@@ -174,6 +158,12 @@ Scaling_setup:
           phi: boostedTau_phi
         cone_types: [null] # [null] in case of no split into cones (i.e. inclusive computation)
       # ----------------------------
+      GridGlobal:
+        var_names: # used to derive dR selection query
+          eta: tau_eta
+          phi: tau_phi
+        cone_types: [null] # [null] in case of no split into cones (i.e. inclusive computation)
+      # ----------------------------
       PfCand_electron:
         var_names:
           eta: pfCand_eta
@@ -240,6 +230,7 @@ Scaling_setup:
 
 Features_all :
     TauFlat :
+                - rho: [null, null, "linear", 0, 50]
                 - boostedTau_pt: [null, null, "linear", 20, 1000]
                 - boostedTau_eta: [null, null, "linear", -2.3, 2.3]
                 - boostedTau_phi: [null, null, "linear", *mpi, *pi]
@@ -283,6 +274,12 @@ Features_all :
                 - boostedTau_emFraction: [null, null, "linear", -1., 1.]
                 - boostedTau_inside_ecal_crack: [null, null, "no_scaling"]
                 - boostedTau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta: [null, {"boostedTau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta": "boostedTau_leadChargedCand_etaAtEcalEntrance - boostedTau_eta"}, "normal", -5, 5]
+
+    GridGlobal:
+                - rho: [null, null, "linear", 0, 50]
+                - tau_pt: [null, null, "linear", 20, 1000]
+                - tau_eta: [null, null, "linear", -2.3, 2.3]
+                - tau_inside_ecal_crack: [null, null, "no_scaling"]
 
     PfCand_electron :
                 - pfCand_ele_valid: [*is_pfElectron, null, "no_scaling"]
@@ -476,6 +473,7 @@ Features_all :
 
 Features_disable :
     TauFlat : ["boostedTau_phi"]
+    GridGlobal : []
     PfCand_electron : [ ]
     PfCand_muon : [ ]
     PfCand_chHad : [ ]

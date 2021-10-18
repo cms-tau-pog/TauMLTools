@@ -5,22 +5,28 @@ import numpy as np
 import time
 import config_parse
 import os
+import yaml
 from glob import glob
+import yaml
 
 R.gROOT.ProcessLine(".include ../../..")
 
 print("Compiling Setup classes...")
 
-R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_v1.json", "../configs/training_v1.yaml", verbose=False))
-R.gInterpreter.Declare(config_parse.create_settings("../configs/training_v1.yaml", verbose=False))
+with open(os.path.abspath( "../configs/training_v1.yaml")) as f:
+    config = yaml.safe_load(f)
+R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_v1.json", config, verbose=False))
+R.gInterpreter.Declare(config_parse.create_settings(config, verbose=False))
 
 print("Compiling DataLoader_main...")
 R.gInterpreter.Declare('#include "../interface/DataLoader_main.h"')
+R.gInterpreter.Declare('#include "TauMLTools/Core/interface/exception.h"')
 
 n_tau          = R.Setup.n_tau
 n_inner_cells  = R.Setup.n_inner_cells
 n_outer_cells  = R.Setup.n_outer_cells
 n_fe_tau    = R.Setup.n_TauFlat
+n_gridglob  = R.Setup.n_GridGlobal
 n_pf_el     = R.Setup.n_PfCand_electron
 n_pf_mu     = R.Setup.n_PfCand_muon
 n_pf_chHad  = R.Setup.n_PfCand_chHad
@@ -32,6 +38,7 @@ tau_types   = R.Setup.tau_types_names.size()
 input_files = glob(f'{R.Setup.input_dir}*.root')
 
 n_grid_features = {
+    "GridGlobal" : n_gridglob,
     "PfCand_electron" : n_pf_el,
     "PfCand_muon" : n_pf_mu,
     "PfCand_chHad" : n_pf_chHad,
@@ -41,7 +48,9 @@ n_grid_features = {
     "Muon" : n_muon
 }
 
-input_grids =[ [ "PfCand_electron", "PfCand_gamma", "Electron" ], [ "PfCand_muon", "Muon" ], [ "PfCand_chHad", "PfCand_nHad" ] ]
+input_grids =[ [ "GridGlobal", "PfCand_electron", "PfCand_gamma", "Electron" ],
+               [ "GridGlobal", "PfCand_muon", "Muon" ],
+               [ "GridGlobal", "PfCand_chHad", "PfCand_nHad" ] ]
 
 input_files = []
 for root, dirs, files in os.walk(os.path.abspath(R.Setup.input_dir)):

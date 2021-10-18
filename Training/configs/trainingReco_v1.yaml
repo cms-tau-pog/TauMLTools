@@ -1,0 +1,120 @@
+Setup:
+    n_tau                :  500 # number of candidates in one batch 
+    n_threads            :  1
+    input_dir            : "<path_to_dataset>"
+    output_classes       :  4
+    dataloader_core      : "TauMLTools/Training/interface/DataLoaderReco_main.h"
+
+SetupNN:
+    model_name           : "TauRecoSNN"
+    n_batches            : -1
+    n_batches_val        : -1
+    n_batches_log        : 100
+    epoch                : 0
+    n_epochs             : 20
+    validation_split     : 0.1
+    max_queue_size       : 15
+    n_load_workers       : 4
+    learning_rate        : 0.001
+    mode                 : "p4_dm"
+    n_gnn_layers         : 10
+    n_dim_gnn            : 2
+    n_output_gnn         : 50
+    n_output_gnn_last    : 30
+    n_dense_layers       : 4
+    n_dense_nodes        : 200
+    wiring_mode          : "m3"
+    dropout_rate         : 0.1 
+    regu_rate            : 0.01
+
+CellObjectType : [ PfCand,  PfCandCategorical ] # All Cell Objects
+
+# Embedded Cell Objects:
+# For the features inside this group embedding will be used
+# Embedding parameters will be taken from the cooresponding feature list:
+# e.g: -> pfCand_particleType  : [ null, null, "categorical", 0, 8]
+# cooresponding embedding parameters: -> tf.keras.layers.Embedding(8,  2)
+EmbeddedCellObjectType : [ PfCandCategorical ]
+
+SequenceLength:
+    PfCand : 50
+    PfCandCategorical : 50
+
+Scaling_setup:
+    # --------------------------------------------------------
+    file_path: '<path_to_dataset>/*.root' # input files to be used for computation of scaling params
+    output_json_folder: 'output_json' # directory where json files with scaling params will be stored
+    file_range: [0,10] # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
+    tree_name: taus # TTree name in input files to be read
+    log_step: 10 # will make a snapshot of scaling parameters per this number of input files
+    version: 'Reco_v1' # string to be added to a json filename
+
+    # --------------------------------------------------------
+    # aliases for selection cuts
+    selection:
+      - &mpi -3.141592653589793
+      - &pi 3.141592653589793
+      - &jet_valid 'jet_index >= 0'
+      - &hasTrackDetails 'pfCand_hasTrackDetails == 1'
+      # - &hasTrackDetails_track_ndof '(pfCand_hasTrackDetails == 1)  & (pfCand_track_ndof > 0)'
+
+        # parameters for inner/outer tau cones' definition
+    cone_definition:
+      null
+
+    cone_selection:
+
+      PfCand: 
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [null]
+
+      PfCandCategorical: 
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [null]
+
+
+Features_all :
+    PfCand :
+          - pfCand_pt                   : [ null, null, "normal", -5, 5 ]
+          - pfCand_eta                  : [ null, null, "linear", -3.0, 3.0 ]
+          - pfCand_phi                  : [ null, null, "linear", *mpi, *pi ]
+          - pfCand_mass                 : [ null, null, "normal", -5, 5 ]
+          - pfCand_charge               : [ null, null, "categorical" ]
+          - pfCand_puppiWeight          : [ null, null, "no_scaling" ]
+          - pfCand_puppiWeightNoLep     : [ null, null, "no_scaling" ]
+          - pfCand_lostInnerHits        : [ null, null, "linear", 0, 10 ] # ???
+          - pfCand_nPixelHits           : [ null, null, "linear", 0, 10 ]
+          - pfCand_nHits                : [ null, null, "normal", -5, 5 ]
+          - pfCand_hasTrackDetails      : [ null, null, "categorical" ]
+          - pfCand_dxy                  : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_dxy_error            : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_dz                   : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_dz_error             : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_track_chi2           : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_track_ndof           : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_caloFraction         : [ null, null, "linear", 0.0, 1.0 ]
+          - pfCand_hcalFraction         : [ null, null, "linear", 0.0, 1.0 ]
+          - pfCand_rawCaloFraction      : [ null, null, "linear", 0.0, 2.6 ]
+          - pfCand_rawHcalFraction      : [ null, null, "linear", 0.0, 1.0 ]
+          - pfCand_valid                : [ null, null, "categorical"]
+          - pfCand_px                   : [ null, null, "no_scaling" ]
+          - pfCand_py                   : [ null, null, "no_scaling" ]
+          - pfCand_pz                   : [ null, null, "no_scaling" ]
+          - pfCand_E                    : [ null, null, "no_scaling" ]
+          # - jet_eta                     : []
+          # - jet_phi                     : []
+          - pfCand_deta                 : [ *jet_valid, {"pfCand_ele_deta": "pfCand_eta - jet_eta"}, "no_scaling" ] #"linear", -1.0, 1.0]
+          - pfCand_dphi                 : [ *jet_valid, {"pfCand_ele_dphi": "pfCand_phi - jet_eta"}, "no_scaling" ] #"linear", -1.0, 1.0]
+
+    PfCandCategorical:
+          - pfCand_particleType         : [ null, null, "categorical", 8, 2]
+          - pfCand_pvAssociationQuality : [ null, null, "categorical", 8, 2]
+          - pfCand_fromPV               : [ null, null, "categorical", 4, 2]
+
+Features_disable :
+    PfCand : [ ]
+    PfCandCategorical : [ ]
