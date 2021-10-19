@@ -11,10 +11,10 @@ experiment_id: ???
 run_id: ???
 
 # phase space region
-period: '2017 (13 TeV)'
-vs_type: jet
-sample_tau: HTT
-sample_vs_type: TT
+period: '2018 (13 TeV)'
+vs_type: ??? # jet/e/mu
+sample_tau: ??? # alias of the sample
+sample_vs_type: ??? # alias of the sample
 pt_bins: [20, 100, 1000]
 
 # selection
@@ -22,8 +22,8 @@ read_branches: [ 'tau_pt', 'tau_decayMode' ] # 'gen_${vs_type}', 'gen_tau',
 cuts: ${apply_dm_cuts}
 
 # paths to input tuples used to make predictions
-input_taus: 'eval_data/${sample_tau}.h5' 
-input_vs_type: 'eval_data/${sample_vs_type}.h5' 
+input_taus: 'eval_data/${sample_tau}.root' 
+input_vs_type: 'eval_data/${sample_vs_type}.root' 
 weights_dir: null
 
 # misc: to be moved elsewhere

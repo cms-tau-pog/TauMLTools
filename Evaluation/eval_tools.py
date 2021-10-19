@@ -161,7 +161,7 @@ def find_threshold(pr, thresholds, target_pr):
 @dataclass
 class Discriminator:
     name: str
-    column: str
+    pred_column: str
     raw: bool
     from_tuple: bool
     color: str
@@ -175,7 +175,7 @@ class Discriminator:
         if not self.draw_wp and self.raw:
             self.working_points = []
         if self.wp_column is None:
-            self.wp_column = self.column
+            self.wp_column = self.pred_column
 
     def CountPassed(self, df, wp):
         if self.from_tuple:
@@ -185,19 +185,19 @@ class Discriminator:
         if self.working_points_thrs is None:
             raise RuntimeError('Working points are not specified for discriminator "{}"'.format(self.name))
         wp_thr = self.working_points_thrs[DiscriminatorWP.GetName(wp)]
-        return np.sum(df[df[self.column] > wp_thr].weight.values)
+        return np.sum(df[df[self.pred_column] > wp_thr].weight.values)
 
     def CreateRocCurve(self, df, ref_roc = None):
         n_wp = len(self.working_points)
         roc, wp_roc = None, None
         if self.raw:
-            fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.column].values,
+            fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.pred_column].values,
                                                      sample_weight=df.weight.values)
             roc = RocCurve(len(fpr), self.color, False, dashed=self.dashed)
             roc.pr[0, :] = fpr
             roc.pr[1, :] = tpr
             roc.thresholds = thresholds
-            roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.column].values,
+            roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values,
                                                   sample_weight=df.weight.values)
         if n_wp > 0:
             wp_roc = RocCurve(n_wp, self.color, not self.raw, self.raw)
@@ -219,16 +219,6 @@ class Discriminator:
 
         return roc, wp_roc
 
-def ReadBrancesToDataFrame(file_name, tree_name, branches):
-    if file_name.endswith('.root'):
-        with uproot.open(file_name) as file:
-            tree = file[tree_name]
-            df = tree.arrays(branches, outputtype=pandas.DataFrame)
-        return df
-    elif file_name.endswith('.h5') or file_name.endswith('.hdf5'):
-        return pandas.read_hdf(file_name, tree_name, columns=branches)
-    raise RuntimeError("Unsupported file type.")
-
 def create_roc_ratio(x1, y1, x2, y2):
     sp = interpolate.interp1d(x2, y2)
     y2_upd = sp(x1)
@@ -249,9 +239,8 @@ def select_curve(curve_list, **selection):
         return filtered_curves[0]
     else:
         raise Exception(f"Failed to find a single curve for selection: {[f'{k}=={v}' for k,v in selection.items()]}")
-    return filtered_curves
 
-def create_df(path_to_input_file, input_branches, tau_types, path_to_pred_file, pred_column_prefix, path_to_weights):
+def create_df(path_to_input_file, input_branches, path_to_pred_file, pred_column_prefix, path_to_weights):
     def read_branches(path_to_file, tree_name, branches):
         if path_to_file.endswith('.root'):
             with uproot.open(path_to_file) as f:
@@ -269,18 +258,17 @@ def create_df(path_to_input_file, input_branches, tau_types, path_to_pred_file, 
             df_pred = pd.read_hdf(path_to_pred_file, 'predictions')
         else:
             df_pred = pd.read_hdf(path_to_pred_file)
-        prob_tau = df_pred[f'{pred_column_prefix}_tau'].values
+        prob_tau = df_pred[f'{pred_column_prefix}tau'].values
         for node_column in df_pred.columns:
-            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}_{tau_type}"
-            tau_type = node_column.split(f'{pred_column_prefix}_')[-1] 
+            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}{tau_type}"
+            tau_type = node_column.split(f'{pred_column_prefix}')[-1] 
             if tau_type != 'tau':
-                prob_vs_type = df_pred[pred_column_prefix + '_' + tau_type].values
+                prob_vs_type = df_pred[pred_column_prefix + tau_type].values
                 tau_vs_other_type = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_vs_type), np.zeros(prob_tau.shape))
-                df[f'{pred_column_prefix}_vs_{tau_type}'] = pd.Series(tau_vs_other_type, index=df.index)
-            df[f'{pred_column_prefix}_{tau_type}'] = pd.Series(df_pred[pred_column_prefix + '_' + tau_type].values, index=df.index)
+                df[pred_column_prefix + tau_type] = pd.Series(tau_vs_other_type, index=df.index)
         return df
 
-    def add_targets(df, path_to_target_file):
+    def add_targets(df, path_to_target_file, pred_column_prefix):
         with h5py.File(path_to_target_file, 'r') as f:
             file_keys = list(f.keys())
         if 'targets' in file_keys: 
@@ -288,8 +276,8 @@ def create_df(path_to_input_file, input_branches, tau_types, path_to_pred_file, 
         else:
             return df
         for node_column in df_targets.columns:
-            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}_{tau_type}"
-            tau_type = node_column.split(f'{pred_column_prefix}_')[-1]
+            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}{tau_type}"
+            tau_type = node_column.split(f'{pred_column_prefix}')[-1]
             df[f'gen_{tau_type}'] = df_targets[node_column]
         return df
     
@@ -303,7 +291,7 @@ def create_df(path_to_input_file, input_branches, tau_types, path_to_pred_file, 
     df = read_branches(path_to_input_file, 'taus', input_branches)
     if path_to_pred_file is not None:
         add_predictions(df, path_to_pred_file, pred_column_prefix)
-        add_targets(df, path_to_pred_file)
+        add_targets(df, path_to_pred_file, pred_column_prefix)
     else:
         print('[INFO] No predictions found in mlflow artifacts for this run, will proceed without them.')
     if path_to_weights is not None:

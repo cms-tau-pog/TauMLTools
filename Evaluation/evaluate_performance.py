@@ -31,10 +31,10 @@ def main(cfg: DictConfig) -> None:
     if os.path.exists(predictions_dir:=f'{path_to_artifacts}/predictions'): # will search for predictions there
         path_to_pred_taus = f'{predictions_dir}/{base_name_taus}_pred.h5' 
         path_to_pred_vs_type = f'{predictions_dir}/{base_name_vs_type}_pred.h5' 
-        column_prefix = cfg.discriminator.column_prefix
+        pred_column_prefix = cfg.discriminator.pred_column_prefix
     else: # will read predictions from input tuples themselves
         path_to_pred_taus, path_to_pred_vs_type = None, None
-        column_prefix = None
+        pred_column_prefix = None
 
     # setting weight paths
     path_to_weights_taus = f'{to_absolute_path(cfg.weights_dir)}/{base_name_taus}_weights.h5' if cfg.weights_dir is not None else None    
@@ -53,16 +53,16 @@ def main(cfg: DictConfig) -> None:
     # construct branches to be read from input files
     read_branches = OmegaConf.to_object(cfg.read_branches)
     if discriminator.from_tuple:
-        read_branches.append(discriminator.column)
-        if discriminator.wp_column != discriminator.column:
+        read_branches.append(discriminator.pred_column)
+        if discriminator.wp_column != discriminator.pred_column:
             read_branches.append(discriminator.wp_column)
 
     # read original data and corresponging predictions into DataFrame 
     if cfg.input_vs_type is None:
-        df_all = eval_tools.create_df(path_to_input_taus, read_branches, ['tau', cfg.vs_type], path_to_pred_taus, column_prefix, path_to_weights_taus)
+        df_all = eval_tools.create_df(path_to_input_taus, read_branches, path_to_pred_taus, pred_column_prefix, path_to_weights_taus)
     else:
-        df_taus = eval_tools.create_df(path_to_input_taus, read_branches, ['tau'], path_to_pred_taus, column_prefix, path_to_weights_taus)
-        df_vs_type = eval_tools.create_df(path_to_input_vs_type, read_branches, [cfg.vs_type], path_to_pred_vs_type, column_prefix, path_to_weights_vs_type)
+        df_taus = eval_tools.create_df(path_to_input_taus, read_branches, path_to_pred_taus, pred_column_prefix, path_to_weights_taus)
+        df_vs_type = eval_tools.create_df(path_to_input_vs_type, read_branches, path_to_pred_vs_type, pred_column_prefix, path_to_weights_vs_type)
         df_all = df_taus.append(df_vs_type)
 
     # apply selection and gen cuts
@@ -176,6 +176,7 @@ def main(cfg: DictConfig) -> None:
         json_file.seek(0) 
         json_file.write(json.dumps(performance_data, indent=4, cls=eval_tools.CustomJsonEncoder))
         json_file.truncate()
-       
+    print()
+    
 if __name__ == '__main__':
     main()
