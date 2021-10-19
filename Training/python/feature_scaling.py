@@ -30,7 +30,7 @@ if __name__ == '__main__':
     features_dict = scaling_dict['Features_all']
     #
     assert type(args.var_types) == list
-    if args.var_types[0] == "-1" and len(args.var_types) == 1:
+    if args.var_types[0] == '-1' and len(args.var_types) == 1:
         var_types = features_dict.keys()
     else:
         var_types = args.var_types
@@ -145,7 +145,7 @@ if __name__ == '__main__':
                                 # constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
                                 # var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
                                 # var_array = mask_inf(var_array, var, inf_counter)
-
+                                
                                 fill_aggregators(tree, var, var_type, file_i, file_name_id, cone_type, cone_definition_dict, cone_selection_dict, inf_counter,
                                                  selection_cut, aliases, sums, sums2, counts, fill_scaling_params=log_scaling_params,
                                                  scaling_params=scaling_params, quantile_params=quantile_params
@@ -156,7 +156,7 @@ if __name__ == '__main__':
                 # del(tau_pt_array, tau_eta_array, tau_phi_array)
         gc.collect()
         # snapshot scaling params into json if log_step is reached
-        print(scaling_params)
+        #print(scaling_params)
         if log_scaling_params:
             if file_i == n_files-1:
                 scaling_params_json_name = scaling_params_json_prefix

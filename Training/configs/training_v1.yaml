@@ -95,7 +95,7 @@ CellObjectType : [
 
 Scaling_setup:
     # --------------------------------------------------------
-    file_path: '/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_v1/ShuffleMergeSpectral*.root' # input files to be used for computation of scaling params
+    file_path: '/data/aloeliger/proofOfConceptShuffleAndMerge/complete/*.root' # input files to be used for computation of scaling params
     output_json_folder: 'output_json' # directory where json files with scaling params will be stored
     file_range: [0, 100] # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
     tree_name: taus # TTree name in input files to be read
