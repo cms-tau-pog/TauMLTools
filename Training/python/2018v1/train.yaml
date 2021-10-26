@@ -10,7 +10,8 @@ path_to_mlflow: mlruns
 experiment_name: ???
 
 # setup
-scaling_cfg: ../../configs/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json # for DataLoader initialisation
+#scaling_cfg: ../../configs/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json # for DataLoader initialisation
+scaling_cfg: ../../../output_json/scaling_params_v5_log_9.json
 gpu_cfg:
   gpu_mem  : 7 # in Gb
   gpu_index: 0
