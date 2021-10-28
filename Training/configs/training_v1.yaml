@@ -12,7 +12,7 @@ Setup:
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
     recompute_tautype    : True
     #input_dir            : "<path_to_shuffle_and_merge_files>"
-    input_dir            : "/data/aloeliger/proofOfConceptShuffleAndMerge/complete/"
+    input_dir            : "/data/aloeliger/proofOfConceptShuffleAndMerge/complete_v1_0_0/"
     #input_spectrum       : "<path_to_shuffle_and_merge_spectrum>.root"
     input_spectrum       : "/afs/cern.ch/work/a/aloelige/private/DeepBoostedTau/CMSSW_10_6_20/src/TauMLTools/AllBoostedSpectralHists/*.root"
     #target_spectrum      : "<path_to_shuffle_and_merge_spectrum>.root"
