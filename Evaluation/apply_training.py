@@ -15,12 +15,14 @@ from omegaconf import DictConfig, OmegaConf
 
 sys.path.insert(0, "../Training/python")
 import DataLoader
+from common import setup_gpu
 
 @hydra.main(config_path='.', config_name='apply_training')
 def main(cfg: DictConfig) -> None:
     # set up paths
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
     path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.experiment_id}/{cfg.run_id}/artifacts/')
+    setup_gpu(cfg.gpu_cfg)
 
     # load the model
     with open(to_absolute_path(f'{path_to_artifacts}/input_cfg/metric_names.json')) as f:
