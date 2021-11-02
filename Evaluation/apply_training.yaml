@@ -27,3 +27,5 @@ file_alias: ??? # will be used in downstream modules for referencing this datase
 gpu_cfg:
   gpu_mem  : 7 # in Gb
   gpu_index: 0
+
+verbose: True

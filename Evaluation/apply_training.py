@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import git
 from tqdm import tqdm
 
 import uproot
@@ -14,12 +15,11 @@ from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
 
 sys.path.insert(0, "../Training/python")
-import DataLoader
 from common import setup_gpu
 
 @hydra.main(config_path='.', config_name='apply_training')
 def main(cfg: DictConfig) -> None:
-    # set up paths
+    # set up paths & gpu
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
     path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.experiment_id}/{cfg.run_id}/artifacts/')
     setup_gpu(cfg.gpu_cfg)
@@ -28,7 +28,7 @@ def main(cfg: DictConfig) -> None:
     with open(to_absolute_path(f'{path_to_artifacts}/input_cfg/metric_names.json')) as f:
         metric_names = json.load(f)
     path_to_model = f'{path_to_artifacts}/model'
-    model = load_model(path_to_model, {name: lambda _: None for name in metric_names.keys()})
+    model = load_model(path_to_model, {name: lambda _: None for name in metric_names.keys()}) # workaround to load the model without loading metric functions
 
     # load baseline training cfg and update it with parsed arguments
     training_cfg = OmegaConf.load(to_absolute_path(cfg.path_to_training_cfg))
@@ -36,27 +36,40 @@ def main(cfg: DictConfig) -> None:
         training_cfg = OmegaConf.merge(training_cfg, cfg.training_cfg_upd)
     training_cfg = OmegaConf.to_object(training_cfg)
 
+    # fetch historic git commit used to run training 
+    with mlflow.start_run(experiment_id=cfg.experiment_id, run_id=cfg.run_id) as active_run:
+        train_git_commit = active_run.data.params['git_commit'] if 'git_commit' in active_run.data.params else None
+
+    # stash local changes and checkout 
+    if train_git_commit is not None:
+        repo = git.Repo(to_absolute_path('.'), search_parent_directories=True)
+        if cfg.verbose: print(f'\n--> Stashing local changes and checking out training commit: {train_git_commit}\n')
+        repo.git.stash('save')
+        repo.git.checkout(train_git_commit)
+    else:
+        if cfg.verbose: print('\n--> Didn\'t find git commit hash in run artifacts, continuing with current repo state\n')
+
     # instantiate DataLoader and get generator
+    import DataLoader
     scaling_cfg  = to_absolute_path(cfg.scaling_cfg)
     dataloader = DataLoader.DataLoader(training_cfg, scaling_cfg)
     gen_predict = dataloader.get_predict_generator()
     tau_types_names = training_cfg['Setup']['tau_types_names']
        
-    # time_checkpoints = [time.time()]
+    # open input file
     input_file_name = to_absolute_path(cfg.path_to_file)
     output_file_name = cfg.file_alias + '_pred'
     with uproot.open(input_file_name) as f:
         t = f['taus']
         n_taus = len(t['evt'].array())
     
+    # run predictions
     predictions = []
     targets = []
-    print(f'\n\n--> Processing file {input_file_name}, number of taus: {n_taus}')
+    if cfg.verbose: print(f'\n\n--> Processing file {input_file_name}, number of taus: {n_taus}\n')
     for X,y in tqdm(gen_predict(input_file_name), total=n_taus/training_cfg['Setup']['n_tau']):
         predictions.append(model.predict(X))
         targets.append(y)
-        # time_checkpoints.append(time.time())
-        # print(i, " ", time_checkpoints[-1]-time_checkpoints[-2], "s.")
     
     # concat and check for validity
     predictions = np.concatenate(predictions, axis=0)
@@ -80,4 +93,15 @@ def main(cfg: DictConfig) -> None:
     os.remove(f'{output_file_name}.h5')
 
 if __name__ == '__main__':
-    main()  
+    repo = git.Repo(to_absolute_path('.'), search_parent_directories=True)
+    current_git_branch = repo.active_branch.name
+    try:
+        main()  
+    except Exception as e:
+        print(e)
+    finally:
+        print(f'\n--> Checking out back branch: {current_git_branch}\n')
+        repo.git.checkout(current_git_branch)
+        if repo.git.stash('list') != '':
+            print(f'--> Popping stashed changes\n')
+            repo.git.stash('pop')
