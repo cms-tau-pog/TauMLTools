@@ -84,7 +84,7 @@ def main(
     VAR_TYPES, CONE_TYPES, output_folder
 ):
     if not os.path.isdir(output_folder):
-        os.mkdir(output_folder)
+        os.makedirs(output_folder)
 
     # open the main training cfg
     with open(train_cfg) as f:
