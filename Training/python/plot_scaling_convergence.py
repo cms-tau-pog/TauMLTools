@@ -16,8 +16,6 @@ import click
 sns.set_theme(context='notebook', font='sans-serif', style='white', palette=None, font_scale=1.5,
               rc={"lines.linewidth": 2.5, "font.sans-serif": 'DejaVu Sans', "text.usetex": True})
 
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 def read_params_to_df(file_names, cone_type, normal_features):
     mean_dict, std_dict = defaultdict(list), defaultdict(list)
     for file_name in file_names:
@@ -28,8 +26,10 @@ def read_params_to_df(file_names, cone_type, normal_features):
             for feature, feature_scaling in scalings[var_type].items():
                 if cone_type not in feature_scaling: continue
                 if feature not in normal_features[var_type]: continue
-                mean[feature] = feature_scaling[cone_type]['mean']
-                std[feature] = feature_scaling[cone_type]['std']
+                if (mean_ := feature_scaling[cone_type]['mean']) is not None:     
+                    mean[feature] = mean_
+                if (std_:=feature_scaling[cone_type]['std']) is not None:
+                    std[feature] = std_
             mean_dict[var_type].append(mean)
             std_dict[var_type].append(std)
     df_mean_dict = {var_type: pd.DataFrame(mean_dict[var_type]) for var_type in mean_dict}
@@ -73,15 +73,15 @@ def plot_running_diff(running_diff_mean, running_diff_std,
     help="Plot the convergence of scaling parameters' computation as a running difference between consequent snapshots."
 )
 @click.option("--train-cfg", type=str, default='../configs/training_v1.yaml', help="Path to yaml configuration file used for training", show_default=True)
-@click.option('--snapshots', type=str, default='/afs/cern.ch/work/o/ofilatov/public/scaling_v1/TauFlat', help='Path to the directory with json snapshot files', show_default=True)
-@click.option('-n', '--nfiles-per-step', 'N_FILES_PER_STEP', type=int, default=10, help='Number of processed files per log step, as it was set while running the scaling computation', show_default=True)
-@click.option('-v', '--version', type=str, default='v1_tau', help='Postfix in the name of json files which tags a specific scaling version', show_default=True)
-@click.option('-t', '--var-type', 'VAR_TYPE', type=str, default='TauFlat', help='Variables\' type for which scaling parameters will be plotted.', show_default=True)
-@click.option('-c', '--cone-type', 'CONE_TYPE', type=str, default='global', help='Cone type for which scaling parameters will be plotted.', show_default=True)
-@click.option('-o', "--output-folder", type=str, default='.', help='Output directory to save plots.', show_default=True)
+@click.option('-p', '--path-to-snapshots', type=str, help='Path to the directory with json snapshot files')
+@click.option('-pr', '--snapshot-prefix', type=str, help='Prefix of the name of scaling json files')
+@click.option('-n', '--nfiles-step', 'N_FILES_PER_STEP', type=int, help='Number of processed files per log step, as it was set while running the scaling computation')
+@click.option('-t', '--var-types', 'VAR_TYPES', multiple=True, default=['-1'], help='Variables\' types for which scaling parameters are to be plotted, -1 to run on all of them', show_default=True)
+@click.option('-c', '--cone-types', 'CONE_TYPES', multiple=True, default=['global', 'inner', 'outer'], help='Cone types for which scaling parameters are to be plotted', show_default=True)
+@click.option('-o', "--output-folder", type=str, default='scaling_plots/convergence', help='Output directory to save plots', show_default=True)
 def main(
-    train_cfg, snapshots, version, N_FILES_PER_STEP,
-    VAR_TYPE, CONE_TYPE, output_folder
+    train_cfg, path_to_snapshots, snapshot_prefix, N_FILES_PER_STEP,
+    VAR_TYPES, CONE_TYPES, output_folder
 ):
     if not os.path.isdir(output_folder):
         os.mkdir(output_folder)
@@ -97,39 +97,43 @@ def main(
             var_name = list(var_dict.keys())[0]
             if var_dict[var_name][2] == 'normal':
                 normal_features[var_type].append(var_name)
-    var_types = list(normal_features.keys())
+    if len(VAR_TYPES)==1 and VAR_TYPES[0]=='-1':
+        VAR_TYPES = list(normal_features.keys())
 
     # read json file names into list
-    n_snapshots = len(glob(f'{snapshots}/scaling_params_{version}_log_*.json'))
-    sorted_file_names = [f'{snapshots}/scaling_params_{version}_log_{i}.json' for i in range(n_snapshots)] # sorting in ascending order
-    sorted_file_names += [f'{snapshots}/scaling_params_{version}.json'] # append final snapshot to the end
+    n_snapshots = len(glob(f'{path_to_snapshots}/{snapshot_prefix}_log_*.json'))
+    sorted_file_names = [f'{path_to_snapshots}/{snapshot_prefix}_log_{i}.json' for i in range(n_snapshots)] # sorting in ascending order
+    sorted_file_names += [f'{path_to_snapshots}/{snapshot_prefix}.json'] # append final snapshot to the end
 
-    # read scaling params into pandas DataFrame
-    df_mean_dict, df_std_dict = read_params_to_df(sorted_file_names, CONE_TYPE, normal_features)
-    df_mean = df_mean_dict[VAR_TYPE]
-    df_std = df_std_dict[VAR_TYPE]
-    if len(df_mean.columns)==0 and len(df_std.columns)==0:
-        raise Exception(f"found no variables with scaling type: 'normal', cone type {CONE_TYPE}: '{VAR_TYPE}'")
+    for cone_type in CONE_TYPES:
+        # read scaling params into pandas DataFrame
+        df_mean_dict, df_std_dict = read_params_to_df(sorted_file_names, cone_type, normal_features)
+        for var_type in VAR_TYPES:
+            df_mean = df_mean_dict[var_type]
+            df_std = df_std_dict[var_type]
+            if len(df_mean.columns)==0 and len(df_std.columns)==0:
+                print(f"[INFO] Found no variables for var_type ({var_type}) with scaling type (normal) and cone type ({cone_type}), skipping it")
+                continue
 
-    # drop nans and remove inf columns
-    not_inf_columns = list(df_mean.columns[~np.isinf(df_mean).any()])
-    df_mean = df_mean[not_inf_columns].dropna(axis=1, how='any')
-    if np.any(np.isinf(df_mean)) > 0:
-        print("Found columns with inf in df_mean: ", df_mean.columns[np.isinf(df_mean)])
+            # drop nans and remove inf columns
+            not_inf_columns = list(df_mean.columns[~np.isinf(df_mean).any()])
+            df_mean = df_mean[not_inf_columns].dropna(axis=1, how='any')
+            if np.any(np.isinf(df_mean)) > 0:
+                print("Found columns with inf in df_mean: ", df_mean.columns[np.isinf(df_mean)])
 
-    not_inf_columns = list(df_std.columns[~np.isinf(df_std).any()])
-    df_std = df_std[not_inf_columns].dropna(axis=1, how='any')
-    if np.any(np.isinf(df_std)) > 0:
-        print("Found columns with inf in df_std: ", df_std.columns[np.isinf(df_std)])
+            not_inf_columns = list(df_std.columns[~np.isinf(df_std).any()])
+            df_std = df_std[not_inf_columns].dropna(axis=1, how='any')
+            if np.any(np.isinf(df_std)) > 0:
+                print("Found columns with inf in df_std: ", df_std.columns[np.isinf(df_std)])
 
-    # running diffs = difference of mean/std value between two consecutive snapshots, normalised by the value
-    running_diff_mean = abs(df_mean.iloc[1:].values - (df_mean.iloc[0:-1].values)) / abs(df_mean.iloc[0:-1])
-    running_diff_std = abs(df_std.iloc[1:].values - (df_std.iloc[0:-1].values)) / abs(df_std.iloc[0:-1])
+            # running diffs = difference of mean/std value between two consecutive snapshots, normalised by the value
+            running_diff_mean = abs(df_mean.iloc[1:].values - (df_mean.iloc[0:-1].values)) / abs(df_mean.iloc[0:-1])
+            running_diff_std = abs(df_std.iloc[1:].values - (df_std.iloc[0:-1].values)) / abs(df_std.iloc[0:-1])
 
-    # append to the end difference between 1st and final snapshots
-    running_diff_mean.iloc[-1] = abs(df_mean.iloc[-1].values - (df_mean.iloc[0].values)) / abs(df_mean.iloc[0])
-    running_diff_std.iloc[-1] = abs(df_std.iloc[-1].values - (df_std.iloc[0].values)) / abs(df_std.iloc[0])
-    plot_running_diff(running_diff_mean, running_diff_std, N_FILES_PER_STEP, VAR_TYPE, CONE_TYPE, savepath=output_folder, close_plot=True)
+            # append to the end difference between 1st and final snapshots
+            running_diff_mean.iloc[-1] = abs(df_mean.iloc[-1].values - (df_mean.iloc[0].values)) / abs(df_mean.iloc[0])
+            running_diff_std.iloc[-1] = abs(df_std.iloc[-1].values - (df_std.iloc[0].values)) / abs(df_std.iloc[0])
+            plot_running_diff(running_diff_mean, running_diff_std, N_FILES_PER_STEP, var_type, cone_type, savepath=output_folder, close_plot=True)
 
 if __name__ == '__main__':
     main()
