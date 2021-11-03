@@ -321,6 +321,10 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_id, cone_type, cone_
             scaling_params[var_type][var][cone_type]['mean'] = float(format(mean_, '.4g'))
             scaling_params[var_type][var][cone_type]['std'] = float(format(std_, '.4g'))
         if quantile_params:
+            #print('var_type: %s' % var_type)
+            #print('var: %s' % var)
+            #print('cone_type: %s' % cone_type)
+            #print('file_name_id: %s' %file_name_id)
             quantile_params[var_type][var][cone_type][file_name_id] = get_quantiles(var_array[cone_mask])
     else:
         raise ValueError(f'cone_type for {var_type} should be either inner, or outer')

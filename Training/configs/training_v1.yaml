@@ -12,7 +12,7 @@ Setup:
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
     recompute_tautype    : True
     #input_dir            : "<path_to_shuffle_and_merge_files>"
-    input_dir            : "/data/aloeliger/proofOfConceptShuffleAndMerge/complete_v1_0_0/"
+    input_dir            : "/data/aloeliger/proofOfConceptShuffleAndMerge/complete_v1_0_2/"
     #input_spectrum       : "<path_to_shuffle_and_merge_spectrum>.root"
     input_spectrum       : "/afs/cern.ch/work/a/aloelige/private/DeepBoostedTau/CMSSW_10_6_20/src/TauMLTools/AllBoostedSpectralHists/*.root"
     #target_spectrum      : "<path_to_shuffle_and_merge_spectrum>.root"
@@ -95,7 +95,7 @@ CellObjectType : [
 
 Scaling_setup:
     # --------------------------------------------------------
-    file_path: '/data/aloeliger/proofOfConceptShuffleAndMerge/complete/*.root' # input files to be used for computation of scaling params
+    file_path: '/data/aloeliger/proofOfConceptShuffleAndMerge/complete_v1_0_2/*.root' # input files to be used for computation of scaling params
     output_json_folder: 'output_json' # directory where json files with scaling params will be stored
     file_range: [0, 100] # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
     tree_name: taus # TTree name in input files to be read
@@ -369,23 +369,23 @@ Features_all :
               - pfCand_nHad_hcalFraction: [*is_neutralHadron, {"pfCand_nHad_hcalFraction": "pfCand_hcalFraction"}, "no_scaling"]
 
     #PfCand_gamma :
-              #- pfCand_gamma_valid: [*is_pfGamma, null, "no_scaling"]
-              #- pfCand_gamma_rel_pt: [*is_pfGamma, {"pfCand_gamma_rel_pt": "pfCand_pt/boostedTau_pt"}, "normal", -5, 5]
-              #- pfCand_gamma_deta: [*is_pfGamma, {"pfCand_gamma_deta": "pfCand_eta - boostedTau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
-              #- pfCand_gamma_dphi: [*is_pfGamma, {"pfCand_gamma_dphi": "pfCand_phi - boostedTau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
-              #- pfCand_gamma_pvAssociationQuality: [*is_pfGamma, {"pfCand_gamma_pvAssociationQuality": "pfCand_pvAssociationQuality"}, "categorical"]
-              #- pfCand_gamma_fromPV: [*is_pfGamma, {"pfCand_gamma_fromPV": "pfCand_fromPV"}, "categorical"]
-              #- pfCand_gamma_puppiWeight: [*is_pfGamma, {"pfCand_gamma_puppiWeight": "pfCand_puppiWeight"}, "no_scaling"]
-              #- pfCand_gamma_puppiWeightNoLep: [*is_pfGamma, {"pfCand_gamma_puppiWeightNoLep": "pfCand_puppiWeightNoLep"}, "no_scaling"]
-              #- pfCand_gamma_lostInnerHits: [*is_pfGamma, {"pfCand_gamma_lostInnerHits": "pfCand_lostInnerHits"}, "categorical"]
-              #- pfCand_gamma_nPixelHits: [*is_pfGamma, {"pfCand_gamma_nPixelHits": "pfCand_nPixelHits"}, "linear", 0, 7]
-              #- pfCand_gamma_vertex_dx: [*is_pfGamma, {"pfCand_gamma_vertex_dx": "pfCand_vertex_x - pv_x"}, "normal", -5, 5]
-              #- pfCand_gamma_vertex_dy: [*is_pfGamma, {"pfCand_gamma_vertex_dy": "pfCand_vertex_y - pv_y"}, "normal", -5, 5]
-              #- pfCand_gamma_vertex_dz: [*is_pfGamma, {"pfCand_gamma_vertex_dz": "pfCand_vertex_z - pv_z"}, "normal", -5, 5]
-              #- pfCand_gamma_vertex_dx_tauFL: [*is_pfGamma, {"pfCand_gamma_vertex_dx_tauFL": "pfCand_vertex_x - pv_x - boostedTau_flightLength_x"}, "normal", -5, 5]
-              #- pfCand_gamma_vertex_dy_tauFL: [*is_pfGamma, {"pfCand_gamma_vertex_dy_tauFL": "pfCand_vertex_y - pv_y - boostedTau_flightLength_y"}, "normal", -5, 5]
-              #- pfCand_gamma_vertex_dz_tauFL: [*is_pfGamma, {"pfCand_gamma_vertex_dz_tauFL": "pfCand_vertex_z - pv_z - boostedTau_flightLength_z"}, "normal", -5, 5]
-              #- pfCand_gamma_hasTrackDetails: [*is_pfGamma, {"pfCand_gamma_hasTrackDetails": "pfCand_hasTrackDetails==1"}, "no_scaling"]
+              - pfCand_gamma_valid: [*is_pfGamma, null, "no_scaling"]
+              - pfCand_gamma_rel_pt: [*is_pfGamma, {"pfCand_gamma_rel_pt": "pfCand_pt/boostedTau_pt"}, "normal", -5, 5]
+              - pfCand_gamma_deta: [*is_pfGamma, {"pfCand_gamma_deta": "pfCand_eta - boostedTau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - pfCand_gamma_dphi: [*is_pfGamma, {"pfCand_gamma_dphi": "pfCand_phi - boostedTau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
+              - pfCand_gamma_pvAssociationQuality: [*is_pfGamma, {"pfCand_gamma_pvAssociationQuality": "pfCand_pvAssociationQuality"}, "categorical"]
+              - pfCand_gamma_fromPV: [*is_pfGamma, {"pfCand_gamma_fromPV": "pfCand_fromPV"}, "categorical"]
+              - pfCand_gamma_puppiWeight: [*is_pfGamma, {"pfCand_gamma_puppiWeight": "pfCand_puppiWeight"}, "no_scaling"]
+              - pfCand_gamma_puppiWeightNoLep: [*is_pfGamma, {"pfCand_gamma_puppiWeightNoLep": "pfCand_puppiWeightNoLep"}, "no_scaling"]
+              - pfCand_gamma_lostInnerHits: [*is_pfGamma, {"pfCand_gamma_lostInnerHits": "pfCand_lostInnerHits"}, "categorical"]
+              - pfCand_gamma_nPixelHits: [*is_pfGamma, {"pfCand_gamma_nPixelHits": "pfCand_nPixelHits"}, "linear", 0, 7]
+              - pfCand_gamma_vertex_dx: [*is_pfGamma, {"pfCand_gamma_vertex_dx": "pfCand_vertex_x - pv_x"}, "normal", -5, 5]
+              - pfCand_gamma_vertex_dy: [*is_pfGamma, {"pfCand_gamma_vertex_dy": "pfCand_vertex_y - pv_y"}, "normal", -5, 5]
+              - pfCand_gamma_vertex_dz: [*is_pfGamma, {"pfCand_gamma_vertex_dz": "pfCand_vertex_z - pv_z"}, "normal", -5, 5]
+              - pfCand_gamma_vertex_dx_tauFL: [*is_pfGamma, {"pfCand_gamma_vertex_dx_tauFL": "pfCand_vertex_x - pv_x - boostedTau_flightLength_x"}, "normal", -5, 5]
+              - pfCand_gamma_vertex_dy_tauFL: [*is_pfGamma, {"pfCand_gamma_vertex_dy_tauFL": "pfCand_vertex_y - pv_y - boostedTau_flightLength_y"}, "normal", -5, 5]
+              - pfCand_gamma_vertex_dz_tauFL: [*is_pfGamma, {"pfCand_gamma_vertex_dz_tauFL": "pfCand_vertex_z - pv_z - boostedTau_flightLength_z"}, "normal", -5, 5]
+              - pfCand_gamma_hasTrackDetails: [*is_pfGamma, {"pfCand_gamma_hasTrackDetails": "pfCand_hasTrackDetails==1"}, "no_scaling"]
               #- pfCand_gamma_dxy: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_dxy": "pfCand_dxy"}, "normal", -5, 5]
               #- pfCand_gamma_dxy_sig: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_dxy_sig": "abs(pfCand_dxy)/pfCand_dxy_error"}, "normal", -5, 5]
               #- pfCand_gamma_dz: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_dz": "pfCand_dz"}, "normal", -5, 5]
