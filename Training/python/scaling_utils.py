@@ -67,7 +67,7 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
     This is done by firstly going in the input `features_dict` through variable types and then variables themselves.
     Depending on the specified type of scaling for a given variable the following cases are implemented:
 
-        - no scaling: initialise only scaling params
+        - no scaling/categorical: initialise only scaling params
             -> mean=0, std=1, lim_min=-inf, lim_max=inf
         - linear: initialise only scaling params with an option of inclusive or separate (inner vs outer cone) initialisation
             NB: this assumes the clamping range downstream to be [-1, 1]
@@ -79,7 +79,7 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
                else:
                     mean=None, std=None, lim_min=-inf, lim_max=inf
 
-    For the description of the parameters and corresponding input configuration format please refer to the comments in the main dataloading .yaml config file.
+    For the description of the parameters and corresponding input configuration format please refer to the documentation.
 
     Arguments:
         - features_dict: dict, scaling configuration per particle type and feature as it is read from the main data loading .yaml config file ("Features_all" field)
@@ -237,43 +237,53 @@ def mask_inf(var_array, var_name=None, var_inf_counter=None):
     Returns
         var_array witn masked infs values to None
     """
-    if np.sum(np.isinf(var_array)) > 0:
-        is_inf_mask = np.isinf(var_array)
+    if np.any(is_inf_mask:=np.isinf(var_array)):
         var_array = ak.mask(var_array, is_inf_mask, valid_when=False)
         if var_inf_counter is not None:
             var_inf_counter[var_name].append(np.sum(is_inf_mask) / ak.count(var_array))
     return var_array
 
-# def fill_aggregators(var_array, tau_eta_array, tau_phi_array, constituent_eta_array, constituent_phi_array,
-#                      var, var_type, file_i, file_name_id, cone_type, dR_tau_signal_cone, dR_tau_outer_cone,
-#                      sums, sums2, counts, fill_scaling_params=False, scaling_params=None, quantile_params=None):
-def fill_aggregators(tree, var, var_type, file_i, file_name_id, cone_type, cone_definition_dict, cone_selection_dict, inf_counter,
-                     selection_cut, aliases, sums, sums2, counts, fill_scaling_params=False, scaling_params=None, quantile_params=None):
-# fill_aggregators(var_array, constituent_eta_array, constituent_phi_array, var, var_type, file_i, file_name_id, cone_type, cone_definition_dict,
-#                     sums, sums2, counts, fill_scaling_params=log_scaling_params, scaling_params=scaling_params, quantile_params=quantile_params
-#                     )
+def mask_nan(var_array, var_name=None, var_nan_counter=None):
     """
-    Update `sums`, `sums2` and `counts` dictionaries with the values from `var_array` either inclusively or exclusively (based on `cone_type` argument) for inner/outer cones.
+    Mask nan values in `var_array` with None. If var_nan_counter is passed, append there inplace for a given `var_name` the fraction of its nan values.
+    Arguments:
+        - var_array: awkward array, values of a given feature for a given set of taus
+        - var_name (optional, default=None): string, variable name
+        - var_nan_counter (optional, default=None): defaultdict(list), stores fraction of nan values for variables
+    Returns
+        var_array witn masked nan values to None
+    """
+    if np.any(is_nan_mask:=np.isnan(var_array)):
+        var_array = ak.mask(var_array, is_nan_mask, valid_when=False)
+        if var_nan_counter is not None:
+            var_nan_counter[var_name].append(np.sum(is_nan_mask) / ak.count(var_array))
+    return var_array
+
+def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_definition_dict, cone_selection_dict, inf_counter, nan_counter,
+                     selection_cut, aliases, sums, sums2, counts, fill_scaling_params=False, scaling_params=None, quantile_params=None):
+    """
+    Update `sums`, `sums2` and `counts` dictionaries with the values of `var` variable (belonging to `var_type`) taken from input `tree` either inclusively or exclusively for inner/outer cones (`cone_type` argument).
     In the latter case, derive `constituent_dR` with respect to the tau direction of flight and define cones as:
         - inner: `constituent_dR` <= `dR_tau_signal_cone`
         - outer: constituent_dR` > `dR_tau_signal_cone` and `constituent_dR` < `dR_tau_outer_cone`
     Then mask consitutents which appear in the `cone_type` and update sums/sums2/counts only using those constituents which enter the given cone.
 
     If `fill_scaling_params` is set to `True`, also update `scaling_params` dictionary (i.e. make a "snapshot" of scaling parameters based on the current state of sums/sums2/counts)
+    If `quantile_params` dicitonary is provided, will compute quantiles for a given `var` per cone types and store them in this dictionary.
 
     Arguments:
-        - var_array: awkward array, values of a given feature for a given set of taus
-        - tau_eta_array: awkward array, eta values of taus
-        - tau_phi_array: awkward array, phi values of taus
-        - constituent_eta_array: awkward array, eta values of tau constituents
-        - constituent_phi_array: awkward array, phi values of tau constituents
+        - tree: uproot TTree, input tree to read arrays from
         - var: string, variable name
         - var_type: string, variable type
-        - file_i: int, index of the file being processed in the input file list
-        - file_name_id: int, index of the file being processed taken from the corresponding file name
+        - file_i: int, index of the file being processed as enumerator of the input file list
+        - file_name_i: int, index of the file being processed as extracted from the file name
         - cone_type: string, type of cone being processed, should be either inner or outer
-        - dR_tau_signal_cone: awkward array, per tau dR values defining the signal cone
-        - dR_tau_outer_cone: float, dR value defining the tau outer cone
+        - cone_definition_dict: dict, parameters for inner/outer tau cones' definition, defined in training *.yaml cfg
+        - cone_selection_dict: dict, per feature types configuration for cone splitting, defined in training *.yaml cfg
+        - inf_counter: defaultdict(list), stores fraction of inf values for variables
+        - nan_counter: defaultdict(list), stores fraction of nan values for variables
+        - selection_cut: str, cut to be applied by uproot at the array reading step
+        - aliases: dict, definitions of variables to be constructed by uproot at the array reading step
         - sums: dict, container for accumulating sums of features' values and to be filled based on the input `var_array`
         - sums2: dict, container for accumulating square sums of features' values and to be filled based on the input `var_array`
         - counts: dict, container for accumulating counts of features' values and to be filled based on the input `var_array`
@@ -287,11 +297,8 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_id, cone_type, cone_
     constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
     var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
     var_array = mask_inf(var_array, var, inf_counter)
-    # for i in var_array:
-    #     print(i.to_numpy().shape)
-    # exit()
-    if ak.any(np.isinf(var_array)) or ak.any(np.isnan(var_array)):
-        raise ValueError('Nan detected')
+    var_array = mask_nan(var_array, var, nan_counter)
+
     if cone_type == None:
         sums[var_type][var][file_i] += ak.sum(var_array)
         sums2[var_type][var][file_i] += ak.sum(var_array**2)
@@ -302,7 +309,7 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_id, cone_type, cone_
             scaling_params[var_type][var]['global']['mean'] = float(format(mean_, '.4g')) # round to 4 significant digits
             scaling_params[var_type][var]['global']['std'] = float(format(std_, '.4g'))
         if quantile_params:
-            quantile_params[var_type][var]['global'][file_name_id] = get_quantiles(var_array)
+            quantile_params[var_type][var]['global'][file_name_i] = get_quantiles(var_array)
     elif cone_type == 'inner' or cone_type == 'outer':
         tau_pt_name, tau_eta_name, tau_phi_name = cone_selection_dict['TauFlat']['var_names']['pt'], cone_selection_dict['TauFlat']['var_names']['eta'], cone_selection_dict['TauFlat']['var_names']['phi']
         tau_pt_array, tau_eta_array, tau_phi_array = tree.arrays([tau_pt_name, tau_eta_name, tau_phi_name], cut=None, aliases=None, how=tuple)
@@ -321,7 +328,7 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_id, cone_type, cone_
             scaling_params[var_type][var][cone_type]['mean'] = float(format(mean_, '.4g'))
             scaling_params[var_type][var][cone_type]['std'] = float(format(std_, '.4g'))
         if quantile_params:
-            quantile_params[var_type][var][cone_type][file_name_id] = get_quantiles(var_array[cone_mask])
+            quantile_params[var_type][var][cone_type][file_name_i] = get_quantiles(var_array[cone_mask])
     else:
         raise ValueError(f'cone_type for {var_type} should be either inner, or outer')
 

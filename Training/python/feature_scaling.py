@@ -1,5 +1,4 @@
 import uproot
-import awkward as ak
 import numpy as np
 
 import os
@@ -7,14 +6,12 @@ import time
 import gc
 import argparse
 import yaml
-import json
-import collections
 from glob import glob
 # from tqdm import tqdm
 from collections import defaultdict
 
-from scaling_utils import Phi_mpi_pi, dR, dR_signal_cone, compute_mean, compute_std, mask_inf, fill_aggregators, get_quantiles
-from scaling_utils import nested_dict, init_dictionaries, dump_to_json
+from scaling_utils import dR, dR_signal_cone, mask_inf, mask_nan, fill_aggregators, get_quantiles
+from scaling_utils import init_dictionaries, dump_to_json
 
 if __name__ == '__main__':
     # parse command line parameters
@@ -59,16 +56,8 @@ if __name__ == '__main__':
         n_files = file_range[1]-file_range[0]
     else:
         raise ValueError('Specified file_range is not valid: should be either -1 (run on all files in file_path) or range [a, b] with a<=b')
-    file_names_id = [fname.split('_')[-1].split('.root')[0] for fname in file_names] # id as taken from the name: used as file identifier (key field) in the output json files with quantiles
-    #
-    # if cone_definition_dict != None:
-    #     dR_tau_outer_cone = cone_definition_dict['outer']['dR']
-    #     inner_cone_min_pt = cone_definition_dict['inner']['min_pt']
-    #     inner_cone_min_radius = cone_definition_dict['inner']['min_radius']
-    #     inner_cone_opening_coef = cone_definition_dict['inner']['opening_coef']
-    # else:
-    #     print('[INFO] cone_definition_dict is None: No cones will be considered for the selection\n')
-    #
+    file_names_ix = [fname.split('_')[-1].split('.root')[0] for fname in file_names] # id as taken from the name: used as file identifier (key field) in the output json files with quantiles
+
     # initialise dictionaries to be filled
     sums, sums2, counts, scaling_params, quantile_params = init_dictionaries(features_dict, cone_selection_dict, n_files)
     #
@@ -79,10 +68,11 @@ if __name__ == '__main__':
     #
     skip_counter = 0 # counter of files which were skipped during processing
     inf_counter = defaultdict(list) # counter of features with inf values and their fraction
+    nan_counter = defaultdict(list) # counter of features with nan values and their fraction
     processed_last_file = time.time()
 
     # loop over input files
-    for file_i, (file_name_id, file_name) in enumerate(zip(file_names_id, file_names)): # file_i used internally to count number of processed files
+    for file_i, (file_name_i, file_name) in enumerate(zip(file_names_ix, file_names)): # file_i used internally to count number of processed files
         print("Processing file:",file_i)
         log_scaling_params = not (file_i%log_step) or (file_i == n_files-1)
         with uproot.open(file_name, array_cache='5 GB') as f:
@@ -102,7 +92,8 @@ if __name__ == '__main__':
                             if len(lim_params) == 2 and lim_params[0] <= lim_params[1]:
                                 var_array = tree.arrays(var, cut=selection_cut, aliases=aliases)[var]
                                 var_array = mask_inf(var_array, var, inf_counter)
-                                quantile_params[var_type][var]['global'][file_name_id] = get_quantiles(var_array)
+                                var_array = mask_nan(var_array, var, nan_counter)
+                                quantile_params[var_type][var]['global'][file_name_i] = get_quantiles(var_array)
                                 # del(var_array)
                             elif len(lim_params) == 1 and type(lim_params[0]) == dict:
                                 tau_pt_name, tau_eta_name, tau_phi_name = cone_selection_dict['TauFlat']['var_names']['pt'], cone_selection_dict['TauFlat']['var_names']['eta'], cone_selection_dict['TauFlat']['var_names']['phi']
@@ -111,6 +102,7 @@ if __name__ == '__main__':
                                 constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
                                 var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
                                 var_array = mask_inf(var_array, var, inf_counter)
+                                var_array = mask_nan(var_array, var, nan_counter)
                                 dR_tau_signal_cone = dR_signal_cone(tau_pt_array,
                                                                     cone_definition_dict['inner']['min_pt'],
                                                                     cone_definition_dict['inner']['min_radius'],
@@ -124,29 +116,13 @@ if __name__ == '__main__':
                                         cone_mask = (constituent_dR > dR_tau_signal_cone) & (constituent_dR < cone_definition_dict['outer']['dR'])
                                     else:
                                         raise ValueError(f'For {var} cone_type should be either inner or outer, got {cone_type}.')
-                                    quantile_params[var_type][var][cone_type][file_name_id] = get_quantiles(var_array[cone_mask])
+                                    quantile_params[var_type][var][cone_type][file_name_i] = get_quantiles(var_array[cone_mask])
                                 # del(constituent_eta_array, constituent_phi_array, var_array)
                             else:
                                 raise ValueError(f'Unrecognised lim_params for {var} in quantile computation')
                         elif scaling_type == 'normal':
                             for cone_type in cone_selection_dict[var_type]['cone_types']:
-                                # if cone_type == None:
-                                #     tau_pt_array            = []
-                                #     tau_eta_array           = []  
-                                #     tau_phi_array           = []        
-                                #     dR_tau_signal_cone      = []
-                                # else:
-                                #     tau_pt_name, tau_eta_name, tau_phi_name = cone_selection_dict['TauFlat']['var_names']['pt'], cone_selection_dict['TauFlat']['var_names']['eta'], cone_selection_dict['TauFlat']['var_names']['phi']
-                                #     # NB: selection cut is not applied on tau branches
-                                #     tau_pt_array, tau_eta_array, tau_phi_array = tree.arrays([tau_pt_name, tau_eta_name, tau_phi_name], cut=None, aliases=None, how=tuple)
-                                #     # NB: selection cut is applied, broadcasting with tau array (w/o cut) should correctly handle the difference
-                                #     dR_tau_signal_cone = dR_signal_cone(tau_pt_array, inner_cone_min_pt, inner_cone_min_radius, inner_cone_opening_coef)
-
-                                # constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
-                                # var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
-                                # var_array = mask_inf(var_array, var, inf_counter)
-
-                                fill_aggregators(tree, var, var_type, file_i, file_name_id, cone_type, cone_definition_dict, cone_selection_dict, inf_counter,
+                                fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_definition_dict, cone_selection_dict, inf_counter, nan_counter,
                                                  selection_cut, aliases, sums, sums2, counts, fill_scaling_params=log_scaling_params,
                                                  scaling_params=scaling_params, quantile_params=quantile_params
                                                  )
@@ -156,7 +132,6 @@ if __name__ == '__main__':
                 # del(tau_pt_array, tau_eta_array, tau_phi_array)
         gc.collect()
         # snapshot scaling params into json if log_step is reached
-        print(scaling_params)
         if log_scaling_params:
             if file_i == n_files-1:
                 scaling_params_json_name = scaling_params_json_prefix
@@ -175,4 +150,6 @@ if __name__ == '__main__':
         print(f'[WARNING] during the processing {skip_counter} files with no objects were skipped\n')
     for inf_feature, inf_frac_counts in inf_counter.items():
         print(f"[WARNING] in {inf_feature} encountered inf values with average per file fraction: {format(np.mean(inf_frac_counts), '.2g')}")
+    for nan_feature, nan_frac_counts in nan_counter.items():
+        print(f"[WARNING] in {nan_feature} encountered nan values with average per file fraction: {format(np.mean(nan_frac_counts), '.2g')}")
     print('\nDone!')

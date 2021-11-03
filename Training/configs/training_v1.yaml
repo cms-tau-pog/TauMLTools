@@ -204,27 +204,11 @@ Scaling_setup:
         cone_types: [inner, outer]
     # --------------------------------------------------------
 
-##### Note 1:
-#####   Below each feature is augmented with additional list of parameters of the form [selection, aliases, scaling_type, *lim_params], where:
-#####     - selection: string, cuts to be applied on-the-fly by uproot when loading (done on feature-by-feature basis) data into awkward array as a part of scaling params computation
-#####     - aliases: dictionary, definitions of variables not present in original file but needed for e.g. applying selection. Added on-the-fly by uproot when loading data.
-#####     - scaling_type: string, one of ["no scaling", "categorical", "linear", "normal"]
-#####     - lim_params: if passed, should be either a list of two numbers or a dictionary. Specifies the range to which each variable will be limitted downstream - see Note 3 for more details.
-
-##### Note 2:
-#####   The goal of the scaling code is to derive 4 parameters (mean, std, lim_min, lim_max) for each specified feature below.
-#####   It is assumed that in the DataLoader step each input feature will be *firstly* shifted by "mean", *then* divided by "std", *then* clamped to the range ["lim_min", "lim_max"]
-#####   This notation affects the way lim_min/lim_max are filled for linear scaling type, see function `init_dictionaries()` in scaling_utils.py for exact implementation and more details
-
-##### Note 3:
-#####   - Firstly, "no scaling" and "categorical" case doesn't require passing `lim_params` since it automatically fills `mean=0`, `std=1`, `lim_min=-inf`, `lim_max=inf` (no linear transformation and no clamping)
-#####   - Then, for the "linear" case, one should pass as `lim_params` those range, for which they would want to clamp the data *first* (recall that in DataLoader it is done as the last step).
-#####       The corresponding `lim_min` and `lim_max` to meet the DataLoader notation are derived automatically in the function `init_dictionaries()`` of scaling_utils.py
-#####   - Furthermore, for the "normal" case, one should pass `lim_params` as the number of sigmas to which they want to clamp the data after being scaled by mean and std (e.g. [-5, 5])
-#####       It is also possible to skip `lim_params` argument. In that case, it is automatically filled `lim_min=-inf`, `lim_max=inf`
-#####   - Lastly, `lim_params` (for both linear and normal cases) can be a dictionary with keys "inner" and/or "outer" and values as lists of two elements as before.
-#####       In that case `lim_min`/`lim_max` will be derived separately for each specified cone.
-
+##   Map of feature names to a list [selection, aliases, scaling_type, *lim_params] where:
+##     - selection: string, cuts to be applied on-the-fly by uproot when loading data into awkward array
+##     - aliases: dictionary, definitions of variables not present in original file and added on-the-fly by uproot when loading data.
+##     - scaling_type: string, one of ["no scaling", "categorical", "linear", "normal"]
+##     - lim_params: if passed, should be either a list of two numbers or a dictionary. See README for more details.
 Features_all :
     TauFlat :
                 - rho: [null, null, "linear", 0, 50]
@@ -237,12 +221,12 @@ Features_all :
                 - tau_n_charged_prongs: [null, {"tau_n_charged_prongs": "tau_decayMode//5 + 1"}, "categorical"]
                 - tau_n_neutral_prongs: [null, {"tau_n_neutral_prongs": "tau_decayMode%5"}, "categorical"]
                 - tau_chargedIsoPtSum: [null, null, "normal", -5, 5]
-                - tau_chargedIsoPtSumdR03_over_dR05: [null, {"tau_chargedIsoPtSumdR03_over_dR05": "tau_chargedIsoPtSumdR03/tau_chargedIsoPtSum"}, "no_scaling"]
+                - tau_chargedIsoPtSumdR03_over_dR05: ['tau_chargedIsoPtSum!=0', {"tau_chargedIsoPtSumdR03_over_dR05": "tau_chargedIsoPtSumdR03/tau_chargedIsoPtSum"}, "no_scaling"]
                 - tau_footprintCorrection: [null, null, "normal", -5, 5]
                 - tau_neutralIsoPtSum: [null, null, "normal", -5, 5]
-                - tau_neutralIsoPtSumWeight_over_neutralIsoPtSum: [null, {"tau_neutralIsoPtSumWeight_over_neutralIsoPtSum": "tau_neutralIsoPtSumWeight/tau_neutralIsoPtSum"}, "no_scaling"]
-                - tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum: [null, {"tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum": "tau_neutralIsoPtSumWeightdR03/tau_neutralIsoPtSum"}, "no_scaling"]
-                - tau_neutralIsoPtSumdR03_over_dR05: [null, {"tau_neutralIsoPtSumdR03_over_dR05": "tau_neutralIsoPtSumdR03/tau_neutralIsoPtSum"}, "no_scaling"]
+                - tau_neutralIsoPtSumWeight_over_neutralIsoPtSum: ['tau_neutralIsoPtSum!=0', {"tau_neutralIsoPtSumWeight_over_neutralIsoPtSum": "tau_neutralIsoPtSumWeight/tau_neutralIsoPtSum"}, "no_scaling"]
+                - tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum: ['tau_neutralIsoPtSum!=0', {"tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum": "tau_neutralIsoPtSumWeightdR03/tau_neutralIsoPtSum"}, "no_scaling"]
+                - tau_neutralIsoPtSumdR03_over_dR05: ['tau_neutralIsoPtSum!=0', {"tau_neutralIsoPtSumdR03_over_dR05": "tau_neutralIsoPtSumdR03/tau_neutralIsoPtSum"}, "no_scaling"]
                 - tau_photonPtSumOutsideSignalCone: [null, null, "normal", -5, 5]
                 - tau_puCorrPtSum: [null, null, "normal", -5, 5]
                 - tau_dxy_valid: [null, {"tau_dxy_valid": *tau_dxy_valid}, "no_scaling"]
