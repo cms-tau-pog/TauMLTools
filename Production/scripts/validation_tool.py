@@ -24,6 +24,7 @@ parser.add_argument('--n_threads'     , default  = 1   , type = int, help = 'ena
 parser.add_argument('--id_json'       , required = True, type = str, help = 'dataset id json file')
 parser.add_argument('--group_id_json' , required = True, type = str, help = 'dataset group id json file')
 parser.add_argument('--use_dataset_id', action = 'store_true', help = 'Add \'dataset_id\' column for comparison and binning')
+parser.add_argument('--formats'       , default ='pdf', type = str, help = 'comma separated list of output file formats')
 
 parser.add_argument('--visual', action = 'store_true', help = 'Won\'t run the script in batch mode')
 parser.add_argument('--legend', action = 'store_true', help = 'Draw a TLegend on canvases')
@@ -32,9 +33,10 @@ args = parser.parse_args()
 ROOT.gROOT.SetBatch(not args.visual)
 ROOT.gStyle.SetOptStat(0)
 
-pdf_dir = '/'.join([args.output, 'pdf'])
-if not os.path.exists(pdf_dir):
-  os.makedirs(pdf_dir)
+for formats in args.formats.split(","):
+  pdf_dir = os.path.join(args.output, formats)
+  if not os.path.exists(pdf_dir):
+    os.makedirs(pdf_dir)
 
 JSON_DICT      = OrderedDict()
 OUTPUT_ROOT    = ROOT.TFile.Open('{}/histograms.root'.format(args.output), 'RECREATE')
@@ -44,10 +46,10 @@ PVAL_THRESHOLD = args.pvthreshold
 
 ## binning of tested variables (dataset group id and dataset id are guessed from jsons)
 BINS = {
-  'tau_pt'    : (50, 0, 5000),
-  'tau_eta'   : (5, -3.2, 3.2),
-  'tauType' : (10, 0, 10),
-  'sampleType': (20, -1, 19),
+  'tau_pt'    : (100, 0, 1000),
+  'tau_eta'   : (10, -2.5, 2.5),
+  'tauType' : (4, 0, 4),
+  'sampleType': (5, 0, 5),
 }
 
 class Lazy_container:
@@ -110,7 +112,8 @@ class Entry:  ## 2D entry (chunk_id x variable)
     if args.legend:
       leg.Draw("SAME")
     
-    can.SaveAs('{}/pdf/{}.pdf'.format(args.output, self.tdir.replace('/', '_')), 'pdf')
+    for formats in args.formats.split(","):
+      can.SaveAs('{}/{}/{}.{}'.format(args.output, formats, self.tdir.replace('/', '_'), formats), formats)
     can.Write()
 
     OUTPUT_ROOT.cd()
@@ -150,8 +153,8 @@ if (*it == %s) return line;
 
   id_json       = json.load(open(args.id_json, 'r'))
   group_id_json = json.load(open(args.group_id_json, 'r'))
-  ids = id_json.values()
-  group_ids = group_id_json.values()
+  ids = [id_json[key] for key in sorted(id_json.keys())]
+  group_ids = [group_id_json[key] for key in sorted(group_id_json.keys())]
 
   BINS['uh_dataset_group_id'] = (len(group_ids), 0, len(group_ids))
   BINS['uh_dataset_id']       = (len(ids), 0, len(ids))
@@ -171,6 +174,12 @@ if (*it == %s) return line;
 
   ## binned distributions
   BINNED_VARIABLES = ['tauType', 'sampleType', 'uh_dataset_group_id'] + ['uh_dataset_id']*args.use_dataset_id
+  BINNED_VARIABLENAMES = {
+    'tauType': {0:'e', 1:'mu', 2:'tau', 3:'jet', 4:'emb_e', 5:'emb_mu', 6:'emb_tau', 7:'emb_jet', 8:'data'},
+    'sampleType': {1:'MC', 2:'Embedded', 3:'Data'},
+    'uh_dataset_group_id': {ii:jj for ii,jj in enumerate(sorted(group_id_json.keys()))},
+    'uh_dataset_id': {ii:jj for ii,jj in enumerate(sorted(id_json.keys()))}
+  }
   ptrs_tau_pt = {
     binned_variable: Lazy_container(dataframe.Histo3D(model('tau_pt', third = binned_variable), 'chunk_id', 'tau_pt', binned_variable))
       for binned_variable in BINNED_VARIABLES
@@ -199,19 +208,19 @@ if (*it == %s) return line;
   entry_di  = Entry(var = 'uh_dataset_id'      , histo = ptr_di .hst)
 
   entries_tau_pt = [
-    Entry(var = 'tau_pt', histo = to_2D(ptrs_tau_pt[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_pt']))
+    Entry(var = 'tau_pt', histo = to_2D(ptrs_tau_pt[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb) if bb not in BINNED_VARIABLENAMES[binned_variable] else BINNED_VARIABLENAMES[binned_variable][bb], 'tau_pt']))
       for binned_variable in BINNED_VARIABLES
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ] ; entries_tau_pt = [ee for ee in entries_tau_pt if ee.hst.GetEntries()]
 
   entries_tau_eta = [
-    Entry(var = 'tau_eta', histo = to_2D(ptrs_tau_eta[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'tau_eta']))
+    Entry(var = 'tau_eta', histo = to_2D(ptrs_tau_eta[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb) if bb not in BINNED_VARIABLENAMES[binned_variable] else BINNED_VARIABLENAMES[binned_variable][bb], 'tau_eta']))
       for binned_variable in BINNED_VARIABLES
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
   ] ; entries_tau_eta = [ee for ee in entries_tau_eta if ee.hst.GetEntries()]
   
   entries_dataset_id = [
-    Entry(var = 'uh_dataset_id', histo = to_2D(ptrs_dataset_id[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb), 'uh_dataset_id']))
+    Entry(var = 'uh_dataset_id', histo = to_2D(ptrs_dataset_id[binned_variable].hst, jj+1), tdir = '/'.join([binned_variable, str(bb) if bb not in BINNED_VARIABLENAMES[binned_variable] else BINNED_VARIABLENAMES[binned_variable][bb], 'uh_dataset_id']))
       for binned_variable in ['uh_dataset_group_id']
       for jj, bb in enumerate(range(*BINS[binned_variable][1:]))
       if args.use_dataset_id
@@ -225,6 +234,8 @@ if (*it == %s) return line;
   for ee in entries:
     ee.run_test(test = args.test)
     ee.save_data()
+  print ("ID names for uh_dataset_group_id:", sorted(BINNED_VARIABLENAMES['uh_dataset_group_id'].items()))
+  if args.use_dataset_id: print ("ID names for uh_dataset_id:", sorted(BINNED_VARIABLENAMES['uh_dataset_id'].items()))
 
   OUTPUT_ROOT.Close()
   json.dump(JSON_DICT, OUTPUT_JSON, indent = 4)
