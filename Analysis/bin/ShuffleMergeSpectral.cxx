@@ -404,7 +404,9 @@ public:
           double dis_scale = std::min(1.0, exp_disbalance*
                              ttype_entries.at(type)->Integral(0,binNx,binNy-1,binNy)*
                              ttype_prob.at(type)->GetBinContent(x,y));
-          if(dis_scale<=0.0) dis_scale = 1.0;
+          if(dis_scale<=0.0) // As a result of ttype_entries.at(type)->Integral(0,binNx,binNy-1,binNy)==0.0
+            throw exception("Disbalance scale factor is 0 for histogram '%1%' in '%2%' for bin (pt_i:'%3%', eta_i:'%4%')")
+            % ToString(type) % groupname % binNy % binNx;
           if(dis_scale!=1.0)
             std::cout << "WARNING: Disbalance for "<< ToString(type)
                       <<" is bigger, scale factor will be applied" << std::endl;

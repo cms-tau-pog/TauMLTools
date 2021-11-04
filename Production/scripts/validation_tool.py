@@ -34,7 +34,7 @@ ROOT.gROOT.SetBatch(not args.visual)
 ROOT.gStyle.SetOptStat(0)
 
 for formats in args.formats.split(","):
-  pdf_dir = '/'.join([args.output, formats])
+  pdf_dir = os.path.join(args.output, formats)
   if not os.path.exists(pdf_dir):
     os.makedirs(pdf_dir)
 
@@ -47,7 +47,7 @@ PVAL_THRESHOLD = args.pvthreshold
 ## binning of tested variables (dataset group id and dataset id are guessed from jsons)
 BINS = {
   'tau_pt'    : (100, 0, 1000),
-  'tau_eta'   : (10, -2.4, 2.4),
+  'tau_eta'   : (10, -2.5, 2.5),
   'tauType' : (4, 0, 4),
   'sampleType': (5, 0, 5),
 }
