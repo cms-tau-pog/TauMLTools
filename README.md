@@ -366,6 +366,18 @@ Therefore, the following workflow is suggested:
    mlflow ui -p 5000 # 5000 is the default port
    # forward this port to a machine with graphics
    ```
+### Additional helping commands 
+
+In order to check the learning process stability and convergence, tensorboard monitoring is utilized in the training script. In order to compare all existing runs in the `mlruns` folder, the following command can be used:
+
+```sh
+./Training/script/run_tensorboard.sh <PATH_TO_MLRUNS_FOLDER>
+```
+
+In order to check the final training/validation loss function and corresponding model info:
+```sh
+./Training/script/print_results.sh <PATH_TO_MLRUNS_FOLDER>
+```
 
 ## Testing NN performance
 
