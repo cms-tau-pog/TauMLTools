@@ -299,6 +299,73 @@ The script to that performs conversion is defined in [TauMLTools/Analysis/script
 
 ## Training NN
 
+### Feature scaling
+#### Computation
+During the loading of data into the model, values for each feature in the input grid tensor will undergo a sequential transformation with a following order: subtract `mean`, divide by `std`, clamp to a range `[lim_min, lim_max]` (see [`Scale()`](https://github.com/cms-tau-pog/TauMLTools/blob/45babb742f1a15f96950e84d60c95acc9b65f7e9/Training/interface/DataLoader_main.h#L314) function in `DataLoader_main.h`). Here, `mean`, `std`, `lim_min`, `lim_max` are parameters unique for each input feature and they have to be precomputed for a given input data set prior to running the training. This can be done with a script [`Training/python/feature_scaling.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/feature_scaling.py), for example, as follows:
+```python
+python feature_scaling.py --cfg ../configs/training_v1.yaml --var_types TauFlat
+```     
+- `--cfg` (str, required) is a relative path to a main yaml configuration file used for the training
+- `--var_types` (list of str, optional, default: -1) is a list of variable types to be run computation on. Should be the ones from field `Features_all` in the main training cfg file.
+
+The scaling procedure is further configured in the dedicated `Scaling_setup` field of the training yaml cfg file (`../configs/training_v1.yaml` in the example above). There, one needs to specify the following parameters:
+- `file_path`, path to input ROOT files (e.g. after Shuffle & Merge step) which are used for the training
+- `output_json_folder`, path to an output directory for storing json files with scaling coefficients
+- `file_range`, list indicating the range of input files to be used in the computation, -1 to run on all the files in `file_path`
+- `tree_name`, name of TTree with data branches inside of input ROOT files
+- `log_step`, number of files after which make a log of currently computed scaling params
+- `version`, string added as a postfix to the output file names
+
+Then, there are `cone_definition` and `cone_selection` fields which define the configuration for cone splitting. Scaling parameters are computed separately for constituents in the inner cone of the tau candidate (`constituent_dR <= dR_signal_cone`) and in the outer (`(constituent_dR > dR_tau_signal_cone) & (constituent_dR < dR_tau_outer_cone)`). Therefore, in `cone_definition` one should define the inner/outer cone dimensions and in `cone_selection` variable names (per variable type) in input `TTree` to be used to compute dR. Also `cone_types` field allows to specify the cones per variable type for which the script should compute the scaling parameters.
+
+When it comes to variables, scaling module shares the list of ones to be used with the main training module via `Features_all` field of `configs/training_v1.yaml` cfg file. Under this field, each variable type (TauFlat, etc.) stores a list of corresponding variables. Each entry in the list is a dictionary, where the key is the variable name, and the list has the format `(selection_cut, aliases, scaling_type, *lim_params)`:
+- `selection_cut`, string, cuts to be applied on-the-fly by `uproot` when loading (done on feature-by-feature basis) data into `awkward` array. Since `yaml` format allows for the usage of aliases, there are a few of those defined in the `selection` field of the cfg file.
+- `aliases`, dictionary, definitions of variables not present in original file but needed for e.g. applying selection. Added on-the-fly by `uproot` when loading data.
+- `scaling_type`, string, one of `["no scaling", "categorical", "linear", "normal"]`, see below for their definition.
+- `lim_params`, if passed, should be either a list of two numbers or a dictionary. Depending on the scaling type (see below), specifies the range to which each variable should be clamped.
+
+**NB:** Please note, that as of now selection criteria `selection_cut` are used **only** by the scaling module and are a duplicate of those specified internally inside of the `DataLoader` class. One needs to **ensure that those two are in synch with each other**.
+
+The following scaling types are supported:
+- for `no scaling` and `categorical` cases it automatically fills in the output json file with `mean=0`, `std=1`, `lim_min=-inf`, `lim_max=inf` (no linear transformation and no clamping). Both cases are treated similarly and "categorical" label is introduced only to distinguish those variables in the cfg file for a possible dedicated preprocessing in the future.
+- `linear` case assumes the variable needs to be first clamped to a specified range, and then linearly transformed to the range `[-1,1]`. Here one should pass as `lim_params` in the cfg exactly those range, for which they would want to clamp the data *first* (recall that in `DataLoader` it is done as the last step). The corresponding `mean`, `std`, `lim_min`/`lim_max` to meet the DataLoader notation are derived and filled in the output json automatically in the function `init_dictionaries()` of `scaling_utils.py`
+- `normal` case assumes the variable to be standardised by `mean` (subtract) and `std` (divide) and clamped to a specified range (in number of sigmas). Here one should pass `lim_params` as the number of sigmas to which they want to clamp the data after being scaled by mean and std (e.g. [-5, 5]). It is also possible to skip `lim_params` argument. In that case, it is automatically filled `lim_min=-inf`, `lim_max=inf`
+
+Also note that `lim_params` (for both linear and normal cases) can be a dictionary with keys "inner" and/or "outer" and values as lists of two elements as before. In that case `lim_min`/`lim_max` will be derived separately for each specified cone.
+
+As one may notice, it is "normal" features which require actual computation, since for other types scaling parameters can be derived easily based on specified `lim_params`. The computation of means and stds in that case is performed in an iterative manner, where the input files are opened one after another and for each variable the sum of its values, squared sum of values and counts of entries are being aggregated as the files are being read. Then, every `log_step` number of files, means/stds are computed based on so far aggregated sums and counts and together with other scaling parameters are logged into a json file. This cumulative nature of the approach also allows for a more flexible scan of the data for its validation (e.g. by comparison of aggregated statistics, not necessarily mean/std across file ranges). Moreover, for every file every variable's quantiles are stored, allowing for a validation of the scaling procedure (see section below).
+
+The result of running the scaling script will be a set of log json files further referred to as *snapshots* (e.g. `scaling_params_v*_log_i.json`), where each file corresponds to computation of mean/std/lim_min/lim_max *after* having accumulated sums/sums2/counts for `i*log_step` files; the json file (`scaling_params_v*.json`) which corresponds to processing of all given files; json file storing variables' quantiles per file (`quantile_params_v*.json`). `scaling_params_v*.json` should be further provided to `DataLoader` in the training step to perform the scaling of inputs.  
+
+#### Validation
+Since the feature scaling computation follows a cumulative approach, one can be interested to see how the estimates of mean/std are converging to stable values from one snapshot to another as more data is being added. The convergence of the approach can be validated with [`Training/python/plot_scaling_convergence.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/plot_scaling_convergence.py), e.g. for TauFlat variable type:
+```python
+python plot_scaling_convergence.py --train-cfg ../configs/training_v1.yaml -p /afs/cern.ch/work/o/ofilatov/public/scaling_v2/json/all_types_10files_log1 -pr scaling_params_v2 -n 1 -t -1 -c global -c inner -c outer -o scaling_plots
+```
+- `--train-cfg`, path to yaml configuration file used for training
+- `-p/--path-to-snapshots`, path to the directory with scaling json snapshot files
+- `-pr/--snapshot-prefix`, prefix used in the name of json files to tag a scaling version
+- `-n/--nfiles-step`, number of processed files per log step (`log_step` parameter), as it was set while running the scaling computation
+- `-t/--var-types`, variable types for which scaling parameters are to be plotted, -1 to run on all of them
+- `-c/--cone-types`, cone types for which scaling parameters are to be plotted
+- `-o/--output-folder`, output directory to save plots
+
+This will produce a series of plots which combine all the variables of the given type into a *boxplot representation* and show its evolution as an ensemble throughout the scaling computation. Please have a look at [this presentation](https://indico.cern.ch/event/1038235/contributions/4359970/attachments/2242374/3803434/scaling_update_11May.pdf) for more details on the method.
+
+Furthermore, once the scaling parameters are computed, one might be interested to see how the computed clamped range for a given feature relates to the actual quantiles of the feature distribution. Indeed, clamping might significantly distort the distribution if the derived (in "normal" case) or specified (in "linear" case) clamped range is not "wide enough", i.e. doesn't cover the most bulk of the distribution. The comparison of clamped and quantile ranges can be performed with [`Training/python/plot_quantile_ranges.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/plot_quantile_ranges.py):
+```python
+python plot_quantile_ranges.py --train-cfg ../configs/training_v1.yaml --scaling-file /afs/cern.ch/work/o/ofilatov/public/scaling_v2/scaling_params_v2.json --quantile-file /afs/cern.ch/work/o/ofilatov/public/scaling_v2/quantile_params_v2.json --file-id 0 --output-folder quantile_plots/fid_0 --only-suspicious False
+```
+- `--train-cfg`, path to yaml configuration file used for training
+- `--scaling-file`, path to json file with scaling parameters
+- `--quantile-file`, path to json file with variables' quantiles
+- `--file-id`, id (integer from `range(len(input_files))`) of the input ROOT file. Since quantile range of variables are derived per input file, will use for plotting those of `file-id`-th file.
+- `--output-folder`, output directory to save plots
+- `--only-suspicious`, whether to save only suspicious plots. Please have a look at the suspiciousness criteria in `plot_quantile_ranges.py`
+
+This will produce a plot of the clamped range plotted side-by-side with quantile ranges for the corresponding feature's distribution, so that it's possible to compare if the former overshoots/undershoots the actual distribution. However, please note that this representation is dependant on the input file (`--file-id` argument), so it is advisable to check whether quantiles are robust to a file change. For more details please have a look at [this presentation](https://indico.cern.ch/event/1044740/contributions/4389426/attachments/2255446/3827568/scaling_update_1June.pdf) of the method.
+
+
 ### Single run
 In order to have organized storage of models and its associated files, [mlflow](https://mlflow.org/docs/latest/index.html) is used from the training step onwards. At the training step, it takes care of logging necessary configuration parameters used to run the given training, plus additional artifacts, i.e. associated files like model/cfg files or output logs). Conceptually, mlflow augments the training code with additional logging of requested parameters/files whenever it is requested. Please note that hereafter mlflow notions of __run__ (a single training) and __experiment__ (a group of runs) will be used. 
 
