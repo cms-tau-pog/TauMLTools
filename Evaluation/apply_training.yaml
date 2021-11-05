@@ -24,8 +24,10 @@ path_to_file: ???
 file_alias: ??? # will be used in downstream modules for referencing this dataset
 
 # gpu setup
-gpu_cfg:
+gpu_cfg: # for running on CPU specify "gpu_cfg: null" 
   gpu_mem  : 7 # in Gb
   gpu_index: 0
 
+# misc.
 verbose: True
+checkout_train_repo: True # whether to checkout git commit used for running the training (fetched from artifacts)

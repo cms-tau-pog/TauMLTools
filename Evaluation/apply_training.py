@@ -22,7 +22,10 @@ def main(cfg: DictConfig) -> None:
     # set up paths & gpu
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
     path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.experiment_id}/{cfg.run_id}/artifacts/')
-    setup_gpu(cfg.gpu_cfg)
+    if cfg.gpu_cfg is not None:
+        setup_gpu(cfg.gpu_cfg)
+    else:
+        os.environ["CUDA_VISIBLE_DEVICES"]="-1"
 
     # load the model
     with open(to_absolute_path(f'{path_to_artifacts}/input_cfg/metric_names.json')) as f:
@@ -36,18 +39,18 @@ def main(cfg: DictConfig) -> None:
         training_cfg = OmegaConf.merge(training_cfg, cfg.training_cfg_upd)
     training_cfg = OmegaConf.to_object(training_cfg)
 
-    # fetch historic git commit used to run training 
-    with mlflow.start_run(experiment_id=cfg.experiment_id, run_id=cfg.run_id) as active_run:
-        train_git_commit = active_run.data.params['git_commit'] if 'git_commit' in active_run.data.params else None
+    if cfg.checkout_train_repo: # fetch historic git commit used to run training
+        with mlflow.start_run(experiment_id=cfg.experiment_id, run_id=cfg.run_id) as active_run:
+            train_git_commit = active_run.data.params.get('git_commit')
 
-    # stash local changes and checkout 
-    if train_git_commit is not None:
-        repo = git.Repo(to_absolute_path('.'), search_parent_directories=True)
-        if cfg.verbose: print(f'\n--> Stashing local changes and checking out training commit: {train_git_commit}\n')
-        repo.git.stash('save')
-        repo.git.checkout(train_git_commit)
-    else:
-        if cfg.verbose: print('\n--> Didn\'t find git commit hash in run artifacts, continuing with current repo state\n')
+        # stash local changes and checkout 
+        if train_git_commit is not None:
+            repo = git.Repo(to_absolute_path('.'), search_parent_directories=True)
+            if cfg.verbose: print(f'\n--> Stashing local changes and checking out training commit: {train_git_commit}\n')
+            repo.git.stash('save', 'stored_stash')
+            repo.git.checkout(train_git_commit)
+        else:
+            if cfg.verbose: print('\n--> Didn\'t find git commit hash in run artifacts, continuing with current repo state\n')
 
     # instantiate DataLoader and get generator
     import DataLoader
@@ -100,8 +103,8 @@ if __name__ == '__main__':
     except Exception as e:
         print(e)
     finally:
-        print(f'\n--> Checking out back branch: {current_git_branch}\n')
-        repo.git.checkout(current_git_branch)
-        if repo.git.stash('list') != '':
+        if 'stored_stash' in repo.git.stash('list'):
+            print(f'\n--> Checking out back branch: {current_git_branch}')
+            repo.git.checkout(current_git_branch)
             print(f'--> Popping stashed changes\n')
             repo.git.stash('pop')
