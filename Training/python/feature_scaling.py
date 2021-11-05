@@ -28,6 +28,7 @@ if __name__ == '__main__':
     # read cfg parameters
     setup_dict = scaling_dict['Scaling_setup']
     features_dict = scaling_dict['Features_all']
+    disabledFeatures = [variableName for sublist in (scaling_dict['Features_disable'][featureType] for featureType in scaling_dict['Features_disable']) for variableName in sublist] # get the list of disabled features, and flatten it.
     #
     assert type(args.var_types) == list
     if args.var_types[0] == '-1' and len(args.var_types) == 1:
@@ -95,8 +96,10 @@ if __name__ == '__main__':
                 for var_type in var_types:
                     # loop over variables of the given type
                     for var_dict in features_dict[var_type]:
-                        begin_var = time.time()
                         (var, (selection_cut, aliases, scaling_type, *lim_params)), = var_dict.items()
+                        if var in disabledFeatures:
+                            continue #we don't need to consider disabled features in the scaling
+                        begin_var = time.time()
                         if scaling_type == 'linear':
                             # dict with scaling params already fully filled after init_dictionaries() call, here compute only variable's quantiles
                             if len(lim_params) == 2 and lim_params[0] <= lim_params[1]:
