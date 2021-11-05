@@ -151,7 +151,7 @@ class GetData():
             n_inner_cells,
             n_outer_cells):        
         # Flat Tau features
-        X_all = [tf.convert_to_tensor(__class__.getdata(data.x_tau, (batch_size, n_flat_features)))]
+        X_all = [tf.convert_to_tensor(__class__.getdata(data.x_boostedTau, (batch_size, n_flat_features)))]
         # Inner grid
         X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
                                    input_grids, n_inner_cells, True) # 500 11 11 176
