@@ -225,7 +225,7 @@ def get_quantiles(var_array):
     quantile_dict['5sigma'] = {side: float(np.quantile(var_array, norm.cdf(sigma_side), interpolation='linear')) for side, sigma_side in zip(['left', 'right'], [-5, 5])}
     return quantile_dict
 
-def mask_inf(var_array, var_name=None, var_inf_counter=None):
+def mask_inf(var_array, var_name=None, var_inf_counter=None, raise_exception=True):
     """
     Mask inf values in `var_array` with None. If var_inf_counter is passed, append there inplace for a given `var_name` the fraction of its inf values.
 
@@ -233,27 +233,33 @@ def mask_inf(var_array, var_name=None, var_inf_counter=None):
         - var_array: awkward array, values of a given feature for a given set of taus
         - var_name (optional, default=None): string, variable name
         - var_inf_counter (optional, default=None): defaultdict(list), stores fraction of inf values for variables
+        - raise_exception (optional, default=True): bool, whether to raise exception instead of masking inf values 
 
     Returns
         var_array witn masked infs values to None
     """
     if np.any(is_inf_mask:=np.isinf(var_array)):
+        if raise_exception:
+            raise ValueError(f'Inf value detected in {var_name}')
         var_array = ak.mask(var_array, is_inf_mask, valid_when=False)
         if var_inf_counter is not None:
             var_inf_counter[var_name].append(np.sum(is_inf_mask) / ak.count(var_array))
     return var_array
 
-def mask_nan(var_array, var_name=None, var_nan_counter=None):
+def mask_nan(var_array, var_name=None, var_nan_counter=None, raise_exception=True):
     """
     Mask nan values in `var_array` with None. If var_nan_counter is passed, append there inplace for a given `var_name` the fraction of its nan values.
     Arguments:
         - var_array: awkward array, values of a given feature for a given set of taus
         - var_name (optional, default=None): string, variable name
         - var_nan_counter (optional, default=None): defaultdict(list), stores fraction of nan values for variables
+        - raise_exception (optional, default=True): bool, whether to raise exception instead of masking NaN values 
     Returns
         var_array witn masked nan values to None
     """
     if np.any(is_nan_mask:=np.isnan(var_array)):
+        if raise_exception:
+            raise ValueError(f'NaN value detected in {var_name}')
         var_array = ak.mask(var_array, is_nan_mask, valid_when=False)
         if var_nan_counter is not None:
             var_nan_counter[var_name].append(np.sum(is_nan_mask) / ak.count(var_array))
@@ -296,8 +302,8 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
     """
     constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
     var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
-    var_array = mask_inf(var_array, var, inf_counter)
-    var_array = mask_nan(var_array, var, nan_counter)
+    var_array = mask_inf(var_array, var, inf_counter, raise_exception=True)
+    var_array = mask_nan(var_array, var, nan_counter, raise_exception=True)
 
     if cone_type == None:
         sums[var_type][var][file_i] += ak.sum(var_array)

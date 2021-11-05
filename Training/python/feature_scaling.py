@@ -91,8 +91,8 @@ if __name__ == '__main__':
                             # dict with scaling params already fully filled after init_dictionaries() call, here compute only variable's quantiles
                             if len(lim_params) == 2 and lim_params[0] <= lim_params[1]:
                                 var_array = tree.arrays(var, cut=selection_cut, aliases=aliases)[var]
-                                var_array = mask_inf(var_array, var, inf_counter)
-                                var_array = mask_nan(var_array, var, nan_counter)
+                                var_array = mask_inf(var_array, var, inf_counter, raise_exception=True)
+                                var_array = mask_nan(var_array, var, nan_counter, raise_exception=True)
                                 quantile_params[var_type][var]['global'][file_name_i] = get_quantiles(var_array)
                                 # del(var_array)
                             elif len(lim_params) == 1 and type(lim_params[0]) == dict:
@@ -101,8 +101,8 @@ if __name__ == '__main__':
                                 tau_pt_array, tau_eta_array, tau_phi_array = tree.arrays([tau_pt_name, tau_eta_name, tau_phi_name], cut=None, aliases=None, how=tuple)
                                 constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
                                 var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
-                                var_array = mask_inf(var_array, var, inf_counter)
-                                var_array = mask_nan(var_array, var, nan_counter)
+                                var_array = mask_inf(var_array, var, inf_counter, raise_exception=True)
+                                var_array = mask_nan(var_array, var, nan_counter, raise_exception=True)
                                 dR_tau_signal_cone = dR_signal_cone(tau_pt_array,
                                                                     cone_definition_dict['inner']['min_pt'],
                                                                     cone_definition_dict['inner']['min_radius'],
