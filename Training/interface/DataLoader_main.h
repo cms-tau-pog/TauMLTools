@@ -239,6 +239,7 @@ public:
 
           const auto gen_match = analysis::GetGenLeptonMatch(tau);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
+          bool tau_is_set = false;
 
           if (gen_match){
             if (recompute_tautype){
@@ -253,8 +254,11 @@ public:
               FillCellGrid(tau, tau_i, innerCellGridRef, true);
               FillCellGrid(tau, tau_i, outerCellGridRef, false);
               ++tau_i;
+              tau_is_set = true;
             }
           }
+          if (!tau_is_set && include_mismatched)
+            ++tau_i;
           ++current_entry;
         }
         fullData = true;

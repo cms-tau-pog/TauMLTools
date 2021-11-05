@@ -12,6 +12,7 @@ def main(cfg: DictConfig) -> None:
         run_kwargs = {'experiment_id': experiment.experiment_id} 
     else: # create new experiment
         experiment_id = mlflow.create_experiment(cfg.experiment_name)
+        print(f'\nCreated experiment {cfg.experiment_name} with ID: {experiment_id}')
         run_kwargs = {'experiment_id': experiment_id} 
     if cfg.run_id is not None:
         run_kwargs['run_id'] = cfg.run_id # to log data into existing run
@@ -24,7 +25,7 @@ def main(cfg: DictConfig) -> None:
                 mlflow.log_artifact(to_absolute_path(path_to_file), dir_to_log_to)
         if cfg.params_to_log is not None:
             mlflow.log_params(cfg.params_to_log)
-        print(f'\nLogged to run ID: {run.info.run_id}\n')
+        print(f'Logged to run ID: {run.info.run_id}\n')
 
 if __name__ == '__main__':
     main()
