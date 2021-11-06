@@ -132,6 +132,16 @@
     TAU_VAR(Float_t, emFraction) /* tau->emFraction_MVA */ \
     TAU_VAR(Int_t, inside_ecal_crack) /* tau is inside the ECAL crack (1.46 < |eta| < 1.558) */ \
     TAU_VAR(Float_t, leadChargedCand_etaAtEcalEntrance) /* eta at ECAL entrance of the leadChargedCand */ \
+    /* L1 tau */ \
+    VAR(Int_t, l1Tau_index) /* index of the L1 tau */ \
+    VAR4(Float_t, l1Tau_pt, l1Tau_eta, l1Tau_phi, l1Tau_mass) /* L1 tau p4 */  \
+    VAR2(Int_t, l1Tau_towerIEta, l1Tau_towerIPhi) /* */ \
+    VAR(Int_t, l1Tau_rawEt) /* */ \
+    VAR(Int_t, l1Tau_isoEt) /* */ \
+    VAR(Int_t, l1Tau_hasEM) /* */ \
+    VAR(Int_t, l1Tau_isMerged) /* */ \
+    VAR(Int_t, l1Tau_hwIso) /* */ \
+    VAR(Int_t, l1Tau_hwQual) /* */ \
     /* PF candidates and lost tracks */ \
     CAND_VAR(Int_t, index) /* index of the PF candidate */ \
     CAND_VAR(Int_t, tauSignal) /* PF candidate is a part of the tau signal */ \

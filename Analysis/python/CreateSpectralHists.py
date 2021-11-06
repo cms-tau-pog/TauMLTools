@@ -25,7 +25,7 @@ if not os.path.isdir(args.output):
 pt_hist = "4990, 10, 5000"
 eta_hist = "25, 0, 2.5"
 
-print "regex filter for dataset names: "+args.filter
+print("regex filter for dataset names: "+args.filter)
 
 input_path = []
 for dir_name in glob(args.input+"/*"):
@@ -34,8 +34,8 @@ for dir_name in glob(args.input+"/*"):
     else:
         input_path.append(dir_name)
 
-print "list of input files: "
-print input_path
+print("list of input files: ")
+print(input_path)
 
 for dir_path in input_path:
 
@@ -46,7 +46,7 @@ for dir_path in input_path:
                 + split_path[-1] + ".root"
     output_entries = args.output + "/" \
                 + split_path[-1] + ".txt"
-                
+
 
     if os.path.exists(output_root):
         print("{} was already processed.".format(dir_path))
@@ -74,4 +74,3 @@ for dir_path in input_path:
             os.remove(output_root)
         raise RuntimeError("MergeTuples has failed.")
     print("{} has been successfully processed".format(dir_path))
-

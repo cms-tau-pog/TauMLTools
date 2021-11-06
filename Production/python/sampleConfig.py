@@ -42,26 +42,26 @@ globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
 def IsEmbedded(sampleType):
     isEmbedded = sampleType in mcSampleTypes and 'Emb' in sampleType
     if not sampleType in mcSampleTypes and not sampleType in dataSampleTypes:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return isEmbedded
 
 def IsData(sampleType):
     isData = sampleType in dataSampleTypes
     if not isData and not sampleType in mcSampleTypes:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return isData
 
 def GetPeriod(sampleType):
     if sampleType not in periodDict:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return periodDict[sampleType]
 
 def GetGlobalTag(sampleType):
     if sampleType not in globalTagMap:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return globalTagMap[sampleType]
 

@@ -128,7 +128,6 @@ public:
 
     TauTupleProducer(const edm::ParameterSet& cfg) :
         isMC(cfg.getParameter<bool>("isMC")),
-        isEmbedded(cfg.getParameter<bool>("isEmbedded")),
         requireGenMatch(cfg.getParameter<bool>("requireGenMatch")),
         requireGenORRecoTauMatch(cfg.getParameter<bool>("requireGenORRecoTauMatch")),
         applyRecoPtSieve(cfg.getParameter<bool>("applyRecoPtSieve")),
@@ -220,7 +219,7 @@ private:
 
         tau_analysis::TauJetBuilder<TauJet> builder(builderSetup, &taus, nullptr, &jets, nullptr, &cands, nullptr,
                                                     nullptr, nullptr, nullptr, &l1Taus, genParticles, genJets,
-                                      requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve);
+                                                    requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve);
         const auto& tauJets = builder.GetTauJets();
         tauTuple().total_entries = static_cast<int>(tauJets.size());
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {
@@ -231,6 +230,7 @@ private:
             FillGenJet(tauJet.genJet, genJetFlavourInfos);
             FillTau(tauJet.tau, pfTauTransverseImpactParameters, "tau_");
             FillJet(tauJet.jet, "jet_");
+            FillL1Tau(tauJet.l1Tau);
             FillPFCandidates(tauJet.cands, "pfCand_");
 
             tauTuple.Fill();
@@ -411,6 +411,25 @@ private:
                 ? jet->neutralMultiplicity() : default_int_value;
     }
 
+    void FillL1Tau(const tau_analysis::ObjPtr<const l1t::Tau>& l1Tau)
+    {
+        tauTuple().l1Tau_index = l1Tau.index;
+        tauTuple().l1Tau_pt = l1Tau ? static_cast<float>(l1Tau->polarP4().pt()) : default_value;
+        tauTuple().l1Tau_eta = l1Tau ? static_cast<float>(l1Tau->polarP4().eta()) : default_value;
+        tauTuple().l1Tau_phi = l1Tau ? static_cast<float>(l1Tau->polarP4().phi()) : default_value;
+        tauTuple().l1Tau_mass = l1Tau ? static_cast<float>(l1Tau->polarP4().mass()) : default_value;
+
+        tauTuple().l1Tau_towerIEta = l1Tau ? l1Tau->towerIEta() : default_int_value;
+        tauTuple().l1Tau_towerIPhi = l1Tau ? l1Tau->towerIPhi() : default_int_value;
+        tauTuple().l1Tau_rawEt = l1Tau ? l1Tau->rawEt() : default_int_value;
+        tauTuple().l1Tau_isoEt = l1Tau ? l1Tau->isoEt() : default_int_value;
+        tauTuple().l1Tau_hasEM = l1Tau ? l1Tau->hasEM() : default_int_value;
+        tauTuple().l1Tau_isMerged = l1Tau ? l1Tau->isMerged() : default_int_value;
+
+        tauTuple().l1Tau_hwIso = l1Tau ? l1Tau->hwIso() : default_int_value;
+        tauTuple().l1Tau_hwQual = l1Tau ? l1Tau->hwQual() : default_int_value;
+    }
+
     void FillPFCandidates(const TauJet::PFCandCollection& cands, const std::string& prefix)
     {
         auto push_back = [&](const std::string& name, auto value) {
@@ -445,6 +464,7 @@ private:
 
             const auto track = cand->bestTrack();
             const reco::HitPattern* hitPattern = track ? &track->hitPattern() : nullptr;
+
             using nHitFn = int (reco::HitPattern::*)() const;
             using nHitFnEx = int (reco::HitPattern::*)(reco::HitPattern::HitCategory) const;
 
@@ -528,6 +548,9 @@ private:
             push_back("track_chi2", track ? static_cast<float>(track->chi2()) : default_value);
             push_back("track_ndof", track ? static_cast<float>(track->ndof()) : default_value);
 
+            push_back("etaAtECALEntrance", static_cast<float>(cand->positionAtECALEntrance().eta()));
+            push_back("phiAtECALEntrance", static_cast<float>(cand->positionAtECALEntrance().phi()));
+
             push_back("ecalEnergy", cand->ecalEnergy());
             push_back("hcalEnergy", cand->hcalEnergy());
 
@@ -546,7 +569,7 @@ private:
     }
 
 private:
-    const bool isMC, isEmbedded, requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve;
+    const bool isMC, requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve;
     tau_analysis::TauJetBuilderSetup builderSetup;
 
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;
