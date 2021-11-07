@@ -20,30 +20,29 @@
 #define JET_VAR3(type, name1, name2, name3) JET_VAR2(type, name1, name2) JET_VAR(type, name3)
 #define JET_VAR4(type, name1, name2, name3, name4) JET_VAR3(type, name1, name2, name3) JET_VAR(type, name4)
 
-#define CAND_VAR(type, name) VAR(std::vector<type>, pfCand_##name) VAR(std::vector<type>, lostTrack_##name)
+#define CAND_VAR(type, name) VAR(std::vector<type>, pfCand_##name)
 #define CAND_VAR2(type, name1, name2) CAND_VAR(type, name1) CAND_VAR(type, name2)
 #define CAND_VAR3(type, name1, name2, name3) CAND_VAR2(type, name1, name2) CAND_VAR(type, name3)
 #define CAND_VAR4(type, name1, name2, name3, name4) CAND_VAR3(type, name1, name2, name3) CAND_VAR(type, name4)
+#define CAND_VAR_HIT(name) CAND_VAR(Int_t, name##_TRACK_HITS) CAND_VAR(Int_t, name##_MISSING_INNER_HITS) \
+                           CAND_VAR(Int_t, name##_MISSING_OUTER_HITS)
 
 #define TAU_DATA() \
     /* Event Variables */ \
     VAR(UInt_t, run) /* run number */ \
     VAR(UInt_t, lumi) /* lumi section */ \
     VAR(ULong64_t, evt) /* event number */ \
-    VAR(Int_t, npv) /* number of primary vertices */ \
+    VAR(Int_t, npv) /* number of pixel vertices */ \
     VAR(Float_t, rho) /* fixed grid energy density */ \
     VAR(Float_t, genEventWeight) /* gen event weight */ \
     VAR(Int_t, sampleType) /* type of the sample (MC, Embedded or Data) */ \
     VAR(Int_t, tauType) /* tau type match e = 0, mu = 1, tau = 2, jet = 3,
-                emb_e = 4, emb_mu = 5, emb_tau = 6, emb_jet = 7, data = 8 */ \
+                            emb_e = 4, emb_mu = 5, emb_tau = 6, emb_jet = 7, data = 8 */ \
     VAR(ULong64_t, dataset_id) /* ID of the dataset (needed to identify the original dataset after shuffle&merge) */ \
     VAR(ULong64_t, dataset_group_id) /* ID of the dataset group (needed to identify the original dataset group
                                     after shuffle&merge) */ \
     VAR(Float_t, npu) /* number of in-time pu interactions added to the event */ \
-    VAR4(Float_t, pv_x, pv_y, pv_z, pv_t) /* position and time of the primary vertex (PV) */ \
-    VAR4(Float_t, pv_xE, pv_yE, pv_zE, pv_tE) /* position and time errors of the primary vertex (PV) */ \
-    VAR(Float_t, pv_chi2) /* chi^2 of the primary vertex (PV) */ \
-    VAR(Float_t, pv_ndof) /* number of degrees of freedom of the primary vertex (PV) */ \
+    VAR3(Float_t, beamSpot_x, beamSpot_y, beamSpot_z) /* Position of the beam spot */ \
     VAR(Int_t, entry_index) /* Index of the entry in the event */ \
     VAR(Int_t, total_entries) /* The total number of entries in the event */ \
     /* Gen lepton with the full decay chain */ \
@@ -101,8 +100,6 @@
     TAU_VAR(Int_t, decayMode) /* tau decay mode */ \
     /* Tau transverse impact paramters.
        See cmssw/RecoTauTag/RecoTau/plugins/PFTauTransverseImpactParameters.cc for details */ \
-    TAU_VAR3(Float_t, dxy_pca_x, dxy_pca_y, dxy_pca_z) /* The point of closest approach (PCA) of
-                                                          the leadPFChargedHadrCand to the primary vertex */ \
     TAU_VAR(Float_t, dxy) /* tau signed transverse impact parameter wrt to the primary vertex */ \
     TAU_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
     TAU_VAR(Float_t, ip3d) /* tau signed 3D impact parameter wrt to the primary vertex */ \
@@ -130,7 +127,6 @@
     TAU_VAR(Int_t, n_photons) /* total number of pf photon candidates with pT>500 MeV,
                                  which are associated to signal */ \
     TAU_VAR(Float_t, emFraction) /* tau->emFraction_MVA */ \
-    TAU_VAR(Int_t, inside_ecal_crack) /* tau is inside the ECAL crack (1.46 < |eta| < 1.558) */ \
     TAU_VAR(Float_t, leadChargedCand_etaAtEcalEntrance) /* eta at ECAL entrance of the leadChargedCand */ \
     /* L1 tau */ \
     VAR(Int_t, l1Tau_index) /* index of the L1 tau */ \
@@ -142,46 +138,100 @@
     VAR(Int_t, l1Tau_isMerged) /* */ \
     VAR(Int_t, l1Tau_hwIso) /* */ \
     VAR(Int_t, l1Tau_hwQual) /* */ \
+    /* Calo hits */ \
+    VAR(std::vector<Int_t>, caloHit_type)  /* Type of the calo hit:
+                                              HBHE = 0, HO = 1, EcalBarrel = 2, EcalEndcap = 3 */ \
+    VAR3(std::vector<Float_t>, caloHit_r, caloHit_eta, caloHit_phi)  /* Position of the calo hit in
+                                                                        cylindrical coordinates */ \
+    VAR(std::vector<Float_t>, caloHit_energy) /* Energy deposit of the calo hit */ \
+    VAR(std::vector<Float_t>, caloHit_chi2) /* Chi2 of the calo hit. Not defined for HO hits. */ \
+    /* Pixel tracks */ \
+    VAR3(std::vector<Float_t>, pixelTrack_pt, pixelTrack_eta, pixelTrack_phi) /* Momentum of the track */ \
+    VAR(std::vector<Int_t>, pixelTrack_charge) /* Charge of the track */ \
+    VAR(std::vector<Int_t>, pixelTrack_quality) /* Quality of the track:
+                                                   loose = 2, strict = 3, tight = 4, highPurity = 5 */ \
+    VAR2(std::vector<Float_t>, pixelTrack_tip, pixelTrack_zip) /* Transverse and longitudinal impact parameters of
+                                                                  the track at the beam spot */ \
+    VAR(std::vector<Int_t>, pixelTrack_vtx_index) /* index of the associated vertex */ \
+    VAR(std::vector<Float_t>, pixelTrack_vtx_z) /* z-position of the associated vertex */ \
+    VAR(std::vector<Float_t>, pixelTrack_vtx_w) /* weight (1/error^2) of the associated vertex */ \
+    VAR(std::vector<Float_t>, pixelTrack_vtx_chi2) /* chi2 of the associated vertex */ \
+    VAR(std::vector<Float_t>, pixelTrack_vtx_pt2) /* sum pt^2 of the associated vertex */ \
+    VAR(std::vector<Int_t>, pixelTrack_vtx_ndof) /* Number of the degrees of freedom of the associated vertex */ \
+    VAR(std::vector<Int_t>, pixelTrack_vtx_sortInd) /* Sorted index (ascending ordering by pt^2) of
+                                                       the associated vertex */ \
     /* PF candidates and lost tracks */ \
     CAND_VAR(Int_t, index) /* index of the PF candidate */ \
     CAND_VAR(Int_t, tauSignal) /* PF candidate is a part of the tau signal */ \
     CAND_VAR(Int_t, tauLeadChargedHadrCand) /* PF candidate is the leadChargedHadrCand of the tau */ \
     CAND_VAR(Int_t, tauIso) /* PF candidate is a part of the tau isolation */ \
-    CAND_VAR(Int_t, boostedTauSignal) /* PF candidate is a part of the boosted tau signal */ \
-    CAND_VAR(Int_t, boostedTauLeadChargedHadrCand) /* PF candidate is the leadChargedHadrCand of the boosted tau */ \
-    CAND_VAR(Int_t, boostedTauIso) /* PF candidate is a part of the boosted tau isolation */ \
     CAND_VAR(Int_t, jetDaughter) /* PF candidate is the jet daughter */ \
-    CAND_VAR(Int_t, fatJetDaughter) /* PF candidate is the fat jet daughter */ \
-    CAND_VAR(Int_t, subJetDaughter) /* index of the subjet of the fat jet to which PF candidate belongs
-                                       (otherwise, -1) */ \
     CAND_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the PF candidate */ \
     CAND_VAR(Int_t, particleType) /* type of the PF candidate:
                                      0 - Undefined, 1 - charged hadron, 2 - electron, 3 - muon, 4 - photon,
                                      5 - neutral hadron, 6 - HF tower identified as a hadron,
                                      7 -  HF tower identified as an EM particle */ \
     CAND_VAR(Int_t, charge) /* electric charge */ \
-    CAND_VAR(Int_t, lostInnerHits) /* enumerator specifying the number of lost inner hits:
-                                      validHitInFirstPixelBarrelLayer = -1, noLostInnerHits = 0 (it could still not
-                                      have a hit in the first layer, e.g. if it crosses an inactive sensor),
-                                      oneLostInnerHit = 1, moreLostInnerHits = 2 */ \
-    CAND_VAR2(Int_t, nHits, nPixelHits) /* number of the total valid hits and the number of valid pixel hits */ \
-    CAND_VAR2(Int_t, nPixelLayers, nStripLayers) /* number of pixel (strip) layers with measurement */ \
     CAND_VAR4(Float_t, vertex_x, vertex_y, vertex_z, vertex_t) /* position & time of the vertex to which
                                                                   the candidate is associated */ \
-    CAND_VAR2(Float_t, time, timeError) /* time and time error information on the PF candidate */ \
+    CAND_VAR(Int_t, numberOfValidHits) /* */ \
+    CAND_VAR(Int_t, numberOfValidTrackerHits) /* */ \
+    CAND_VAR(Int_t, numberOfValidPixelHits) /* */ \
+    CAND_VAR(Int_t, numberOfValidPixelBarrelHits) /* */ \
+    CAND_VAR(Int_t, numberOfValidPixelEndcapHits) /* */ \
+    CAND_VAR(Int_t, numberOfValidStripHits) /* */ \
+    CAND_VAR(Int_t, numberOfValidStripTIBHits) /* */ \
+    CAND_VAR(Int_t, numberOfValidStripTIDHits) /* */ \
+    CAND_VAR(Int_t, numberOfValidStripTOBHits) /* */ \
+    CAND_VAR(Int_t, numberOfValidStripTECHits) /* */ \
+    CAND_VAR(Int_t, numberOfMuonHits) /* */ \
+    CAND_VAR(Int_t, numberOfLostMuonHits) /* */ \
+    CAND_VAR(Int_t, numberOfBadHits) /* */ \
+    CAND_VAR(Int_t, numberOfBadMuonHits) /* */ \
+    CAND_VAR(Int_t, numberOfInactiveHits) /* */ \
+    CAND_VAR(Int_t, numberOfInactiveTrackerHits) /* */ \
+    CAND_VAR(Int_t, trackerLayersWithMeasurement) /* */ \
+    CAND_VAR(Int_t, pixelLayersWithMeasurement) /* */ \
+    CAND_VAR(Int_t, stripLayersWithMeasurement) /* */ \
+    CAND_VAR(Int_t, pixelBarrelLayersWithMeasurement) /* */ \
+    CAND_VAR(Int_t, pixelEndcapLayersWithMeasurement) /* */ \
+    CAND_VAR(Int_t, stripTIBLayersWithMeasurement) /* */ \
+    CAND_VAR(Int_t, stripTIDLayersWithMeasurement) /* */ \
+    CAND_VAR(Int_t, stripTOBLayersWithMeasurement) /* */ \
+    CAND_VAR(Int_t, stripTECLayersWithMeasurement) /* */ \
+    CAND_VAR_HIT(numberOfAllHits) /* */ \
+    CAND_VAR_HIT(numberOfAllTrackerHits) /* */ \
+    CAND_VAR_HIT(numberOfLostHits) /* */ \
+    CAND_VAR_HIT(numberOfLostTrackerHits) /* */ \
+    CAND_VAR_HIT(numberOfLostPixelHits) /* */ \
+    CAND_VAR_HIT(numberOfLostPixelBarrelHits) /* */ \
+    CAND_VAR_HIT(numberOfLostPixelEndcapHits) /* */ \
+    CAND_VAR_HIT(numberOfLostStripHits) /* */ \
+    CAND_VAR_HIT(numberOfLostStripTIBHits) /* */ \
+    CAND_VAR_HIT(numberOfLostStripTIDHits) /* */ \
+    CAND_VAR_HIT(numberOfLostStripTOBHits) /* */ \
+    CAND_VAR_HIT(numberOfLostStripTECHits) /* */ \
+    CAND_VAR_HIT(trackerLayersWithoutMeasurement) /* */ \
+    CAND_VAR_HIT(pixelLayersWithoutMeasurement) /* */ \
+    CAND_VAR_HIT(stripLayersWithoutMeasurement) /* */ \
+    CAND_VAR_HIT(pixelBarrelLayersWithoutMeasurement) /* */ \
+    CAND_VAR_HIT(pixelEndcapLayersWithoutMeasurement) /* */ \
+    CAND_VAR_HIT(stripTIBLayersWithoutMeasurement) /* */ \
+    CAND_VAR_HIT(stripTIDLayersWithoutMeasurement) /* */ \
+    CAND_VAR_HIT(stripTOBLayersWithoutMeasurement) /* */ \
+    CAND_VAR_HIT(stripTECLayersWithoutMeasurement) /* */ \
     CAND_VAR(Int_t, hasTrackDetails) /* has track details */ \
     CAND_VAR(Float_t, dxy) /* signed transverse impact parameter wrt to the primary vertex */ \
     CAND_VAR(Float_t, dxy_error) /* uncertainty of the transverse impact parameter measurement */ \
     CAND_VAR(Float_t, dz) /* dz wrt to the primary vertex */ \
     CAND_VAR(Float_t, dz_error) /* uncertainty of the dz measurement */ \
-    CAND_VAR3(Float_t, track_pt, track_eta, track_phi) /* track momentum at the reference point */ \
+    CAND_VAR3(Float_t, track_pt, track_etaAtVtx, track_phiAtVtx) /* track momentum at the reference point */ \
     CAND_VAR(Float_t, track_chi2) /* chi^2 of the pseudo track made with the candidate kinematics */ \
     CAND_VAR(Float_t, track_ndof) /* number of degrees of freedom of the pseudo track
                                      made with the candidate kinematics */ \
-    CAND_VAR2(Float_t, caloFraction, hcalFraction) /* fraction of ECAL and HCAL for HF and neutral hadrons
-                                                      and isolated charged hadrons */ \
-    CAND_VAR2(Float_t, rawCaloFraction, rawHcalFraction) /* raw ECAL and HCAL energy over candidate energy
-                                                            for isolated charged hadrons */ \
+    CAND_VAR2(Float_t, etaAtECALEntrance, phiAtECALEntrance) /* Position of the PF candidate at the ECAL entrance */ \
+    CAND_VAR2(Float_t, ecalEnergy, hcalEnergy) /* energy deposited by the PF candidate in ECAL and HCAL */ \
+    CAND_VAR2(Float_t, rawEcalEnergy, rawHcalEnergy) /* raw ECAL and HCAL energy deposited by the PF candidate */ \
     /**/
 
 #define VAR(type, name) DECLARE_BRANCH_VARIABLE(type, name)
@@ -209,19 +259,16 @@ struct TauTupleEntryId {
     UInt_t run;
     UInt_t lumi;
     ULong64_t evt;
-    Int_t jet_index, tau_index;
+    Int_t entry_index;
 
     TauTupleEntryId() {}
     explicit TauTupleEntryId(const Tau& tau) :
-        run(tau.run), lumi(tau.lumi), evt(tau.evt), jet_index(tau.jet_index), tau_index(tau.tau_index) {}
+        run(tau.run), lumi(tau.lumi), evt(tau.evt), entry_index(tau.entry_index) {}
 
     bool operator<(const TauTupleEntryId& other) const
     {
-        if(run != other.run) return run < other.run;
-        if(lumi != other.lumi) return lumi < other.lumi;
-        if(evt != other.evt) return evt < other.evt;
-        if(jet_index != other.jet_index) return jet_index < other.jet_index;
-        return tau_index < other.tau_index;
+        return std::make_tuple(run, lumi, evt, entry_index)
+               < std::make_tuple(other.run, other.lumi, other.evt, other.entry_index);
     }
 };
 

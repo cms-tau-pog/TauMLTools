@@ -242,7 +242,8 @@ private:
         auto genJetFlavourInfos = hGenJetFlavourInfos.isValid() ? hGenJetFlavourInfos.product() : nullptr;
 
         TauJetBuilder<TauJet> builder(builderSetup, &*taus, &*boostedTaus, &*jets, &*fatJets, &*cands, &*electrons,
-                                      &*muons, &*isoTracks, &*lostTracks, nullptr, genParticles, genJets,
+                                      &*muons, &*isoTracks, &*lostTracks, nullptr, nullptr, nullptr,
+                                      genParticles, genJets,
                                       requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve);
         const auto& tauJets = builder.GetTauJets();
         tauTuple().total_entries = static_cast<int>(tauJets.size());

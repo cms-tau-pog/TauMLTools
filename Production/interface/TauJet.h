@@ -15,6 +15,36 @@
 
 #include "TauMLTools/Analysis/interface/GenLepton.h"
 
+#include "Geometry/CaloGeometry/interface/CaloCellGeometry.h"
+#include "Geometry/CaloGeometry/interface/CaloGeometry.h"
+#include "Geometry/CaloTopology/interface/HcalTopology.h"
+#include "Geometry/Records/interface/CaloGeometryRecord.h"
+#include "DataFormats/CaloRecHit/interface/CaloRecHit.h"
+#include "DataFormats/EcalRecHit/interface/EcalRecHit.h"
+#include "DataFormats/EcalRecHit/interface/EcalRecHitCollections.h"
+#include "DataFormats/EcalDetId/interface/EcalDetIdCollections.h"
+#include "DataFormats/HcalDetId/interface/HcalDetId.h"
+#include "DataFormats/HcalRecHit/interface/HBHERecHit.h"
+#include "DataFormats/HcalRecHit/interface/HcalRecHitDefs.h"
+#include "DataFormats/HcalRecHit/interface/HFRecHit.h"
+#include "DataFormats/HcalRecHit/interface/HORecHit.h"
+#include "DataFormats/HLTReco/interface/TriggerTypeDefs.h"
+#include "DataFormats/HLTReco/interface/TriggerFilterObjectWithRefs.h"
+#include "TrackingTools/TrajectoryParametrization/interface/CurvilinearTrajectoryError.h"
+#include "RecoPixelVertexing/PixelTrackFitting/interface/FitUtils.h"
+#include "TrackingTools/TrajectoryParametrization/interface/GlobalTrajectoryParameters.h"
+#include "DataFormats/TrackReco/interface/HitPattern.h"
+#include "TrackingTools/AnalyticalJacobians/interface/JacobianLocalToCurvilinear.h"
+#include "DataFormats/TrajectoryState/interface/LocalTrajectoryParameters.h"
+#include "DataFormats/GeometrySurface/interface/Plane.h"
+#include "DataFormats/BeamSpot/interface/BeamSpot.h"
+#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous.h"
+#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
+#include "CUDADataFormats/SiPixelCluster/interface/gpuClusteringConstants.h"
+#include "CUDADataFormats/Track/interface/TrackSoAHeterogeneousT.h"
+#include "CUDADataFormats/Vertex/interface/ZVertexSoA.h"
+#include "CUDADataFormats/Vertex/interface/ZVertexHeterogeneous.h"
+
 namespace tau_analysis {
 
 template<typename _CandType>
@@ -46,6 +76,42 @@ struct ObjPtr {
     }
 };
 
+enum class CaloHitType {
+    Undefined = -1, HBHE = 0, HO = 1, EcalBarrel = 2, EcalEndcap = 3
+};
+
+struct CaloHit {
+    using PolarLorentzVector = reco::LeafCandidate::PolarLorentzVector;
+
+    CaloHitType hitType{CaloHitType::Undefined};
+    GlobalPoint position;
+    double energy{-1}, chi2{-1};
+    std::tuple<const HBHERecHit*, const HORecHit*, const EcalRecHit*> hitPtr;
+
+    bool isValid() const { return hitType != CaloHitType::Undefined; }
+    // for compatibility with matching function
+    PolarLorentzVector polarP4() const
+    {
+        return PolarLorentzVector(position.perp(), position.eta(), position.phi(), 0);
+    }
+
+    static std::vector<CaloHit> MakeHitCollection(const CaloGeometry& geom, const HBHERecHitCollection* hbheRecHits,
+                                                  const HORecHitCollection* hoRecHits,
+                                                  const EcalRecHitCollection* ebRecHits,
+                                                  const EcalRecHitCollection* eeRecHits);
+};
+
+struct PataTrack {
+    using PolarLorentzVector = reco::LeafCandidate::PolarLorentzVector;
+    int index{-1};
+    PolarLorentzVector p4;
+    const pixelTrack::TrackSoA* tsoa{nullptr};
+    // for compatibility with matching function
+    const PolarLorentzVector& polarP4() const { return p4; }
+
+    static std::vector<PataTrack> MakeTrackCollection(const pixelTrack::TrackSoA& tracks);
+};
+
 template<typename _PFCand, typename _Tau, typename _BoostedTau, typename _Jet, typename _FatJet, typename _Electron,
          typename _Muon, typename _IsoTrack, typename _LostTrack, typename _L1Tau>
 struct TauJetT {
@@ -64,6 +130,8 @@ struct TauJetT {
     using MuonCollection = std::vector<ObjPtr<const Muon>>;
     using IsoTrackCollection = std::vector<ObjPtr<const IsoTrack>>;
     using LostTrackCollection = std::vector<PFCandDesc<LostTrack>>;
+    using CaloHitCollection = std::vector<ObjPtr<const CaloHit>>;
+    using PataTrackCollection = std::vector<ObjPtr<const PataTrack>>;
 
     ObjPtr<reco_tau::gen_truth::GenLepton> genLepton;
     ObjPtr<const reco::GenJet> genJet;
@@ -78,6 +146,8 @@ struct TauJetT {
     MuonCollection muons;
     IsoTrackCollection isoTracks;
     LostTrackCollection lostTracks;
+    CaloHitCollection caloHits;
+    PataTrackCollection pataTracks;
 };
 
 struct TauJetBuilderSetup {
@@ -151,18 +221,22 @@ public:
     using IsoTrackCollection = std::vector<IsoTrack>;
     using LostTrackCollection = std::vector<LostTrack>;
     using L1TauCollection = std::vector<L1Tau>;
+    using CaloHitCollection = std::vector<CaloHit>;
+    using PataTrackCollection = std::vector<PataTrack>;
 
     TauJetBuilder(const TauJetBuilderSetup& setup, const TauCollection* taus, const BoostedTauCollection* boostedTaus,
                   const JetCollection* jets, const FatJetCollection* fatJets, const PFCandCollection* cands,
                   const ElectronCollection* electrons, const MuonCollection* muons,
                   const IsoTrackCollection* isoTracks, const LostTrackCollection* lostTracks,
-                  const L1TauCollection* l1Taus, const reco::GenParticleCollection* genParticles,
-                  const reco::GenJetCollection* genJets, bool requireGenMatch, bool requireGenORRecoTauMatch,
-                  bool applyRecoPtSieve) :
+                  const L1TauCollection* l1Taus, const CaloHitCollection* caloHits,
+                  const PataTrackCollection* pataTracks,
+                  const reco::GenParticleCollection* genParticles, const reco::GenJetCollection* genJets,
+                  bool requireGenMatch, bool requireGenORRecoTauMatch, bool applyRecoPtSieve) :
         setup_(setup), taus_(taus), boostedTaus_(boostedTaus), jets_(jets), fatJets_(fatJets), cands_(cands),
         electrons_(electrons), muons_(muons), isoTracks_(isoTracks), lostTracks_(lostTracks), l1Taus_(l1Taus),
-        genParticles_(genParticles), genJets_(genJets), requireGenMatch_(requireGenMatch),
-        requireGenORRecoTauMatch_(requireGenORRecoTauMatch), applyRecoPtSieve_(applyRecoPtSieve)
+        caloHits_(caloHits), pataTracks_(pataTracks), genParticles_(genParticles), genJets_(genJets),
+        requireGenMatch_(requireGenMatch), requireGenORRecoTauMatch_(requireGenORRecoTauMatch),
+        applyRecoPtSieve_(applyRecoPtSieve)
     {
         if(genParticles)
             genLeptons_ = reco_tau::gen_truth::GenLepton::fromGenParticleCollection(*genParticles);
@@ -404,6 +478,8 @@ private:
             fillMatched(tauJet.electrons, electrons_);
             fillMatched(tauJet.muons, muons_);
             fillMatched(tauJet.isoTracks, isoTracks_);
+            fillMatched(tauJet.caloHits, caloHits_);
+            fillMatched(tauJet.pataTracks, pataTracks_);
         }
     }
 
@@ -419,6 +495,8 @@ private:
     const IsoTrackCollection* isoTracks_;
     const LostTrackCollection* lostTracks_;
     const L1TauCollection* l1Taus_;
+    const CaloHitCollection* caloHits_;
+    const PataTrackCollection* pataTracks_;
     const reco::GenParticleCollection* genParticles_;
     const reco::GenJetCollection* genJets_;
     const bool requireGenMatch_, requireGenORRecoTauMatch_, applyRecoPtSieve_;

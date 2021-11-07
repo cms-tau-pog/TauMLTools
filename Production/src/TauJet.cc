@@ -7,6 +7,71 @@
 
 namespace tau_analysis {
 
+std::vector<CaloHit> CaloHit::MakeHitCollection(const CaloGeometry& geom, const HBHERecHitCollection* hbheRecHits,
+                                                const HORecHitCollection* hoRecHits,
+                                                const EcalRecHitCollection* ebRecHits,
+                                                const EcalRecHitCollection* eeRecHits)
+{
+    std::vector<CaloHit> caloHits;
+    if(hbheRecHits) {
+        for(const auto& hit : *hbheRecHits) {
+            if(hit.energy() <= 0) continue;
+            CaloHit caloHit;
+            caloHit.hitType = CaloHitType::HBHE;
+            caloHit.position = geom.getGeometry(hit.id())->getPosition();
+            caloHit.energy = hit.energy();
+            caloHit.chi2 = hit.chi2();
+            std::get<const HBHERecHit*>(caloHit.hitPtr) = &hit;
+            caloHits.push_back(caloHit);
+        }
+    }
+    if(hoRecHits) {
+        for(const auto& hit : *hoRecHits) {
+            if(hit.energy() <= 0) continue;
+            CaloHit caloHit;
+            caloHit.hitType = CaloHitType::HO;
+            caloHit.position = geom.getGeometry(hit.id())->getPosition();
+            caloHit.energy = hit.energy();
+            std::get<const HORecHit*>(caloHit.hitPtr) = &hit;
+            caloHits.push_back(caloHit);
+        }
+    }
+
+    const std::vector<CaloHitType> ecalTypes = { CaloHitType::EcalBarrel, CaloHitType::EcalEndcap };
+    const std::vector<const EcalRecHitCollection*> ecalHits = { ebRecHits, eeRecHits };
+    for(size_t col_id = 0; col_id < ecalTypes.size(); ++col_id) {
+        if(ecalHits.at(col_id)) {
+            for(const auto& hit : *ecalHits.at(col_id)) {
+                if(hit.energy() <= 0) continue;
+                CaloHit caloHit;
+                caloHit.hitType = ecalTypes.at(col_id);
+                caloHit.position = geom.getGeometry(hit.id())->getPosition();
+                caloHit.energy = hit.energy();
+                caloHit.chi2 = hit.chi2();
+                std::get<const EcalRecHit*>(caloHit.hitPtr) = &hit;
+                caloHits.push_back(caloHit);
+            }
+        }
+    }
+
+    return caloHits;
+}
+
+std::vector<PataTrack> PataTrack::MakeTrackCollection(const pixelTrack::TrackSoA& tracks)
+{
+    std::vector<PataTrack> pataTracks;
+    for(int n = 0; n < tracks.stride(); ++n) {
+        if(tracks.nHits(n) > 0 && tracks.quality(n) >= pixelTrack::Quality::loose) {
+            PataTrack pataTrack;
+            pataTrack.index = n;
+            pataTrack.p4 = reco::LeafCandidate::PolarLorentzVector(tracks.pt(n), tracks.eta(n), tracks.phi(n), 0);
+            pataTrack.tsoa = &tracks;
+            pataTracks.push_back(pataTrack);
+        }
+    }
+    return pataTracks;
+}
+
 TauJetBuilderSetup TauJetBuilderSetup::fromPSet(const edm::ParameterSet& builderParams)
 {
     TauJetBuilderSetup builderSetup;
@@ -41,7 +106,7 @@ TauJetBuilderSetup TauJetBuilderSetup::fromPSet(const edm::ParameterSet& builder
         { "boostedTau_cone", &builderSetup.boostedTau_cone },
         { "jet_cone", &builderSetup.jet_cone },
         { "fatJet_cone", &builderSetup.fatJet_cone },
-        { "l1Tau_cone", &builderSetup.fatJet_cone },
+        { "l1Tau_cone", &builderSetup.l1Tau_cone },
     };
 
     for(const auto& paramName : builderParams.getParameterNames()) {

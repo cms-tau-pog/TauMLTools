@@ -23,6 +23,9 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "RecoTauTag/RecoTau/interface/PFRecoTauClusterVariables.h"
 
+
+
+
 #include "TauMLTools/Core/interface/Tools.h"
 #include "TauMLTools/Core/interface/TextIO.h"
 #include "TauMLTools/Analysis/interface/TauTupleHLT.h"
@@ -127,25 +130,32 @@ public:
                                                    std::vector<reco::PFTauTransverseImpactParameterRef>>;
 
     TauTupleProducer(const edm::ParameterSet& cfg) :
-        isMC(cfg.getParameter<bool>("isMC")),
-        requireGenMatch(cfg.getParameter<bool>("requireGenMatch")),
-        requireGenORRecoTauMatch(cfg.getParameter<bool>("requireGenORRecoTauMatch")),
-        applyRecoPtSieve(cfg.getParameter<bool>("applyRecoPtSieve")),
-        builderSetup(tau_analysis::TauJetBuilderSetup::fromPSet(cfg.getParameterSet("tauJetBuilderSetup"))),
-        genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
-        genParticles_token(mayConsume<reco::GenParticleCollection>(cfg.getParameter<edm::InputTag>("genParticles"))),
-        genJets_token(mayConsume<reco::GenJetCollection>(cfg.getParameter<edm::InputTag>("genJets"))),
-        genJetFlavourInfos_token(consumes<reco::JetFlavourInfoMatchingCollection>(
+        isMC_(cfg.getParameter<bool>("isMC")),
+        requireGenMatch_(cfg.getParameter<bool>("requireGenMatch")),
+        requireGenORRecoTauMatch_(cfg.getParameter<bool>("requireGenORRecoTauMatch")),
+        applyRecoPtSieve_(cfg.getParameter<bool>("applyRecoPtSieve")),
+        builderSetup_(tau_analysis::TauJetBuilderSetup::fromPSet(cfg.getParameterSet("tauJetBuilderSetup"))),
+        genEventToken_(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
+        genParticlesToken_(mayConsume<reco::GenParticleCollection>(cfg.getParameter<edm::InputTag>("genParticles"))),
+        genJetsToken_(mayConsume<reco::GenJetCollection>(cfg.getParameter<edm::InputTag>("genJets"))),
+        genJetFlavourInfosToken_(consumes<reco::JetFlavourInfoMatchingCollection>(
                                  cfg.getParameter<edm::InputTag>("genJetFlavourInfos"))),
-        puInfo_token(mayConsume<std::vector<PileupSummaryInfo>>(cfg.getParameter<edm::InputTag>("puInfo"))),
-        vertices_token(consumes<std::vector<reco::Vertex> >(cfg.getParameter<edm::InputTag>("vertices"))),
-        rho_token(consumes<double>(cfg.getParameter<edm::InputTag>("rho"))),
-        taus_token(consumes<reco::PFTauCollection>(cfg.getParameter<edm::InputTag>("taus"))),
-        jets_token(consumes<reco::PFJetCollection>(cfg.getParameter<edm::InputTag>("jets"))),
-        cands_token(consumes<reco::PFCandidateCollection>(cfg.getParameter<edm::InputTag>("pfCandidates"))),
-        l1Taus_token(consumes<l1t::TauBxCollection>(cfg.getParameter<edm::InputTag>("l1Taus"))),
-        pfTauTransverseImpactParameters_token(consumes<TauIPCollection>(
-                                              cfg.getParameter<edm::InputTag>("pfTauTransverseImpactParameters"))),
+        puInfoToken_(mayConsume<std::vector<PileupSummaryInfo>>(cfg.getParameter<edm::InputTag>("puInfo"))),
+        beamSpotToken_(consumes<reco::BeamSpot>(cfg.getParameter<edm::InputTag>("beamSpot"))),
+        rhoToken_(consumes<double>(cfg.getParameter<edm::InputTag>("rho"))),
+        hbheRecHitsToken_(consumes<HBHERecHitCollection>(cfg.getParameter<edm::InputTag>("hbheRecHits"))),
+        hoRecHitsToken_(consumes<HORecHitCollection>(cfg.getParameter<edm::InputTag>("hoRecHits"))),
+        ebRecHitsToken_(consumes<EcalRecHitCollection>(cfg.getParameter<edm::InputTag>("ebRecHits"))),
+        eeRecHitsToken_(consumes<EcalRecHitCollection>(cfg.getParameter<edm::InputTag>("eeRecHits"))),
+        pataTracksToken_(consumes<PixelTrackHeterogeneous>(cfg.getParameter<edm::InputTag>("pataTracks"))),
+        pataVerticesToken_(consumes<ZVertexHeterogeneous>(cfg.getParameter<edm::InputTag>("pataVertices"))),
+        candsToken_(consumes<reco::PFCandidateCollection>(cfg.getParameter<edm::InputTag>("pfCandidates"))),
+        l1TausToken_(consumes<l1t::TauBxCollection>(cfg.getParameter<edm::InputTag>("l1Taus"))),
+        jetsToken_(consumes<reco::PFJetCollection>(cfg.getParameter<edm::InputTag>("jets"))),
+        tausToken_(consumes<reco::PFTauCollection>(cfg.getParameter<edm::InputTag>("taus"))),
+        tauIPToken_(consumes<TauIPCollection>(cfg.getParameter<edm::InputTag>("tauIP"))),
+        geometryToken_(esConsumes<CaloGeometry, CaloGeometryRecord>()),
+        bFieldToken_(esConsumes<MagneticField, IdealMagneticFieldRecord>()),
         data(TauTupleProducerData::RequestGlobalData()),
         tauTuple(data->tauTuple),
         summaryTuple(data->summaryTuple)
@@ -164,62 +174,70 @@ private:
         tauTuple().run  = event.id().run();
         tauTuple().lumi = event.id().luminosityBlock();
         tauTuple().evt  = event.id().event();
-        tauTuple().sampleType = isMC ? static_cast<int>(tau_analysis::SampleType::MC)
-                                     : static_cast<int>(tau_analysis::SampleType::Data);
+        tauTuple().sampleType = isMC_ ? static_cast<int>(tau_analysis::SampleType::MC)
+                                      : static_cast<int>(tau_analysis::SampleType::Data);
+        tauTuple().tauType = -1;
         tauTuple().dataset_id = -1;
         tauTuple().dataset_group_id = -1;
 
-        const auto& vertices = event.get(vertices_token);
-        tauTuple().npv = static_cast<int>(vertices.size());
-        const double rho = event.get(rho_token);
+        const auto& vertices_SoA = *event.get(pataVerticesToken_);
+        tauTuple().npv = static_cast<int>(vertices_SoA.nvFinal);
+        const double rho = event.get(rhoToken_);
         tauTuple().rho = static_cast<float>(rho);
 
-        if(isMC) {
-            const auto& genEvent = event.get(genEvent_token);
+        const auto& beamSpot = event.get(beamSpotToken_);
+        tauTuple().beamSpot_x = beamSpot.x0();
+        tauTuple().beamSpot_y = beamSpot.y0();
+        tauTuple().beamSpot_z = beamSpot.z0();
+
+        if(isMC_) {
+            const auto& genEvent = event.get(genEventToken_);
             tauTuple().genEventWeight = static_cast<float>(genEvent.weight());
 
-            const auto& puInfo = event.get(puInfo_token);
+            const auto& puInfo = event.get(puInfoToken_);
             tauTuple().npu = tau_analysis::gen_truth::GetNumberOfPileUpInteractions(puInfo);
         }
 
-        const auto& PV = vertices.at(0);
-        tauTuple().pv_x = static_cast<float>(PV.position().x());
-        tauTuple().pv_y = static_cast<float>(PV.position().y());
-        tauTuple().pv_z = static_cast<float>(PV.position().z());
-        tauTuple().pv_t = static_cast<float>(PV.t());
-        tauTuple().pv_xE = static_cast<float>(PV.xError());
-        tauTuple().pv_yE = static_cast<float>(PV.yError());
-        tauTuple().pv_zE = static_cast<float>(PV.zError());
-        tauTuple().pv_tE = static_cast<float>(PV.tError());
-        tauTuple().pv_chi2 = static_cast<float>(PV.chi2());
-        tauTuple().pv_ndof = static_cast<float>(PV.ndof());
-
-        const auto& taus = event.get(taus_token);
-        const auto& pfTauTransverseImpactParameters = event.get(pfTauTransverseImpactParameters_token);
-        const auto& jets = event.get(jets_token);
-        const auto& cands = event.get(cands_token);
-        const auto& hL1Taus = event.get(l1Taus_token);
+        const auto& taus = event.get(tausToken_);
+        const auto& pfTauTransverseImpactParameters = event.get(tauIPToken_);
+        const auto& jets = event.get(jetsToken_);
+        const auto& cands = event.get(candsToken_);
+        const auto& hL1Taus = event.get(l1TausToken_);
 
         std::vector<l1t::Tau> l1Taus;
         for(auto iter = hL1Taus.begin(0); iter != hL1Taus.end(0); ++iter)
             l1Taus.push_back(*iter);
 
+        const auto& hbheRecHits = event.get(hbheRecHitsToken_);
+        const auto& hoRecHits = event.get(hoRecHitsToken_);
+        const auto& ebRecHits = event.get(ebRecHitsToken_);
+        const auto& eeRecHits = event.get(eeRecHitsToken_);
+        const auto& patatracks_SoA = *event.get(pataTracksToken_);
+
+
+        const auto& geometry = eventSetup.getHandle(geometryToken_);
+
+        const auto caloHits = tau_analysis::CaloHit::MakeHitCollection(*geometry, &hbheRecHits, &hoRecHits, &ebRecHits,
+                                                                       &eeRecHits);
+        const auto pataTracks = tau_analysis::PataTrack::MakeTrackCollection(patatracks_SoA);
+
         edm::Handle<reco::GenParticleCollection> hGenParticles;
         edm::Handle<reco::GenJetCollection> hGenJets;
         edm::Handle<reco::JetFlavourInfoMatchingCollection> hGenJetFlavourInfos;
-        if(isMC) {
-            event.getByToken(genParticles_token, hGenParticles);
-            event.getByToken(genJets_token, hGenJets);
-            event.getByToken(genJetFlavourInfos_token, hGenJetFlavourInfos);
+        if(isMC_) {
+            event.getByToken(genParticlesToken_, hGenParticles);
+            event.getByToken(genJetsToken_, hGenJets);
+            event.getByToken(genJetFlavourInfosToken_, hGenJetFlavourInfos);
         }
 
         auto genParticles = hGenParticles.isValid() ? hGenParticles.product() : nullptr;
         auto genJets = hGenJets.isValid() ? hGenJets.product() : nullptr;
         auto genJetFlavourInfos = hGenJetFlavourInfos.isValid() ? hGenJetFlavourInfos.product() : nullptr;
 
-        tau_analysis::TauJetBuilder<TauJet> builder(builderSetup, &taus, nullptr, &jets, nullptr, &cands, nullptr,
-                                                    nullptr, nullptr, nullptr, &l1Taus, genParticles, genJets,
-                                                    requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve);
+        tau_analysis::TauJetBuilder<TauJet> builder(builderSetup_, &taus, nullptr, &jets, nullptr, &cands, nullptr,
+                                                    nullptr, nullptr, nullptr, &l1Taus, &caloHits, &pataTracks,
+                                                    genParticles, genJets,
+                                                    requireGenMatch_, requireGenORRecoTauMatch_, applyRecoPtSieve_);
         const auto& tauJets = builder.GetTauJets();
         tauTuple().total_entries = static_cast<int>(tauJets.size());
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {
@@ -232,6 +250,8 @@ private:
             FillJet(tauJet.jet, "jet_");
             FillL1Tau(tauJet.l1Tau);
             FillPFCandidates(tauJet.cands, "pfCand_");
+            FillCaloHits(tauJet.caloHits);
+            FillPixelTracks(tauJet.pataTracks, patatracks_SoA, vertices_SoA);
 
             tauTuple.Fill();
         }
@@ -350,10 +370,8 @@ private:
 
         tauTuple.get<int>(prefix + "decayMode") = tau ? tau->decayMode() : default_int_value;
 
-        const reco::PFTauTransverseImpactParameter* ip = tau ? &*tauIPs.value(tau.index) : nullptr;
-        tauTuple.get<float>(prefix + "dxy_pca_x") = ip ? ip->dxy_PCA().x() : default_value;
-        tauTuple.get<float>(prefix + "dxy_pca_y") = ip ? ip->dxy_PCA().y() : default_value;
-        tauTuple.get<float>(prefix + "dxy_pca_z") = ip ? ip->dxy_PCA().z() : default_value;
+        const reco::PFTauTransverseImpactParameter* ip = tau && tauIPs.value(tau.index).isNonnull()
+                                                         ? &*tauIPs.value(tau.index) : nullptr;
         tauTuple.get<float>(prefix + "dxy") = ip ? ip->dxy() : default_value;
         tauTuple.get<float>(prefix + "dxy_error") = ip ? ip->dxy_error() : default_value;
         tauTuple.get<float>(prefix + "ip3d") = ip ? ip->ip3d() : default_value;
@@ -368,13 +386,13 @@ private:
         tauTuple.get<float>(prefix + "flightLength_z") = ip ? ip->flightLength().z() : default_value;
         tauTuple.get<float>(prefix + "flightLength_sig") = ip ? ip->flightLengthSig() : default_value;
 
-        auto leadChargedHadrCand = tau ? dynamic_cast<const reco::PFCandidate*>(tau->leadChargedHadrCand().get())
-                                       : nullptr;
-        tauTuple.get<float>(prefix + "dz") = leadChargedHadrCand ? leadChargedHadrCand->bestTrack()->dz()
-                                                                 : default_value;
-        tauTuple.get<float>(prefix + "dz_error") = leadChargedHadrCand ? leadChargedHadrCand->bestTrack()->dzError()
-                                                                       : default_value;
+        auto leadChargedHadrCand = tau && tau->leadChargedHadrCand().isNonnull()
+                                   ? dynamic_cast<const reco::PFCandidate*>(tau->leadChargedHadrCand().get())
+                                   : nullptr;
 
+        auto bestTrack = leadChargedHadrCand ? leadChargedHadrCand->bestTrack() : nullptr;
+        tauTuple.get<float>(prefix + "dz") = bestTrack ? bestTrack->dz() : default_value;
+        tauTuple.get<float>(prefix + "dz_error") = bestTrack ? bestTrack->dzError() : default_value;
         tauTuple.get<float>(prefix + "pt_weighted_deta_strip") = tau
                 ? reco::tau::pt_weighted_deta_strip(*tau, tau->decayMode()) : default_value;
         tauTuple.get<float>(prefix + "pt_weighted_dphi_strip") = tau
@@ -389,10 +407,7 @@ private:
                 ? CalculateGottfriedJacksonAngleDifference(*tau, *ip) : default_value;
         tauTuple.get<int>(prefix + "n_photons") = tau
                 ? static_cast<int>(reco::tau::n_photons_total(*tau)) : default_int_value;
-
         tauTuple.get<float>(prefix + "emFraction") = tau ? tau->emFraction() : default_value;
-        tauTuple.get<int>(prefix + "inside_ecal_crack") = tau
-                ? tau_analysis::IsInEcalCrack(tau->polarP4().eta()) : default_int_value;
         tauTuple.get<float>(prefix + "leadChargedCand_etaAtEcalEntrance") = leadChargedHadrCand
                 ? leadChargedHadrCand->positionAtECALEntrance().eta() : default_value;
     }
@@ -443,12 +458,7 @@ private:
             push_back("tauSignal", int(cand_desc.tauSignal));
             push_back("tauLeadChargedHadrCand", int(cand_desc.tauLeadChargedHadrCand));
             push_back("tauIso", int(cand_desc.tauIso));
-            push_back("boostedTauSignal", int(cand_desc.boostedTauSignal));
-            push_back("boostedTauLeadChargedHadrCand", int(cand_desc.boostedTauLeadChargedHadrCand));
-            push_back("boostedTauIso", int(cand_desc.boostedTauIso));
             push_back("jetDaughter", int(cand_desc.jetDaughter));
-            push_back("fatJetDaughter", int(cand_desc.fatJetDaughter));
-            push_back("subJetDaughter", cand_desc.subJetDaughter);
 
             push_back("pt", static_cast<float>(cand->polarP4().pt()));
             push_back("eta", static_cast<float>(cand->polarP4().eta()));
@@ -538,24 +548,60 @@ private:
             }
 
             push_back("hasTrackDetails", int(track != nullptr));
-            push_back("dxy", track ? track->dxy() : default_value);
-            push_back("dxy_error", track ? track->dxyError() : default_value);
-            push_back("dz", track ? track->dz() : default_value);
-            push_back("dz_error", track ? cand->dzError() : default_value);
+            push_back("dxy", track ? static_cast<float>(track->dxy()) : default_value);
+            push_back("dxy_error", track ? static_cast<float>(track->dxyError()) : default_value);
+            push_back("dz", track ? static_cast<float>(track->dz()) : default_value);
+            push_back("dz_error", track ? static_cast<float>(cand->dzError()) : default_value);
             push_back("track_pt", track ? static_cast<float>(track->pt()) : default_value);
-            push_back("track_etaAtVtx", track ? track->eta() : default_value);
-            push_back("track_phiAtVtx", track ? track->phi() : default_value);
+            push_back("track_etaAtVtx", track ? static_cast<float>(track->eta()) : default_value);
+            push_back("track_phiAtVtx", track ? static_cast<float>(track->phi()) : default_value);
             push_back("track_chi2", track ? static_cast<float>(track->chi2()) : default_value);
             push_back("track_ndof", track ? static_cast<float>(track->ndof()) : default_value);
 
             push_back("etaAtECALEntrance", static_cast<float>(cand->positionAtECALEntrance().eta()));
             push_back("phiAtECALEntrance", static_cast<float>(cand->positionAtECALEntrance().phi()));
 
-            push_back("ecalEnergy", cand->ecalEnergy());
-            push_back("hcalEnergy", cand->hcalEnergy());
+            push_back("ecalEnergy", static_cast<float>(cand->ecalEnergy()));
+            push_back("hcalEnergy", static_cast<float>(cand->hcalEnergy()));
 
-            push_back("rawEcalEnergy", cand->rawEcalEnergy());
-            push_back("rawHcalEnergy", cand->rawHcalEnergy());
+            push_back("rawEcalEnergy", static_cast<float>(cand->rawEcalEnergy()));
+            push_back("rawHcalEnergy", static_cast<float>(cand->rawHcalEnergy()));
+        }
+    }
+
+    void FillCaloHits(const TauJet::CaloHitCollection& caloHits)
+    {
+        for(const auto& caloHit : caloHits) {
+            tauTuple().caloHit_type.push_back(static_cast<int>(caloHit->hitType));
+            tauTuple().caloHit_r.push_back(static_cast<float>(caloHit->position.perp()));
+            tauTuple().caloHit_eta.push_back(static_cast<float>(caloHit->position.eta()));
+            tauTuple().caloHit_phi.push_back(static_cast<float>(caloHit->position.phi()));
+            tauTuple().caloHit_energy.push_back(static_cast<float>(caloHit->energy));
+            tauTuple().caloHit_chi2.push_back(static_cast<float>(caloHit->chi2));
+        }
+    }
+
+    void FillPixelTracks(const TauJet::PataTrackCollection& selectedTracks, const pixelTrack::TrackSoA& tracks,
+                         const ZVertexSoA& vertices)
+    {
+        for(const auto& track : selectedTracks) {
+            const int idx = track->index;
+            tauTuple().pixelTrack_pt.push_back(tracks.pt(idx));
+            tauTuple().pixelTrack_eta.push_back(tracks.eta(idx));
+            tauTuple().pixelTrack_phi.push_back(tracks.phi(idx));
+            tauTuple().pixelTrack_charge.push_back(tracks.charge(idx));
+            tauTuple().pixelTrack_quality.push_back(static_cast<int>(tracks.quality(idx)));
+            tauTuple().pixelTrack_tip.push_back(tracks.tip(idx));
+            tauTuple().pixelTrack_zip.push_back(tracks.zip(idx));
+            const int idv = vertices.idv[idx];
+            const bool has_vtx = idv >= 0;
+            tauTuple().pixelTrack_vtx_index.push_back(idv);
+            tauTuple().pixelTrack_vtx_z.push_back(has_vtx ? vertices.zv[idv] : default_value);
+            tauTuple().pixelTrack_vtx_w.push_back(has_vtx ? vertices.wv[idv] : default_value);
+            tauTuple().pixelTrack_vtx_chi2.push_back(has_vtx ? vertices.chi2[idv] : default_value);
+            tauTuple().pixelTrack_vtx_pt2.push_back(has_vtx ? vertices.ptv2[idv] : default_value);
+            tauTuple().pixelTrack_vtx_ndof.push_back(has_vtx ? vertices.ndof[idv] : default_int_value);
+            tauTuple().pixelTrack_vtx_sortInd.push_back(has_vtx ? vertices.sortInd[idv] : default_int_value);
         }
     }
 
@@ -569,21 +615,32 @@ private:
     }
 
 private:
-    const bool isMC, requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve;
-    tau_analysis::TauJetBuilderSetup builderSetup;
+    const bool isMC_, requireGenMatch_, requireGenORRecoTauMatch_, applyRecoPtSieve_;
+    tau_analysis::TauJetBuilderSetup builderSetup_;
 
-    edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;
-    edm::EDGetTokenT<reco::GenParticleCollection> genParticles_token;
-    edm::EDGetTokenT<reco::GenJetCollection> genJets_token;
-    edm::EDGetTokenT<reco::JetFlavourInfoMatchingCollection> genJetFlavourInfos_token;
-    edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puInfo_token;
-    edm::EDGetTokenT<std::vector<reco::Vertex>> vertices_token;
-    edm::EDGetTokenT<double> rho_token;
-    edm::EDGetTokenT<reco::PFTauCollection> taus_token;
-    edm::EDGetTokenT<reco::PFJetCollection> jets_token;
-    edm::EDGetTokenT<reco::PFCandidateCollection> cands_token;
-    edm::EDGetTokenT<l1t::TauBxCollection> l1Taus_token;
-    edm::EDGetTokenT<TauIPCollection> pfTauTransverseImpactParameters_token;
+    const edm::EDGetTokenT<GenEventInfoProduct> genEventToken_;
+    const edm::EDGetTokenT<reco::GenParticleCollection> genParticlesToken_;
+    const edm::EDGetTokenT<reco::GenJetCollection> genJetsToken_;
+    const edm::EDGetTokenT<reco::JetFlavourInfoMatchingCollection> genJetFlavourInfosToken_;
+    const edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puInfoToken_;
+    const edm::EDGetTokenT<reco::BeamSpot> beamSpotToken_;
+    const edm::EDGetTokenT<double> rhoToken_;
+
+    const edm::EDGetTokenT<HBHERecHitCollection> hbheRecHitsToken_;
+    const edm::EDGetTokenT<HORecHitCollection> hoRecHitsToken_;
+    const edm::EDGetTokenT<EcalRecHitCollection> ebRecHitsToken_;
+    const edm::EDGetTokenT<EcalRecHitCollection> eeRecHitsToken_;
+    const edm::EDGetTokenT<PixelTrackHeterogeneous> pataTracksToken_;
+    const edm::EDGetTokenT<ZVertexHeterogeneous> pataVerticesToken_;
+    const edm::EDGetTokenT<reco::PFCandidateCollection> candsToken_;
+
+    const edm::EDGetTokenT<l1t::TauBxCollection> l1TausToken_;
+    const edm::EDGetTokenT<reco::PFJetCollection> jetsToken_;
+    const edm::EDGetTokenT<reco::PFTauCollection> tausToken_;
+    const edm::EDGetTokenT<TauIPCollection> tauIPToken_;
+
+    const edm::ESGetToken<CaloGeometry, CaloGeometryRecord> geometryToken_;
+    const edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> bFieldToken_;
 
     TauTupleProducerData* data;
     tau_hlt::TauTuple& tauTuple;
