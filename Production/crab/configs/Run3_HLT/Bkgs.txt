@@ -1,0 +1,3 @@
+sampleType=Run3MC
+
+WJetsToLNu /WJetsToLNu_TuneCP5_14TeV-amcatnloFXFX-pythia8/Run3Winter21DRMiniAOD-FlatPU30to80FEVT_112X_mcRun3_2021_realistic_v16-v2/GEN-SIM-DIGI-RAW

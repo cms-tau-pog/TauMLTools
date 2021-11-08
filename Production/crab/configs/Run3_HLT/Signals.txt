@@ -1,0 +1,3 @@
+sampleType=Run3MC
+
+DisplacedTauGun /DisplacedTauGun_Pt15to300_Dxy0to50_pythia8/bluj-Run3Winter21RS_FlatPU55To75_v1-d796d2018d65584da8bca16fb11effe0/USER

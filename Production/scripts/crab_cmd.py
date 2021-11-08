@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Execute crab command for multiple tasks.
 
 import argparse

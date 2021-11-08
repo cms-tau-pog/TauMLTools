@@ -1,0 +1,3 @@
+sampleType=Run3MC
+
+VBFHToTauTau_M125 /VBFHToTauTau_M125_TuneCP5_14TeV-powheg-pythia8/Run3Winter21DRMiniAOD-FlatPU30to80FEVT_112X_mcRun3_2021_realistic_v16-v1/GEN-SIM-DIGI-RAW
