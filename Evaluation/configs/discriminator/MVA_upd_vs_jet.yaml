@@ -1,5 +1,5 @@
 name: MVA (updated decay modes)
-column: byIsolationMVArun2017v2DBnewDMwLT2017
+pred_column: byIsolationMVArun2017v2DBnewDMwLT2017
 raw: False
 from_tuple: True
 color: red

@@ -1,9 +1,10 @@
-name: DeepTau vs. ${vs_type}
-column_prefix: deepId
-column: ${.column_prefix}_vs_${vs_type} # column in internally created pd.DataFrame to be used for metrics computation  
+name: DeepTau vs. ${vs_type} (v2p1)
+pred_column_prefix: node_
+pred_column: tau_byDeepTau2017v2p1VS${vs_type}raw # column in internally created pd.DataFrame to be used for metrics computation  
 raw: True
-from_tuple: False
+from_tuple: True
 color: blue
+wp_column: tau_byDeepTau2017v2p1VS${vs_type}
 working_points: ${.working_points_map.${vs_type}} 
 working_points_map: 
   e:
@@ -29,28 +30,3 @@ working_points_map:
     - ${wp_name_to_index.Tight}
     - ${wp_name_to_index.VTight}
     - ${wp_name_to_index.VVTight}
-working_points_thrs: ${.deep_wp_thrs.${vs_type}}
-deep_wp_thrs:
-  e:
-    "VVVLoose": 0.0630386
-    "VVLoose": 0.1686942
-    "VLoose": 0.3628130
-    "Loose": 0.6815435
-    "Medium": 0.8847544
-    "Tight": 0.9675541
-    "VTight": 0.9859251
-    "VVTight": 0.9928449
-  mu:
-    "VLoose": 0.1058354
-    "Loose": 0.2158633
-    "Medium": 0.5551894
-    "Tight": 0.8754835
-  jet:
-    "VVVLoose": 0.2599605
-    "VVLoose": 0.4249705
-    "VLoose": 0.5983682
-    "Loose": 0.7848675
-    "Medium": 0.8834768
-    "Tight": 0.9308689
-    "VTight": 0.9573137
-    "VVTight": 0.9733927

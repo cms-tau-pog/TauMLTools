@@ -15,19 +15,30 @@ import eval_tools
 def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
     
-    # setting paths
+    # setting base paths
     path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.experiment_id}/{cfg.run_id}/artifacts/')
-    path_to_input_vs_type = to_absolute_path(cfg.input_vs_type) if cfg.input_vs_type is not None else None
     path_to_input_taus = to_absolute_path(cfg.input_taus)
-    base_name = os.path.splitext(os.path.basename(path_to_input_taus))[0]
-    if os.path.exists(predictions_dir:=f'{path_to_artifacts}/predictions'): # will search for predictions there
-        path_to_predictions = f'{predictions_dir}/{base_name}_pred.h5' 
-        column_prefix = cfg.discriminator.column_prefix
-    else: # will read predictions from input tuples themselves
-        path_to_predictions = None
-        column_prefix = None
-    path_to_weights = f'{to_absolute_path(cfg.weights)}/{base_name}_weights.h5' if cfg.weights is not None else None
+    base_name_taus = os.path.splitext(os.path.basename(path_to_input_taus))[0]
+    if cfg.input_vs_type is not None:
+        path_to_input_vs_type = to_absolute_path(cfg.input_vs_type) 
+        base_name_vs_type = os.path.splitext(os.path.basename(path_to_input_vs_type))[0]
+    else:
+        path_to_input_vs_type = None
+        base_name_vs_type = None
     output_json_path = f'{path_to_artifacts}/performance.json'
+
+    # setting prediction paths
+    if os.path.exists(predictions_dir:=f'{path_to_artifacts}/predictions'): # will search for predictions there
+        path_to_pred_taus = f'{predictions_dir}/{base_name_taus}_pred.h5' 
+        path_to_pred_vs_type = f'{predictions_dir}/{base_name_vs_type}_pred.h5' 
+        pred_column_prefix = cfg.discriminator.pred_column_prefix
+    else: # will read predictions from input tuples themselves
+        path_to_pred_taus, path_to_pred_vs_type = None, None
+        pred_column_prefix = None
+
+    # setting weight paths
+    path_to_weights_taus = f'{to_absolute_path(cfg.weights_dir)}/{base_name_taus}_weights.h5' if cfg.weights_dir is not None else None    
+    path_to_weights_vs_type = f'{to_absolute_path(cfg.weights_dir)}/{base_name_vs_type}_weights.h5' if (cfg.weights_dir is not None and cfg.input_vs_type is not None) else None    
 
     # init Discriminator() class from filtered input configuration
     field_names = set(f_.name for f_ in fields(eval_tools.Discriminator))
@@ -42,25 +53,25 @@ def main(cfg: DictConfig) -> None:
     # construct branches to be read from input files
     read_branches = OmegaConf.to_object(cfg.read_branches)
     if discriminator.from_tuple:
-        read_branches.append(discriminator.column)
-        if discriminator.wp_column != discriminator.column:
+        read_branches.append(discriminator.pred_column)
+        if discriminator.wp_column != discriminator.pred_column:
             read_branches.append(discriminator.wp_column)
 
     # read original data and corresponging predictions into DataFrame 
-    if path_to_input_vs_type is None:
-        df_all = eval_tools.create_df(path_to_input_taus, read_branches, ['tau', cfg.vs_type], path_to_predictions, column_prefix, path_to_weights)
+    if cfg.input_vs_type is None:
+        df_all = eval_tools.create_df(path_to_input_taus, read_branches, path_to_pred_taus, pred_column_prefix, path_to_weights_taus)
     else:
-        df_taus = eval_tools.create_df(path_to_input_taus, read_branches, ['tau'], path_to_predictions, column_prefix, path_to_weights)
-        df_vs_type = eval_tools.create_df(path_to_input_vs_type, read_branches, [cfg.vs_type], path_to_predictions, column_prefix, path_to_weights)
+        df_taus = eval_tools.create_df(path_to_input_taus, read_branches, path_to_pred_taus, pred_column_prefix, path_to_weights_taus)
+        df_vs_type = eval_tools.create_df(path_to_input_vs_type, read_branches, path_to_pred_vs_type, pred_column_prefix, path_to_weights_vs_type)
         df_all = df_taus.append(df_vs_type)
 
     # apply selection and gen cuts
     gen_selection = ' or '.join([f'(gen_{tau_type}==1)' for tau_type in ['tau', cfg.vs_type]])
-    df_all = df_all.query(f'({gen_selection}) and ({cfg.cuts})')
+    df_all = df_all.query(f'({gen_selection})')
 
     # # inverse scaling
     # df_all['tau_pt'] = df_all.tau_pt*(1000 - 20) + 20
-
+    
     # dump curves' data into json file
     json_exists = os.path.exists(output_json_path)
     json_open_mode = 'r+' if json_exists else 'w'
@@ -68,7 +79,8 @@ def main(cfg: DictConfig) -> None:
         if json_exists: # read performance data to append additional info 
             performance_data = json.load(json_file)
         else: # create dictionary to fill with data
-            performance_data = {'name': discriminator.name, 'period': cfg.period, 'metrics': defaultdict(list)}
+            performance_data = {'name': discriminator.name, 'period': cfg.period, 'metrics': defaultdict(list), 
+                                'roc_curve': defaultdict(list), 'roc_wp': defaultdict(list)}
 
         # loop over pt bins
         for pt_index, (pt_min, pt_max) in enumerate(zip(cfg.pt_bins[:-1], cfg.pt_bins[1:])):
@@ -164,6 +176,7 @@ def main(cfg: DictConfig) -> None:
         json_file.seek(0) 
         json_file.write(json.dumps(performance_data, indent=4, cls=eval_tools.CustomJsonEncoder))
         json_file.truncate()
-       
+    print()
+    
 if __name__ == '__main__':
     main()
