@@ -17,7 +17,7 @@ run_id: ???
 
 # training/scaling cfg to init DataLoader class
 path_to_training_cfg: ${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/input_cfg/training_cfg.yaml
-scaling_cfg: ${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/input_cfg/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json
+scaling_cfg: ${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/input_cfg/scaling_params_v5.json
 
 # input file for prediction
 path_to_file: ??? 
