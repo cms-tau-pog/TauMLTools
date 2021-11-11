@@ -14,9 +14,9 @@ Setup:
     #input_dir            : "<path_to_shuffle_and_merge_files>"
     input_dir            : "/data/aloeliger/proofOfConceptShuffleAndMerge/small_v1_0_0/"
     #input_spectrum       : "<path_to_shuffle_and_merge_spectrum>.root"
-    input_spectrum       : "/afs/cern.ch/work/a/aloelige/private/DeepBoostedTau/CMSSW_10_6_20/src/TauMLTools/AllBoostedSpectralHists/goofyHaddedThing.root"
+    input_spectrum       : "/afs/cern.ch/work/a/aloelige/private/DeepBoostedTau/CMSSW_10_6_20/src/TauMLTools/AllBoostedSpectralHists/smallBoostedHadd.root"
     #target_spectrum      : "<path_to_shuffle_and_merge_spectrum>.root"
-    target_spectrum      : "/afs/cern.ch/work/a/aloelige/private/DeepBoostedTau/CMSSW_10_6_20/src/TauMLTools/AllBoostedSpectralHists/goofyHaddedThing.root"
+    target_spectrum      : "/afs/cern.ch/work/a/aloelige/private/DeepBoostedTau/CMSSW_10_6_20/src/TauMLTools/AllBoostedSpectralHists/smallBoostedHadd.root"
     weight_thr           : 100000.0
     dataloader_core      : "TauMLTools/Training/interface/DataLoader_main.h"
 
@@ -66,7 +66,7 @@ SetupNN:
     epoch                : 0
     n_epochs             : 1
     validation_split     : 0.3
-    max_queue_size       : 10
+    max_queue_size       : 5
     n_load_workers       : 4
     input_grids          : [
                             [ GridGlobal, PfCand_electron, PfCand_gamma, Electron ], # e-gamma
@@ -97,7 +97,7 @@ Scaling_setup:
     # --------------------------------------------------------
     file_path: '/data/aloeliger/proofOfConceptShuffleAndMerge/small_v1_0_0/*.root' # input files to be used for computation of scaling params
     output_json_folder: 'output_json_small' # directory where json files with scaling params will be stored
-    file_range: [0, 100] # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
+    file_range: [0, 20] # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
     tree_name: taus # TTree name in input files to be read
     log_step: 10 # will make a snapshot of scaling parameters per this number of input files
     version: 5 # string to be added to a json filename
