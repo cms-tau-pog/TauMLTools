@@ -1,14 +1,17 @@
 import numpy as np
-import pandas
+import pandas as pd
 import uproot
 import math
 import copy
 from sklearn import metrics
 from scipy import interpolate
 from _ctypes import PyObj_FromPtr
+import os
+import h5py
 import json
 import re
 import sys
+from dataclasses import dataclass, field
 
 if sys.version_info.major > 2:
     from statsmodels.stats.proportion import proportion_confint
@@ -51,10 +54,6 @@ class RocCurve:
             y = self.pr[0]
             entry = ax.errorbar(x, y, xerr=self.pr_err[1], yerr=self.pr_err[0], color=self.color,
                         fmt='o', markersize=self.marker_size, linewidth=1)
-            # sp = interpolate.interp1d(x, y, kind='linear', fill_value="extrapolate")
-            # x_fine = np.arange(x[0], x[-1], step=(x[-1] - x[0]) / 1000)
-            # y_fine = sp(x_fine)
-            # ax.errorbar(x_fine, y_fine, color=self.color, linewidth=1, fmt='--')
 
         else:
             if self.dots_only:
@@ -107,17 +106,16 @@ class RocCurve:
             pruned.pr_err[:, :, :] = self.pr_err[:, :, idx]
         return pruned
 
+@dataclass
 class PlotSetup:
-    def __init__(self, xlim = None, ylim = None, ratio_ylim = None, ylabel = None, yscale='log',
-                 ratio_yscale='linear', legend_loc='upper left', ratio_ylabel_pad=20):
-        self.xlim = xlim
-        self.ylim = ylim
-        self.ratio_ylim = ratio_ylim
-        self.ylabel = ylabel
-        self.yscale = yscale
-        self.ratio_yscale = ratio_yscale
-        self.legend_loc = legend_loc
-        self.ratio_ylabel_pad = ratio_ylabel_pad
+    xlim: list = None
+    ylim: list = None
+    ratio_ylim: list = None
+    ylabel: str = None
+    yscale: str = 'log'
+    ratio_yscale: str = 'linear'
+    legend_loc: str = 'upper left'
+    ratio_ylabel_pad: int = 20
 
     def Apply(self, names, entries, range_index, ratio_title, ax, ax_ratio = None):
         if self.xlim is not None:
@@ -160,20 +158,24 @@ def find_threshold(pr, thresholds, target_pr):
         return None
     return thresholds[min_delta_index]
 
+@dataclass
 class Discriminator:
-    def __init__(self, name, column, raw, from_tuple, color, working_points = [], wp_column = None,
-                 working_points_thrs = None, dashed=False, draw_wp=True):
-        self.name = name
-        self.column = column
-        self.raw = raw
-        self.from_tuple = from_tuple
-        self.color = color
-        self.working_points = working_points
-        self.wp_column = wp_column if wp_column is not None else column
-        self.working_points_thrs = working_points_thrs
-        self.dashed = dashed
-        if not draw_wp and self.raw:
+    name: str
+    pred_column: str
+    raw: bool
+    from_tuple: bool
+    color: str
+    working_points: list = field(default_factory=list)
+    wp_column: str = None
+    working_points_thrs: dict = None 
+    dashed: bool = False 
+    draw_wp: bool = True
+
+    def __post_init__(self):
+        if not self.draw_wp and self.raw:
             self.working_points = []
+        if self.wp_column is None:
+            self.wp_column = self.pred_column
 
     def CountPassed(self, df, wp):
         if self.from_tuple:
@@ -183,19 +185,19 @@ class Discriminator:
         if self.working_points_thrs is None:
             raise RuntimeError('Working points are not specified for discriminator "{}"'.format(self.name))
         wp_thr = self.working_points_thrs[DiscriminatorWP.GetName(wp)]
-        return np.sum(df[df[self.column] > wp_thr].weight.values)
+        return np.sum(df[df[self.pred_column] > wp_thr].weight.values)
 
     def CreateRocCurve(self, df, ref_roc = None):
         n_wp = len(self.working_points)
-        wp_roc = None
+        roc, wp_roc = None, None
         if self.raw:
-            fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.column].values,
+            fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.pred_column].values,
                                                      sample_weight=df.weight.values)
             roc = RocCurve(len(fpr), self.color, False, dashed=self.dashed)
             roc.pr[0, :] = fpr
             roc.pr[1, :] = tpr
             roc.thresholds = thresholds
-            roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.column].values,
+            roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values,
                                                   sample_weight=df.weight.values)
         if n_wp > 0:
             wp_roc = RocCurve(n_wp, self.color, not self.raw, self.raw)
@@ -214,39 +216,8 @@ class Discriminator:
                             ci_low, ci_upp = eff - err, eff + err
                         wp_roc.pr_err[kind, 1, n_wp - n - 1] = ci_upp - eff
                         wp_roc.pr_err[kind, 0, n_wp - n - 1] = eff - ci_low
-        if not self.raw:
-            roc = wp_roc
-            wp_roc = None
-        if ref_roc is not None:
-            roc.ratio = create_roc_ratio(roc.pr[1], roc.pr[0], ref_roc.pr[1], ref_roc.pr[0])
-        elif roc.pr[1].shape[0] > 0:
-            roc.ratio = np.array([ [1, 1], [ roc.pr[1][0], roc.pr[1][-1] ] ])
 
         return roc, wp_roc
-
-def ReadBrancesToDataFrame(file_name, tree_name, branches):
-    if file_name.endswith('.root'):
-        with uproot.open(file_name) as file:
-            tree = file[tree_name]
-            df = tree.arrays(branches, outputtype=pandas.DataFrame)
-        return df
-    elif file_name.endswith('.h5') or file_name.endswith('.hdf5'):
-        return pandas.read_hdf(file_name, tree_name, columns=branches)
-    raise RuntimeError("Unsupported file type.")
-
-# def create_roc_ratio(x1, y1, x2, y2):
-#     idx_min = np.argmax((x2 >= x1[0]) & (y2 > 0))
-#     if x2[-1] <= x1[-1]:
-#         idx_max = x2.shape[0]
-#     else:
-#          idx_max = np.argmax(x2 > x1[-1])
-#     sp = interpolate.interp1d(x1, y1, kind='cubic')
-#     x1_upd = x2[idx_min:idx_max]
-#     y1_upd = sp(x1_upd)
-#     ratio = np.empty((2, x1_upd.shape[0]))
-#     ratio[0, :] = y1_upd / y2[idx_min:idx_max]
-#     ratio[1, :] = x1_upd
-#     return ratio
 
 def create_roc_ratio(x1, y1, x2, y2):
     sp = interpolate.interp1d(x2, y2)
@@ -259,11 +230,78 @@ def create_roc_ratio(x1, y1, x2, y2):
     ratio[1, :] = x1_clean
     return ratio
 
-def cm2inch(*tupl):
-    inch = 2.54
-    if isinstance(tupl[0], tuple):
-        return tuple(i/inch for i in tupl[0])
-    return tuple(i/inch for i in tupl)
+def select_curve(curve_list, **selection):
+    filter_func = lambda x: all([x[k]==v if k in x else False for k,v in selection.items()])
+    filtered_curves = list(filter(filter_func, curve_list))
+    if len(filtered_curves)==0:
+        return None
+    elif len(filtered_curves)==1:
+        return filtered_curves[0]
+    else:
+        raise Exception(f"Failed to find a single curve for selection: {[f'{k}=={v}' for k,v in selection.items()]}")
+
+def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_target_file, pred_column_prefix, path_to_weights):
+    def read_branches(path_to_file, tree_name, branches):
+        if path_to_file.endswith('.root'):
+            with uproot.open(path_to_file) as f:
+                tree = f[tree_name]
+                df = tree.arrays(branches, library='pd')
+            return df
+        elif path_to_file.endswith('.h5') or path_to_file.endswith('.hdf5'):
+            return pd.read_hdf(path_to_file, tree_name, columns=branches)
+        raise RuntimeError("Unsupported file type.")
+
+    def add_predictions(df, path_to_pred_file, pred_column_prefix):
+        with h5py.File(path_to_pred_file, 'r') as f:
+            file_keys = list(f.keys())
+        if 'predictions' in file_keys: 
+            df_pred = pd.read_hdf(path_to_pred_file, 'predictions')
+        else:
+            df_pred = pd.read_hdf(path_to_pred_file)
+        prob_tau = df_pred[f'{pred_column_prefix}tau'].values
+        for node_column in df_pred.columns:
+            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}{tau_type}"
+            tau_type = node_column.split(f'{pred_column_prefix}')[-1] 
+            if tau_type != 'tau':
+                prob_vs_type = df_pred[pred_column_prefix + tau_type].values
+                tau_vs_other_type = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_vs_type), np.zeros(prob_tau.shape))
+                df[pred_column_prefix + tau_type] = pd.Series(tau_vs_other_type, index=df.index)
+        return df
+
+    def add_targets(df, path_to_target_file, pred_column_prefix):
+        with h5py.File(path_to_target_file, 'r') as f:
+            file_keys = list(f.keys())
+        if 'targets' in file_keys: 
+            df_targets = pd.read_hdf(path_to_target_file, 'targets')
+        else:
+            return df
+        for node_column in df_targets.columns:
+            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}{tau_type}"
+            tau_type = node_column.split(f'{pred_column_prefix}')[-1]
+            df[f'gen_{tau_type}'] = df_targets[node_column]
+        return df
+    
+    def add_weights(df, path_to_weight_file):
+        df_weights = pd.read_hdf(path_to_weight_file)
+        df['weight'] = pd.Series(df_weights.weight.values, index=df.index)
+        return df
+
+    # TODO: add on the fly branching creation for uproot
+
+    df = read_branches(path_to_input_file, 'taus', input_branches)
+    if path_to_pred_file is not None:
+        add_predictions(df, path_to_pred_file, pred_column_prefix)
+    else:
+        print(f'[INFO] No predictions found, will proceed without them.')
+    if path_to_target_file is not None:
+        add_targets(df, path_to_target_file, pred_column_prefix)
+    else:
+        print(f'[INFO] No targets found, will proceed without them.')
+    if path_to_weights is not None:
+        add_weights(df, path_to_weights)
+    else:
+        df['weight'] = pd.Series(np.ones(df.shape[0]), index=df.index)
+    return df
 
 class FloatList(object):
     def __init__(self, value):
