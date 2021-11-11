@@ -25,7 +25,7 @@ def main(cfg: DictConfig) -> None:
                 mlflow.log_artifact(to_absolute_path(path_to_file), dir_to_log_to)
         if cfg.params_to_log is not None:
             mlflow.log_params(cfg.params_to_log)
-        print(f'Logged to run ID: {run.info.run_id}\n')
+        print(f'\nLogged to run ID: {run.info.run_id}\n')
 
 if __name__ == '__main__':
     main()

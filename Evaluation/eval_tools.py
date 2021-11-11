@@ -240,7 +240,7 @@ def select_curve(curve_list, **selection):
     else:
         raise Exception(f"Failed to find a single curve for selection: {[f'{k}=={v}' for k,v in selection.items()]}")
 
-def create_df(path_to_input_file, input_branches, path_to_pred_file, pred_column_prefix, path_to_weights):
+def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_target_file, pred_column_prefix, path_to_weights):
     def read_branches(path_to_file, tree_name, branches):
         if path_to_file.endswith('.root'):
             with uproot.open(path_to_file) as f:
@@ -291,9 +291,12 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, pred_column
     df = read_branches(path_to_input_file, 'taus', input_branches)
     if path_to_pred_file is not None:
         add_predictions(df, path_to_pred_file, pred_column_prefix)
-        add_targets(df, path_to_pred_file, pred_column_prefix)
     else:
-        print('[INFO] No predictions found in mlflow artifacts for this run, will proceed without them.')
+        print(f'[INFO] No predictions found, will proceed without them.')
+    if path_to_target_file is not None:
+        add_targets(df, path_to_target_file, pred_column_prefix)
+    else:
+        print(f'[INFO] No targets found, will proceed without them.')
     if path_to_weights is not None:
         add_weights(df, path_to_weights)
     else:
