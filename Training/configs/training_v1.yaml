@@ -93,7 +93,7 @@ CellObjectType : [
 
 Scaling_setup:
     # --------------------------------------------------------
-    file_path: '/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_v1/ShuffleMergeSpectral*.root' # input files to be used for computation of scaling params
+    file_path: '/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral*.root' # input files to be used for computation of scaling params
     output_json_folder: 'output_json' # directory where json files with scaling params will be stored
     file_range: [0, 100] # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
     tree_name: taus # TTree name in input files to be read
@@ -267,7 +267,7 @@ Features_all :
                 - pfCand_ele_valid: [*is_pfElectron, null, "no_scaling"]
                 - pfCand_ele_rel_pt: [*is_pfElectron, {"pfCand_ele_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
                 - pfCand_ele_deta: [*is_pfElectron, {"pfCand_ele_deta": "pfCand_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
-                - pfCand_ele_dphi: [*is_pfElectron, {"pfCand_ele_dphi": "pfCand_phi - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
+                - pfCand_ele_dphi: [*is_pfElectron, {"pfCand_ele_dphi": "pfCand_phi - tau_phi"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
                 - pfCand_ele_pvAssociationQuality: [*is_pfElectron, {"pfCand_ele_pvAssociationQuality": "pfCand_pvAssociationQuality"}, "categorical"]
                 - pfCand_ele_puppiWeight: [*is_pfElectron, {"pfCand_ele_puppiWeight": "pfCand_puppiWeight"}, "no_scaling"]
                 - pfCand_ele_charge: [*is_pfElectron, {"pfCand_ele_charge": "pfCand_charge"}, "no_scaling"]
