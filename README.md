@@ -280,6 +280,27 @@ python TauMLTools/Production/scripts/validation_tool.py --help
 
 A time benchmark is available [here](https://github.com/cms-tau-pog/TauMLTools/pull/31#issue-510206277).
 
+#### Shuffled ntuples spectrum
+For the following training step, the pT-eta spectrum of these input events is needed and can be computed with the command:
+```bash
+CreateSpectralHists \
+   --outputfile output_spectrum_file.root \
+   --output_entries entries_per_file.txt  \
+   --input-dir /path/to/shuffle/and/merge/files
+   --pt-hist "980, 20, 1000"
+   --eta-hist "250, 0.0, 2.5"
+   --file-name-pattern ".*2_rerun\/Shuffle.*.root"
+   --n-threads 1
+```
+where:
+   - *--outputfile* will store the pT-eta spectrum needed for the training
+   - *--output_entries* will store the list of the shuffle-and-merge files and the number of entries per file
+   - *--input-dir* is the location of the shuffle-and-merge files
+   - *--pt-hist* and *--eta-hist* are the binnings used for the pT and eta variables
+   - *--file-name-pattern* is the regex pattern used to match the input file names
+
+The path to the output file has to be specified in the yaml configuration file described in the following sections.
+
 ### Production of flat inputs
 
 In this stage, `TauTuple`s are transformed into flat [TrainingTuples](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/interface/TrainingTuple.h) that are suitable as an input for the training.
