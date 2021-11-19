@@ -33,15 +33,3 @@ path_to_target_vs_type: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/
 #
 path_to_weights_taus: null
 path_to_weights_vs_type: null
-
-# misc: to be moved elsewhere
-wp_name_to_index:
-  VVVLoose: 0
-  VVLoose: 1
-  VLoose: 2
-  Loose: 3
-  Medium: 4
-  Tight: 5
-  VTight: 6
-  VVTight: 7
-  VVVTight: 8

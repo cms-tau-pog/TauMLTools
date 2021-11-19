@@ -16,22 +16,6 @@ from dataclasses import dataclass, field
 if sys.version_info.major > 2:
     from statsmodels.stats.proportion import proportion_confint
 
-class DiscriminatorWP:
-    VVVLoose = 0
-    VVLoose = 1
-    VLoose = 2
-    Loose = 3
-    Medium = 4
-    Tight = 5
-    VTight = 6
-    VVTight = 7
-    VVVTight = 8
-
-    @staticmethod
-    def GetName(wp):
-        names = [ "VVVLoose", "VVLoose", "VLoose", "Loose", "Medium", "Tight", "VTight", "VVTight", "VVVTight" ]
-        return names[wp]
-
 class RocCurve:
     def __init__(self, n_points, color, has_errors, dots_only = False, dashed = False):
         self.pr = np.zeros((2, n_points))
@@ -143,7 +127,6 @@ class PlotSetup:
             #ratio_title = 'MVA/DeepTau' if args.other_type != 'mu' else 'cut based/DeepTau'
             ax_ratio.set_ylabel(ratio_title, fontsize=14, labelpad=self.ratio_ylabel_pad)
             ax_ratio.tick_params(labelsize=10)
-
             ax_ratio.grid(True, which='both')
 
 def find_threshold(pr, thresholds, target_pr):
@@ -167,6 +150,7 @@ class Discriminator:
     dashed: bool = False 
     wp_from: str = None
     wp_column: str = None
+    wp_name_to_index: dict = None
     working_points: list = field(default_factory=list)
     working_points_thrs: dict = None 
 
@@ -174,16 +158,17 @@ class Discriminator:
         if self.wp_from is None:
             self.working_points = []
 
-    def count_passed(self, df, wp):
+    def count_passed(self, df, wp_name):
         if self.wp_from == 'wp_column':
             assert self.wp_column in df.columns
+            wp = self.wp_name_to_index[wp_name]
             flag = 1 << wp
             passed = (np.bitwise_and(df[self.wp_column], flag) != 0).astype(int)
             return np.sum(passed * df.weight.values)
         elif self.wp_from == 'pred_column':
             if self.working_points_thrs is not None:
                 assert self.pred_column in df.columns
-                wp_thr = self.working_points_thrs[DiscriminatorWP.GetName(wp)]
+                wp_thr = self.working_points_thrs[wp_name]
                 return np.sum(df[df[self.pred_column] > wp_thr].weight.values)
             else:
                 raise RuntimeError('Working points thresholds are not specified for discriminator "{}"'.format(self.name))
@@ -206,21 +191,21 @@ class Discriminator:
         if self.wp_from in ['wp_column', 'pred_column']:  
             if (n_wp:=len(self.working_points)) > 0:
                 wp_roc = RocCurve(n_wp, self.color, not self.raw, self.raw)
-                for n in range(n_wp):
+                for wp_i, wp_name in enumerate(self.working_points):
                     for kind in [0, 1]:
                         df_x = df[df['gen_tau'] == kind]
-                        n_passed = self.count_passed(df_x, self.working_points[n])
+                        n_passed = self.count_passed(df_x, wp_name)
                         n_total = np.sum(df_x.weight.values)
                         eff = float(n_passed) / n_total
-                        wp_roc.pr[kind, n_wp - n - 1] = eff
+                        wp_roc.pr[kind, n_wp - wp_i - 1] = eff
                         if not self.raw:
                             if sys.version_info.major > 2:
                                 ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
                             else:
                                 err = math.sqrt(eff * (1 - eff) / n_total)
                                 ci_low, ci_upp = eff - err, eff + err
-                            wp_roc.pr_err[kind, 1, n_wp - n - 1] = ci_upp - eff
-                            wp_roc.pr_err[kind, 0, n_wp - n - 1] = eff - ci_low
+                            wp_roc.pr_err[kind, 1, n_wp - wp_i - 1] = ci_upp - eff
+                            wp_roc.pr_err[kind, 0, n_wp - wp_i - 1] = eff - ci_low
             else:
                 raise RuntimeError('No working points specified')
         elif self.wp_from is None:
