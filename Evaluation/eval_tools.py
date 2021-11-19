@@ -235,7 +235,7 @@ def select_curve(curve_list, **selection):
     else:
         raise Exception(f"Failed to find a single curve for selection: {[f'{k}=={v}' for k,v in selection.items()]}")
 
-def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_target_file, pred_column_prefix, path_to_weights):
+def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_target_file, path_to_weights, pred_column_prefix=None, target_column_prefix=None):
     def read_branches(path_to_file, tree_name, branches):
         if not os.path.exists(path_to_input_file):
             raise RuntimeError(f"Specified file for inputs ({path_to_input_file}) does not exist")
@@ -267,7 +267,7 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
                 df[pred_column_prefix + tau_type] = pd.Series(tau_vs_other_type, index=df.index)
         return df
 
-    def add_targets(df, path_to_target_file, pred_column_prefix):
+    def add_targets(df, path_to_target_file, target_column_prefix):
         if not os.path.exists(path_to_target_file):
             raise RuntimeError(f"Specified file for targets {path_to_target_file} does not exist")
         with h5py.File(path_to_target_file, 'r') as f:
@@ -277,8 +277,8 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
         else:
             df_targets = pd.read_hdf(path_to_target_file)
         for node_column in df_targets.columns:
-            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}{tau_type}"
-            tau_type = node_column.split(f'{pred_column_prefix}')[-1]
+            if not node_column.startswith(target_column_prefix): continue # assume prediction column name to be "{target_column_prefix}{tau_type}"
+            tau_type = node_column.split(f'{target_column_prefix}')[-1]
             df[f'gen_{tau_type}'] = df_targets[node_column]
         return df
     
@@ -295,7 +295,7 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
     else:
         print(f'[INFO] path_to_pred_file=None, will proceed without reading predictions from there')
     if path_to_target_file is not None:
-        add_targets(df, path_to_target_file, pred_column_prefix)
+        add_targets(df, path_to_target_file, target_column_prefix)
     else:
         print(f'[INFO] path_to_target_file=None, will proceed without reading targetsfrom there')
     if path_to_weights is not None:

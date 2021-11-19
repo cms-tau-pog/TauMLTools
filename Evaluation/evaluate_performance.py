@@ -46,8 +46,10 @@ def main(cfg: DictConfig) -> None:
         input_branches.append(_b)
 
     # read original data with corresponging predictions into DataFrame
-    df_taus = eval_tools.create_df(path_to_input_taus, input_branches, path_to_pred_taus, path_to_target_taus, cfg.discriminator.pred_column_prefix, path_to_weights_taus)
-    df_vs_type = eval_tools.create_df(path_to_input_vs_type, input_branches, path_to_pred_vs_type, path_to_target_vs_type, cfg.discriminator.pred_column_prefix, path_to_weights_vs_type)
+    df_taus = eval_tools.create_df(path_to_input_taus, input_branches, path_to_pred_taus, path_to_target_taus, path_to_weights_taus,
+                                    cfg.discriminator.pred_column_prefix, cfg.discriminator.target_column_prefix)
+    df_vs_type = eval_tools.create_df(path_to_input_vs_type, input_branches, path_to_pred_vs_type, path_to_target_vs_type, path_to_weights_vs_type,
+                                    cfg.discriminator.pred_column_prefix, cfg.discriminator.target_column_prefix)
     df_taus = df_taus.query('gen_tau==1')
     df_vs_type = df_vs_type.query(f'gen_{cfg.vs_type}==1')
     df_all = df_taus.append(df_vs_type)

@@ -5,8 +5,9 @@ dashed: False
 raw: False
 
 # prediction/target columns
-pred_column_prefix: node_
+pred_column_prefix: null
 pred_column: null
+target_column_prefix: node_
 
 # WPs
 wp_from: wp_column
