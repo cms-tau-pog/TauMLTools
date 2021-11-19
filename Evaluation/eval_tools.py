@@ -163,60 +163,70 @@ class Discriminator:
     name: str
     pred_column: str
     raw: bool
-    from_tuple: bool
     color: str
-    working_points: list = field(default_factory=list)
-    wp_column: str = None
-    working_points_thrs: dict = None 
     dashed: bool = False 
-    draw_wp: bool = True
+    wp_from: str = None
+    wp_column: str = None
+    working_points: list = field(default_factory=list)
+    working_points_thrs: dict = None 
 
     def __post_init__(self):
-        if not self.draw_wp and self.raw:
+        if self.wp_from is None:
             self.working_points = []
-        if self.wp_column is None:
-            self.wp_column = self.pred_column
 
-    def CountPassed(self, df, wp):
-        if self.from_tuple:
+    def count_passed(self, df, wp):
+        if self.wp_from == 'wp_column':
+            assert self.wp_column in df.columns
             flag = 1 << wp
             passed = (np.bitwise_and(df[self.wp_column], flag) != 0).astype(int)
             return np.sum(passed * df.weight.values)
-        if self.working_points_thrs is None:
-            raise RuntimeError('Working points are not specified for discriminator "{}"'.format(self.name))
-        wp_thr = self.working_points_thrs[DiscriminatorWP.GetName(wp)]
-        return np.sum(df[df[self.pred_column] > wp_thr].weight.values)
-
-    def CreateRocCurve(self, df, ref_roc = None):
-        n_wp = len(self.working_points)
+        elif self.wp_from == 'pred_column':
+            if self.working_points_thrs is not None:
+                assert self.pred_column in df.columns
+                wp_thr = self.working_points_thrs[DiscriminatorWP.GetName(wp)]
+                return np.sum(df[df[self.pred_column] > wp_thr].weight.values)
+            else:
+                raise RuntimeError('Working points thresholds are not specified for discriminator "{}"'.format(self.name))
+        else:
+            raise RuntimeError(f'count_passed() behaviour not defined for: wp_from={self.wp_from}')
+        
+    def create_roc_curve(self, df):
         roc, wp_roc = None, None
-        if self.raw:
-            fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.pred_column].values,
-                                                     sample_weight=df.weight.values)
+        if self.raw: # construct ROC curve
+            fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
             roc = RocCurve(len(fpr), self.color, False, dashed=self.dashed)
             roc.pr[0, :] = fpr
             roc.pr[1, :] = tpr
             roc.thresholds = thresholds
-            roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values,
-                                                  sample_weight=df.weight.values)
-        if n_wp > 0:
-            wp_roc = RocCurve(n_wp, self.color, not self.raw, self.raw)
-            for n in range(n_wp):
-                for kind in [0, 1]:
-                    df_x = df[df['gen_tau'] == kind]
-                    n_passed = self.CountPassed(df_x, self.working_points[n])
-                    n_total = np.sum(df_x.weight.values)
-                    eff = float(n_passed) / n_total
-                    wp_roc.pr[kind, n_wp - n - 1] = eff
-                    if not self.raw:
-                        if sys.version_info.major > 2:
-                            ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
-                        else:
-                            err = math.sqrt(eff * (1 - eff) / n_total)
-                            ci_low, ci_upp = eff - err, eff + err
-                        wp_roc.pr_err[kind, 1, n_wp - n - 1] = ci_upp - eff
-                        wp_roc.pr_err[kind, 0, n_wp - n - 1] = eff - ci_low
-
+            roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
+        else:
+            print('[INFO] raw=False, will skip creating ROC curve')        
+        
+        # construct WPs
+        if self.wp_from in ['wp_column', 'pred_column']:  
+            if (n_wp:=len(self.working_points)) > 0:
+                wp_roc = RocCurve(n_wp, self.color, not self.raw, self.raw)
+                for n in range(n_wp):
+                    for kind in [0, 1]:
+                        df_x = df[df['gen_tau'] == kind]
+                        n_passed = self.count_passed(df_x, self.working_points[n])
+                        n_total = np.sum(df_x.weight.values)
+                        eff = float(n_passed) / n_total
+                        wp_roc.pr[kind, n_wp - n - 1] = eff
+                        if not self.raw:
+                            if sys.version_info.major > 2:
+                                ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
+                            else:
+                                err = math.sqrt(eff * (1 - eff) / n_total)
+                                ci_low, ci_upp = eff - err, eff + err
+                            wp_roc.pr_err[kind, 1, n_wp - n - 1] = ci_upp - eff
+                            wp_roc.pr_err[kind, 0, n_wp - n - 1] = eff - ci_low
+            else:
+                raise RuntimeError('No working points specified')
+        elif self.wp_from is None:
+            print('[INFO] wp_from=None, will skip creating WP')
+        else:
+            raise RuntimeError(f'create_roc_curve() behaviour not defined for: wp_from={self.wp_from}')
         return roc, wp_roc
 
 def create_roc_ratio(x1, y1, x2, y2):
@@ -242,6 +252,8 @@ def select_curve(curve_list, **selection):
 
 def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_target_file, pred_column_prefix, path_to_weights):
     def read_branches(path_to_file, tree_name, branches):
+        if not os.path.exists(path_to_input_file):
+            raise RuntimeError(f"Specified file for inputs ({path_to_input_file}) does not exist")
         if path_to_file.endswith('.root'):
             with uproot.open(path_to_file) as f:
                 tree = f[tree_name]
@@ -252,6 +264,8 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
         raise RuntimeError("Unsupported file type.")
 
     def add_predictions(df, path_to_pred_file, pred_column_prefix):
+        if not os.path.exists(path_to_pred_file):
+            raise RuntimeError(f"Specified file for predictions {path_to_pred_file} does not exist")
         with h5py.File(path_to_pred_file, 'r') as f:
             file_keys = list(f.keys())
         if 'predictions' in file_keys: 
@@ -269,12 +283,14 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
         return df
 
     def add_targets(df, path_to_target_file, pred_column_prefix):
+        if not os.path.exists(path_to_target_file):
+            raise RuntimeError(f"Specified file for targets {path_to_target_file} does not exist")
         with h5py.File(path_to_target_file, 'r') as f:
             file_keys = list(f.keys())
         if 'targets' in file_keys: 
             df_targets = pd.read_hdf(path_to_target_file, 'targets')
         else:
-            return df
+            df_targets = pd.read_hdf(path_to_target_file)
         for node_column in df_targets.columns:
             if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}{tau_type}"
             tau_type = node_column.split(f'{pred_column_prefix}')[-1]
@@ -287,16 +303,16 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
         return df
 
     # TODO: add on the fly branching creation for uproot
-
+    print()
     df = read_branches(path_to_input_file, 'taus', input_branches)
     if path_to_pred_file is not None:
         add_predictions(df, path_to_pred_file, pred_column_prefix)
     else:
-        print(f'[INFO] No predictions found, will proceed without them.')
+        print(f'[INFO] path_to_pred_file=None, will proceed without reading predictions from there')
     if path_to_target_file is not None:
         add_targets(df, path_to_target_file, pred_column_prefix)
     else:
-        print(f'[INFO] No targets found, will proceed without them.')
+        print(f'[INFO] path_to_target_file=None, will proceed without reading targetsfrom there')
     if path_to_weights is not None:
         add_weights(df, path_to_weights)
     else:

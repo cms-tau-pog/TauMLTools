@@ -1,8 +1,16 @@
+# general 
 name: MVA (updated decay modes)
-pred_column: byIsolationMVArun2017v2DBnewDMwLT2017
-raw: False
-from_tuple: True
 color: red
+dashed: False
+raw: False
+
+# prediction/target columns
+pred_column_prefix: node_
+pred_column: null
+
+# WPs
+wp_from: wp_column
+wp_column: tau_byIsolationMVArun2017v2DBnewDMwLT2017
 working_points: 
   - ${wp_name_to_index.VVLoose}
   - ${wp_name_to_index.VLoose}
@@ -11,5 +19,3 @@ working_points:
   - ${wp_name_to_index.Tight}
   - ${wp_name_to_index.VTight}
   - ${wp_name_to_index.VVTight}
-wp_column: byIsolationMVArun2017v2DBnewDMwLT2017
-dashed: True

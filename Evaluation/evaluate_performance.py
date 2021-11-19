@@ -16,8 +16,8 @@ def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
     
     # setting paths
-    path_to_input_taus = to_absolute_path(cfg.path_to_input_taus) if cfg.path_to_input_taus is not None else None
-    path_to_input_vs_type = to_absolute_path(cfg.path_to_input_vs_type) if cfg.path_to_input_vs_type is not None else None
+    path_to_input_taus = to_absolute_path(cfg.path_to_input_taus)
+    path_to_input_vs_type = to_absolute_path(cfg.path_to_input_vs_type)
     path_to_pred_taus = to_absolute_path(cfg.path_to_pred_taus) if cfg.path_to_pred_taus is not None else None
     path_to_pred_vs_type = to_absolute_path(cfg.path_to_pred_vs_type) if cfg.path_to_pred_vs_type is not None else None
     path_to_target_taus = to_absolute_path(cfg.path_to_target_taus) if cfg.path_to_target_taus is not None else None
@@ -39,21 +39,21 @@ def main(cfg: DictConfig) -> None:
     plot_setup = eval_tools.PlotSetup(**init_params)
 
     # construct branches to be read from input files
-    read_branches = OmegaConf.to_object(cfg.read_branches)
-    if discriminator.from_tuple:
-        read_branches.append(discriminator.pred_column)
-        if discriminator.wp_column != discriminator.pred_column:
-            read_branches.append(discriminator.wp_column)
+    input_branches = OmegaConf.to_object(cfg.input_branches)
+    if ((_b:=discriminator.pred_column) is not None) and (path_to_pred_taus is None or path_to_pred_vs_type is None):
+        input_branches.append(_b)
+    if (_b:=discriminator.wp_column) is not None:
+        input_branches.append(_b)
 
     # read original data with corresponging predictions into DataFrame
     if path_to_input_vs_type is None:
-        df_all = eval_tools.create_df(path_to_input_taus, read_branches, path_to_pred_taus, path_to_target_taus, cfg.discriminator.pred_column_prefix, path_to_weights_taus)
+        df_all = eval_tools.create_df(path_to_input_taus, input_branches, path_to_pred_taus, path_to_target_taus, cfg.discriminator.pred_column_prefix, path_to_weights_taus)
         # apply gen. selection
         inclusive_gen_selection = ' or '.join([f'(gen_{tau_type}==1)' for tau_type in ['tau', cfg.vs_type]]) # gen_* are constructed in `add_targets()`
         df_all = df_all.query(inclusive_gen_selection)
     else:
-        df_taus = eval_tools.create_df(path_to_input_taus, read_branches, path_to_pred_taus, path_to_target_taus, cfg.discriminator.pred_column_prefix, path_to_weights_taus)
-        df_vs_type = eval_tools.create_df(path_to_input_vs_type, read_branches, path_to_pred_vs_type, path_to_target_vs_type, cfg.discriminator.pred_column_prefix, path_to_weights_vs_type)
+        df_taus = eval_tools.create_df(path_to_input_taus, input_branches, path_to_pred_taus, path_to_target_taus, cfg.discriminator.pred_column_prefix, path_to_weights_taus)
+        df_vs_type = eval_tools.create_df(path_to_input_vs_type, input_branches, path_to_pred_vs_type, path_to_target_vs_type, cfg.discriminator.pred_column_prefix, path_to_weights_vs_type)
         df_taus = df_taus.query('gen_tau==1')
         df_vs_type = df_vs_type.query(f'gen_{cfg.vs_type}==1')
         df_all = df_taus.append(df_vs_type)
@@ -75,24 +75,25 @@ def main(cfg: DictConfig) -> None:
                                 'roc_curve': defaultdict(list), 'roc_wp': defaultdict(list)}
 
         # loop over pt bins
+        print(f'\n{discriminator.name}')
         for pt_index, (pt_min, pt_max) in enumerate(zip(cfg.pt_bins[:-1], cfg.pt_bins[1:])):
             # apply pt bin selection
             df_cut = df_all.query(f'tau_pt >= {pt_min} and tau_pt < {pt_max}')
             if df_cut.shape[0] == 0:
                 print("Warning: pt bin ({}, {}) is empty.".format(pt_min, pt_max))
                 continue
-            print('\nCounts:\n', df_cut[['gen_tau', f'gen_{cfg.vs_type}']].value_counts())
+            print(f'\n--> pt bin: [{pt_min}, {pt_max}]')
+            print('[INFO] counts:\n', df_cut[['gen_tau', f'gen_{cfg.vs_type}']].value_counts())
+
             # create roc curve and working points
-            roc, wp_roc = discriminator.CreateRocCurve(df_cut)
-            
+            roc, wp_roc = discriminator.create_roc_curve(df_cut)
             if roc is not None:
                 # prune the curve
                 lim = getattr(plot_setup,  'xlim')
                 x_range = lim[1] - lim[0] if lim is not None else 1
                 roc = roc.Prune(tpr_decimals=max(0, round(math.log10(1000 / x_range))))
                 if roc.auc_score is not None:
-                    print('\n[{}, {}] {} roc_auc = {}'.format(pt_min, pt_max, discriminator.name,
-                                                            roc.auc_score))
+                    print(f'[INFO] ROC curve done, AUC = {roc.auc_score}')
 
             # loop over [ROC curve, ROC curve WP] for a given discriminator and store its info into dict
             for curve_type, curve in zip(['roc_curve', 'roc_wp'], [roc, wp_roc]):

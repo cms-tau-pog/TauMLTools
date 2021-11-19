@@ -18,7 +18,7 @@ sample_vs_type: ??? # alias of the sample
 pt_bins: [20, 100, 1000]
 
 # selection
-read_branches: [ 'tau_pt', 'tau_decayMode' ] # add here branches with targets/prediction if necessary
+input_branches: [ 'tau_pt', 'tau_decayMode' ] # add here branches with targets/prediction if necessary
 cuts: ${apply_dm_cuts}
 
 # paths to input tuples used to make predictions
