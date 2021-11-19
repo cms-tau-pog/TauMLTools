@@ -46,17 +46,11 @@ def main(cfg: DictConfig) -> None:
         input_branches.append(_b)
 
     # read original data with corresponging predictions into DataFrame
-    if path_to_input_vs_type is None:
-        df_all = eval_tools.create_df(path_to_input_taus, input_branches, path_to_pred_taus, path_to_target_taus, cfg.discriminator.pred_column_prefix, path_to_weights_taus)
-        # apply gen. selection
-        inclusive_gen_selection = ' or '.join([f'(gen_{tau_type}==1)' for tau_type in ['tau', cfg.vs_type]]) # gen_* are constructed in `add_targets()`
-        df_all = df_all.query(inclusive_gen_selection)
-    else:
-        df_taus = eval_tools.create_df(path_to_input_taus, input_branches, path_to_pred_taus, path_to_target_taus, cfg.discriminator.pred_column_prefix, path_to_weights_taus)
-        df_vs_type = eval_tools.create_df(path_to_input_vs_type, input_branches, path_to_pred_vs_type, path_to_target_vs_type, cfg.discriminator.pred_column_prefix, path_to_weights_vs_type)
-        df_taus = df_taus.query('gen_tau==1')
-        df_vs_type = df_vs_type.query(f'gen_{cfg.vs_type}==1')
-        df_all = df_taus.append(df_vs_type)
+    df_taus = eval_tools.create_df(path_to_input_taus, input_branches, path_to_pred_taus, path_to_target_taus, cfg.discriminator.pred_column_prefix, path_to_weights_taus)
+    df_vs_type = eval_tools.create_df(path_to_input_vs_type, input_branches, path_to_pred_vs_type, path_to_target_vs_type, cfg.discriminator.pred_column_prefix, path_to_weights_vs_type)
+    df_taus = df_taus.query('gen_tau==1')
+    df_vs_type = df_vs_type.query(f'gen_{cfg.vs_type}==1')
+    df_all = df_taus.append(df_vs_type)
 
     # apply selection
     if cfg.cuts is not None: df_all = df_all.query(cfg.cuts)
@@ -82,7 +76,7 @@ def main(cfg: DictConfig) -> None:
             if df_cut.shape[0] == 0:
                 print("Warning: pt bin ({}, {}) is empty.".format(pt_min, pt_max))
                 continue
-            print(f'\n--> pt bin: [{pt_min}, {pt_max}]')
+            print(f'\n-----> pt bin: [{pt_min}, {pt_max}]')
             print('[INFO] counts:\n', df_cut[['gen_tau', f'gen_{cfg.vs_type}']].value_counts())
 
             # create roc curve and working points
