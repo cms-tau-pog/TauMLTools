@@ -5,6 +5,9 @@
 #include "TROOT.h"
 #include "TLorentzVector.h"
 
+#include "TauMLTools/Analysis/interface/TauSelection.h"
+#include "TauMLTools/Analysis/interface/AnalysisTypes.h"
+
 template <typename T, typename Tuple>
 struct ElementIndex;
 
@@ -98,13 +101,14 @@ struct Data {
     typedef std::unordered_map<CellObjectType, std::unordered_map<bool, std::vector<float>>> GridMap;
 
     Data(size_t n_tau, size_t tau_fn, size_t n_inner_cells,
-         size_t n_outer_cells, size_t pfelectron_fn, size_t pfmuon_fn,
+         size_t n_outer_cells, size_t globalgrid_fn, size_t pfelectron_fn, size_t pfmuon_fn,
          size_t pfchargedhad_fn, size_t pfneutralhad_fn, size_t pfgamma_fn,
          size_t electron_fn, size_t muon_fn, size_t tau_labels) :
          x_tau(n_tau * tau_fn, 0), weight(n_tau, 0), y_onehot(n_tau * tau_labels, 0)
          {
-          // pf electron
-           // x_grid[CellObjectType::PfCand_electron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfelectron_fn,0);
+           x_grid[CellObjectType::GridGlobal][0].resize(n_tau * n_outer_cells * n_outer_cells * globalgrid_fn,0);
+           x_grid[CellObjectType::GridGlobal][1].resize(n_tau * n_inner_cells * n_inner_cells * globalgrid_fn,0);
+           // pf electron
            x_grid[CellObjectType::PfCand_electron][0].resize(n_tau * n_outer_cells * n_outer_cells * pfelectron_fn,0);
            x_grid[CellObjectType::PfCand_electron][1].resize(n_tau * n_inner_cells * n_inner_cells * pfelectron_fn,0);
            // pf muons
@@ -143,41 +147,41 @@ public:
     using TauTuple = tau_tuple::TauTuple;
     using LorentzVectorM = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>;
 
-    DataLoader(const std::vector<std::string> file_name) :
-        current_entry(start_dataset),
+    DataLoader() :
+        // current_entry(start_dataset),
         innerCellGridRef(n_inner_cells, n_inner_cells, inner_cell_size, inner_cell_size),
         outerCellGridRef(n_outer_cells, n_outer_cells, outer_cell_size, outer_cell_size),
-        input_files(file_name),
-        hasData(false)
-    { 
+        hasData(false), fullData(false), hasFile(false)
+    {
       ROOT::EnableThreadSafety();
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
 
-      if (xaxis.size() != (yaxis_list.size() + 1)){
+      if (yaxis.size() != (xaxis_list.size() + 1)){
         throw std::invalid_argument("Y binning list does not match X binning length");
       }
 
       // file = OpenRootFile(file_name);
       // tauTuple = std::make_shared<tau_tuple::TauTuple>(file.get(), true);
 
-      std::cout << "Number of files to process: " << input_files.size() << std::endl;
-      tauTuple = std::make_shared<TauTuple>("taus", input_files);
-      end_entry = std::min((long long)end_dataset, tauTuple->GetEntries());
+      // std::cout << "Number of files to process: " << input_files.size() << std::endl;
+      // tauTuple = std::make_shared<TauTuple>("taus", input_files);
+      // end_entry = std::min((long long)end_dataset, tauTuple->GetEntries());
 
       // histogram to calculate weights
+
       auto file_input = std::make_shared<TFile>(input_spectrum.c_str());
       auto file_target = std::make_shared<TFile>(target_spectrum.c_str());
 
-      Histogram_2D target_histogram("target", xaxis, ymin, ymax);
-      Histogram_2D input_histogram ("input" , xaxis, ymin, ymax);
-      for (int i = 0; i < yaxis_list.size(); i++){
-          target_histogram.add_y_binning_by_index(i, yaxis_list[i]);
-          input_histogram .add_y_binning_by_index(i, yaxis_list[i]);
+      Histogram_2D target_histogram("target", yaxis, xmin, xmax);
+      Histogram_2D input_histogram ("input" , yaxis, xmin, xmax);
+      for (int i = 0; i < xaxis_list.size(); i++){
+          target_histogram.add_x_binning_by_index(i, xaxis_list[i]);
+          input_histogram .add_x_binning_by_index(i, xaxis_list[i]);
       }
 
       std::shared_ptr<TH2D> target_th2d = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
       if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
-      
+
       for( auto const& [tau_type, tau_name] : tau_types_names)
       {
         std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
@@ -200,47 +204,75 @@ public:
     DataLoader(const DataLoader&) = delete;
     DataLoader& operator=(const DataLoader&) = delete;
 
+    void ReadFile(std::string file_name, Long64_t start_file, Long64_t end_file) { // put end_file=-1 to read all events from file
+        tauTuple.reset();
+        file = std::make_unique<TFile>(file_name.c_str());
+        tauTuple = std::make_unique<tau_tuple::TauTuple>(file.get(), true);
+        current_entry = start_file;
+        end_entry = tauTuple->GetEntries();
+        if(end_file!=-1) end_entry = std::min(end_file, end_entry);
+        hasFile = true;
+    }
+
     bool MoveNext() {
+        if(!hasFile)
+          throw std::runtime_error("File should be loaded with DataLoaderWorker::ReadFile()");
 
         if(!tauTuple)
-          throw std::runtime_error("DataLoader is not initialized.");
+          throw std::runtime_error("TauTuple is not loaded!");
 
-        data = std::make_shared<Data>(n_tau, n_TauFlat, n_inner_cells, n_outer_cells,
-                                      n_PfCand_electron, n_PfCand_muon, n_PfCand_chHad, n_PfCand_nHad,
-                                      n_PfCand_gamma, n_Electron, n_Muon, tau_types_names.size()
-                                      );
-
-        const Long64_t end_point = current_entry + n_tau;
-        size_t n_processed = 0, n_total = static_cast<size_t>(end_point - current_entry);
-        for(Long64_t tau_i = 0; tau_i < n_tau; ++current_entry) {
-          if(current_entry == end_entry) return false;
-          tauTuple->GetEntry(current_entry);
-          const auto& tau = tauTuple->data();
-          // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
-          if ( tau_types_names.find(tau.tauType) == tau_types_names.end() ) continue;
-          else {
-            data->y_onehot[ tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
-            data->weight.at(tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
-            FillTauBranches(tau, tau_i, data);
-            FillCellGrid(tau, tau_i, innerCellGridRef, data, true);
-            FillCellGrid(tau, tau_i, outerCellGridRef, data, false);
-            ++tau_i;
-          }
+        if(!hasData) {
+          data = std::make_unique<Data>(n_tau, n_TauFlat, n_inner_cells, n_outer_cells, n_GridGlobal,
+                                        n_PfCand_electron, n_PfCand_muon, n_PfCand_chHad, n_PfCand_nHad,
+                                        n_PfCand_gamma, n_Electron, n_Muon, tau_types_names.size()
+                                        );
+          tau_i = 0;
+          hasData = true;
         }
-        hasData = true;
+        while(tau_i < n_tau) {
+          if(current_entry == end_entry) {
+            hasFile = false;
+            return false;
+          }
+          tauTuple->GetEntry(current_entry);
+          auto& tau = const_cast<tau_tuple::Tau&>(tauTuple->data());
+
+          const auto gen_match = analysis::GetGenLeptonMatch(tau);
+          const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
+          bool tau_is_set = false;
+
+          if (gen_match){
+            if (recompute_tautype){
+              tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
+            }
+
+            // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
+            if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
+              data->y_onehot[ tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
+              data->weight.at(tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
+              FillTauBranches(tau, tau_i);
+              FillCellGrid(tau, tau_i, innerCellGridRef, true);
+              FillCellGrid(tau, tau_i, outerCellGridRef, false);
+              ++tau_i;
+              tau_is_set = true;
+            }
+          }
+          if (!tau_is_set && include_mismatched)
+            ++tau_i;
+          ++current_entry;
+        }
+        fullData = true;
         return true;
     }
 
-    size_t GetEntries () { return end_entry - current_entry; }
-
-    std::shared_ptr<Data> LoadData() {
-      if(!hasData)
+    const Data* LoadData() {
+      if(!fullData)
         throw std::runtime_error("Data was not loaded with MoveNext()");
+      fullData = false;
       hasData = false;
-      return data;
+      return data.get();
     }
 
-    void reset() { current_entry = start_dataset;}
 
     static void MaxDisbCheck(const std::unordered_map<int ,std::shared_ptr<TH2D>>& hists,
                              Double_t max_thr)
@@ -285,11 +317,11 @@ public:
       template <typename FeatureT>
       const float Scale(const int idx, const float value, const bool inner)
       {
-        return std::clamp((value - FeatureT::mean[idx][inner]) / FeatureT::std[idx][inner],
-                          FeatureT::lim_min[idx][inner], FeatureT::lim_max[idx][inner]);
+        return std::clamp((value - FeatureT::mean.at(idx).at(inner)) / FeatureT::std.at(idx).at(inner),
+                          FeatureT::lim_min.at(idx).at(inner), FeatureT::lim_max.at(idx).at(inner));
       }
 
-      void FillTauBranches(const Tau& tau, Long64_t tau_i, std::shared_ptr<Data>& data)
+      void FillTauBranches(const Tau& tau, Long64_t tau_i)
       {
         Long64_t start_array_index = tau_i * n_TauFlat;
 
@@ -301,6 +333,7 @@ public:
             data->x_tau.at(index) = Scale<Scaling::TauFlat>(_fe_ind, value, false);
         };
 
+        fill_tau(TauFlat_Features::rho, tau.rho);
         fill_tau(TauFlat_Features::tau_pt, tau.tau_pt);
         fill_tau(TauFlat_Features::tau_eta, tau.tau_eta);
         fill_tau(TauFlat_Features::tau_phi, tau.tau_phi);
@@ -377,7 +410,7 @@ public:
 
       }
 
-      void FillCellGrid(const Tau& tau, Long64_t tau_i,  const CellGrid& cellGridRef, std::shared_ptr<Data>& data, bool inner)
+      void FillCellGrid(const Tau& tau, Long64_t tau_i,  const CellGrid& cellGridRef, bool inner)
       {
           auto cellGrid = CreateCellGrid(tau, cellGridRef, inner);
           const int max_eta_index = cellGrid.MaxEtaIndex(), max_phi_index = cellGrid.MaxPhiIndex();
@@ -396,7 +429,7 @@ public:
                           throw std::runtime_error("Duplicated cell index in FillCellGrid.");
                       processed_cells.insert(cellIndex);
                       if(!cellGrid.IsEmpty(cellIndex))
-                          FillCellBranches(tau, tau_i, cellGridRef, cellIndex, cellGrid.at(cellIndex), data, inner);
+                          FillCellBranches(tau, tau_i, cellGridRef, cellIndex, cellGrid.at(cellIndex), inner);
                   }
               }
           }
@@ -417,7 +450,7 @@ public:
       }
 
       void FillCellBranches(const Tau& tau, Long64_t tau_i,  const CellGrid& cellGridRef, const CellIndex& cellIndex,
-                            Cell& cell, std::shared_ptr<Data>& data, bool inner)
+                            Cell& cell, bool inner)
       {
         static constexpr size_t nFeaturesTypes = std::tuple_size_v<FeatureTuple>;
         const auto start_indices = CreateStartIndices(cellGridRef, cellIndex, tau_i,
@@ -451,6 +484,13 @@ public:
                 }
             }
         };
+        { // CellObjectType::GridGlobal
+            typedef GridGlobal_Features Br;
+            fillGrid(Br::rho, tau.rho);
+            fillGrid(Br::tau_pt, tau.tau_pt);
+            fillGrid(Br::tau_eta, tau.tau_eta);
+            fillGrid(Br::tau_inside_ecal_crack, tau.tau_inside_ecal_crack);
+        }
 
         { // CellObjectType::PfCand_electron
 
@@ -566,18 +606,22 @@ public:
 
             fillGrid(Br::pfCand_chHad_vertex_dx, tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x);
             fillGrid(Br::pfCand_chHad_vertex_dy, tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y);
-            fillGrid(Br::pfCand_chHad_vertex_dz, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z);
+            if(std::isfinite(tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z))
+              fillGrid(Br::pfCand_chHad_vertex_dz, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z);
             fillGrid(Br::pfCand_chHad_vertex_dx_tauFL, tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x - tau.tau_flightLength_x);
             fillGrid(Br::pfCand_chHad_vertex_dy_tauFL,  tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y - tau.tau_flightLength_y);
-            fillGrid(Br::pfCand_chHad_vertex_dz_tauFL, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z - tau.tau_flightLength_z);
+            if(std::isfinite(tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z - tau.tau_flightLength_z))
+              fillGrid(Br::pfCand_chHad_vertex_dz_tauFL, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z - tau.tau_flightLength_z);
 
             const bool hasTrackDetails = tau.pfCand_hasTrackDetails.at(pfCand_idx) == 1;
             fillGrid(Br::pfCand_chHad_hasTrackDetails, static_cast<float>(hasTrackDetails));
             if(hasTrackDetails) {
               fillGrid(Br::pfCand_chHad_dxy, tau.pfCand_dxy.at(pfCand_idx));
               fillGrid(Br::pfCand_chHad_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) / tau.pfCand_dxy_error.at(pfCand_idx));
-              fillGrid(Br::pfCand_chHad_dz, tau.pfCand_dz.at(pfCand_idx));
-              fillGrid(Br::pfCand_chHad_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
+              if(std::isfinite(tau.pfCand_dz.at(pfCand_idx))){
+                fillGrid(Br::pfCand_chHad_dz, tau.pfCand_dz.at(pfCand_idx));
+                fillGrid(Br::pfCand_chHad_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
+              }
               if(tau.pfCand_track_ndof.at(pfCand_idx)!=0)
                 fillGrid(Br::pfCand_chHad_track_chi2_ndof, tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx));
               fillGrid(Br::pfCand_chHad_track_ndof, tau.pfCand_track_ndof.at(pfCand_idx));
@@ -731,7 +775,8 @@ public:
             fillGrid(Br::muon_dphi, DeltaPhi(tau.muon_phi.at(idx), tau.tau_phi));
 
             fillGrid(Br::muon_dxy, tau.muon_dxy.at(idx));
-            fillGrid(Br::muon_dxy_sig, std::abs(tau.muon_dxy.at(idx)) / tau.muon_dxy_error.at(idx));
+            if(tau.muon_dxy_error.at(idx) != 0)
+              fillGrid(Br::muon_dxy_sig, std::abs(tau.muon_dxy.at(idx)) / tau.muon_dxy_error.at(idx));
 
             const bool normalizedChi2_valid = tau.muon_normalizedChi2.at(idx) >= 0;
             fillGrid(Br::muon_normalizedChi2_valid, static_cast<float>(normalizedChi2_valid));
@@ -786,7 +831,7 @@ public:
       }
 
       static bool isSameCellObjectType(int particleType, CellObjectType type)
-      { 
+      {
           static const std::set<int> other_types = {0, 6, 7};
 
           static const std::map<int, CellObjectType> obj_types = {
@@ -796,7 +841,7 @@ public:
               { 5, CellObjectType::PfCand_nHad },
               { 1, CellObjectType::PfCand_chHad }
           };
-          
+
           if(other_types.find(particleType) != other_types.end()) return false;
           auto iter = obj_types.find(particleType);
           if(iter == obj_types.end())
@@ -844,15 +889,19 @@ public:
 private:
 
   Long64_t end_entry;
-  Long64_t current_entry; // number of the current entry
+  Long64_t current_entry; // number of the current entry in the file
+  Long64_t current_tau; // number of the current tau candidate
+  Long64_t tau_i;
   const CellGrid innerCellGridRef, outerCellGridRef;
-  const std::vector<std::string> input_files;
+  // const std::vector<std::string> input_files;
 
   bool hasData;
+  bool fullData;
+  bool hasFile;
 
-  // std::shared_ptr<TFile> file; // to open with one file
-  std::shared_ptr<TauTuple> tauTuple;
-  std::shared_ptr<Data> data;
+  std::unique_ptr<TFile> file; // to open with one file
+  std::unique_ptr<TauTuple> tauTuple;
+  std::unique_ptr<Data> data;
   std::unordered_map<int ,std::shared_ptr<TH2D>> hist_weights;
 
 };

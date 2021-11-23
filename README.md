@@ -6,41 +6,23 @@ Tools to perform machine learning studies for tau lepton reconstruction and iden
 
 ## How to install
 
-### Setup for pre-processing
-Root-tuples production steps (both big-tuple and training tuple) require CMSSW environment
-```sh
-export SCRAM_ARCH=slc7_amd64_gcc700
-cmsrel CMSSW_10_6_20
-cd CMSSW_10_6_20/src
-cmsenv
-git cms-merge-topic -u cms-tau-pog:CMSSW_10_6_X_tau-pog_boostedTausMiniFix
-git clone -o cms-tau-pog -b master git@github.com:cms-tau-pog/TauMLTools.git
-scram b -j8
-```
+1. Clone package from the github without loading any additional environment (like CMSSW):
+   ```sh
+   git clone -o cms-tau-pog -b master git@github.com:cms-tau-pog/TauMLTools.git
+   ```
+2. Go to `TauMLTools` directory and load appropriate environment by running `env.sh`:
+   ```sh
+   source env.sh ENV_NAME
+   ```
+   where supported `ENV_NAME` are:
+   - `prod2018`: for production of root-tuples for 2018 pre-UL datasets and pre-processing steps up to Shuffle&Merge
+   - `phase2`: for production of root-tuples for Phase 2 datasets and pre-processing steps up to Shuffle&Merge
+   - `lcg`: using LCG environment, if it is available (e.g. lxplus)
+   - `conda`: using tau-ml conda environment -- this is the recommended environment to perform an actual NN training
 
-### Setup for training and testing
-The following steps (training, testing, etc.) should be run using LCG or conda-based environment setup.
+   N.B. If you want to use existing `conda` installation, make sure that it is activated and the path to the `conda` executable is included in `PATH` variable. If `conda` installation not found, `env.sh` will make install it from the official web site and configure it to work with the current TauMLTools installation.
 
-#### LCG environment
-On sites where LCG software distribution is available (e.g. lxplus) it is enough to source `setup.sh`:
-```sh
-source /cvmfs/sft.cern.ch/lcg/views/LCG_97apython3/x86_64-centos7-clang10-opt/setup.sh
-```
-Currently supported LCG distribution version is LCG_97apython3.
-
-#### conda environment
-In cases when LCG software is not available, we recommend to setup a dedicated conda environment:
-```sh
-conda create --name tau-ml python=3.7
-conda install tensorflow==1.14 pandas scikit-learn matplotlib statsmodels scipy pytables root==6.20.6 uproot lz4 xxhash cython
-```
-
-To activate it use `conda activate tau-ml`.
-
-N.B. All of the packages are available through the conda-forge channel, which should be added to conda configuration before creating the environment:
-```sh
-conda config --add channels conda-forge
-```
+The second step (`source env.sh ENV_NAME`) should be repeated each time you open a new shell session.
 
 ## How to produce inputs
 
@@ -219,16 +201,16 @@ ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
 - `--prefix` is the prefix which will be placed before the path of each file read form `--input`. Please note that this prefix will *not* be placed before the `--input-spec` value. This value can include a remote path compatible with xrootd.
 - the last pt bin is taken as a high pt region, all entries from it are taken without rejection.
 - `--tau-ratio "jet:1, e:1, mu:1, tau:1"` defines proportion of TauTypes in final root-tuple.
-- `--refill-spectrum` to recalculated spectrums of the input data on flight, only events and files that correspond to the current job `--job-idx` will be considered. It was studied that in case of heterogeneity within a data group, the common spectrum of the whole data group poorly represents the spectrum of the sub-chunk of this data group if we use `--n-jobs 500`, so it is needed to fill spectrum histograms in the beginning of every job, to obtain required uniformity of the output. 
+- `--refill-spectrum` to recalculated spectrums of the input data on flight, only events and files that correspond to the current job `--job-idx` will be considered. It was studied that in case of heterogeneity within a data group, the common spectrum of the whole data group poorly represents the spectrum of the sub-chunk of this data group if we use `--n-jobs 500`, so it is needed to fill spectrum histograms in the beginning of every job, to obtain required uniformity of the output.
 - `--lastbin-takeall` due to the poor statistic in the high-pt region the option to take all candidates from last pt-bin is included (contrary to `--lastbin-takeall false`, in this case we put the requirement on n_entries in the last bin to be equal to n_entries in other bins)
 - `--lastbin-disbalance` the argument is relevant in case of `-lastbin-takeall true`, it put the requirement on the ratio of (all entries up to the last bin) to the (number of entries in the last bin) not to be greater than required number, otherwise less events will be taken from all bins up to the last.
 - `--enable-emptybin` in case of empty pt-eta bin, the probability in this bin will be set to 0 (that is needed in cases when datasets are statistically poor or the number of jobs `--n-jobs` is big in case of `--refill-spectrum true` mode)
 - `--n-jobs 500 --job-idx 0` defines into how many parts to split the input files and the index of corresponding job
 
-In order to find appropriate binning and `--tau-ratio` in correspondence to the present statistics it might be useful to execute one job in `--refill-spectrum false --lastbin-takeall false` mode and study the output of `./out/*.root` files. In the \<DataGroupName>_n.root files the number of entries in required  `--pt-bins --eta-bins` can be found. \<DataGroupName>.root files show the probability of accepting candidate from corresponding pt-eta bin. 
+In order to find appropriate binning and `--tau-ratio` in correspondence to the present statistics it might be useful to execute one job in `--refill-spectrum false --lastbin-takeall false` mode and study the output of `./out/*.root` files. In the \<DataGroupName>_n.root files the number of entries in required  `--pt-bins --eta-bins` can be found. \<DataGroupName>.root files show the probability of accepting candidate from corresponding pt-eta bin.
 
 #### ShuffleMergeSpectral on HTCondor
-ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment 
+ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment
 ```sh
 cd $CMSSW_BASE/src
 cmsenv
@@ -298,6 +280,27 @@ python TauMLTools/Production/scripts/validation_tool.py --help
 
 A time benchmark is available [here](https://github.com/cms-tau-pog/TauMLTools/pull/31#issue-510206277).
 
+#### Shuffled ntuples spectrum
+For the following training step, the pT-eta spectrum of these input events is needed and can be computed with the command:
+```bash
+CreateSpectralHists \
+   --outputfile output_spectrum_file.root \
+   --output_entries entries_per_file.txt  \
+   --input-dir /path/to/shuffle/and/merge/files
+   --pt-hist "980, 20, 1000"
+   --eta-hist "250, 0.0, 2.5"
+   --file-name-pattern ".*2_rerun\/Shuffle.*.root"
+   --n-threads 1
+```
+where:
+   - *--outputfile* will store the pT-eta spectrum needed for the training
+   - *--output_entries* will store the list of the shuffle-and-merge files and the number of entries per file
+   - *--input-dir* is the location of the shuffle-and-merge files
+   - *--pt-hist* and *--eta-hist* are the binnings used for the pT and eta variables
+   - *--file-name-pattern* is the regex pattern used to match the input file names
+
+The path to the output file has to be specified in the yaml configuration file described in the following sections.
+
 ### Production of flat inputs
 
 In this stage, `TauTuple`s are transformed into flat [TrainingTuples](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/interface/TrainingTuple.h) that are suitable as an input for the training.
@@ -317,19 +320,152 @@ The script to that performs conversion is defined in [TauMLTools/Analysis/script
 
 ## Training NN
 
-1. The code to read the input grids from the file is implemented in cython in order to provide acceptable I/O performance.
-   Cython code should be compiled before starting the training. To do that, you should go to `TauMLTools/Training/python/` directory and run
+### Feature scaling
+#### Computation
+During the loading of data into the model, values for each feature in the input grid tensor will undergo a sequential transformation with a following order: subtract `mean`, divide by `std`, clamp to a range `[lim_min, lim_max]` (see [`Scale()`](https://github.com/cms-tau-pog/TauMLTools/blob/45babb742f1a15f96950e84d60c95acc9b65f7e9/Training/interface/DataLoader_main.h#L314) function in `DataLoader_main.h`). Here, `mean`, `std`, `lim_min`, `lim_max` are parameters unique for each input feature and they have to be precomputed for a given input data set prior to running the training. This can be done with a script [`Training/python/feature_scaling.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/feature_scaling.py), for example, as follows:
+```python
+python feature_scaling.py --cfg ../configs/training_v1.yaml --var_types TauFlat
+```     
+- `--cfg` (str, required) is a relative path to a main yaml configuration file used for the training
+- `--var_types` (list of str, optional, default: -1) is a list of variable types to be run computation on. Should be the ones from field `Features_all` in the main training cfg file.
+
+The scaling procedure is further configured in the dedicated `Scaling_setup` field of the training yaml cfg file (`../configs/training_v1.yaml` in the example above). There, one needs to specify the following parameters:
+- `file_path`, path to input ROOT files (e.g. after Shuffle & Merge step) which are used for the training
+- `output_json_folder`, path to an output directory for storing json files with scaling coefficients
+- `file_range`, list indicating the range of input files to be used in the computation, -1 to run on all the files in `file_path`
+- `tree_name`, name of TTree with data branches inside of input ROOT files
+- `log_step`, number of files after which make a log of currently computed scaling params
+- `version`, string added as a postfix to the output file names
+
+Then, there are `cone_definition` and `cone_selection` fields which define the configuration for cone splitting. Scaling parameters are computed separately for constituents in the inner cone of the tau candidate (`constituent_dR <= dR_signal_cone`) and in the outer (`(constituent_dR > dR_tau_signal_cone) & (constituent_dR < dR_tau_outer_cone)`). Therefore, in `cone_definition` one should define the inner/outer cone dimensions and in `cone_selection` variable names (per variable type) in input `TTree` to be used to compute dR. Also `cone_types` field allows to specify the cones per variable type for which the script should compute the scaling parameters.
+
+When it comes to variables, scaling module shares the list of ones to be used with the main training module via `Features_all` field of `configs/training_v1.yaml` cfg file. Under this field, each variable type (TauFlat, etc.) stores a list of corresponding variables. Each entry in the list is a dictionary, where the key is the variable name, and the list has the format `(selection_cut, aliases, scaling_type, *lim_params)`:
+- `selection_cut`, string, cuts to be applied on-the-fly by `uproot` when loading (done on feature-by-feature basis) data into `awkward` array. Since `yaml` format allows for the usage of aliases, there are a few of those defined in the `selection` field of the cfg file.
+- `aliases`, dictionary, definitions of variables not present in original file but needed for e.g. applying selection. Added on-the-fly by `uproot` when loading data.
+- `scaling_type`, string, one of `["no scaling", "categorical", "linear", "normal"]`, see below for their definition.
+- `lim_params`, if passed, should be either a list of two numbers or a dictionary. Depending on the scaling type (see below), specifies the range to which each variable should be clamped.
+
+**NB:** Please note, that as of now selection criteria `selection_cut` are used **only** by the scaling module and are a duplicate of those specified internally inside of the `DataLoader` class. One needs to **ensure that those two are in synch with each other**.
+
+The following scaling types are supported:
+- for `no scaling` and `categorical` cases it automatically fills in the output json file with `mean=0`, `std=1`, `lim_min=-inf`, `lim_max=inf` (no linear transformation and no clamping). Both cases are treated similarly and "categorical" label is introduced only to distinguish those variables in the cfg file for a possible dedicated preprocessing in the future.
+- `linear` case assumes the variable needs to be first clamped to a specified range, and then linearly transformed to the range `[-1,1]`. Here one should pass as `lim_params` in the cfg exactly those range, for which they would want to clamp the data *first* (recall that in `DataLoader` it is done as the last step). The corresponding `mean`, `std`, `lim_min`/`lim_max` to meet the DataLoader notation are derived and filled in the output json automatically in the function `init_dictionaries()` of `scaling_utils.py`
+- `normal` case assumes the variable to be standardised by `mean` (subtract) and `std` (divide) and clamped to a specified range (in number of sigmas). Here one should pass `lim_params` as the number of sigmas to which they want to clamp the data after being scaled by mean and std (e.g. [-5, 5]). It is also possible to skip `lim_params` argument. In that case, it is automatically filled `lim_min=-inf`, `lim_max=inf`
+
+Also note that `lim_params` (for both linear and normal cases) can be a dictionary with keys "inner" and/or "outer" and values as lists of two elements as before. In that case `lim_min`/`lim_max` will be derived separately for each specified cone.
+
+As one may notice, it is "normal" features which require actual computation, since for other types scaling parameters can be derived easily based on specified `lim_params`. The computation of means and stds in that case is performed in an iterative manner, where the input files are opened one after another and for each variable the sum of its values, squared sum of values and counts of entries are being aggregated as the files are being read. Then, every `log_step` number of files, means/stds are computed based on so far aggregated sums and counts and together with other scaling parameters are logged into a json file. This cumulative nature of the approach also allows for a more flexible scan of the data for its validation (e.g. by comparison of aggregated statistics, not necessarily mean/std across file ranges). Moreover, for every file every variable's quantiles are stored, allowing for a validation of the scaling procedure (see section below).
+
+The result of running the scaling script will be a set of log json files further referred to as *snapshots* (e.g. `scaling_params_v*_log_i.json`), where each file corresponds to computation of mean/std/lim_min/lim_max *after* having accumulated sums/sums2/counts for `i*log_step` files; the json file (`scaling_params_v*.json`) which corresponds to processing of all given files; json file storing variables' quantiles per file (`quantile_params_v*.json`). `scaling_params_v*.json` should be further provided to `DataLoader` in the training step to perform the scaling of inputs.  
+
+#### Validation
+Since the feature scaling computation follows a cumulative approach, one can be interested to see how the estimates of mean/std are converging to stable values from one snapshot to another as more data is being added. The convergence of the approach can be validated with [`Training/python/plot_scaling_convergence.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/plot_scaling_convergence.py), e.g. for TauFlat variable type:
+```python
+python plot_scaling_convergence.py --train-cfg ../configs/training_v1.yaml -p /afs/cern.ch/work/o/ofilatov/public/scaling_v2/json/all_types_10files_log1 -pr scaling_params_v2 -n 1 -t -1 -c global -c inner -c outer -o scaling_plots
+```
+- `--train-cfg`, path to yaml configuration file used for training
+- `-p/--path-to-snapshots`, path to the directory with scaling json snapshot files
+- `-pr/--snapshot-prefix`, prefix used in the name of json files to tag a scaling version
+- `-n/--nfiles-step`, number of processed files per log step (`log_step` parameter), as it was set while running the scaling computation
+- `-t/--var-types`, variable types for which scaling parameters are to be plotted, -1 to run on all of them
+- `-c/--cone-types`, cone types for which scaling parameters are to be plotted
+- `-o/--output-folder`, output directory to save plots
+
+This will produce a series of plots which combine all the variables of the given type into a *boxplot representation* and show its evolution as an ensemble throughout the scaling computation. Please have a look at [this presentation](https://indico.cern.ch/event/1038235/contributions/4359970/attachments/2242374/3803434/scaling_update_11May.pdf) for more details on the method.
+
+Furthermore, once the scaling parameters are computed, one might be interested to see how the computed clamped range for a given feature relates to the actual quantiles of the feature distribution. Indeed, clamping might significantly distort the distribution if the derived (in "normal" case) or specified (in "linear" case) clamped range is not "wide enough", i.e. doesn't cover the most bulk of the distribution. The comparison of clamped and quantile ranges can be performed with [`Training/python/plot_quantile_ranges.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/plot_quantile_ranges.py):
+```python
+python plot_quantile_ranges.py --train-cfg ../configs/training_v1.yaml --scaling-file /afs/cern.ch/work/o/ofilatov/public/scaling_v2/scaling_params_v2.json --quantile-file /afs/cern.ch/work/o/ofilatov/public/scaling_v2/quantile_params_v2.json --file-id 0 --output-folder quantile_plots/fid_0 --only-suspicious False
+```
+- `--train-cfg`, path to yaml configuration file used for training
+- `--scaling-file`, path to json file with scaling parameters
+- `--quantile-file`, path to json file with variables' quantiles
+- `--file-id`, id (integer from `range(len(input_files))`) of the input ROOT file. Since quantile range of variables are derived per input file, will use for plotting those of `file-id`-th file.
+- `--output-folder`, output directory to save plots
+- `--only-suspicious`, whether to save only suspicious plots. Please have a look at the suspiciousness criteria in `plot_quantile_ranges.py`
+
+This will produce a plot of the clamped range plotted side-by-side with quantile ranges for the corresponding feature's distribution, so that it's possible to compare if the former overshoots/undershoots the actual distribution. However, please note that this representation is dependant on the input file (`--file-id` argument), so it is advisable to check whether quantiles are robust to a file change. For more details please have a look at [this presentation](https://indico.cern.ch/event/1044740/contributions/4389426/attachments/2255446/3827568/scaling_update_1June.pdf) of the method.
+
+
+### Single run
+In order to have organized storage of models and its associated files, [mlflow](https://mlflow.org/docs/latest/index.html) is used from the training step onwards. At the training step, it takes care of logging necessary configuration parameters used to run the given training, plus additional artifacts, i.e. associated files like model/cfg files or output logs). Conceptually, mlflow augments the training code with additional logging of requested parameters/files whenever it is requested. Please note that hereafter mlflow notions of __run__ (a single training) and __experiment__ (a group of runs) will be used. 
+
+The script to perform the training is [TauMLTools/Training/python/2018v1/Training_v0p1.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/2018v1/Training_v0p1.py). It is supplied with a corresponding [TauMLTools/Training/python/2018v1/train.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/2018v1/train.yaml) configuration file which specifies input configuration parameters. Here, [hydra](https://hydra.cc/docs/intro/) is used to compose the final configuration given the specification inside of `train.yaml` and, optionally, from a command line (see below), which is then passed as [OmegaConf](https://omegaconf.readthedocs.io/) dictionary to `main()` function. 
+
+The specification consists of:
+* the main training configuration file [`TauMLTools/Training/configs/training_v1.yaml`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/configs/training_v1.yaml) describing `DataLoader` and model configurations, which is "imported" by hydra as a [defaults list](https://hydra.cc/docs/advanced/defaults_list/)
+* mlflow parameters, specifically `path_to_mlflow` (to the folder storing mlflow runs, usually its default name is `mlruns`) and `experiment_name`.  These two parameters are needed to either create an mlflow experiment with a given `experiment_name` (if it doesn't exist) or to find the experiment to which attribute the current run
+* `scaling_cfg` which specifies the path to the json file with feature scaling parameters
+* `gpu_cfg` which sets the gpu related parameters 
+* `log_suffix` used as a postfix in output directory names
+
+Also note that one can conveniently [add/remove/override](https://hydra.cc/docs/advanced/override_grammar/basic/) __any__ configuration items from the command line. Otherwise, running `python Training_v0p1.py` will use default values as they are composed by hydra based on `train.yaml`.
+
+An example of running the training would be:
+```sh
+python Training_v0p1.py experiment_name=run3_cnn_ho2 'training_cfg.SetupNN.tau_net={ activation: "PReLU", dropout_rate: 0.2, reduction_rate: 1.4, first_layer_width: "2*n*(1+drop)", last_layer_width: "n*(1+drop)" }' 'training_cfg.SetupNN.comp_net={ activation: "PReLU", dropout_rate: 0.2, reduction_rate: 1.6, first_layer_width: "2*n*(1+drop)", last_layer_width: "n*(1+drop)" }' 'training_cfg.SetupNN.comp_merge_net={ activation: "PReLU", dropout_rate: 0.2, reduction_rate: 1.6, first_layer_width: "n", last_layer_width: 64 }' 'training_cfg.SetupNN.conv_2d_net={ activation: "PReLU", dropout_rate: 0.2, reduction_rate: null, window_size: 3 }' 'training_cfg.SetupNN.dense_net={ activation: "PReLU", dropout_rate: 0.2, reduction_rate: 1, first_layer_width: 200, last_layer_width: 200, min_n_layers: 4 }'
+```
+
+Here, a new mlflow run will be created under the "run3_cnn_ho2" experiment (if the experiment doesn't exist, it will be created). Then, the model is composed and compiled and the training proceeds via a usual `fit()` method with `DataLoader` class instance used as a batch yielder. Several callbacks are also implemented to monitor the training process, specifically `CSVLogger`, `TimeCheckpoint` and `TensorBoard` callback. Lastly, note that the parameters related to the NN setup and initially specified in `training_v1.yaml` are overriden via the command line (`training_cfg.SetupNN.{param}=...`)
+
+Furthermore, for the sake of convenience, submission of multiple trainings in parallel to the batch system is implemented as a dedicated law task. As an example, running the following commands will set up law and submit the trainings specified in `TauMLTools/Training/configs/input_run3_cnn_ho1.txt` to `htcondor`: 
+
+```sh
+source setup.sh
+law index
+law run Training --version input_run3_cnn_ho1 --workflow htcondor --working-dir /nfs/dust/cms/user/mykytaua/softDeepTau/DeepTau_master_hyperparam-law/TauMLTools/Training/python/2018v1 --input-cmds /nfs/dust/cms/user/mykytaua/softDeepTau/DeepTau_master_hyperparam-law/TauMLTools/Training/configs/input_run3_cnn_ho1.txt --conda-path /nfs/dust/cms/user/mykytaua/softML/miniconda3/bin/conda --max-memory 40000 --max-runtime 20
+```
+
+### Combining multiple runs
+It might be the case that trainings from a common mlflow experiment are distributed amongst several people (e.g. for the purpose of hyperparameter optimisation), so that each person runs their fraction on their personal/institute hardware, and then all the mlflow runs are to be combined together under the same folder. Naive copying and merging of `mlruns` folders under the common folder wouldn't work because several parameters in `meta.yaml` files (mlflow internal cfg files stored per run and per experiment in corresponding folders) are not synchronised accross the team in their mlflow experiments. Specifically, in each of those files the following parameters require changes:
+
+1. `artifact_location` (`meta.yaml` for each experiment) needs to be set to a common merged directory and the same change needs to be propagated to `artifact_uri` (`meta.yaml` for each run).
+1. `experiment_id` needs to be set to a new common experiment ID (`meta.yaml` for each experiment and for each run).
+
+These points are not a problem if the end goal is a simple file storage. However, mlflow is being used in the current training procedure mostly to improve UX with dedicated [`mlflow UI`](https://www.mlflow.org/docs/latest/tracking.html#tracking-ui) for a better navigation through the trainings and their convenient comparison. In that case, mlflow UI requires a properly structured `mlruns` folder to correctly read and visualise run-related information.
+
+For the purpose of preparing individual's `mlruns` folder for merging, [`set_mlflow_paths.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/set_mlflow_paths.py) script was written. What it does is:
+1. recursively going through the folders in user-specified `path_to_mlflow` and corresponding experiment `exp_id` therein, opening firstly the experiment-related `meta.yaml` and resetting there `artifact_location` to `new_path_to_exp`, which is defined as a concatenation of user-specified `new_path_to_mlflow` and `exp_id` or `new_exp_id` (if passed)
+1. opening run-related `meta.yaml` files and resetting `artifact_uri` key to `new_path_to_exp`, plus resetting `experiment_id` to `new_exp_id` (if passed)
+1. in case `new_exp_id` argument is provided, the whole experiment folder is renamed to this new ID  
+
+It has the following input arguments:
+* `-p`, `--path-to-mlflow`: (required) Path to local folder with mlflow experiments
+* `-id`, `--exp-id`: (required) Experiment id in the specified mlflow folder to be modified.
+* `-np`, `--new-path-to-mlflow`: (required) New path to be set throughout `meta.yaml` configs for a specified mlflow experiment.
+* `-nid`, `--new-exp-id`: (optional, default=None) If passed, will also reset the current experiment id.
+* `-nn`, `--new-exp-name`: (optional, default=None) If passed, will also reset the current experiment name.
+
+Therefore, the following workflow is suggested:
+1. One runs their fraction of a common mlflow experiment at machine(s) of their choice. At this point it is not really important to have a common experiment name/experiment ID across all the team since it will be anyway unified afterwards. The outcome of this step is one has got locally a folder `${WORKDIR}/mlruns/${EXP_ID}` which contains the trainings as mlflow run folders + experiment-related `meta.yaml`.
+1. The team aggrees that the combined experiment name is `${NEW_EXP_NAME}` with a corresponding ID `${NEW_EXP_ID}` and the directory where the runs distributed across the team are to be stored is `${SHARED_DIR}/mlruns`. Below will assume that this directory is located on `lxplus`.
+1. Everyone in the team runs `set_mlflow_paths.py` script at the machine where the training was happening:
    ```sh
-   python _fill_grid_setup.py build
+   python set_mlflow_paths.py -p ${WORKDIR}/mlruns -id ${exp_id} -np ${SHARED_DIR}/mlruns -nid ${NEW_EXP_ID} -nn ${NEW_EXP_NAME}
    ```
-1. DeepTau v2 training is defined in [TauMLTools/Training/python/2017v2/Training_p6.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/2017v2/Training_p6.py). You should modify input path, number of epoch and other parameters according to your needs in [L286](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/2017v2/Training_p6.py#L286) and then run the training in `TauMLTools/Training/python/2017v2` directory:
+1. Everyone in the team copies runs from the shared experiment from their local machines to `${SHARED_DIR}`, e.g. using `rsync` (note that below `--dry-run` option is on, remove it to do the actual synching):
    ```sh
-   python Training_p6.py
+   rsync --archive --compress --verbose --human-readable --progress --inplace --dry-run ${WORKDIR}/mlruns ${USERNAME}@lxplus.cern.ch:${SHARED_DIR}
    ```
-1. Once training is finished, the model can be converted to the constant graph suitable for inference:
+   **NB:** this command will synchronise **all** experiment folders inside of `${WORKDIR}/mlruns` with those of `${SHARED_DIR}/mlruns`. Make sure that this won't cause troubles and clashes for experiments which are not `${EXP_ID}`.
+1. Now, it should be possible to bring up mlflow UI and inspect the merged runs altogether:
    ```sh
-   python TauMLTools/Analysis/python/deploy_model.py --input MODEL_FILE.hdf5
+   cd ${SHARED_DIR}
+   mlflow ui -p 5000 # 5000 is the default port
+   # forward this port to a machine with graphics
    ```
+### Additional helping commands 
+
+In order to check the learning process stability and convergence, tensorboard monitoring is utilized in the training script. In order to compare all existing runs in the `mlruns` folder, the following command can be used:
+
+```sh
+./Training/script/run_tensorboard.sh <PATH_TO_MLRUNS_FOLDER>
+```
+
+In order to check the final training/validation loss function and corresponding model info:
+```sh
+./Training/script/print_results.sh <PATH_TO_MLRUNS_FOLDER>
+```
 
 ## Testing NN performance
 
