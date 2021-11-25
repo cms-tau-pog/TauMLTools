@@ -304,6 +304,11 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
         df['weight'] = pd.Series(np.ones(df.shape[0]), index=df.index)
     return df
 
+def fill_placeholders(string, placeholder_to_value):
+    for placeholder, value in placeholder_to_value.items():
+        string = string.replace(placeholder, str(value))
+    return string
+
 class FloatList(object):
     def __init__(self, value):
         self.value = value

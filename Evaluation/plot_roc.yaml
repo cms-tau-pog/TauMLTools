@@ -9,9 +9,8 @@ reference:
 
 # region
 vs_type: ??? # jet/e/mu/tau
-sample_tau: ??? # dataset alias 
-sample_vs_type: ??? # dataset alias 
+dataset_alias: ??? # sample alias asigned in yaml cfg at eval step
 pt_bin: ??? # list, e.g [20, 100] 
 
 # will log the plot to the run of the first discriminator in the "discriminators" list
-output_name: 'roc_curve_vs_${vs_type}_pt_${pt_bin[0]}_${pt_bin[1]}'
+output_name: 'roc_curve_vs_${vs_type}_${dataset_alias}_pt_${pt_bin[0]}_${pt_bin[1]}'

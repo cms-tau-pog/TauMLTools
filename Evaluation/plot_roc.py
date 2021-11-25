@@ -128,6 +128,7 @@ def main(cfg: DictConfig) -> None:
     path_to_mlflow = to_absolute_path(cfg.path_to_mlflow)
     mlflow.set_tracking_uri(f"file://{path_to_mlflow}")
     path_to_pdf = f'./{cfg.output_name}.pdf' # hydra log directory
+    print()
 
     # retrieve pt bin from input cfg 
     assert len(cfg.pt_bin)==2 and cfg.pt_bin[0] <= cfg.pt_bin[1]
@@ -143,7 +144,9 @@ def main(cfg: DictConfig) -> None:
         ref_discr_data = json.load(f)
     ref_curve = select_curve(ref_discr_data['metrics'][ref_curve_type], 
                                 pt_min=pt_min, pt_max=pt_max, vs_type=cfg.vs_type,
-                                sample_tau=cfg.sample_tau, sample_vs_type=cfg.sample_vs_type)
+                                dataset_alias=cfg.dataset_alias)
+    if ref_curve is None:
+        raise RuntimeError('[INFO] didn\'t manage to retrieve a reference curve from performance.json')
     ref_roc = RocCurve(ref_curve, None)
 
     curves_to_plot = []
@@ -158,12 +161,14 @@ def main(cfg: DictConfig) -> None:
             for curve_type in curve_types: 
                 discr_curve = select_curve(discr_data['metrics'][curve_type], 
                                             pt_min=pt_min, pt_max=pt_max, vs_type=cfg.vs_type,
-                                            sample_tau=cfg.sample_tau, sample_vs_type=cfg.sample_vs_type)
-                if (discr_name==ref_discr_name and curve_type==ref_curve_type) or ('wp' not in curve_type):
+                                            dataset_alias=cfg.dataset_alias)
+                if discr_curve is None:
+                    print(f'[INFO] Didn\'t manage to retrieve a curve ({curve_type}) for discriminator ({discr_name}) from performance.json. Will proceed without plotting it.')
+                    continue
+                elif (discr_name==ref_discr_name and curve_type==ref_curve_type) or ('wp' not in curve_type):
                     curves_to_plot.append(RocCurve(discr_curve, ref_roc=None))
                 else:
                     curves_to_plot.append(RocCurve(discr_curve, ref_roc=ref_roc))
-                    
                 curve_names.append(discr_data['name'])
 
         fig, (ax, ax_ratio) = plt.subplots(2, 1, figsize=(7, 7), sharex=True, gridspec_kw = {'height_ratios':[3, 1]})

@@ -1,6 +1,7 @@
 import os
 import math
 import json
+import pandas as pd
 from collections import defaultdict
 from dataclasses import fields
 
@@ -16,15 +17,8 @@ def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
     
     # setting paths
-    path_to_input_taus = to_absolute_path(cfg.path_to_input_taus)
-    path_to_input_vs_type = to_absolute_path(cfg.path_to_input_vs_type)
-    path_to_pred_taus = to_absolute_path(cfg.path_to_pred_taus) if cfg.path_to_pred_taus is not None else None
-    path_to_pred_vs_type = to_absolute_path(cfg.path_to_pred_vs_type) if cfg.path_to_pred_vs_type is not None else None
-    path_to_target_taus = to_absolute_path(cfg.path_to_target_taus) if cfg.path_to_target_taus is not None else None
-    path_to_target_vs_type = to_absolute_path(cfg.path_to_target_vs_type) if cfg.path_to_target_vs_type is not None else None
-    path_to_weights_taus = to_absolute_path(cfg.path_to_weights_taus) if cfg.path_to_weights_taus is not None else None
-    path_to_weights_vs_type = to_absolute_path(cfg.path_to_weights_vs_type) if cfg.path_to_weights_vs_type is not None else None
-    #
+    # path_to_weights_taus = to_absolute_path(cfg.path_to_weights_taus) if cfg.path_to_weights_taus is not None else None
+    # path_to_weights_vs_type = to_absolute_path(cfg.path_to_weights_vs_type) if cfg.path_to_weights_vs_type is not None else None
     path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.experiment_id}/{cfg.run_id}/artifacts/')
     output_json_path = f'{path_to_artifacts}/performance.json'
 
@@ -40,19 +34,23 @@ def main(cfg: DictConfig) -> None:
 
     # construct branches to be read from input files
     input_branches = OmegaConf.to_object(cfg.input_branches)
-    if ((_b:=discriminator.pred_column) is not None) and (path_to_pred_taus is None or path_to_pred_vs_type is None):
+    if ((_b:=discriminator.pred_column) is not None) and (cfg.path_to_pred is None):
         input_branches.append(_b)
     if (_b:=discriminator.wp_column) is not None:
         input_branches.append(_b)
 
     # read original data with corresponging predictions into DataFrame
-    df_taus = eval_tools.create_df(path_to_input_taus, input_branches, path_to_pred_taus, path_to_target_taus, path_to_weights_taus,
-                                    cfg.discriminator.pred_column_prefix, cfg.discriminator.target_column_prefix)
-    df_vs_type = eval_tools.create_df(path_to_input_vs_type, input_branches, path_to_pred_vs_type, path_to_target_vs_type, path_to_weights_vs_type,
-                                    cfg.discriminator.pred_column_prefix, cfg.discriminator.target_column_prefix)
-    df_taus = df_taus.query('gen_tau==1')
-    df_vs_type = df_vs_type.query(f'gen_{cfg.vs_type}==1')
-    df_all = df_taus.append(df_vs_type)
+    df_list = []
+    for sample_name, tau_types in cfg.input_samples.items():
+        path_to_input = to_absolute_path(eval_tools.fill_placeholders(cfg.path_to_input, {"{sample}": sample_name}))
+        path_to_pred = to_absolute_path(eval_tools.fill_placeholders(cfg.path_to_pred, {"{sample}": sample_name})) if cfg.path_to_pred is not None else None
+        path_to_target = to_absolute_path(eval_tools.fill_placeholders(cfg.path_to_target, {"{sample}": sample_name})) if cfg.path_to_target is not None else None
+        df = eval_tools.create_df(path_to_input, input_branches, path_to_pred, path_to_target, None, # weights functionality is WIP
+                                        cfg.discriminator.pred_column_prefix, cfg.discriminator.target_column_prefix)
+        gen_selection = ' or '.join([f'(gen_{tau_type}==1)' for tau_type in tau_types]) # gen_* are constructed in `add_targets()`
+        df = df.query(gen_selection)
+        df_list.append(df)
+    df_all = pd.concat(df_list)
 
     # apply selection
     if cfg.cuts is not None: df_all = df_all.query(cfg.cuts)
@@ -96,15 +94,15 @@ def main(cfg: DictConfig) -> None:
                 if curve is None: continue
                 if json_exists and curve_type in performance_data['metrics'] \
                                 and (existing_curve := eval_tools.select_curve(performance_data['metrics'][curve_type], 
-                                                                        pt_min=pt_min, pt_max=pt_max, vs_type=cfg.vs_type,
-                                                                        sample_tau=cfg.sample_tau, sample_vs_type=cfg.sample_vs_type)) is not None:
+                                                                                pt_min=pt_min, pt_max=pt_max, vs_type=cfg.vs_type,
+                                                                                dataset_alias=cfg.dataset_alias)) is not None:
                     print(f'[INFO] Found already existing curve (type: {curve_type}) in json file for a specified set of parameters: will overwrite it.')
                     performance_data['metrics'][curve_type].remove(existing_curve)
 
                 curve_data = {
                     'pt_min': pt_min, 'pt_max': pt_max, 
                     'vs_type': cfg.vs_type,
-                    'sample_tau': cfg.sample_tau, 'sample_vs_type': cfg.sample_vs_type,
+                    'dataset_alias': cfg.dataset_alias,
                     'auc_score': curve.auc_score,
                     'false_positive_rate': eval_tools.FloatList(curve.pr[0, :].tolist()),
                     'true_positive_rate': eval_tools.FloatList(curve.pr[1, :].tolist()),

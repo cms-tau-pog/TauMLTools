@@ -13,23 +13,19 @@ run_id: ???
 # phase space region
 period: '2018 (13 TeV)'
 vs_type: ??? # jet/e/mu
-sample_tau: ??? # alias of the sample
-sample_vs_type: ??? # alias of the sample
+dataset_alias: ??? # alias to reference a mixture of input_samples below, e.g. tau_DY_jet_TT
 pt_bins: [20, 100, 1000]
 
 # selection
 input_branches: [ 'tau_pt', 'tau_decayMode' ] # add here branches with targets/prediction if necessary
 cuts: ${apply_dm_cuts}
 
-# paths to input tuples used to make predictions
-path_to_input_taus: 'eval_data/${sample_tau}.root' 
-path_to_input_vs_type: 'eval_data/${sample_vs_type}.root'  # null to use only `path_to_input_taus` to build dataframe
-#
-path_to_pred_taus: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/${sample_tau}_pred.h5' # null to assume prediction branches are already in`path_to_input_taus`
-path_to_pred_vs_type: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/${sample_vs_type}_pred.h5' # null to assume prediction branches are already in `path_to_pred_vs_type`
-#
-path_to_target_taus: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/${sample_tau}_pred.h5' # null to assume target branches are already in `path_to_input_taus`
-path_to_target_vs_type: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/${sample_vs_type}_pred.h5' # null to assume target branches are already in `path_to_input_vs_type`
-#
+# inputs/paths
+input_samples: # "sample_name": [list of strings with tau types to be selected]
+  ???: ['tau']
+  ???: ["${vs_type}"]
+path_to_input: 'eval_data/{sample}.root' # {sample} will be filled with sample_names above
+path_to_pred: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/{sample}_pred.h5'
+path_to_target: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/{sample}_pred.h5'
 path_to_weights_taus: null
 path_to_weights_vs_type: null
