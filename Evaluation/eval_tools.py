@@ -248,58 +248,52 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
             return pd.read_hdf(path_to_file, tree_name, columns=branches)
         raise RuntimeError("Unsupported file type.")
 
-    def add_predictions(df, path_to_pred_file, pred_column_prefix):
-        if not os.path.exists(path_to_pred_file):
-            raise RuntimeError(f"Specified file for predictions {path_to_pred_file} does not exist")
-        with h5py.File(path_to_pred_file, 'r') as f:
+    def add_group(df, group_name, path_to_files, group_column_prefix):
+        if not os.path.exists(path_to_files):
+            raise RuntimeError(f"Specified file {path_to_files} for {group_name} does not exist")
+        with h5py.File(path_to_files, 'r') as f:
             file_keys = list(f.keys())
-        if 'predictions' in file_keys: 
-            df_pred = pd.read_hdf(path_to_pred_file, 'predictions')
+        if group_name in file_keys: 
+            group_df = pd.read_hdf(path_to_files, group_name)
         else:
-            df_pred = pd.read_hdf(path_to_pred_file)
-        prob_tau = df_pred[f'{pred_column_prefix}tau'].values
-        for node_column in df_pred.columns:
-            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}{tau_type}"
-            tau_type = node_column.split(f'{pred_column_prefix}')[-1] 
-            if tau_type != 'tau':
-                prob_vs_type = df_pred[pred_column_prefix + tau_type].values
-                tau_vs_other_type = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_vs_type), np.zeros(prob_tau.shape))
-                df[pred_column_prefix + tau_type] = pd.Series(tau_vs_other_type, index=df.index)
-        return df
-
-    def add_targets(df, path_to_target_file, target_column_prefix):
-        if not os.path.exists(path_to_target_file):
-            raise RuntimeError(f"Specified file for targets {path_to_target_file} does not exist")
-        with h5py.File(path_to_target_file, 'r') as f:
-            file_keys = list(f.keys())
-        if 'targets' in file_keys: 
-            df_targets = pd.read_hdf(path_to_target_file, 'targets')
-        else:
-            df_targets = pd.read_hdf(path_to_target_file)
-        for node_column in df_targets.columns:
-            if not node_column.startswith(target_column_prefix): continue # assume prediction column name to be "{target_column_prefix}{tau_type}"
-            tau_type = node_column.split(f'{target_column_prefix}')[-1]
-            df[f'gen_{tau_type}'] = df_targets[node_column]
-        return df
-    
-    def add_weights(df, path_to_weight_file):
-        df_weights = pd.read_hdf(path_to_weight_file)
-        df['weight'] = pd.Series(df_weights.weight.values, index=df.index)
+            group_df = pd.read_hdf(path_to_files)
+        
+        # weight case
+        if group_name == 'weights':
+            group_df = pd.read_hdf(path_to_files)
+            df['weight'] = pd.Series(group_df['weight'].values, index=df.index)
+            return df
+        elif group_name == 'predictions': 
+            prob_tau = group_df[f'{group_column_prefix}tau'].values
+        elif group_name != 'targets':
+            raise ValueError(f'group_name should be one of [predictions, targets, weights], got {group_name}')
+        
+        # add columns for predictions/targets case
+        for node_column in group_df.columns:
+            if not node_column.startswith(group_column_prefix): continue # assume prediction column name to be "{group_column_prefix}{tau_type}"
+            tau_type = node_column.split(f'{group_column_prefix}')[-1] 
+            if group_name == 'predictions':
+                if tau_type != 'tau':
+                    prob_vs_type = group_df[group_column_prefix + tau_type].values
+                    tau_vs_other_type = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_vs_type), np.zeros(prob_tau.shape))
+                    df[group_column_prefix + tau_type] = pd.Series(tau_vs_other_type, index=df.index)
+            elif group_name == 'targets':
+                df[f'gen_{tau_type}'] = group_df[node_column]
         return df
 
     # TODO: add on the fly branching creation for uproot
     print()
     df = read_branches(path_to_input_file, 'taus', input_branches)
     if path_to_pred_file is not None:
-        add_predictions(df, path_to_pred_file, pred_column_prefix)
+        add_group(df, 'predictions', path_to_pred_file, pred_column_prefix)
     else:
         print(f'[INFO] path_to_pred_file=None, will proceed without reading predictions from there')
     if path_to_target_file is not None:
-        add_targets(df, path_to_target_file, target_column_prefix)
+        add_group(df, 'targets', path_to_target_file, target_column_prefix)
     else:
         print(f'[INFO] path_to_target_file=None, will proceed without reading targetsfrom there')
     if path_to_weights is not None:
-        add_weights(df, path_to_weights)
+        add_group(df, 'weights', path_to_weights, None)
     else:
         df['weight'] = pd.Series(np.ones(df.shape[0]), index=df.index)
     return df
