@@ -39,17 +39,20 @@ def main(cfg: DictConfig) -> None:
     if (_b:=discriminator.wp_column) is not None:
         input_branches.append(_b)
 
-    # read original data with corresponging predictions into DataFrame
+    # loop over input samples
     df_list = []
-    for sample_name, tau_types in cfg.input_samples.items():
-        path_to_input = to_absolute_path(eval_tools.fill_placeholders(cfg.path_to_input, {"{sample}": sample_name}))
-        path_to_pred = to_absolute_path(eval_tools.fill_placeholders(cfg.path_to_pred, {"{sample}": sample_name})) if cfg.path_to_pred is not None else None
-        path_to_target = to_absolute_path(eval_tools.fill_placeholders(cfg.path_to_target, {"{sample}": sample_name})) if cfg.path_to_target is not None else None
-        df = eval_tools.create_df(path_to_input, input_branches, path_to_pred, path_to_target, None, # weights functionality is WIP
-                                        cfg.discriminator.pred_column_prefix, cfg.discriminator.target_column_prefix)
-        gen_selection = ' or '.join([f'(gen_{tau_type}==1)' for tau_type in tau_types]) # gen_* are constructed in `add_targets()`
-        df = df.query(gen_selection)
-        df_list.append(df)
+    print()
+    for sample_alias, tau_types in cfg.input_samples.items():
+        input_files, pred_files, target_files = eval_tools.prepare_filelists(sample_alias, cfg.path_to_input, cfg.path_to_pred, cfg.path_to_target, path_to_artifacts)
+
+        # loop over all input files per sample with associated predictions/targets (if present) and combine together into df
+        print(f'[INFO] Creating dataframe for sample: {sample_alias}')
+        for input_file, pred_file, target_file in zip(input_files, pred_files, target_files):
+            df = eval_tools.create_df(input_file, input_branches, pred_file, target_file, None, # weights functionality is WIP
+                                            cfg.discriminator.pred_column_prefix, cfg.discriminator.target_column_prefix)
+            gen_selection = ' or '.join([f'(gen_{tau_type}==1)' for tau_type in tau_types]) # gen_* are constructed in `add_targets()`
+            df = df.query(gen_selection)
+            df_list.append(df)
     df_all = pd.concat(df_list)
 
     # apply selection

@@ -11,7 +11,9 @@ import h5py
 import json
 import re
 import sys
+from glob import glob
 from dataclasses import dataclass, field
+from hydra.utils import to_absolute_path
 
 if sys.version_info.major > 2:
     from statsmodels.stats.proportion import proportion_confint
@@ -248,19 +250,19 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
             return pd.read_hdf(path_to_file, tree_name, columns=branches)
         raise RuntimeError("Unsupported file type.")
 
-    def add_group(df, group_name, path_to_files, group_column_prefix):
-        if not os.path.exists(path_to_files):
-            raise RuntimeError(f"Specified file {path_to_files} for {group_name} does not exist")
-        with h5py.File(path_to_files, 'r') as f:
+    def add_group(df, group_name, path_to_file, group_column_prefix):
+        if not os.path.exists(path_to_file):
+            raise RuntimeError(f"Specified file {path_to_file} for {group_name} does not exist")
+        with h5py.File(path_to_file, 'r') as f:
             file_keys = list(f.keys())
         if group_name in file_keys: 
-            group_df = pd.read_hdf(path_to_files, group_name)
+            group_df = pd.read_hdf(path_to_file, group_name)
         else:
-            group_df = pd.read_hdf(path_to_files)
+            group_df = pd.read_hdf(path_to_file)
         
         # weight case
         if group_name == 'weights':
-            group_df = pd.read_hdf(path_to_files)
+            group_df = pd.read_hdf(path_to_file)
             df['weight'] = pd.Series(group_df['weight'].values, index=df.index)
             return df
         elif group_name == 'predictions': 
@@ -282,7 +284,6 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
         return df
 
     # TODO: add on the fly branching creation for uproot
-    print()
     df = read_branches(path_to_input_file, 'taus', input_branches)
     if path_to_pred_file is not None:
         add_group(df, 'predictions', path_to_pred_file, pred_column_prefix)
@@ -291,12 +292,59 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
     if path_to_target_file is not None:
         add_group(df, 'targets', path_to_target_file, target_column_prefix)
     else:
-        print(f'[INFO] path_to_target_file=None, will proceed without reading targetsfrom there')
+        print(f'[INFO] path_to_target_file=None, will proceed without reading targets from there')
     if path_to_weights is not None:
         add_group(df, 'weights', path_to_weights, None)
     else:
         df['weight'] = pd.Series(np.ones(df.shape[0]), index=df.index)
     return df
+
+def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target, path_to_artifacts):
+    def path_splitter(path):
+        basename = os.path.splitext(os.path.basename(path))[0]
+        if basename.endswith('_pred'):
+            i = basename.split('_')[-2]
+        else:
+            i = basename.split('_')[-1]
+        return int(i)
+        
+    # prepare list of files with inputs
+    if path_to_input is not None:
+        path_to_input = os.path.abspath(to_absolute_path(fill_placeholders(path_to_input, {"{sample_alias}": sample_alias})))
+        input_files = sorted(glob(path_to_input), key=path_splitter)
+    else:
+        input_files = []
+
+    # prepare list of files with inputs/predictions
+    if path_to_pred is not None:
+        path_to_pred = os.path.abspath(to_absolute_path(fill_placeholders(path_to_pred, {"{sample_alias}": sample_alias})))
+        if f'artifacts/predictions/{sample_alias}' in path_to_pred: # fetch corresponding input files from mlflow logs
+            json_filemap_name = f'{path_to_artifacts}/predictions/{sample_alias}/pred_input_filemap.json'
+            if os.path.exists(json_filemap_name):
+                with open(json_filemap_name, 'r') as json_file:
+                    pred_input_map = json.load(json_file)
+                    pred_files, input_files = zip(*sorted(pred_input_map.items(), key=lambda item: path_splitter(item[1])))  # sort by values (input files)
+            else:
+                raise FileNotFoundError(f'File {json_filemap_name} does not exist. Please make sure that input<->pred file mapping is stored in mlflow run artifacts.')
+        else: # use paths from cfg 
+            pred_files = sorted(glob(path_to_pred), key=path_splitter)
+            if len(pred_files) != len(input_files):
+                raise Exception(f'Number of input files ({len(input_files)}) not equal to number of files with predictions ({len(pred_files)})')
+    else: # will assume that predictions are present in input files
+        assert len(input_files)>0
+        pred_files = [None]*len(input_files)
+    
+    # prepare list of files with target labels
+    if path_to_target is not None:
+        path_to_target = os.path.abspath(to_absolute_path(fill_placeholders(path_to_target, {"{sample_alias}": sample_alias})))
+        target_files = sorted(glob(path_to_target), key=path_splitter) 
+        if len(target_files) != len(input_files):
+            raise Exception(f'Number of input files ({len(input_files)}) not equal to number of files with labels ({len(target_files)})')
+    else: # will assume that target branches "gen_*" are present in input files
+        assert len(input_files)>0
+        target_files = [None]*len(input_files)
+        
+    return input_files, pred_files, target_files
 
 def fill_placeholders(string, placeholder_to_value):
     for placeholder, value in placeholder_to_value.items():
