@@ -448,29 +448,114 @@ In order to check the final training/validation loss function and corresponding 
 
 ## Testing NN performance
 
-1. Apply training for all testing dataset using [TauMLTools/Training/python/apply_training.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/apply_training.py):
-   ```sh
-   python TauMLTools/Training/python/apply_training.py --input "TUPLES_DIR" --output "PRED_DIR" \
-           --model "MODEL_FILE.pb" --chunk-size 1000 --batch-size 100 --max-queue-size 20
-   ```
-1. Run [TauMLTools/Training/python/evaluate_performance.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/evaluate_performance.py) to produce ROC curves for each testing dataset and tau type:
-   ```sh
-   python TauMLTools/Training/python/evaluate_performance.py --input-taus "INPUT_TRUE_TAUS.h5" \
-           --input-other "INPUT_FAKE_TAUS.h5" --other-type FAKE_TAUS_TYPE \
-           --deep-results "PRED_DIR" --deep-results-label "RESULTS_LABEL" \
-           --prev-deep-results "PREV_PRED_DIR" --prev-deep-results-label "PREV_LABEL" \
-           --output "OUTPUT.pdf"
-   ```
-   Or modify [TauMLTools/Training/scripts/eval_perf.sh](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/scripts/eval_perf.sh) according to your needs to produce plots for multiple datasets.
+### Producing predictions
+
+The first step in the performance evaluation pipeline is producing predictions for a given model and a given data sample. This can be achieved with [Evaluation/apply_training.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/apply_training.py) script, where its input arguments are configured in [Evaluation/apply_training.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/apply_training.yaml). It is important to mention that at this step `DataLoader` class is also used to yield batches for the model, therefore there are few parameters which configure its behaviour: 
+
+* `training_cfg_upd` describes parameters which will be overriden in the `DataLoader` class initialisation. For example, for evaluation all taus should be included in batches, hence `include_mismatched=True`. Or, train/val split is not needed comparing to the train step, so `validation_split=0.`. Note that the base configuration by default is taken from mlflow logs and therefore is the one which was used for the training (`path_to_training_cfg` key).  
+
+* `scaling_cfg` describes the path to a file with json scaling parameters and by default points to mlflow logs, i.e. the file which used for the training.
+
+* `checkout_train_repo` describes whether a checkout of the git repo state as it was during the training (fetched from mlflow logs) should be made. This might be needed because the current repo state can include developments in `DataLoader` not present at the training step, therefore `import DataLoader` statement may not work. Moreover, this is needed to ensure that the same `DataLoader` is used for training and evaluation.
+
+The next group of parameters in `apply_training.yaml` is the mlflow group (`path_to_mlflow/experiment_id/run_id`), which describes which mlflow run ID should be used to retrieve the associated model and to store the resulting predictions.
+
+The remaining two arguments `path_to_file` and `sample_alias` describe I/O naming. `apply_training.py` works in a single file mode, so it expects one input ROOT file located in `path_to_file` and will output one h5 prediction file which will be stored under specified mlflow run ID in `artifacts/predictions/{sample_alias}/{basename(input_file_name)}_pred.h5`. So `sample_alias` here describes the sample to which the file belongs to (e.g. DY, or ggH). This `sample_alias` will be needed for the reference in the following eval pipeline steps.
+
+As the last remark, `apply_training.py` automatically stores the mapping between input file and prediction file. This is kept in `artifacts/predictions/{sample_alias}/pred_input_filemap.json` and this mapping will be used downstream to automatically retrieve corresponding input files (not logged to mlflow) for mlflow-logged predictions.
+
+An example of usage `apply_training.py` would be:
+```sh
+python apply_training.py path_to_mlflow=../Training/python/2018v1/mlruns experiment_id=2 run_id=1e6b4fa83d874cf8bc68857049d7371d path_to_file=eval_data/GluGluHToTauTau_M125/GluGluHToTauTau_M125_1.root sample_alias=GluGluHToTauTau_M125
+```
+
+### Evaluating metrics
+The second step in the evaluation pipeline is [Evaluation/evaluate_performance.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/evaluate_performance.py) with the corresponding main hydra cfg file being [Evaluation/configs/run3.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/run3.yaml). This step involves complex configuration setting in order to cover the variety of use cases in a generalised way. For a history of its developments and more details please refer to these presentations [[1]](https://indico.cern.ch/event/1066000/contributions/4482034/attachments/2293019/3898990/DeepTau_eval.pdf), [[2]](https://indico.cern.ch/event/1067541/contributions/4489002/attachments/2295081/3903198/DeepTau_eval_1.pdf), [[3]](https://indico.cern.ch/event/1068999/contributions/4495448/attachments/2297277/3907278/DeepTau_eval_2.pdf). 
+
+#### Configuration description
+
+The first definition in `run3.yaml` is the one of default lists `discriminator/plot_setup/selection`. These are essentially another yaml files from `configs` folder with their content being a part of the final hydra configuration. `discriminator` is in fact a subfolder in `configs` which contains yaml configurations to be selected from. These configurations are used to initialise `Discriminator` class which is used internally to uniformly manage ROC curve construction and metrics/param storage for various (heterogeneous) discriminator types. Likewise, `plot_setup.yaml` is used to instantiate `PlotSetup` class which is used to manage the styling of plots. `selection.yaml` stores aliases for different selections to be applied to input files so that they can be easily referred to in `run3.yaml` (see `cuts` parameter).
+
+As usual, the next section in `run3.yaml` describes mlflow parameters (`path_to_mlflow/experiment_id/run_id`) to communicate reading/writing of necessary files/parameters for a specified mlflow run ID.
+
+Then there is a section defining a so-called "phase space region". Conceptually, what `evaluate_performance.py` step does is takes a given model and computes the metrics (currently, ROC curves only) for a specified region of parameters. These are at the moment `vs_type`, `dataset_alias` and `pt_bins`:
+
+* `vs_type` conventionally is used to defined tau types against which ROC curve should be constructed, e.g. tau vs jet (`vs_type=jet`). Based on this label, different selection/plotting criteria will be triggered across the module, please check them throughout discriminator/plotting/ROC curve composition steps. Moreover, as described below, in principle a mixture of particle types is also possible to be served as a "vs leg". 
+
+* `dataset_alias` defines how to refer to a mixture of `input_samples` at the downstream plotting steps.
+
+* `pt_bins` specifies in which bins the ROC curve should be computed, which will internally apply a corresponding cut on a combined mixed dataframe. This bin definition will also be used as an alias to retrieve corresponding ROC curve for plotting. 
+
+The last important section is dedicated to I/O. There are three ingredients to it: inputs, predictions and targets, which can differ depending on the use case.
+
+* In order to compute ROC curves a dataset containing genuine taus and e/mu/jet fakes is needed. The idea behind construction of such a dataset is to combine together various sources with selecting specific tau types from each of those. `input_samples` dictionary describes exactly this kind of mapping in a form `sample_alias` -> `['tau_type_1', 'tau_type_2', ...]`. It assumes by default that `sample_alias` is an alias defined at `apply_training.py` step (to refer to mlflow logged predictions automatically), but this don't have to be necessarily the case. `tau_type_*` specified in the mapping are used to apply matching to a feature with a name `gen_{tau_type}`. If `path_to_target` is provided, this will be taken from there (see `add_group()` function in `eval_tools.py`), otherwise it is assumed that this branch is already present in the input files (and added via `input_branches` argument in `run3.yaml`).
+
+* Having defined a sample mixture, in `evaluate_performance.py` there is a loop over those samples and then for each `sample_alias` file lists with input/prediction/target files are constructed. The common template for file paths per `sample_alias` are specified via `path_to_input/path_to_pred/path_to_target` which has the option of filling placeholders in its name (`{sample_alias}`) and support for "*" asterisk. 
+
+* These file lists are constructed in function `prepare_filelists()` of `eval_tools.py`. Conceptually, if present, it will expand `path_to_*` to a file list via `glob` and sort it according to a number id present in the file name (see `path_splitter()` function). The only non-trivial exception is the case when `path_to_pred` points to mlflow artifacts. Here, a mapping input<-> prediction from `artifacts/predictions/{sample_alias}/pred_input_filemap.json` will be used to fetch input samples corresponding to specified `path_to_pred` (and hence `path_to_input` is ignored).
+
+Given all the information above, the metrics (e.g. ROC curve) are computed within `Discriminator` and `RocCurve` classes (see `eval_tools.py`) for a specified phase space region (`vs_type/dataset_alias/pt_bins`). They are then represented as a dictionary and dumped into `artifacts/performance.json` file which is used to collect all the "snapshots" of model evaluation across various input configurations, e.g. ROC curve TPR/FPR, plotting style, discriminator info. It is this file where the dowstream plotting modules will search for entries to be retrieved and visualised.    
 
 #### Examples
 
-Evaluate performance for Run 2:
+Let's consider a comparison of a new Run3 training with already deployed DeepTau_v2 / MVA models. We will represent DeepTau Run3 training as a ROC curve, DeepTau_v2 as a ROC curve with manually defined working points (WPs) and for MVA we will take already centrally defined WPs. It should be noted that for the two latter cases the scores/WP bin codes are already present in the original input ROOT files used for DeepTau Run3 training. That means that there is nothing to `apply_training.py` to. However, we still need to introduce this models to the mlflow ecosystem under common `experiment_name=run3_cnn_ho2`, which can be done with `Training/python/log_to_mlflow.py`:
+
 ```sh
-python TauMLTools/Training/python/evaluate_performance.py --input-taus /eos/cms/store/group/phys_tau/TauML/DeepTau_v2/tuples-v2-training-v2-t1/testing/tau_HTT.h5 --input-other /eos/cms/store/group/phys_tau/TauML/DeepTau_v2/tuples-v2-training-v2-t1/testing/jet_TT.h5 --other-type jet --deep-results /eos/cms/store/group/phys_tau/TauML/DeepTau_v2/predictions/2017v2p6/step1_e6_noPCA --output output/tau_vs_jet_TT.pdf --draw-wp --setup TauMLTools/Training/python/plot_setups/run2.py
+python log_to_mlflow.py path_to_mlflow=2018v1/mlruns experiment_name=run3_cnn_ho2 files_to_log=null params_to_log=null
 ```
 
-Evaluate performance for Phase 2 HLT:
-```sh
-python TauMLTools/Training/python/evaluate_performance.py --input-taus DeepTauTraining/training-hdf5/even-events/even_pt_20_eta_0.000.h5 --other-type jet --deep-results DeepTauTraining/training-hdf5/even-events-classified-by-DeepTau_odd --output output/tau_vs_jet_Phase2.pdf --setup TauMLTools/Training/python/plot_setups/phase2_hlt.py
+This will create a new (empty) run ID under `run3_cnn_ho2` mlflow experiment (this is where DeepTau_run3 run ID is located), and we need to execute the command two times in total: one to be identified with DeepTau_v2 and the other with MVA model. After this, let's consider the case of plotting a ROC curve for `vs_type=jet`, where genuine taus are to be taken from `sample_alias=GluGluHToTauTau_M125` and jets from `sample_alias=TTToSemiLeptonic`. These are the data samples with corresponding process excluded from the training and set aside to evaluate the training performance. Suppose the corresponding input ROOT files are located in `path_to_input=Evaluation/eval_data/{sample_alias}/*.root` and predictions for DeepTau_run3 model were already produced for them with `apply_training.py` (hence stored in mlflow artifacts).
+
+Then, since there are three models in total which are moreover fundamentally different, we will identify them with three seperate `discriminator` cfg files. Corresponding templates can be found in `configs/discriminator` folder with the parameters steering the behaviour of `Discriminator` class (defined in `eval_tools.py`). Please have a look there to understand the behaviour under the hood for each of the parameters' values. Also note that at this point it might be useful to create a new yaml cfg file for a discriminator if its behaviour isn't described by these template config files.
+
+Finally, given that `run3_cnn_ho2` -> `experiment_id=2` and input samples cfg in `run3.yaml` look like:
+```yaml
+input_samples: 
+  GluGluHToTauTau_M125: ['tau']
+  TTToSemiLeptonic: ["jet"]
 ```
+
+evaluating the performance for DeepTau_run3 can be done with (run IDs/paths below are specific to this example only):
+```sh
+python evaluate_performance.py path_to_mlflow=../Training/python/2018v1/mlruns experiment_id=2 run_id=06f9305d6e0b478a88af8ea234bcec20 discriminator=DeepTau_run3 path_to_input=null 'path_to_pred="${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/{sample_alias}/*_pred.h5"' 'path_to_target="${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/{sample_alias}/*_pred.h5"' vs_type=jet dataset_alias=ggH_TT
+```
+
+for DeepTau_v2 (note the changed paths where inputs are manually specified and targets are taken from DeepTau_run3 logged predictions, and also a change to `wp_from=pred_column` to use manually defined WPs from `working_points_thrs`):
+```sh
+python evaluate_performance.py path_to_mlflow=../Training/python/2018v1/mlruns experiment_id=2 run_id=90c83841fe224d48b1581061eba46e86 discriminator=DeepTau_v2p1 'path_to_input="eval_data/{sample_alias}/*.root"' path_to_pred=null 'path_to_target="${path_to_mlflow}/${experiment_id}/06f9305d6e0b478a88af8ea234bcec20/artifacts/predictions/{sample_alias}/*_pred.h5"' vs_type=jet dataset_alias=ggH_TT discriminator.wp_from=pred_column
+```
+
+for MVA:
+```sh
+python evaluate_performance.py path_to_mlflow=../Training/python/2018v1/mlruns experiment_id=2 run_id=d2ec6115624d44c9bf60f88460b09b54 discriminator=MVA_jinst_vs_jet 'path_to_input="eval_data/{sample_alias}/*.root"' path_to_pred=null 'path_to_target="${path_to_mlflow}/${experiment_id}/06f9305d6e0b478a88af8ea234bcec20/artifacts/predictions/{sample_alias}/*_pred.h5"' vs_type=jet dataset_alias=ggH_TT
+```
+
+Now one can inspect `performance.json` files in corresponding mlflow run artifacts to get the intuition of how the skimmed performance info looks like. For example, since internally WP and ROC curve are defined and treated as instances of the same `RocCurve` class, output in `performance.json` for MVA model looks structurally the same as for DeepTau_run3, although for the former we just plot a set of working points, and for the latter the whole ROC curve.
+
+### Plotting ROC curves
+The third step in the evaluation pipeline is [Evaluation/plot_roc.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/plot_roc.py) with the corresponding [Evaluation/plot_roc.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/plot_roc.yaml) cfg file. In the latter one need to specify:
+
+* mlflow `experiment_id`, which assumes that all run IDs below belong to this experiment ID
+* `discriminators`: a dictionary mapping `run_id` -> `[curve_type_1, 'curve_type_2']`, where `curve_type_*` is either `roc_curve` or `roc_wp` and describes which types of ROC curves should be plotted.
+* `reference`: a pair `run_id`: `curve_type` which will be used as the reference curve to plot the ratio for other discriminants. 
+* `vs_type/dataset_alias/pt_bin`: parameters identifying the region of interest. These are used to retrieve the corresponding entries in `performance.json` file for each of the runs to be plotted, see `eval_tools.select_curve()` function which does that.
+* `output_name`: the name of the output pdf file.
+
+Continuing the example of the previous section, setting the following in `plot_roc.yaml`:
+```yaml
+path_to_mlflow: ../Training/python/2018v1/mlruns
+experiment_id: 2
+discriminators:
+  06f9305d6e0b478a88af8ea234bcec20: ['roc_curve']
+  90c83841fe224d48b1581061eba46e86: ['roc_curve', 'roc_wp']
+  d2ec6115624d44c9bf60f88460b09b54: ['roc_wp']
+reference: 
+  06f9305d6e0b478a88af8ea234bcec20: 'roc_curve'
+```
+
+and running:
+```sh
+python plot_roc.py vs_type=jet dataset_alias=ggH_TT 'pt_bin=[20,100]'
+```
+
+will produce the plot with specified models plotted side-by-side and will store it in `mlruns/2/06f9305d6e0b478a88af8ea234bcec20/artifacts/plots/`, which then can be viewed directly or through mlflow UI.
