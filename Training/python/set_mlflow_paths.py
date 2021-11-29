@@ -15,15 +15,15 @@ def main(path_to_mlflow, exp_id, new_path_to_mlflow, new_exp_id, new_exp_name):
         raise OSError(f'{path_to_exp} does not exist')
     if new_exp_id is not None:
         new_path_to_exp = os.path.abspath(new_path_to_mlflow) + '/' + new_exp_id
+        renamed_path_to_exp = os.path.abspath(path_to_mlflow) + '/' + new_exp_id
+        if os.path.exists(renamed_path_to_exp):
+            print(f'\nFound an existing experiment with ID={new_exp_id} in {path_to_mlflow}. \
+    If runs in this experiment have the same origin, please merge them into the currently processed experiment folder, remove original folder and rerun this script. \
+    Otherwise, rename experiment {new_exp_id} to a new ID to avoid overlap: \
+    \n\n    python {os.path.basename(__file__)} -p {path_to_mlflow} -id {new_exp_id} -np {path_to_mlflow} -nid NEW_EXP_ID_HERE\n') 
+            return
     else:
         new_path_to_exp = os.path.abspath(new_path_to_mlflow) + '/' + exp_id
-    renamed_path_to_exp = os.path.abspath(path_to_mlflow) + '/' + new_exp_id
-    if os.path.exists(renamed_path_to_exp):
-        print(f'\nFound an existing experiment with ID={new_exp_id} in {path_to_mlflow}. \
-If runs in this experiment have the same origin, please merge them into the currently processed experiment folder, remove original folder and rerun this script. \
-Otherwise, rename experiment {new_exp_id} to a new ID to avoid overlap: \
-\n\n    python {os.path.basename(__file__)} -p {path_to_mlflow} -id {new_exp_id} -np {path_to_mlflow} -nid NEW_EXP_ID_HERE\n') 
-        return
     
     meta_files = glob(f'{path_to_exp}/**/meta.yaml', recursive=True)
     run_folders = glob(f'{path_to_exp}/*/')
