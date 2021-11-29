@@ -61,7 +61,7 @@ def main(cfg: DictConfig) -> None:
        
     # open input file
     input_file_name = to_absolute_path(cfg.path_to_file)
-    output_file_name = cfg.file_alias + '_pred'
+    output_file_name = os.path.splitext(os.path.basename(input_file_name))[0] + '_pred'
     with uproot.open(input_file_name) as f:
         t = f['taus']
         n_taus = len(t['evt'].array())
@@ -92,8 +92,22 @@ def main(cfg: DictConfig) -> None:
     
     # log to mlflow and delete intermediate file
     with mlflow.start_run(experiment_id=cfg.experiment_id, run_id=cfg.run_id) as active_run:
-        mlflow.log_artifact(f'{output_file_name}.h5', 'predictions')
+        mlflow.log_artifact(f'{output_file_name}.h5', f'predictions/{cfg.sample_alias}')
     os.remove(f'{output_file_name}.h5')
+
+    # log mapping between prediction file and corresponding input file 
+    json_filemap_name = f'{path_to_artifacts}/predictions/{cfg.sample_alias}/pred_input_filemap.json'
+    json_filemap_exists = os.path.exists(json_filemap_name)
+    json_open_mode = 'r+' if json_filemap_exists else 'w'
+    with open(json_filemap_name, json_open_mode) as json_file:
+        if json_filemap_exists: # read performance data to append additional info 
+            filemap_data = json.load(json_file)
+        else: # create dictionary to fill with data
+            filemap_data = {}
+        filemap_data[os.path.abspath(f'{path_to_artifacts}/predictions/{cfg.sample_alias}/{output_file_name}.h5')] = input_file_name
+        json_file.seek(0) 
+        json_file.write(json.dumps(filemap_data, indent=4))
+        json_file.truncate()
 
 if __name__ == '__main__':
     repo = git.Repo(to_absolute_path('.'), search_parent_directories=True)

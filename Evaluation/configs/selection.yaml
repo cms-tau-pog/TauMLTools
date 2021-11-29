@@ -1,19 +1,19 @@
 # # bitwise computation is not supported by pandas.eval() :(
 # apply_legacy_cuts:
-#   e: "(byIsolationMVArun2017v2DBoldDMwLT2017 & (1 << ${wp_name_to_index.VVLoose})) \
-#               and (againstMuon3 & (1 << ${wp_name_to_index.Loose})) \
+#   e: "(byIsolationMVArun2017v2DBoldDMwLT2017 & (1 << ${discriminator.wp_name_to_index.VVLoose})) \
+#               and (againstMuon3 & (1 << ${discriminator.wp_name_to_index.Loose})) \
 #               and (tau_decayMode != 5) & (tau_decayMode != 6)"
-#   mu: "(byIsolationMVArun2017v2DBoldDMwLT2017 & (1 << ${wp_name_to_index.VVLoose})) \
-#               and (againstElectronMVA6 & (1 << ${wp_name_to_index.VLoose})) \
+#   mu: "(byIsolationMVArun2017v2DBoldDMwLT2017 & (1 << ${discriminator.wp_name_to_index.VVLoose})) \
+#               and (againstElectronMVA6 & (1 << ${discriminator.wp_name_to_index.VLoose})) \
 #               and (tau_decayMode != 5) & (tau_decayMode != 6)"
-#   jet: "(againstElectronMVA6 & (1 << ${wp_name_to_index.VLoose})) \
-#               and (againstMuon3 & (1 << ${wp_name_to_index.Loose})) \
+#   jet: "(againstElectronMVA6 & (1 << ${discriminator.wp_name_to_index.VLoose})) \
+#               and (againstMuon3 & (1 << ${discriminator.wp_name_to_index.Loose})) \
 #               and (tau_decayMode != 5) & (tau_decayMode != 6)"
 apply_deep_cuts:
-  e: "(${discriminator.pred_column_prefix}jet > ${discriminator.deep_wp_thrs.jet.VVVLoose}) \
-        and (${discriminator.pred_column_prefix}mu > ${discriminator.deep_wp_thrs.mu.VLoose})"
-  mu: "(${discriminator.pred_column_prefix}e > ${discriminator.deep_wp_thrs.e.VVVLoose}) \
-        and (${discriminator.pred_column_prefix}jet > ${discriminator.deep_wp_thrs.jet.VVVLoose})"
-  jet: "(${discriminator.pred_column_prefix}e > ${discriminator.deep_wp_thrs.e.VVVLoose}) \
-        and (${discriminator.pred_column_prefix}mu > ${discriminator.deep_wp_thrs.mu.VLoose})"
+  e: "(${discriminator.pred_column_prefix}jet > ${discriminator.working_points_thrs_map.jet.VVVLoose}}) \
+        and (${discriminator.pred_column_prefix}mu > ${discriminator.working_points_thrs_map.mu.VLoose}})"
+  mu: "(${discriminator.pred_column_prefix}e > ${discriminator.working_points_thrs_map.e.VVVLoose}}) \
+        and (${discriminator.pred_column_prefix}jet > ${discriminator.working_points_thrs_map.jet.VVVLoose}})"
+  jet: "(${discriminator.pred_column_prefix}e > ${discriminator.working_points_thrs_map.e.VVVLoose}}) \
+        and (${discriminator.pred_column_prefix}mu > ${discriminator.working_points_thrs_map.mu.VLoose}})"
 apply_dm_cuts: "(tau_decayMode != 5) & (tau_decayMode != 6)"

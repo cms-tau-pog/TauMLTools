@@ -11,26 +11,12 @@ import h5py
 import json
 import re
 import sys
+from glob import glob
 from dataclasses import dataclass, field
+from hydra.utils import to_absolute_path
 
 if sys.version_info.major > 2:
     from statsmodels.stats.proportion import proportion_confint
-
-class DiscriminatorWP:
-    VVVLoose = 0
-    VVLoose = 1
-    VLoose = 2
-    Loose = 3
-    Medium = 4
-    Tight = 5
-    VTight = 6
-    VVTight = 7
-    VVVTight = 8
-
-    @staticmethod
-    def GetName(wp):
-        names = [ "VVVLoose", "VVLoose", "VLoose", "Loose", "Medium", "Tight", "VTight", "VVTight", "VVVTight" ]
-        return names[wp]
 
 class RocCurve:
     def __init__(self, n_points, color, has_errors, dots_only = False, dashed = False):
@@ -143,7 +129,6 @@ class PlotSetup:
             #ratio_title = 'MVA/DeepTau' if args.other_type != 'mu' else 'cut based/DeepTau'
             ax_ratio.set_ylabel(ratio_title, fontsize=14, labelpad=self.ratio_ylabel_pad)
             ax_ratio.tick_params(labelsize=10)
-
             ax_ratio.grid(True, which='both')
 
 def find_threshold(pr, thresholds, target_pr):
@@ -163,60 +148,72 @@ class Discriminator:
     name: str
     pred_column: str
     raw: bool
-    from_tuple: bool
     color: str
-    working_points: list = field(default_factory=list)
-    wp_column: str = None
-    working_points_thrs: dict = None 
     dashed: bool = False 
-    draw_wp: bool = True
+    wp_from: str = None
+    wp_column: str = None
+    wp_name_to_index: dict = None
+    working_points: list = field(default_factory=list)
+    working_points_thrs: dict = None 
 
     def __post_init__(self):
-        if not self.draw_wp and self.raw:
+        if self.wp_from is None:
             self.working_points = []
-        if self.wp_column is None:
-            self.wp_column = self.pred_column
 
-    def CountPassed(self, df, wp):
-        if self.from_tuple:
+    def count_passed(self, df, wp_name):
+        if self.wp_from == 'wp_column':
+            assert self.wp_column in df.columns
+            wp = self.wp_name_to_index[wp_name]
             flag = 1 << wp
             passed = (np.bitwise_and(df[self.wp_column], flag) != 0).astype(int)
             return np.sum(passed * df.weight.values)
-        if self.working_points_thrs is None:
-            raise RuntimeError('Working points are not specified for discriminator "{}"'.format(self.name))
-        wp_thr = self.working_points_thrs[DiscriminatorWP.GetName(wp)]
-        return np.sum(df[df[self.pred_column] > wp_thr].weight.values)
-
-    def CreateRocCurve(self, df, ref_roc = None):
-        n_wp = len(self.working_points)
+        elif self.wp_from == 'pred_column':
+            if self.working_points_thrs is not None:
+                assert self.pred_column in df.columns
+                wp_thr = self.working_points_thrs[wp_name]
+                return np.sum(df[df[self.pred_column] > wp_thr].weight.values)
+            else:
+                raise RuntimeError('Working points thresholds are not specified for discriminator "{}"'.format(self.name))
+        else:
+            raise RuntimeError(f'count_passed() behaviour not defined for: wp_from={self.wp_from}')
+        
+    def create_roc_curve(self, df):
         roc, wp_roc = None, None
-        if self.raw:
-            fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.pred_column].values,
-                                                     sample_weight=df.weight.values)
+        if self.raw: # construct ROC curve
+            fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
             roc = RocCurve(len(fpr), self.color, False, dashed=self.dashed)
             roc.pr[0, :] = fpr
             roc.pr[1, :] = tpr
             roc.thresholds = thresholds
-            roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values,
-                                                  sample_weight=df.weight.values)
-        if n_wp > 0:
-            wp_roc = RocCurve(n_wp, self.color, not self.raw, self.raw)
-            for n in range(n_wp):
-                for kind in [0, 1]:
-                    df_x = df[df['gen_tau'] == kind]
-                    n_passed = self.CountPassed(df_x, self.working_points[n])
-                    n_total = np.sum(df_x.weight.values)
-                    eff = float(n_passed) / n_total
-                    wp_roc.pr[kind, n_wp - n - 1] = eff
-                    if not self.raw:
-                        if sys.version_info.major > 2:
-                            ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
-                        else:
-                            err = math.sqrt(eff * (1 - eff) / n_total)
-                            ci_low, ci_upp = eff - err, eff + err
-                        wp_roc.pr_err[kind, 1, n_wp - n - 1] = ci_upp - eff
-                        wp_roc.pr_err[kind, 0, n_wp - n - 1] = eff - ci_low
-
+            roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
+        else:
+            print('[INFO] raw=False, will skip creating ROC curve')        
+        
+        # construct WPs
+        if self.wp_from in ['wp_column', 'pred_column']:  
+            if (n_wp:=len(self.working_points)) > 0:
+                wp_roc = RocCurve(n_wp, self.color, not self.raw, self.raw)
+                for wp_i, wp_name in enumerate(self.working_points):
+                    for kind in [0, 1]:
+                        df_x = df[df['gen_tau'] == kind]
+                        n_passed = self.count_passed(df_x, wp_name)
+                        n_total = np.sum(df_x.weight.values)
+                        eff = float(n_passed) / n_total
+                        wp_roc.pr[kind, n_wp - wp_i - 1] = eff
+                        if not self.raw:
+                            if sys.version_info.major > 2:
+                                ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
+                            else:
+                                err = math.sqrt(eff * (1 - eff) / n_total)
+                                ci_low, ci_upp = eff - err, eff + err
+                            wp_roc.pr_err[kind, 1, n_wp - wp_i - 1] = ci_upp - eff
+                            wp_roc.pr_err[kind, 0, n_wp - wp_i - 1] = eff - ci_low
+            else:
+                raise RuntimeError('No working points specified')
+        elif self.wp_from is None:
+            print('[INFO] wp_from=None, will skip creating WP')
+        else:
+            raise RuntimeError(f'create_roc_curve() behaviour not defined for: wp_from={self.wp_from}')
         return roc, wp_roc
 
 def create_roc_ratio(x1, y1, x2, y2):
@@ -240,8 +237,10 @@ def select_curve(curve_list, **selection):
     else:
         raise Exception(f"Failed to find a single curve for selection: {[f'{k}=={v}' for k,v in selection.items()]}")
 
-def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_target_file, pred_column_prefix, path_to_weights):
+def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_target_file, path_to_weights, pred_column_prefix=None, target_column_prefix=None):
     def read_branches(path_to_file, tree_name, branches):
+        if not os.path.exists(path_to_input_file):
+            raise RuntimeError(f"Specified file for inputs ({path_to_input_file}) does not exist")
         if path_to_file.endswith('.root'):
             with uproot.open(path_to_file) as f:
                 tree = f[tree_name]
@@ -251,57 +250,106 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
             return pd.read_hdf(path_to_file, tree_name, columns=branches)
         raise RuntimeError("Unsupported file type.")
 
-    def add_predictions(df, path_to_pred_file, pred_column_prefix):
-        with h5py.File(path_to_pred_file, 'r') as f:
+    def add_group(df, group_name, path_to_file, group_column_prefix):
+        if not os.path.exists(path_to_file):
+            raise RuntimeError(f"Specified file {path_to_file} for {group_name} does not exist")
+        with h5py.File(path_to_file, 'r') as f:
             file_keys = list(f.keys())
-        if 'predictions' in file_keys: 
-            df_pred = pd.read_hdf(path_to_pred_file, 'predictions')
+        if group_name in file_keys: 
+            group_df = pd.read_hdf(path_to_file, group_name)
         else:
-            df_pred = pd.read_hdf(path_to_pred_file)
-        prob_tau = df_pred[f'{pred_column_prefix}tau'].values
-        for node_column in df_pred.columns:
-            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}{tau_type}"
-            tau_type = node_column.split(f'{pred_column_prefix}')[-1] 
-            if tau_type != 'tau':
-                prob_vs_type = df_pred[pred_column_prefix + tau_type].values
-                tau_vs_other_type = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_vs_type), np.zeros(prob_tau.shape))
-                df[pred_column_prefix + tau_type] = pd.Series(tau_vs_other_type, index=df.index)
-        return df
-
-    def add_targets(df, path_to_target_file, pred_column_prefix):
-        with h5py.File(path_to_target_file, 'r') as f:
-            file_keys = list(f.keys())
-        if 'targets' in file_keys: 
-            df_targets = pd.read_hdf(path_to_target_file, 'targets')
-        else:
+            group_df = pd.read_hdf(path_to_file)
+        
+        # weight case
+        if group_name == 'weights':
+            group_df = pd.read_hdf(path_to_file)
+            df['weight'] = pd.Series(group_df['weight'].values, index=df.index)
             return df
-        for node_column in df_targets.columns:
-            if not node_column.startswith(pred_column_prefix): continue # assume prediction column name to be "{pred_column_prefix}{tau_type}"
-            tau_type = node_column.split(f'{pred_column_prefix}')[-1]
-            df[f'gen_{tau_type}'] = df_targets[node_column]
-        return df
-    
-    def add_weights(df, path_to_weight_file):
-        df_weights = pd.read_hdf(path_to_weight_file)
-        df['weight'] = pd.Series(df_weights.weight.values, index=df.index)
+        elif group_name == 'predictions': 
+            prob_tau = group_df[f'{group_column_prefix}tau'].values
+        elif group_name != 'targets':
+            raise ValueError(f'group_name should be one of [predictions, targets, weights], got {group_name}')
+        
+        # add columns for predictions/targets case
+        for node_column in group_df.columns:
+            if not node_column.startswith(group_column_prefix): continue # assume prediction column name to be "{group_column_prefix}{tau_type}"
+            tau_type = node_column.split(f'{group_column_prefix}')[-1] 
+            if group_name == 'predictions':
+                if tau_type != 'tau':
+                    prob_vs_type = group_df[group_column_prefix + tau_type].values
+                    tau_vs_other_type = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_vs_type), np.zeros(prob_tau.shape))
+                    df[group_column_prefix + tau_type] = pd.Series(tau_vs_other_type, index=df.index)
+            elif group_name == 'targets':
+                df[f'gen_{tau_type}'] = group_df[node_column]
         return df
 
     # TODO: add on the fly branching creation for uproot
-
     df = read_branches(path_to_input_file, 'taus', input_branches)
     if path_to_pred_file is not None:
-        add_predictions(df, path_to_pred_file, pred_column_prefix)
+        add_group(df, 'predictions', path_to_pred_file, pred_column_prefix)
     else:
-        print(f'[INFO] No predictions found, will proceed without them.')
+        print(f'[INFO] path_to_pred_file=None, will proceed without reading predictions from there')
     if path_to_target_file is not None:
-        add_targets(df, path_to_target_file, pred_column_prefix)
+        add_group(df, 'targets', path_to_target_file, target_column_prefix)
     else:
-        print(f'[INFO] No targets found, will proceed without them.')
+        print(f'[INFO] path_to_target_file=None, will proceed without reading targets from there')
     if path_to_weights is not None:
-        add_weights(df, path_to_weights)
+        add_group(df, 'weights', path_to_weights, None)
     else:
         df['weight'] = pd.Series(np.ones(df.shape[0]), index=df.index)
     return df
+
+def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target, path_to_artifacts):
+    def path_splitter(path):
+        basename = os.path.splitext(os.path.basename(path))[0]
+        if basename.endswith('_pred'):
+            i = basename.split('_')[-2]
+        else:
+            i = basename.split('_')[-1]
+        return int(i)
+        
+    # prepare list of files with inputs
+    if path_to_input is not None:
+        path_to_input = os.path.abspath(to_absolute_path(fill_placeholders(path_to_input, {"{sample_alias}": sample_alias})))
+        input_files = sorted(glob(path_to_input), key=path_splitter)
+    else:
+        input_files = []
+
+    # prepare list of files with inputs/predictions
+    if path_to_pred is not None:
+        path_to_pred = os.path.abspath(to_absolute_path(fill_placeholders(path_to_pred, {"{sample_alias}": sample_alias})))
+        if f'artifacts/predictions/{sample_alias}' in path_to_pred: # fetch corresponding input files from mlflow logs
+            json_filemap_name = f'{path_to_artifacts}/predictions/{sample_alias}/pred_input_filemap.json'
+            if os.path.exists(json_filemap_name):
+                with open(json_filemap_name, 'r') as json_file:
+                    pred_input_map = json.load(json_file)
+                    pred_files, input_files = zip(*sorted(pred_input_map.items(), key=lambda item: path_splitter(item[1])))  # sort by values (input files)
+            else:
+                raise FileNotFoundError(f'File {json_filemap_name} does not exist. Please make sure that input<->pred file mapping is stored in mlflow run artifacts.')
+        else: # use paths from cfg 
+            pred_files = sorted(glob(path_to_pred), key=path_splitter)
+            if len(pred_files) != len(input_files):
+                raise Exception(f'Number of input files ({len(input_files)}) not equal to number of files with predictions ({len(pred_files)})')
+    else: # will assume that predictions are present in input files
+        assert len(input_files)>0
+        pred_files = [None]*len(input_files)
+    
+    # prepare list of files with target labels
+    if path_to_target is not None:
+        path_to_target = os.path.abspath(to_absolute_path(fill_placeholders(path_to_target, {"{sample_alias}": sample_alias})))
+        target_files = sorted(glob(path_to_target), key=path_splitter) 
+        if len(target_files) != len(input_files):
+            raise Exception(f'Number of input files ({len(input_files)}) not equal to number of files with labels ({len(target_files)})')
+    else: # will assume that target branches "gen_*" are present in input files
+        assert len(input_files)>0
+        target_files = [None]*len(input_files)
+        
+    return input_files, pred_files, target_files
+
+def fill_placeholders(string, placeholder_to_value):
+    for placeholder, value in placeholder_to_value.items():
+        string = string.replace(placeholder, str(value))
+    return string
 
 class FloatList(object):
     def __init__(self, value):
