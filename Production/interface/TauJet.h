@@ -109,7 +109,7 @@ public:
                   const pat::ElectronCollection& electrons, const pat::MuonCollection& muons,
                   const pat::IsolatedTrackCollection& isoTracks, const pat::PackedCandidateCollection& lostTracks,
                   const reco::GenParticleCollection* genParticles, const reco::GenJetCollection* genJets,
-                  bool requireGenMatch, bool requireGenORRecoTauMatch, bool applyRecoPtSieve);
+                  bool requireGenMatch, bool requireGenORRecoTauMatch, bool applyRecoPtSieve, bool genPlusSimParticleMode);
 
     TauJetBuilder(const TauJetBuilder&) = delete;
     TauJetBuilder& operator=(const TauJetBuilder&) = delete;

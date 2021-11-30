@@ -93,14 +93,14 @@ TauJetBuilder::TauJetBuilder(const TauJetBuilderSetup& setup, const pat::TauColl
               const pat::ElectronCollection& electrons, const pat::MuonCollection& muons,
               const pat::IsolatedTrackCollection& isoTracks, const pat::PackedCandidateCollection& lostTracks,
               const reco::GenParticleCollection* genParticles, const reco::GenJetCollection* genJets,
-              bool requireGenMatch, bool requireGenORRecoTauMatch, bool applyRecoPtSieve) :
+              bool requireGenMatch, bool requireGenORRecoTauMatch, bool applyRecoPtSieve, bool genPlusSimParticleMode) :
     setup_(setup), taus_(taus), boostedTaus_(boostedTaus), jets_(jets), fatJets_(fatJets), cands_(cands),
     electrons_(electrons), muons_(muons), isoTracks_(isoTracks), lostTracks_(lostTracks), genParticles_(genParticles),
     genJets_(genJets), requireGenMatch_(requireGenMatch), requireGenORRecoTauMatch_(requireGenORRecoTauMatch),
     applyRecoPtSieve_(applyRecoPtSieve)
 {
     if(genParticles)
-        genLeptons_ = reco_tau::gen_truth::GenLepton::fromGenParticleCollection(*genParticles);
+        genLeptons_ = reco_tau::gen_truth::GenLepton::fromGenParticleCollection(*genParticles, genPlusSimParticleMode);
     Build();
 }
 

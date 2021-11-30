@@ -202,7 +202,9 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
 
     lheEventProduct    = cms.InputTag('externalLHEProducer'),
     genEvent           = cms.InputTag('generator'),
-    genParticles       = cms.InputTag('prunedGenParticles'),
+    genParticles       = cms.InputTag('genParticlePlusGeant'),
+    genPlusSimParticleMode   = cms.bool(True),
+    # genParticles       = cms.InputTag('prunedGenParticles'),
     puInfo             = cms.InputTag('slimmedAddPileupInfo'),
     vertices           = vtx_InputTag,
     rho                = cms.InputTag('fixedGridRhoAll'),
@@ -242,6 +244,8 @@ else:
 
 if isPhase2:
     process.p.insert(0, process.slimmedElectronsMerged)
+elif isUltraLegacy:
+    pass
 else:
     process.p.insert(2, process.boostedSequence)
 

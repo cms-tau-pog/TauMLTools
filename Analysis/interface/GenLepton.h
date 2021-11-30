@@ -48,6 +48,7 @@ public:
 
     int pdgId{0};
     int charge{0};
+    int status{0};
     bool isFirstCopy{false}, isLastCopy{false};
     LorentzVectorM p4;
     Point3D vertex;
@@ -59,7 +60,7 @@ public:
 
 inline std::ostream& operator<<(std::ostream& os, const GenParticle& p)
 {
-    os << "pdgId=" << p.pdgId << " pt=" << p.p4.pt() << " eta=" << p.p4.eta() << " phi=" << p.p4.phi()
+    os << "pdgId=" << p.pdgId << " status=" << p.status  << " pt=" << p.p4.pt() << " eta=" << p.p4.eta() << " phi=" << p.p4.phi()
        << " E=" << p.p4.energy() << " m=" << p.p4.mass()
        << " vx=" << p.vertex.x() << " vy=" << p.vertex.y() << " vz=" << p.vertex.z() << " vrho=" << p.vertex.rho()
        << " vr=" << p.vertex.r() << " q=" << p.charge;
@@ -74,18 +75,20 @@ public:
     static constexpr size_t MaxNumberOfParticles = 1000;
 
     template<typename GenParticleT>
-    static std::vector<GenLepton> fromGenParticleCollection(const std::vector<GenParticleT>& gen_particles)
+    static std::vector<GenLepton> fromGenParticleCollection(const std::vector<GenParticleT>& gen_particles, bool isGeantPlusSim_)
     {
         std::vector<GenLepton> leptons;
         std::map<const GenParticleT*, int> processed_particles;
         for(const auto& particle : gen_particles) {
             if(processed_particles.count(&particle)) continue;
-            if(!(particle.statusFlags().isPrompt() && particle.statusFlags().isFirstCopy())) continue;
             const int abs_pdg = std::abs(particle.pdgId());
+            if(!((particle.statusFlags().isPrompt() && particle.statusFlags().isFirstCopy())
+                || (isGeantPlusSim_ && particle.status()==8 && abs_pdg==15))) continue;
             if(!GenParticle::ChargedLeptons().count(static_cast<GenParticle::PdgId>(abs_pdg)))
                 continue;
 
             GenLepton lepton;
+            if(isGeantPlusSim_) lepton.enableGenPlusSimParticleMode();
             FillImpl<GenParticleT> fillImpl(lepton, processed_particles);
             fillImpl.FillAll(&particle);
             lepton.initialize();
@@ -224,6 +227,8 @@ public:
     // Keeping the default constructor public to stay compatible with RDataFrame
     GenLepton() : particles_(std::make_shared<std::vector<GenParticle>>()) {}
 
+    void enableGenPlusSimParticleMode() { genPlusSimParticleMode=true; }
+
 private:
     template<typename GenParticleT>
     struct FillImpl {
@@ -283,10 +288,11 @@ private:
             GenParticle output_p;
             output_p.pdgId = p->pdgId();
             output_p.charge = p->charge();
-            output_p.isFirstCopy = p->statusFlags().isFirstCopy();
-            output_p.isLastCopy = p->statusFlags().isLastCopy();
+            output_p.isFirstCopy = (lepton_.genPlusSimParticleMode && p->status()==8) ? defCopyStatus(p, true) : p->statusFlags().isFirstCopy();
+            output_p.isLastCopy = (lepton_.genPlusSimParticleMode && p->status()==8) ? defCopyStatus(p, false) : p->statusFlags().isLastCopy();
             output_p.p4 = p->p4();
             output_p.vertex = p->vertex();
+            output_p.status =  p->status();
 
             size_t p_index = lepton_.particles_->size();
             if(mother_index != NoneIndex)
@@ -300,6 +306,25 @@ private:
                     FillDaughters(&*d, p_index, true);
             }
         }
+
+        static bool defCopyStatus(const GenParticleT* p, bool first)
+        {
+            // According to the following description:
+            // https://github.com/cms-sw/cmssw/blob/master/DataFormats/HepMCCandidate/interface/GenStatusFlags.h
+
+            int pdgId = p->pdgId();
+            bool isCopy = true;
+            const auto& ref = first ? p->motherRefVector() : p->daughterRefVector();
+            if(ref.empty()) return isCopy;
+
+            for(const auto& relative : ref) {
+                if(relative->pdgId() == pdgId) {
+                    isCopy = false;
+                    break;
+                }
+            }
+            return isCopy;
+        }
     };
 
     void initialize()
@@ -309,18 +334,28 @@ private:
 
         lastCopy_ = findTerminalCopy(*firstCopy_, false);
         std::set<const GenParticle*> processed;
-        fillParticleCollections(*firstCopy_, false, processed);
+        if(genPlusSimParticleMode && lastCopy_->status == 8) {
+            fillParticleCollectionsGeantMode(*firstCopy_);
 
-        kind_ = determineKind();
+            kind_ = determineKindGeantMode();
+        } else {
+            fillParticleCollections(*firstCopy_, false, processed);
+
+            kind_ = determineKind();
+        }
     }
 
     void fillParticleCollections(const GenParticle& particle, bool fromLastCopy,
                                  std::set<const GenParticle*>& processed)
     {
+        // Hard fix not to demage the standart definition.
+        // standart genParticle collection will also include sim-based childrens
+        // in genParticlePlusGeant collection with status = 8.
+        if(genPlusSimParticleMode && particle.status == 8) return;
         if(processed.count(&particle)) return;
         processed.insert(&particle);
         fromLastCopy = fromLastCopy || &particle == lastCopy_;
-        const bool isFinalState = particle.daughters.empty();
+        bool isFinalState = genPlusSimParticleMode ? !hasNonGeantDaughter(particle) : particle.daughters.empty();
         if(isFinalState && !particle.isLastCopy) {
             std::cerr << "Inconsistent particle: " << particle << std::endl;
             ThrowError("last copy flag is not set for a final state particle.");
@@ -351,6 +386,7 @@ private:
                 hadrons_.insert(&particle);
                 bool isIntermediate = false;
                 for(auto d : particle.daughters) {
+                    if(genPlusSimParticleMode && d->status == 8) continue;
                     if(!GenParticle::ChargedLeptons().count(d->pdgCode())
                             && !GenParticle::NeutralLeptons().count(d->pdgCode())
                             && d->pdgCode() != GenParticle::PdgId::photon) {
@@ -373,6 +409,44 @@ private:
             fillParticleCollections(*daughter, fromLastCopy, processed);
     }
 
+    const bool hasNonGeantDaughter (const GenParticle& particle)
+    {
+        for(const GenParticle* daughter : particle.daughters)
+            if(daughter->status!=8) return true;
+        return false;
+    }
+
+    void fillParticleCollectionsGeantMode(const GenParticle& particle)
+    {
+        // Only first level daughters are considered for the Kind definition
+        // collections:
+        // finalStateFromDecay_, finalStateFromRadiation_, hadrons_,
+        // intermediateHadrons_, other_ -> are not defined
+
+        if(!(particle.status == 8 &&
+             particle.pdgCode() == GenParticle::PdgId::tau &&
+             particle.isLastCopy)) {
+            std::cerr << "Inconsistent particle: " << particle << std::endl;
+            ThrowError("fillParticleCollectionsGeantMode used for wrong particle");
+        }
+
+        for(const GenParticle* daughter : particle.daughters) {
+            if(daughter->pdgCode() == GenParticle::PdgId::pi)
+                ++nChargedHadrons_;
+            else if(daughter->pdgCode() == GenParticle::PdgId::pi0)
+                ++nFinalStateNeutrinos_;
+            else if(daughter->pdgCode() == GenParticle::PdgId::electron)
+                ++nFinalStateElectrons_;
+            else if(daughter->pdgCode() == GenParticle::PdgId::muon)
+                ++nFinalStateMuons_;
+            else {
+               std::cerr << "Undefined first level tau daughter: " << daughter << std::endl;
+               ThrowError("Only ChargedHadrons, NeutralHadrons, e or mu can be daughters");
+            }
+            visibleP4_ += particle.p4;
+        }
+    }
+
     Kind determineKind() const
     {
         const auto pdg = lastCopy_->pdgCode();
@@ -391,6 +465,24 @@ private:
         if(nFinalStateMuons_ == 1 && nFinalStateNeutrinos_ == 2)
             return Kind::TauDecayedToMuon;
         ThrowError("unable to determine gen lepton kind.");
+    }
+
+    Kind determineKindGeantMode() const
+    {
+        const auto pdg = lastCopy_->pdgCode();
+        if(nChargedHadrons_ == 0 && nNeutralHadrons_ != 0)
+            ThrowError("invalid hadron counts");
+        if(pdg == GenParticle::PdgId::tau && nChargedHadrons_ != 0)
+            return Kind::TauDecayedToHadrons;
+        if(nFinalStateElectrons_ == 1 && nFinalStateMuons_ == 0 && 
+           nNeutralHadrons_ == 0 && nChargedHadrons_ == 0)
+            return Kind::TauDecayedToElectron;
+        if(nFinalStateElectrons_ == 0 && nFinalStateMuons_ == 1 && 
+           nNeutralHadrons_ == 0 && nChargedHadrons_ == 0)
+            return Kind::TauDecayedToMuon;
+        if(pdg == GenParticle::PdgId::tau && lastCopy_->daughters.empty())
+            return Kind::TauDecayedToHadrons;
+        ThrowError("unable to determine gen lepton kind in GeantMode");
     }
 
     [[noreturn]] void ThrowError(const std::string& message) const
@@ -413,6 +505,7 @@ private:
     LorentzVectorXYZ visibleP4_, radiatedP4_;
     size_t nChargedHadrons_{0}, nNeutralHadrons_{0}, nFinalStateElectrons_{0}, nFinalStateMuons_{0},
            nFinalStateNeutrinos_{0};
+    bool genPlusSimParticleMode{false};
 };
 
 } // namespace gen_truth
