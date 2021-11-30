@@ -49,6 +49,7 @@ isData = sampleConfig.IsData(options.sampleType)
 isEmbedded = sampleConfig.IsEmbedded(options.sampleType)
 period = sampleConfig.GetPeriod(options.sampleType)
 period_cfg = sampleConfig.GetPeriodCfg(options.sampleType)
+isUltraLegacy = sampleConfig.isUL(options.sampleType)
 
 processName = 'tupleProduction'
 process = cms.Process(processName, period_cfg)
@@ -110,6 +111,15 @@ if isPhase2:
     tauIdEmbedder = tauIdConfig.TauIDEmbedder(
         process, cms, updatedTauName = updatedTauName,
         toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1", "newDMPhase2v1"]
+    )
+    tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
+    boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
+elif isUltraLegacy:
+    tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
+    updatedTauName = "slimmedTausNewID"
+    tauIdEmbedder = tauIdConfig.TauIDEmbedder(
+        process, cms, updatedTauName = updatedTauName,
+        toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1"]
     )
     tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
@@ -212,6 +222,12 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
 process.tupleProductionSequence = cms.Sequence(process.tauTupleProducer)
 
 if isPhase2:
+    process.p = cms.Path(
+        getattr(process, 'rerunMvaIsolationSequence') *
+        getattr(process, updatedTauName) *
+        process.tupleProductionSequence
+    )
+elif isUltraLegacy:
     process.p = cms.Path(
         getattr(process, 'rerunMvaIsolationSequence') *
         getattr(process, updatedTauName) *
