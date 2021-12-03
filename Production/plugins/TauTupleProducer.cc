@@ -381,6 +381,7 @@ private:
                 tauTuple().genParticle_vtx_x.push_back(p.vertex.x());
                 tauTuple().genParticle_vtx_y.push_back(p.vertex.y());
                 tauTuple().genParticle_vtx_z.push_back(p.vertex.z());
+                tauTuple().genParticle_status.push_back(p.status);
             }
         }
     }

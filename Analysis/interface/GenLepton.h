@@ -98,67 +98,70 @@ public:
         return leptons;
     }
 
-    template<typename IntVector, typename LongVector, typename FloatVector>
-    static GenLepton fromRootTuple(int lastMotherIndex,
-                                   const IntVector& genParticle_pdgId,
-                                   const LongVector& genParticle_mother,
-                                   const IntVector& genParticle_charge,
-                                   const IntVector& genParticle_isFirstCopy,
-                                   const IntVector& genParticle_isLastCopy,
-                                   const FloatVector& genParticle_pt,
-                                   const FloatVector& genParticle_eta,
-                                   const FloatVector& genParticle_phi,
-                                   const FloatVector& genParticle_mass,
-                                   const FloatVector& genParticle_vtx_x,
-                                   const FloatVector& genParticle_vtx_y,
-                                   const FloatVector& genParticle_vtx_z)
+    template <template <typename> class CollectionType>
+    static GenLepton fromRootTuple(
+                                   const bool isGeantPlusSim_,
+                                   int lastMotherIndex,
+                                   const CollectionType<Int_t>& genParticle_pdgId,
+                                   const CollectionType<Long64_t>& genParticle_mother,
+                                   const CollectionType<Int_t>& genParticle_charge,
+                                   const CollectionType<Int_t>& genParticle_isFirstCopy,
+                                   const CollectionType<Int_t>& genParticle_isLastCopy,
+                                   const CollectionType<Float_t>& genParticle_pt,
+                                   const CollectionType<Float_t>& genParticle_eta,
+                                   const CollectionType<Float_t>& genParticle_phi,
+                                   const CollectionType<Float_t>& genParticle_mass,
+                                   const CollectionType<Float_t>& genParticle_vtx_x,
+                                   const CollectionType<Float_t>& genParticle_vtx_y,
+                                   const CollectionType<Float_t>& genParticle_vtx_z)
     {
         try {
 
-            const size_t N = genParticle_pdgId.size();
-            assert(N <= MaxNumberOfParticles);
-            assert(genParticle_mother.size() == N);
-            assert(genParticle_charge.size() == N);
-            assert(genParticle_isFirstCopy.size() == N);
-            assert(genParticle_isLastCopy.size() == N);
-            assert(genParticle_pt.size() == N);
-            assert(genParticle_eta.size() == N);
-            assert(genParticle_phi.size() == N);
-            assert(genParticle_mass.size() == N);
-            assert(genParticle_vtx_x.size() == N);
-            assert(genParticle_vtx_y.size() == N);
-            assert(genParticle_vtx_z.size() == N);
-            assert(lastMotherIndex >= -1);
+        const size_t N = genParticle_pdgId.size();
+        assert(N <= MaxNumberOfParticles);
+        assert(genParticle_mother.size() == N);
+        assert(genParticle_charge.size() == N);
+        assert(genParticle_isFirstCopy.size() == N);
+        assert(genParticle_isLastCopy.size() == N);
+        assert(genParticle_pt.size() == N);
+        assert(genParticle_eta.size() == N);
+        assert(genParticle_phi.size() == N);
+        assert(genParticle_mass.size() == N);
+        assert(genParticle_vtx_x.size() == N);
+        assert(genParticle_vtx_y.size() == N);
+        assert(genParticle_vtx_z.size() == N);
+        assert(lastMotherIndex >= -1);
 
-            GenLepton lepton;
-            lepton.particles_->resize(N);
-            lepton.firstCopy_ = &lepton.particles_->at(lastMotherIndex + 1);
-            for(size_t n = 0; n < N; ++n) {
-                GenParticle& p = lepton.particles_->at(n);
-                p.pdgId = genParticle_pdgId.at(n);
-                p.charge = genParticle_charge.at(n);
-                p.isFirstCopy = genParticle_isFirstCopy.at(n);
-                p.isLastCopy = genParticle_isLastCopy.at(n);
-                p.p4 = LorentzVectorM(genParticle_pt.at(n), genParticle_eta.at(n),
-                                      genParticle_phi.at(n), genParticle_mass.at(n));
-                p.vertex = Point3D(genParticle_vtx_x.at(n), genParticle_vtx_y.at(n), genParticle_vtx_z.at(n));
-                std::set<size_t> mothers;
-                Long64_t mother_encoded = genParticle_mother.at(n);
-                if(mother_encoded >= 0) {
-                    do {
-                        Long64_t mother_index = mother_encoded % static_cast<Long64_t>(MaxNumberOfParticles);
-                        mother_encoded = (mother_encoded - mother_index) / static_cast<int>(MaxNumberOfParticles);
-                        mothers.insert(static_cast<size_t>(mother_index));
-                    } while(mother_encoded > 0);
-                }
-                for(size_t mother_index : mothers) {
-                    assert(mother_index < N);
-                    p.mothers.insert(&lepton.particles_->at(mother_index));
-                    lepton.particles_->at(mother_index).daughters.insert(&p);
-                }
+        GenLepton lepton;
+        if(isGeantPlusSim_) lepton.enableGenPlusSimParticleMode();
+        lepton.particles_->resize(N);
+        lepton.firstCopy_ = &lepton.particles_->at(lastMotherIndex + 1);
+        for(size_t n = 0; n < N; ++n) {
+            GenParticle& p = lepton.particles_->at(n);
+            p.pdgId = genParticle_pdgId.at(n);
+            p.charge = genParticle_charge.at(n);
+            p.isFirstCopy = genParticle_isFirstCopy.at(n);
+            p.isLastCopy = genParticle_isLastCopy.at(n);
+            p.p4 = LorentzVectorM(genParticle_pt.at(n), genParticle_eta.at(n),
+                                  genParticle_phi.at(n), genParticle_mass.at(n));
+            p.vertex = Point3D(genParticle_vtx_x.at(n), genParticle_vtx_y.at(n), genParticle_vtx_z.at(n));
+            std::set<size_t> mothers;
+            Long64_t mother_encoded = genParticle_mother.at(n);
+            if(mother_encoded >= 0) {
+                do {
+                    Long64_t mother_index = mother_encoded % static_cast<Long64_t>(MaxNumberOfParticles);
+                    mother_encoded = (mother_encoded - mother_index) / static_cast<int>(MaxNumberOfParticles);
+                    mothers.insert(static_cast<size_t>(mother_index));
+                } while(mother_encoded > 0);
             }
-            lepton.initialize();
-            return lepton;
+            for(size_t mother_index : mothers) {
+                assert(mother_index < N);
+                p.mothers.insert(&lepton.particles_->at(mother_index));
+                lepton.particles_->at(mother_index).daughters.insert(&p);
+            }
+        }
+        lepton.initialize();
+        return lepton;
         } catch(std::exception& e) {
             std::cerr << "ERROR: " << e.what() << std::endl;
             throw;
@@ -477,11 +480,25 @@ private:
         if(nFinalStateElectrons_ == 1 && nFinalStateMuons_ == 0 && 
            nNeutralHadrons_ == 0 && nChargedHadrons_ == 0)
             return Kind::TauDecayedToElectron;
+        // Hard fix of bug:
+        // pdgId=-15 status=8
+        // +-> pdgId=11 status=8
+        // +-> pdgId=-11 status=8
+        if(nFinalStateElectrons_ == 2 && nFinalStateMuons_ == 0 && 
+           nNeutralHadrons_ == 0 && nChargedHadrons_ == 0)
+            return Kind::TauDecayedToElectron;
         if(nFinalStateElectrons_ == 0 && nFinalStateMuons_ == 1 && 
            nNeutralHadrons_ == 0 && nChargedHadrons_ == 0)
             return Kind::TauDecayedToMuon;
+        // Hard fix of bug:
+        // pdgId=-15 status=8
+        // +-> pdgId=11 status=8
+        // +-> pdgId=-13 status=8
+        if(nFinalStateElectrons_ == 1 && nFinalStateMuons_ == 1 && 
+           nNeutralHadrons_ == 0 && nChargedHadrons_ == 0)
+            return Kind::TauDecayedToMuon;
         if(pdg == GenParticle::PdgId::tau && lastCopy_->daughters.empty())
-            return Kind::TauDecayedToHadrons;
+            return Kind::Other;
         ThrowError("unable to determine gen lepton kind in GeantMode");
     }
 
