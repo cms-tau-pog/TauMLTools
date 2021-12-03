@@ -9,7 +9,7 @@ import DataLoader
 
 with open(os.path.abspath( "../../configs/training_v1.yaml")) as f:
     config = yaml.safe_load(f)
-scaling  = os.path.abspath("../../configs/scaling_params_v1.json")
+scaling  = os.path.abspath("../../configs/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json")
 dataloader = DataLoader.DataLoader(config, scaling)
 
 gen_train = dataloader.get_generator(primary_set = True)

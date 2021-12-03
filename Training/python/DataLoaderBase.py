@@ -1,4 +1,4 @@
-import multiprocessing as mp
+import torch.multiprocessing as mp
 from queue import Empty as EmptyException
 from queue import Full as FullException
 
@@ -7,11 +7,30 @@ import numpy as np
 import ROOT as R
 import config_parse
 import tensorflow as tf
+import torch
 import os
 import time
 
-class TerminateGenerator:
-    pass
+# class TerminateGenerator:
+#     pass
+
+def torch_to_tf(return_truth = True, return_weights = True):
+
+    def with_both(X):
+        return tuple([tuple([x.clone().numpy() for x in X[0]]),
+                      X[1].clone().numpy(),
+                      X[2].clone().numpy()])
+
+    def with_truth(X):
+        return tuple([tuple([x.clone().numpy() for x in X[0]]),
+                     X[1].clone().numpy()])
+
+    if return_truth and return_weights:
+        return with_both
+    elif return_truth:
+        return with_truth
+    else:
+        raise RuntimeError("Error: conversion rule from torch.tensor is unknown!")
 
 def ugly_clean(queue):
     while True:
@@ -24,13 +43,6 @@ def ugly_clean(queue):
     if queue.qsize()!=0:
         raise RuntimeError("Error: queue was not clean properly.")
 
-def nan_check(Xf):
-    for x in Xf:
-        if np.isnan(x).any():
-            print("Nan detected! element=",x.shape) 
-            print(np.argwhere(np.isnan(x)))
-            return True
-    return False
 
 class QueueEx:
     def __init__(self, max_size=0, max_n_puts=math.inf):
@@ -53,8 +65,8 @@ class QueueEx:
                     pass
             time.sleep(retry_interval)
     
-    def put_terminate(self):
-        self.mp_queue.put(TerminateGenerator())
+    def put_terminate(self, value):
+        self.mp_queue.put(value)
         
     def get(self):
         return self.mp_queue.get()
@@ -112,7 +124,11 @@ class GetData():
                 _reshape,
                 _dtype=np.float32):
         x = np.copy(np.frombuffer(_obj_f.data(), dtype=_dtype, count=_obj_f.size()))
-        return x if _reshape==-1 else x.reshape(_reshape)
+        if np.isnan(x).any():
+            print("Nan detected! element=",x.shape)
+            print(np.argwhere(np.isnan(x)))
+            raise RuntimeError("Terminate: nans detected in the tensor.")
+        return torch.from_numpy(x) if _reshape==-1 else torch.reshape(torch.from_numpy(x), _reshape)
 
     @staticmethod
     def getgrid(_obj_grid,
@@ -123,12 +139,12 @@ class GetData():
                 _inner):
         _X = []
         for group in input_grids:
-            _X.append(tf.convert_to_tensor(
-                np.concatenate(
+            _X.append(
+                torch.cat(
                     [ __class__.getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner],
                      (batch_size, _n_cells, _n_cells, n_grid_features[fname])) for fname in group ],
-                    axis=-1
-                    ),dtype=tf.float32)
+                    dim=-1
+                    )
                 )
         return _X
     
@@ -151,7 +167,7 @@ class GetData():
             n_inner_cells,
             n_outer_cells):        
         # Flat Tau features
-        X_all = [tf.convert_to_tensor(__class__.getdata(data.x_tau, (batch_size, n_flat_features)))]
+        X_all = [ __class__.getdata(data.x_tau, (batch_size, n_flat_features)) ]
         # Inner grid
         X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
                                    input_grids, n_inner_cells, True) # 500 11 11 176
