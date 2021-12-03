@@ -306,7 +306,10 @@ def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target,
             i = basename.split('_')[-2]
         else:
             i = basename.split('_')[-1]
-        return int(i)
+        try:
+            return int(i)
+        except ValueError: #failsafe to a default key
+            return 0
         
     # prepare list of files with inputs
     if path_to_input is not None:
@@ -338,6 +341,8 @@ def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target,
     if path_to_target is not None:
         path_to_target = os.path.abspath(to_absolute_path(fill_placeholders(path_to_target, {"{sample_alias}": sample_alias})))
         target_files = sorted(glob(path_to_target), key=path_splitter) 
+        print(input_files)
+        print(target_files)
         if len(target_files) != len(input_files):
             raise Exception(f'Number of input files ({len(input_files)}) not equal to number of files with labels ({len(target_files)})')
     else: # will assume that target branches "gen_*" are present in input files

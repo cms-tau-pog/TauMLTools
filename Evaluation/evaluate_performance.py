@@ -75,7 +75,7 @@ def main(cfg: DictConfig) -> None:
         print(f'\n{discriminator.name}')
         for pt_index, (pt_min, pt_max) in enumerate(zip(cfg.pt_bins[:-1], cfg.pt_bins[1:])):
             # apply pt bin selection
-            df_cut = df_all.query(f'tau_pt >= {pt_min} and tau_pt < {pt_max}')
+            df_cut = df_all.query(f'boostedTau_pt >= {pt_min} and boostedTau_pt < {pt_max}')
             if df_cut.shape[0] == 0:
                 print("Warning: pt bin ({}, {}) is empty.".format(pt_min, pt_max))
                 continue
