@@ -54,7 +54,7 @@ def plot_ranges(file_id, var_name, cone_type, mean, median, min_value, max_value
     plt.ylim(ylim)
     plt.xlim(xlim)
     plt.legend()
-    plt.show()
+    if not close_plot: plt.show()
     if savepath is not None:
         fig.savefig(f'{savepath}/{var_name}_{cone_type}.png')
     if close_plot:

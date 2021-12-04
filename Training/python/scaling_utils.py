@@ -173,11 +173,11 @@ def compute_mean(sums, counts, aggregate=True, *file_range):
     if aggregate:
         if file_range:
             assert len(file_range) == 2 and file_range[0] <= file_range[1]
-            return sums[file_range[0]:file_range[1]].sum()/counts[file_range[0]:file_range[1]].sum()
+            return sums[file_range[0]:file_range[1]].sum()/counts[file_range[0]:file_range[1]].sum() if counts[file_range[0]:file_range[1]].sum()>1 else 0.
         else:
-            return sums.sum()/counts.sum()
+            return sums.sum()/counts.sum() if counts.sum()>1 else 0.
     else:
-        return sums/counts
+        return sums/counts if counts>1 else 0.
 
 def compute_std(sums, sums2, counts, aggregate=True, *file_range):
     """
@@ -198,11 +198,11 @@ def compute_std(sums, sums2, counts, aggregate=True, *file_range):
             assert len(file_range) == 2 and file_range[0] <= file_range[1]
             average2 = sums2[file_range[0]:file_range[1]].sum()/counts[file_range[0]:file_range[1]].sum()
             average = sums[file_range[0]:file_range[1]].sum()/counts[file_range[0]:file_range[1]].sum()
-            return np.sqrt(average2 - average**2)
+            return np.sqrt(average2 - average**2) if counts[file_range[0]:file_range[1]].sum()>1 else 1.
         else:
-            return np.sqrt(sums2.sum()/counts.sum() - (sums.sum()/counts.sum())**2)
+            return np.sqrt(sums2.sum()/counts.sum() - (sums.sum()/counts.sum())**2) if counts.sum()>1 else 1.
     else:
-        return np.sqrt(sums2/counts - (sums/counts)**2)
+        return np.sqrt(sums2/counts - (sums/counts)**2) if counts>1 else 1.
 
 def get_quantiles(var_array):
     """
@@ -216,6 +216,7 @@ def get_quantiles(var_array):
     """
     quantile_dict = {}
     var_array = ak.to_numpy(ak.flatten(var_array, axis=-1))
+    if np.size(var_array)==0: return {'median': 0., 'min': 0., 'max': 0., '1sigma': {'left': 0., 'right': 0.}, '2sigma': {'left': 0., 'right': 0.}, '3sigma': {'left': 0., 'right': 0.}, '5sigma': {'left': 0., 'right': 0.}}
     quantile_dict['median'] = np.median(var_array).astype(float)
     quantile_dict['min'] = np.min(var_array).astype(float)
     quantile_dict['max'] = np.max(var_array).astype(float)

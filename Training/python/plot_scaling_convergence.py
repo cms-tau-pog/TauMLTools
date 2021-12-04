@@ -63,7 +63,7 @@ def plot_running_diff(running_diff_mean, running_diff_std,
     axs[1].hlines(.1, axs[1].get_xlim()[0], axs[1].get_xlim()[1]-1, ls=':', linewidth=3, label='10\% level')
     axs[1].vlines(49.5, *axs[1].get_ylim(), 'black', linewidth=1.5)
     # plt.legend(loc='upper center')
-    plt.show()
+    if not close_plot: plt.show()
     if savepath is not None:
         fig.savefig(f'{savepath}/{var_type}_{cone_type}.png')
     if close_plot:

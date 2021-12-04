@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     # loop over input files
     for file_i, (file_name_i, file_name) in enumerate(zip(file_names_ix, file_names)): # file_i used internally to count number of processed files
-        print("Processing file:",file_i)
+        print("Processing file:",file_i,",",file_name)
         log_scaling_params = not (file_i%log_step) or (file_i == n_files-1)
         with uproot.open(file_name, array_cache='5 GB') as f:
             if len(f.keys()) == 0: # some input ROOT files can be corrupted and uproot can't recover for it. These files are skipped in computations
