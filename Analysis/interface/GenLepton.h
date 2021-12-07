@@ -482,9 +482,10 @@ private:
             return Kind::TauDecayedToElectron;
         // Hard fix of bug:
         // pdgId=-15 status=8
-        // +-> pdgId=11 status=8
+        // +-> pdgId=11 status=8 <- pt<0.001
+        // +-> pdgId=11 status=8 <- pt<0.001
         // +-> pdgId=-11 status=8
-        if(nFinalStateElectrons_ == 2 && nFinalStateMuons_ == 0 && 
+        if(nFinalStateElectrons_ >= 2 && nFinalStateMuons_ == 0 && 
            nNeutralHadrons_ == 0 && nChargedHadrons_ == 0)
             return Kind::TauDecayedToElectron;
         if(nFinalStateElectrons_ == 0 && nFinalStateMuons_ == 1 && 
@@ -492,9 +493,10 @@ private:
             return Kind::TauDecayedToMuon;
         // Hard fix of bug:
         // pdgId=-15 status=8
-        // +-> pdgId=11 status=8
+        // +-> pdgId=11 status=8 <- pt<0.001
+        // +-> pdgId=11 status=8 <- pt<0.001
         // +-> pdgId=-13 status=8
-        if(nFinalStateElectrons_ == 1 && nFinalStateMuons_ == 1 && 
+        if(nFinalStateElectrons_ >= 1 && nFinalStateMuons_ == 1 &&
            nNeutralHadrons_ == 0 && nChargedHadrons_ == 0)
             return Kind::TauDecayedToMuon;
         if(pdg == GenParticle::PdgId::tau && lastCopy_->daughters.empty())
