@@ -48,6 +48,7 @@ Setup:
                             ]
     xmin                 : 0
     xmax                 : 3.0
+    debug                : True
 
 SetupNN:
     model_name           : "DeepTauPhase2v1"
