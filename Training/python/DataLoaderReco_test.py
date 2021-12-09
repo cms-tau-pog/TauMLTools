@@ -11,13 +11,13 @@ R.gROOT.ProcessLine(".include ../../..")
 
 print("Compiling Setup classes...")
 
-with open(os.path.abspath( "../configs/trainingReco_v1.yaml")) as f:
+with open(os.path.abspath( "../configs/trainingTag_v1.yaml")) as f:
     config = yaml.safe_load(f)
 R.gInterpreter.Declare(config_parse.create_scaling_input("../configs/scaling_params_vReco_v1_stau.json", config, verbose=False))
 R.gInterpreter.Declare(config_parse.create_settings(config, verbose=False))
 
 print("Compiling DataLoader_main...")
-R.gInterpreter.Declare('#include "../interface/DataLoaderReco_main.h"')
+R.gInterpreter.Declare('#include "../interface/DataLoaderTag_main.h"')
 
 n_tau          = config["Setup"]["n_tau"]
 outclass       = config["Setup"]["output_classes"]
