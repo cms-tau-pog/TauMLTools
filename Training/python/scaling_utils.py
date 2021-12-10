@@ -157,7 +157,7 @@ def init_dictionaries(features_dict, cone_selection_dict, n_files):
                 raise ValueError(f"In variable {var}: scaling_type should be one of [no_scaling, categorical, linear, normal]")
     return sums, sums2, counts, scaling_params, quantile_params
 
-def compute_mean(sums, counts, aggregate=True, *file_range):
+def compute_mean(sums, counts, aggregate=True, mincount=1, *file_range):
     """
     Assuming input arrays correspond to per file sums and counts for a given feature's values, derive means either on the file-by-file basis, or via aggregating & averaging values over all/specified range of input files.
 
@@ -170,16 +170,18 @@ def compute_mean(sums, counts, aggregate=True, *file_range):
     Returns:
         float (np.array) with mean (means per file)
     """
+    if counts.sum() <= mincount: return None
     if aggregate:
         if file_range:
             assert len(file_range) == 2 and file_range[0] <= file_range[1]
+            if counts[file_range[0]:file_range[1]].sum() <= mincount: return None
             return sums[file_range[0]:file_range[1]].sum()/counts[file_range[0]:file_range[1]].sum()
         else:
             return sums.sum()/counts.sum()
     else:
         return sums/counts
 
-def compute_std(sums, sums2, counts, aggregate=True, *file_range):
+def compute_std(sums, sums2, counts, aggregate=True, mincount=1, *file_range):
     """
     Assuming input arrays correspond to per file (squared) sums and counts for a given feature's values, derive standard deviation either on the file-by-file basis, or via aggregating & averaging values over all/specified range of input files.
 
@@ -193,9 +195,11 @@ def compute_std(sums, sums2, counts, aggregate=True, *file_range):
     Returns:
         float (np.array) with std (stds per file)
     """
+    if counts.sum() <= mincount: return None
     if aggregate:
         if file_range:
             assert len(file_range) == 2 and file_range[0] <= file_range[1]
+            if counts[file_range[0]:file_range[1]].sum() <= mincount: return None
             average2 = sums2[file_range[0]:file_range[1]].sum()/counts[file_range[0]:file_range[1]].sum()
             average = sums[file_range[0]:file_range[1]].sum()/counts[file_range[0]:file_range[1]].sum()
             return np.sqrt(average2 - average**2)
@@ -204,7 +208,7 @@ def compute_std(sums, sums2, counts, aggregate=True, *file_range):
     else:
         return np.sqrt(sums2/counts - (sums/counts)**2)
 
-def get_quantiles(var_array):
+def get_quantiles(var_array, mincount=0):
     """
     Compute for a given feature array `var_array` characteristics of its distribution: median, min/max, 1/2/3/5 sigma (under assumption of normality) intervals
 
@@ -216,6 +220,7 @@ def get_quantiles(var_array):
     """
     quantile_dict = {}
     var_array = ak.to_numpy(ak.flatten(var_array, axis=-1))
+    if np.size(var_array) <= mincount: return {'median': None, 'min': None, 'max': None, '1sigma': {'left': None, 'right': None}, '2sigma': {'left': None, 'right': None}, '3sigma': {'left': None, 'right': None}, '5sigma': {'left': None, 'right': None}}
     quantile_dict['median'] = np.median(var_array).astype(float)
     quantile_dict['min'] = np.min(var_array).astype(float)
     quantile_dict['max'] = np.max(var_array).astype(float)
@@ -312,10 +317,19 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
         if fill_scaling_params:
             mean_ = compute_mean(sums[var_type][var], counts[var_type][var], aggregate=True)
             std_ = compute_std(sums[var_type][var], sums2[var_type][var], counts[var_type][var], aggregate=True)
-            scaling_params[var_type][var]['global']['mean'] = float(format(mean_, '.4g')) # round to 4 significant digits
-            scaling_params[var_type][var]['global']['std'] = float(format(std_, '.4g'))
+            if mean_ == None:
+                print(f"Low statistics in {var} for mean computation")
+                scaling_params[var_type][var]['global']['mean'] = None
+            else:
+                scaling_params[var_type][var]['global']['mean'] = float(format(mean_, '.4g')) # round to 4 significant digits
+            if std_ == None:
+                print(f"Low statistics in {var} for std computation")
+                scaling_params[var_type][var]['global']['std'] = None
+            else:
+                scaling_params[var_type][var]['global']['std'] = float(format(std_, '.4g'))
         if quantile_params:
             quantile_params[var_type][var]['global'][file_name_i] = get_quantiles(var_array)
+            if None in quantile_params[var_type][var]['global'][file_name_i].values(): print(f"Low statistics in {var} for quantile computation")
     elif cone_type == 'inner' or cone_type == 'outer':
         tau_pt_name, tau_eta_name, tau_phi_name = cone_selection_dict['TauFlat']['var_names']['pt'], cone_selection_dict['TauFlat']['var_names']['eta'], cone_selection_dict['TauFlat']['var_names']['phi']
         tau_pt_array, tau_eta_array, tau_phi_array = tree.arrays([tau_pt_name, tau_eta_name, tau_phi_name], cut=None, aliases=None, how=tuple)
@@ -331,10 +345,19 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
         if fill_scaling_params:
             mean_ = compute_mean(sums[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
             std_ = compute_std(sums[var_type][var][cone_type], sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
-            scaling_params[var_type][var][cone_type]['mean'] = float(format(mean_, '.4g'))
-            scaling_params[var_type][var][cone_type]['std'] = float(format(std_, '.4g'))
+            if mean_ == None:
+                print(f"Low statistics in {var} for mean computation")
+                scaling_params[var_type][var][cone_type]['mean'] = None
+            else:
+                scaling_params[var_type][var][cone_type]['mean'] = float(format(mean_, '.4g'))
+            if std_ == None:
+                print(f"Low statistics in {var} for std computation")
+                scaling_params[var_type][var][cone_type]['std'] = None
+            else:
+                scaling_params[var_type][var][cone_type]['std'] = float(format(std_, '.4g'))
         if quantile_params:
             quantile_params[var_type][var][cone_type][file_name_i] = get_quantiles(var_array[cone_mask])
+            if None in quantile_params[var_type][var][cone_type][file_name_i].values(): print(f"Low statistics in {var} for quantile computation")
     else:
         raise ValueError(f'cone_type for {var_type} should be either inner, or outer')
 
