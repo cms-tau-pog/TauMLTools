@@ -12,9 +12,9 @@ Setup:
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
     recompute_tautype    : True
     include_mismatched   : False # whether to keep tau candidates with tau_type not present in `tau_types_names`
-    input_dir            : "/eos/user/d/dmroy/public/PU200_ShuffleMerge_Eta3/"
-    input_spectrum       : "/eos/user/d/dmroy/public/ShuffleMergeSpectral_TrainingSpectrum/ShuffleMergeSpectral_SpectrumEta3.root"
-    target_spectrum      : "/eos/user/d/dmroy/public/ShuffleMergeSpectral_TrainingSpectrum/ShuffleMergeSpectral_SpectrumEta3.root"
+    input_dir            : "/eos/cms/store/group/phys_tau/TauML/prod_Phase2_v2/PU200_ShuffleMerge_Eta3/"
+    input_spectrum       : "/eos/cms/store/group/phys_tau/TauML/prod_Phase2_v2/ShuffleMergeSpectral/ShuffleMergeSpectral_SpectrumEta3.root"
+    target_spectrum      : "/eos/cms/store/group/phys_tau/TauML/prod_Phase2_v2/ShuffleMergeSpectral/ShuffleMergeSpectral_SpectrumEta3.root"
     weight_thr           : 100000.0
     dataloader_core      : "TauMLTools/Training/interface/DataLoader_main.h"
 
@@ -87,7 +87,7 @@ CellObjectType : [
 
 Scaling_setup:
     # --------------------------------------------------------
-    file_path: '/eos/user/d/dmroy/public/PU200_ShuffleMerge_Eta3/ShuffleMergeSpectral*.root' # input files to be used for computation of scaling params
+    file_path: '/eos/cms/store/group/phys_tau/TauML/prod_Phase2_v2/PU200_ShuffleMerge_Eta3/ShuffleMergeSpectral*.root' # input files to be used for computation of scaling params
     output_json_folder: 'output_phase2json' # directory where json files with scaling params will be stored
     file_range: -1 # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
     tree_name: taus # TTree name in input files to be read
