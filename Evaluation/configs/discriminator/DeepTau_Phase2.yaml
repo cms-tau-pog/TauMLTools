@@ -1,0 +1,13 @@
+# general
+name: DeepTau vs. ${vs_type} (Phase 2)
+color: orange
+dashed: False
+raw: True
+
+# prediction/target columns
+pred_column_prefix: node_
+pred_column: ${.pred_column_prefix}${vs_type} # column in internally created pd.DataFrame to be used for metrics computation  
+target_column_prefix: node_
+
+# WPs
+wp_from: null
