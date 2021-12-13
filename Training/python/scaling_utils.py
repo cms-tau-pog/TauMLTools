@@ -179,6 +179,18 @@ def compute_mean(sums, counts, aggregate=True, *file_range):
     else:
         return sums/counts
 
+def compute_sqmean(sums2, counts, aggregate=True, *file_range):
+    ''' see compute_mean
+    '''
+    if aggregate:
+        if file_range:
+            assert len(file_range) == 2 and file_range[0] <= file_range[1]
+            return sums2[file_range[0]:file_range[1]].sum()/counts[file_range[0]:file_range[1]].sum()
+        else:
+            return sums2.sum()/counts.sum()
+    else:
+        return sums2/counts
+
 def compute_std(sums, sums2, counts, aggregate=True, *file_range):
     """
     Assuming input arrays correspond to per file (squared) sums and counts for a given feature's values, derive standard deviation either on the file-by-file basis, or via aggregating & averaging values over all/specified range of input files.
@@ -311,9 +323,12 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
         counts[var_type][var][file_i] += ak.count(var_array)
         if fill_scaling_params:
             mean_ = compute_mean(sums[var_type][var], counts[var_type][var], aggregate=True)
+            sqmean_ = compute_sqmean(sums2[var_type][var], counts[var_type][var], aggregate=True)
             std_ = compute_std(sums[var_type][var], sums2[var_type][var], counts[var_type][var], aggregate=True)
             scaling_params[var_type][var]['global']['mean'] = float(format(mean_, '.4g')) # round to 4 significant digits
+            scaling_params[var_type][var]['global']['sqmean'] = float(format(sqmean_, '.4g'))
             scaling_params[var_type][var]['global']['std'] = float(format(std_, '.4g'))
+            scaling_params[var_type][var]['global']['num'] = int(counts[var_type][var])
         if quantile_params:
             quantile_params[var_type][var]['global'][file_name_i] = get_quantiles(var_array)
     elif cone_type == 'inner' or cone_type == 'outer':
@@ -330,9 +345,12 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
         counts[var_type][var][cone_type][file_i] += ak.count(var_array[cone_mask])
         if fill_scaling_params:
             mean_ = compute_mean(sums[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
+            sqmean_ = compute_sqmean(sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
             std_ = compute_std(sums[var_type][var][cone_type], sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
             scaling_params[var_type][var][cone_type]['mean'] = float(format(mean_, '.4g'))
+            scaling_params[var_type][var]['global']['sqmean'] = float(format(sqmean_, '.4g'))
             scaling_params[var_type][var][cone_type]['std'] = float(format(std_, '.4g'))
+            scaling_params[var_type][var]['global']['num'] = int(counts[var_type][var][cone_type])
         if quantile_params:
             quantile_params[var_type][var][cone_type][file_name_i] = get_quantiles(var_array[cone_mask])
     else:

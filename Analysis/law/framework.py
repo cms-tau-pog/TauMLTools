@@ -55,6 +55,8 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
     description = 'maximum RAM usage')
   batch_name  = luigi.Parameter(default = 'TauML_law',
     description = 'HTCondor batch name')
+  environment = luigi.Parameter(default = "CMSSW",
+    description = "Environment used to run the job")
 
   def htcondor_output_directory(self):
     # the directory where submission meta data should be stored
@@ -77,9 +79,17 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
     if not os.path.exists(out_dir): os.makedirs(out_dir)
     if not os.path.exists(log_dir): os.makedirs(log_dir)
 
+    good_envs = ['CMSSW', 'conda']
+    assert self.environment in good_envs, \
+    "--environment must be in the list {}. You wrote {}".format(good_envs, self.environment)
+
     # render_variables are rendered into all files sent with a job
     config.render_variables["analysis_path"] = main_dir
     config.render_variables["cmssw_base"]    = str(os.getenv('CMSSW_BASE'))
+    config.render_variables["environment"]   = self.environment
+    config.render_variables["conda_path"]    = '/'.join(os.environ['CONDA_EXE'].split('/')[:-2])
+    config.render_variables["conda_env"]     = os.environ['CONDA_DEFAULT_ENV']
+    config.render_variables["pythonpath"]    = os.environ['PYTHONPATH']
     # force to run on CC7, http://batchdocs.web.cern.ch/batchdocs/local/submit.html#os-choice
     config.custom_content.append(("requirements", "(OpSysAndVer =?= \"CentOS7\")"))
     # maximum runtime
