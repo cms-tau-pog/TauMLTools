@@ -38,6 +38,8 @@ class FeatureScaling(Task, HTCondorWorkflow, law.LocalWorkflow):
 
   def move(self, src, dest):
     if os.path.exists(dest):
+      if os.path.abspath(src) == os.path.abspath(dest):
+        return
       if os.path.isdir(dest): shutil.rmtree(dest)
       else: os.remove(dest)
     shutil.move(src, dest)
