@@ -80,7 +80,8 @@ public:
             
             tauTuple->GetEntry(current_entry);
             auto& tau = const_cast<Tau&>(tauTuple->data());
-            if (tau.genLepton_kind == 5 && tau.jet_index >= 0 && tau.genLepton_vis_pt > 15.0) {
+            if (tau.genLepton_kind == 5 && tau.jet_index >= 0 && tau.genLepton_vis_pt > 10.0)
+            {
                 FillLabels(tau_i, tau, Setup::output_classes);
                 FillPfCand(tau_i, tau);
                 ++tau_i;
@@ -127,9 +128,13 @@ public:
                       Tau& tau,
                       size_t n_classes)
       {
-        auto genLeptons = reco_tau::gen_truth::GenLepton::fromRootTuple(
+        auto genLeptons = reco_tau::gen_truth::GenLepton::fromRootTuple
+        <std::vector<Int_t>, std::vector<Long64_t>, std::vector<Float_t>>
+                        (
+                            true,
                             tau.genLepton_lastMotherIndex,
                             tau.genParticle_pdgId,
+                            tau.genParticle_status,
                             tau.genParticle_mother,
                             tau.genParticle_charge,
                             tau.genParticle_isFirstCopy,
@@ -140,14 +145,21 @@ public:
                             tau.genParticle_mass,
                             tau.genParticle_vtx_x,
                             tau.genParticle_vtx_y,
-                            tau.genParticle_vtx_z);
+                            tau.genParticle_vtx_z
+                        );
+                            
         auto getVecRef = [&](size_t element) ->  Float_t&{
             return data->y.at(tau_i*n_classes + element);
             };
-        getVecRef(0) = genLeptons.nChargedHadrons();
-        getVecRef(1) = genLeptons.nNeutralHadrons();
-        getVecRef(2) = genLeptons.visibleP4().Pt();
-        getVecRef(3) = TMath::Power(genLeptons.visibleP4().M(),2);
+
+        getVecRef(0) = genLeptons.visibleP4().Pt();
+        getVecRef(1) = TMath::Power(genLeptons.visibleP4().M(),2);
+
+        // getVecRef(0) = genLeptons.nChargedHadrons();
+        // getVecRef(1) = genLeptons.nNeutralHadrons();
+        // getVecRef(2) = genLeptons.visibleP4().Pt();
+        // getVecRef(3) = TMath::Power(genLeptons.visibleP4().M(),2);
+
       }
 
       void FillPfCand(Long64_t tau_i,
