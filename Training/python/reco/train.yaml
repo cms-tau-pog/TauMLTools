@@ -1,5 +1,5 @@
 defaults:
-  - ../../configs@_global_.training_cfg: trainingReco_v1
+  - ../../configs@_global_.training_cfg: trainingReco_UL2018_stau_v1
   - _self_
 
 # mlflow
@@ -7,7 +7,7 @@ path_to_mlflow: mlruns
 experiment_name: ???
 
 # setup
-scaling_cfg: ../../configs/scaling_params_vReco_v1_stau.json # for DataLoader initialisation
+scaling_cfg: ../../configs/scaling_params_vReco_UL2018_stau_v1.json # for DataLoader initialisation
 gpu_cfg:
   gpu_mem  : 7 # in Gb
   gpu_index: 0

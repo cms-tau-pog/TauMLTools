@@ -1,7 +1,7 @@
 import os
 import gc
 import sys
-import glob
+from glob import glob
 import time
 import math
 import numpy as np
@@ -21,6 +21,7 @@ from tensorflow.keras.callbacks import Callback, ModelCheckpoint, CSVLogger
 from datetime import datetime
 
 import mlflow
+from mlflow.tracking.context.git_context import _get_git_commit
 mlflow.tensorflow.autolog(log_models=False)
 
 import hydra
@@ -263,13 +264,14 @@ class MyGNN(tf.keras.Model):
         
         x = self.dense2(x)
 
-        x_zeros = tf.zeros((x_shape[0], 2))
-        if(self.mode == "dm"):
-            xout = tf.concat([x, x_zeros], axis=1)
-        elif self.mode == "p4":
-            xout = tf.concat([x_zeros, x], axis=1)
-        else:
-            xout = x
+        # x_zeros = tf.zeros((x_shape[0], 2))
+        # if(self.mode == "dm"):
+        #     xout = tf.concat([x, x_zeros], axis=1)
+        # elif self.mode == "p4":
+        #     xout = tf.concat([x_zeros, x], axis=1)
+        # else:
+        #     xout = x
+        xout = x
 
         # print('xout shape: ',xout)
         return xout
@@ -291,16 +293,15 @@ class MyGNN(tf.keras.Model):
 
         return tf.stack([mypt,mymass], axis=1)
 
-def compile_model(model, mode, learning_rate):
+def compile_model(model, mode, opt_name, learning_rate):
     # opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, beta_1=1e-4)
-    opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, schedule_decay=1e-4)
+    # opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, schedule_decay=1e-4)
     # opt = tf.keras.optimizers.Adam(learning_rate = learning_rate)
+    opt = getattr(tf.keras.optimizers, opt_name)(learning_rate=learning_rate, schedule_decay=1e-4)
+
     CustomMSE.mode = mode
     metrics = []
-    if "dm" in mode:
-        metrics.extend([my_acc, my_mse_ch, my_mse_neu])
-    if "p4" in mode:
-        metrics.extend([my_mse_pt, my_mse_mass, pt_res, pt_res_rel, m2_res])
+    metrics.extend([my_mse_pt, my_mse_mass, pt_res, pt_res_rel, m2_res])
     model.compile(loss=CustomMSE(), optimizer=opt, metrics=metrics)
     
     # log metric names for passing them during model loading
@@ -347,10 +348,11 @@ def run_training(model, data_loader, to_profile, log_suffix):
 
     # mlflow logs
     for checkpoint_dir in glob(f'{log_name}*.tf'):
-         mlflow.log_artifacts(checkpoint_dir, f"model_checkpoints/{checkpoint_dir}")
+        mlflow.log_artifacts(checkpoint_dir, f"model_checkpoints/{checkpoint_dir}")
     mlflow.log_artifacts(model_path, "model")
     mlflow.log_artifacts(logs, "custom_tensorboard_logs")
     mlflow.log_artifact(csv_log_file)
+    mlflow.log_param('model_name', model_name)
 
     return fit_hist
 
@@ -367,6 +369,7 @@ def main(cfg: DictConfig) -> None:
     
     # run the training with mlflow tracking
     with mlflow.start_run(**run_kwargs) as active_run:
+        run_id = active_run.info.run_id
         setup_gpu(cfg.gpu_cfg)
         training_cfg = OmegaConf.to_object(cfg.training_cfg) # convert to python dictionary
         scaling_cfg = to_absolute_path(cfg.scaling_cfg)
@@ -378,16 +381,20 @@ def main(cfg: DictConfig) -> None:
         # print(input_shape[0])
         # compile_build = tf.ones(input_shape[0], dtype=tf.float32, name=None)
         model.build(list(input_shape[0]))
-        compile_model(model, dl_config["SetupNN"]["mode"], dl_config["SetupNN"]["learning_rate"])
+        compile_model(model, dl_config["SetupNN"]["mode"], dl_config["SetupNN"]["optimizer_name"],
+                      dl_config["SetupNN"]["learning_rate"])
         fit_hist = run_training(model, dataloader, False, cfg.log_suffix)
 
         mlflow.log_dict(training_cfg, 'input_cfg/training_cfg.yaml')
         mlflow.log_artifact(scaling_cfg, 'input_cfg')
         mlflow.log_artifact(to_absolute_path("Training_SNNv0.py"), 'input_cfg')
         mlflow.log_artifact(to_absolute_path("../commonReco.py"), 'input_cfg')
+
         mlflow.log_artifacts('.hydra', 'input_cfg/hydra')
         mlflow.log_artifact('Training_SNNv0.log', 'input_cfg/hydra')
+
         mlflow.log_param('run_id', active_run.info.run_id)
+        mlflow.log_param('git_commit', _get_git_commit(to_absolute_path('.')))
         print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {active_run.info.run_id}\n')
 
 if __name__ == '__main__':
