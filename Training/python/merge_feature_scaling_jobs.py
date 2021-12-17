@@ -81,13 +81,13 @@ def merge_jobs(jobs, output_path):
 if __name__ == '__main__':
   import argparse
   parser = argparse.ArgumentParser()
-  parser.add_argument('--output'   , required = True, help = 'path and name of the output file')
-  parser.add_argument('--json'     , required = True, help = 'path to json files storing the job results. Accepts glob patterns')
-  parser.add_argument('--step'     , default  = None, help = 'step for logging the convergence of the computation. None = skip')
+  parser.add_argument('--output'   , required = True, type = str, help = 'path and name of the output file')
+  parser.add_argument('--input'    , required = True, type = str, help = 'path to json files storing the jobs results. Accepts glob patterns')
+  parser.add_argument('--step'     , default  = None, type = int, help = 'step for logging the convergence of the computation. None = skip')
   args = parser.parse_args()
 
   # load the job json files into dictionaries
-  alljobs = [json.load(open(j, 'r')) for j in glob.glob(args.json)]
+  alljobs = [json.load(open(j, 'r')) for j in glob.glob(args.input)]
 
   if args.step is not None:
     for ii, st in enumerate(range(0, len(alljobs), args.step)):
