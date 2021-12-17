@@ -9,6 +9,7 @@
 action() {
   eosfusebind -g
   export PYTHONPATH={{pythonpath}}:$PYTHONPATH
+  export PATH={{path}}:$PATH
   if [ "{{environment}}" == "CMSSW" ]; then
     pushd "{{cmssw_base}}/src"
     eval `scramv1 runtime -sh`

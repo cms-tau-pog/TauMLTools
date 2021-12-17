@@ -90,6 +90,7 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
     config.render_variables["conda_path"]    = '/'.join(os.environ['CONDA_EXE'].split('/')[:-2])
     config.render_variables["conda_env"]     = os.environ['CONDA_DEFAULT_ENV']
     config.render_variables["pythonpath"]    = os.environ['PYTHONPATH']
+    config.render_variables["path"]          = os.environ['PATH']
     # force to run on CC7, http://batchdocs.web.cern.ch/batchdocs/local/submit.html#os-choice
     config.custom_content.append(("requirements", "(OpSysAndVer =?= \"CentOS7\")"))
     # maximum runtime
