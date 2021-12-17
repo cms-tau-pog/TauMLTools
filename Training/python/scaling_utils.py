@@ -316,7 +316,7 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
             scaling_params[var_type][var]['global']['mean'] = float(format(mean_, '.4g')) # round to 4 significant digits
             scaling_params[var_type][var]['global']['sqmean'] = float(format(sqmean_, '.4g'))
             scaling_params[var_type][var]['global']['std'] = float(format(std_, '.4g'))
-            scaling_params[var_type][var]['global']['num'] = int(counts[var_type][var])
+            scaling_params[var_type][var]['global']['num'] = int(counts[var_type][var].sum())
         if quantile_params:
             quantile_params[var_type][var]['global'][file_name_i] = get_quantiles(var_array)
     elif cone_type == 'inner' or cone_type == 'outer':
@@ -338,7 +338,7 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
             scaling_params[var_type][var][cone_type]['mean'] = float(format(mean_, '.4g'))
             scaling_params[var_type][var][cone_type]['sqmean'] = float(format(sqmean_, '.4g'))
             scaling_params[var_type][var][cone_type]['std'] = float(format(std_, '.4g'))
-            scaling_params[var_type][var][cone_type]['num'] = int(counts[var_type][var][cone_type])
+            scaling_params[var_type][var][cone_type]['num'] = int(counts[var_type][var][cone_type].sum())
         if quantile_params:
             quantile_params[var_type][var][cone_type][file_name_i] = get_quantiles(var_array[cone_mask])
     else:

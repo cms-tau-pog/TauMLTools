@@ -8,6 +8,7 @@ import re
 import sys
 import glob
 import shutil
+import yaml
 
 from framework import Task, HTCondorWorkflow
 import luigi
@@ -17,17 +18,23 @@ from feature_scaling_v2 import run_scaling as run_job
 class FeatureScaling(Task, HTCondorWorkflow, law.LocalWorkflow):
   ## '_' will be converted to '-' for the shell command invocation
   cfg           = luigi.Parameter(description = 'location of the input yaml configuration file')
-  input_path    = luigi.Parameter(description = 'location of the input root files. Overrides yaml config')
-  output_path   = luigi.Parameter(description = 'location of the output json files. Overrides yaml config')
   var_types     = luigi.Parameter(default = "-1", description = 'variable types from field "Features_all" of the cfg file for which to derive scaling parameters. Defaults to -1 for running on all those specified in the cfg')
   files_per_job = luigi.IntParameter(default = 1, description = 'number of files to run a single job. This value defines the number of files used to log a single step')
-  n_jobs        = luigi.IntParameter(default = 0, description = 'number of jobs to run. Together with --files-per-job determiines the total number of files processed')
+  n_jobs        = luigi.IntParameter(default = 0, description = 'number of jobs to run. Together with --files-per-job determiines the total number of files processed. Default = 0: run on all files.')
 
-  def create_branch_map(self):
+  def __init__(self, *args, **kwargs):
+    super(FeatureScaling, self).__init__(*args, **kwargs)
     self.cfg = os.path.abspath(self.cfg)
 
-    input_file_path = self.input_path+'/*.root'
-    files   = glob.glob(input_file_path)
+    with open(self.cfg) as f:
+      self.cfg_dict = yaml.load(f, Loader=(yaml.FullLoader))
+
+    self.output_path = os.path.abspath(self.cfg_dict['Scaling_setup']['output_json_folder'])
+
+
+  def create_branch_map(self):
+    input_file_path  = self.cfg_dict['Scaling_setup']['file_path']
+    files   = sorted(glob.glob(input_file_path))
     assert len(files), "Input file list is empty from path {}".format(input_file_path)
 
     batches = [files[j:j+self.files_per_job] for j in range(0, len(files), self.files_per_job)]

@@ -4,6 +4,7 @@
 import json
 import yaml
 import glob
+import math
 from collections import OrderedDict
 
 def merge_jobs(jobs, output_path):
@@ -19,9 +20,9 @@ def merge_jobs(jobs, output_path):
     thisstep  = '/'+vt+'/'
     odict[vt] = OrderedDict()
     variables = jobs[0][vt].keys()
-    
+
     assert all(j[vt].keys() == variables for j in jobs), CERROR+thisstep
-    
+
     for var in variables:
       thisstep = '/'+vt+'/'+var+'/'
       odict[vt][var] = OrderedDict()
@@ -41,9 +42,6 @@ def merge_jobs(jobs, output_path):
 
         assert all(j[vt][var][ct]['lim_min'] == lmin for j in jobs), "lim_min parameter was found to be different between jobs for "+thisstep
         assert all(j[vt][var][ct]['lim_max'] == lmax for j in jobs), "lim_max parameter was found to be different between jobs for "+thisstep
-
-        odict[vt][var][ct]['lim_min'] = lmin
-        odict[vt][var][ct]['lim_max'] = lmax
 
         # load mean, mean of the square, std and number of entries for each job
         assert all('mean'   in j[vt][var][ct].keys() for j in jobs), "'mean' key not found for some of the jobs at "+thisstep
@@ -70,14 +68,15 @@ def merge_jobs(jobs, output_path):
         else:
           num     = sum(nums)
           mean    = sum(m*n for m,n in zip(means  , nums)) / num
-          sqmean  = sum(m*n for m,n in zip(sqmeans, nums)) / num # FIXME: is this correct? 
-          odict[vt][var][ct]['mean'] = sum(m*n for m,n in zip(means  , nums)) / num # FIXME: is this correct?
-          odict[vt][var][ct]['std']  = sqmean-mean**2 # FIXME: is this correct?
-          odict[vt][var][ct]['lim_min'] = lmin
-          odict[vt][var][ct]['lim_max'] = lmax
-  
+          sqmean  = sum(m*n for m,n in zip(sqmeans, nums)) / num
+          odict[vt][var][ct]['mean'] = float(format(mean, '.4g'))
+          odict[vt][var][ct]['std']  = float(format(math.sqrt(sqmean-mean**2), '.4g'))
+
+        odict[vt][var][ct]['lim_min'] = lmin
+        odict[vt][var][ct]['lim_max'] = lmax
+
   with open(output_path, 'w') as ojson:
-    json.dump(ojson, odict, indent = 4)
+    json.dump(odict, ojson, indent = 4)
 
 if __name__ == '__main__':
   import argparse
@@ -95,12 +94,11 @@ if __name__ == '__main__':
       merge_jobs(jobs = alljobs[:st], output_path = args.output_name.replace('.json', '_{}.json'.format(ii)))
   else:
     merge_jobs(jobs = alljobs, output_path = args.output)
-  
-  print('All done.  \n\
-  Report:           \n\
-  \tinput: {I}      \n\
-  \toutput: {O}     \n\
-  \tlog step: {S}   '''.format(
+
+  print('All done. Report: \n\
+  input: {I}      \n\
+  output: {O}     \n\
+  log step: {S}   '''.format(
     I=args.json,
     O=args.output,
     S=args.step if args.step is not None else 'skipped', 

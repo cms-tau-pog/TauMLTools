@@ -14,7 +14,7 @@ from scaling_utils import dR, dR_signal_cone, mask_inf, mask_nan, fill_aggregato
 from scaling_utils import init_dictionaries, dump_to_json
 
 def run_scaling(cfg, var_types, file_list=None, output_folder=None):
-    with open(cfg) as (f):
+    with open(cfg) as f:
         scaling_dict = yaml.load(f, Loader=(yaml.FullLoader))
     
     assert type(var_types) == list, "--var-types should be a list"
@@ -40,36 +40,35 @@ def run_scaling(cfg, var_types, file_list=None, output_folder=None):
     assert log_step > 0 and type(log_step) == int
     
     if file_list is None:
-        if file_range == -1:
+        if file_range==-1:
             file_names = sorted(glob(file_path))
-        elif type(file_range) == list:
-            if len(file_range) == 2:
-                if file_range[0] <= file_range[1]:
-                    file_names = sorted(glob(file_path))[file_range[0]:file_range[1]]
+            n_files = len(file_names)
+        elif type(file_range)==list and len(file_range)==2 and file_range[0]<=file_range[1]:
+            file_names = sorted(glob(file_path))[file_range[0]:file_range[1]]
+            n_files = file_range[1]-file_range[0]
         else:
             raise ValueError('Specified file_range is not valid: should be either -1 (run on all files in file_path) or range [a, b] with a<=b')
     else:
         assert type(file_list) == list
         file_names = file_list
-    n_files = len(file_names)
-    file_names_id = [fname.split('_')[(-1)].split('.root')[0] for fname in file_names]
-
+        n_files = len(file_names)
+    file_names_ix = [fname.split('_')[-1].split('.root')[0] for fname in file_names] # id as taken from the name: used as file identifier (key field) in the output json files with quantiles
+    # initialise dictionaries to be filled
     sums, sums2, counts, scaling_params, quantile_params = init_dictionaries(features_dict, cone_selection_dict, n_files)
-    
-    print(f"\n[INFO] will process {n_files} input files from {file_path}")
-    print(f"[INFO] will dump scaling parameters to {scaling_params_json_prefix}_*.json after every {log_step} files")
-    print(f"[INFO] will dump quantile parameters for every file into {quantile_params_json_prefix}.json")
+    #
+    print(f'\n[INFO] will process {n_files} input files from {file_path}')
+    print(f'[INFO] will dump scaling parameters to {scaling_params_json_prefix}_*.json after every {log_step} files')
+    print(f'[INFO] will dump quantile parameters for every file into {quantile_params_json_prefix}.json')
     print('[INFO] starting to accumulate sums & counts:\n')
-    print(f"[INFO] List of files:\n{file_names}\n")
-    
+    #
     skip_counter = 0 # counter of files which were skipped during processing
     inf_counter = defaultdict(list) # counter of features with inf values and their fraction
     nan_counter = defaultdict(list) # counter of features with nan values and their fraction
     processed_last_file = time.time()
     
     # loop over input files
-    for file_i, (file_name_i, file_name) in enumerate(zip(file_names_id, file_names)): # file_i used internally to count number of processed files
-        print('Processing file:', file_i)
+    for file_i, (file_name_i, file_name) in enumerate(zip(file_names_ix, file_names)): # file_i used internally to count number of processed files
+        print("Processing file:",file_i)
         log_scaling_params = not (file_i%log_step) or (file_i == n_files-1)
         with uproot.open(file_name, array_cache='5 GB') as f:
             if len(f.keys()) == 0: # some input ROOT files can be corrupted and uproot can't recover for it. These files are skipped in computations
@@ -128,25 +127,31 @@ def run_scaling(cfg, var_types, file_list=None, output_folder=None):
                 # del(tau_pt_array, tau_eta_array, tau_phi_array)
         gc.collect()
         # snapshot scaling params into json if log_step is reached
-        print(scaling_params)
-        scaling_params_json_name = scaling_params_json_prefix
-        dump_to_json({scaling_params_json_name: scaling_params})
+        if log_scaling_params:
+            if file_i == n_files-1:
+                scaling_params_json_name = scaling_params_json_prefix
+            else:
+                if log_step == 1:
+                    scaling_params_json_name = f'{scaling_params_json_prefix}_log_{(file_i)//log_step}'
+                else:
+                    scaling_params_json_name = f'{scaling_params_json_prefix}_log_{(file_i+1)//log_step}'
+            dump_to_json({scaling_params_json_name: scaling_params})
         processed_current_file = time.time()
+        # print(f'---> processed {file_name} in {processed_current_file - processed_last_file:.2f} s')
         processed_last_file = processed_current_file
-
-    dump_to_json({f"{quantile_params_json_prefix}": quantile_params})
+    dump_to_json({f'{quantile_params_json_prefix}': quantile_params})
     print()
     if skip_counter > 0:
-        print(f"[WARNING] during the processing {skip_counter} files with no objects out of a total of {n_files} files were skipped\n")
+        print(f'[WARNING] during the processing {skip_counter} files with no objects were skipped\n')
     for inf_feature, inf_frac_counts in inf_counter.items():
         print(f"[WARNING] in {inf_feature} encountered inf values with average per file fraction: {format(np.mean(inf_frac_counts), '.2g')}")
-
+    for nan_feature, nan_frac_counts in nan_counter.items():
+        print(f"[WARNING] in {nan_feature} encountered nan values with average per file fraction: {format(np.mean(nan_frac_counts), '.2g')}")
     print('\nDone!')
     if skip_counter < n_files:
         return True
     else:
         return False
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
