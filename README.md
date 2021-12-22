@@ -24,6 +24,25 @@ Tools to perform machine learning studies for tau lepton reconstruction and iden
 
 The second step (`source env.sh ENV_NAME`) should be repeated each time you open a new shell session.
 
+### Installing law
+Some parts of the ntuple production and network training can be split into different jobs and run on the HTCondor cluster. To do so, we use the [law](https://github.com/riga/law) package. To install law, do
+```bash
+LAW_INSTALL_EXECUTABLE="/usr/bin/env python3" python3 -m pip install law --user --no-binary :all:
+```
+this will (most likely) install law and its dependencies in the *$HOME/.local/bin* directory, and the related libraires under *$HOME/.local/lib/pythonX.Y/site-packages*. *LAW_INSTALL_EXECUTABLE* ensures that law is not bind to a specifica python version, but to the */usr/bin/env* one instead. 
+Before running any job, remember to tell the shell where to find law:
+```bash
+export PYTHONPATH=$PYTHONPATH:$HOME/.local/lib/pythonX.Y/site-packages
+export PATH=$PATH:$HOME/.local/bin
+```
+then, you can setup the law environment with
+```bash
+cd TauMLTools/Analysis/law
+source setup.sh
+law index
+```
+Remember to activate the right environment before running law. CMSSW and conda are supported.
+
 ## How to produce inputs
 
 Steps below describe how to process input datasets starting from MiniAOD up to the representation that can be directly used as an input for the training.
@@ -210,7 +229,7 @@ ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
 In order to find appropriate binning and `--tau-ratio` in correspondence to the present statistics it might be useful to execute one job in `--refill-spectrum false --lastbin-takeall false` mode and study the output of `./out/*.root` files. In the \<DataGroupName>_n.root files the number of entries in required  `--pt-bins --eta-bins` can be found. \<DataGroupName>.root files show the probability of accepting candidate from corresponding pt-eta bin.
 
 #### ShuffleMergeSpectral on HTCondor
-ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment
+ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following the instructions in the first section. Then, set up the environment
 ```sh
 cd $CMSSW_BASE/src
 cmsenv
