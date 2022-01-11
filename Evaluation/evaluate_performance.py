@@ -73,13 +73,14 @@ def main(cfg: DictConfig) -> None:
 
         # loop over pt bins
         print(f'\n{discriminator.name}')
-        for pt_index, (pt_min, pt_max) in enumerate(zip(cfg.pt_bins[:-1], cfg.pt_bins[1:])):
+        for eta_index, (eta_min, eta_max) in enumerate(zip(cfg.eta_bins[:-1], cfg.eta_bins[1:])):
+          for pt_index, (pt_min, pt_max) in enumerate(zip(cfg.pt_bins[:-1], cfg.pt_bins[1:])):
             # apply pt bin selection
-            df_cut = df_all.query(f'tau_pt >= {pt_min} and tau_pt < {pt_max}')
+            df_cut = df_all.query(f'tau_pt >= {pt_min} and tau_pt < {pt_max} and abs(tau_eta) >= {eta_min} and abs(tau_eta) < {eta_max}')
             if df_cut.shape[0] == 0:
-                print("Warning: pt bin ({}, {}) is empty.".format(pt_min, pt_max))
+                print("Warning: pt bin ({}, {}) and eta bin ({}, {}) is empty.".format(pt_min, pt_max, eta_min, eta_max))
                 continue
-            print(f'\n-----> pt bin: [{pt_min}, {pt_max}]')
+            print(f'\n-----> pt bin: [{pt_min}, {pt_max}], eta bin: [{eta_min}, {eta_max}]')
             print('[INFO] counts:\n', df_cut[['gen_tau', f'gen_{cfg.vs_type}']].value_counts())
 
             # create roc curve and working points
@@ -97,13 +98,14 @@ def main(cfg: DictConfig) -> None:
                 if curve is None: continue
                 if json_exists and curve_type in performance_data['metrics'] \
                                 and (existing_curve := eval_tools.select_curve(performance_data['metrics'][curve_type], 
-                                                                                pt_min=pt_min, pt_max=pt_max, vs_type=cfg.vs_type,
+                                                                                pt_min=pt_min, pt_max=pt_max, eta_min=eta_min, eta_max=eta_max, vs_type=cfg.vs_type,
                                                                                 dataset_alias=cfg.dataset_alias)) is not None:
                     print(f'[INFO] Found already existing curve (type: {curve_type}) in json file for a specified set of parameters: will overwrite it.')
                     performance_data['metrics'][curve_type].remove(existing_curve)
 
                 curve_data = {
                     'pt_min': pt_min, 'pt_max': pt_max, 
+                    'eta_min': eta_min, 'eta_max': eta_max, 
                     'vs_type': cfg.vs_type,
                     'dataset_alias': cfg.dataset_alias,
                     'auc_score': curve.auc_score,
@@ -131,7 +133,7 @@ def main(cfg: DictConfig) -> None:
                 for lim_name in [ 'x', 'y', 'ratio_y' ]:
                     lim = getattr(plot_setup, lim_name + 'lim')
                     if lim is not None:
-                        lim = OmegaConf.to_object(lim[pt_index]) if isinstance(lim[0], (list, ListConfig)) else lim
+                        lim = OmegaConf.to_object(lim[pt_index+eta_index*len(cfg.pt_bins[:-1])]) if isinstance(lim[0], (list, ListConfig)) else lim
                         curve_data['plot_setup'][lim_name + '_min'] = lim[0]
                         curve_data['plot_setup'][lim_name + '_max'] = lim[1]
                 for param_name in [ 'ylabel', 'yscale', 'ratio_yscale', 'legend_loc', 'ratio_ylabel_pad']:
@@ -159,6 +161,7 @@ def main(cfg: DictConfig) -> None:
                         title_str = 'tau vs {}. pt range ({}, {}) GeV'.format(cfg.vs_type, pt_min,
                                                                                 pt_max)
                     curve_data['plot_setup']['pt_text'] = title_str
+                curve_data['plot_setup']['eta_text'] = r'${} < |\eta| < {}$'.format(eta_min, eta_max)
 
                 # append data for a given curve_type and pt bin
                 performance_data['metrics'][curve_type].append(curve_data)
