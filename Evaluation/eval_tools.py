@@ -217,16 +217,8 @@ class Discriminator:
         return roc, wp_roc
 
 def create_roc_ratio(x1, y1, x2, y2):
-    sp = interpolate.interp1d(x2, y2)
-    try:
-      y2_upd = sp(x1)
-    except ValueError:
-      x1 = np.append(x1, [1.0])
-      y1 = np.append(y1, [1.0])
-      x2 = np.append(x2, [1.0])
-      y2 = np.append(y2, [1.0])
-      sp = interpolate.interp1d(x2, y2)
-      y2_upd = sp(x1)
+    sp = interpolate.interp1d(x2, y2, bounds_error=False, fill_value='extrapolate')
+    y2_upd = sp(x1)
     y2_upd_clean = y2_upd[y2_upd > 0]
     x1_clean = x1[y2_upd > 0]
     y1_clean = y1[y2_upd > 0]

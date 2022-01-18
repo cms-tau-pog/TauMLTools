@@ -133,7 +133,7 @@ def main(cfg: DictConfig) -> None:
                 for lim_name in [ 'x', 'y', 'ratio_y' ]:
                     lim = getattr(plot_setup, lim_name + 'lim')
                     if lim is not None:
-                        lim = OmegaConf.to_object(lim[pt_index+eta_index*len(cfg.pt_bins[:-1])]) if isinstance(lim[0], (list, ListConfig)) else lim
+                        lim = OmegaConf.to_object(lim[eta_index][pt_index]) if isinstance(lim[0], (list, ListConfig)) else lim
                         curve_data['plot_setup'][lim_name + '_min'] = lim[0]
                         curve_data['plot_setup'][lim_name + '_max'] = lim[1]
                 for param_name in [ 'ylabel', 'yscale', 'ratio_yscale', 'legend_loc', 'ratio_ylabel_pad']:

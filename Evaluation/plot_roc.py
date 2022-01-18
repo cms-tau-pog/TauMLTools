@@ -167,7 +167,7 @@ def main(cfg: DictConfig) -> None:
                 if discr_curve is None:
                     print(f'[INFO] Didn\'t manage to retrieve a curve ({curve_type}) for discriminator ({discr_name}) from performance.json. Will proceed without plotting it.')
                     continue
-                elif (discr_name==ref_discr_name and curve_type==ref_curve_type) or ('wp' not in curve_type):
+                elif discr_name==ref_discr_name and curve_type==ref_curve_type:
                     curves_to_plot.append(RocCurve(discr_curve, ref_roc=None))
                 else:
                     curves_to_plot.append(RocCurve(discr_curve, ref_roc=ref_roc))
