@@ -28,9 +28,9 @@ class RocCurve:
         else:
             self.pr_err = None
 
-        if 'threasholds' in data:
+        if 'thresholds' in data:
             self.thresholds = np.empty(n_points)
-            self.thresholds[:] = data['threashods']
+            self.thresholds[:] = data['thresholds']
         else:
             self.thresholds = None
 
