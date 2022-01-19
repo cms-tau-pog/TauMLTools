@@ -8,6 +8,8 @@
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 #include "TauMLTools/Analysis/interface/AnalysisTypes.h"
 
+#include<algorithm>
+
 template <typename T, typename Tuple>
 struct ElementIndex;
 
@@ -284,7 +286,7 @@ public:
         min_weight = std::min(hist_->GetMinimum(), min_weight);
         max_weight = std::max(hist_->GetMaximum(), max_weight);
       }
-      std::cout << "Weights imbalance: " << max_weight / min_weight
+      std::cout<< "Weights imbalance: " << max_weight / min_weight
                 << ", imbalance threshold: " <<  max_thr << std::endl;
       if(max_weight / min_weight > max_thr)
         throw std::runtime_error("The imbalance in the weights exceeds the threshold.");
@@ -430,7 +432,10 @@ public:
                           throw std::runtime_error("Duplicated cell index in FillCellGrid.");
                       processed_cells.insert(cellIndex);
                       if(!cellGrid.IsEmpty(cellIndex))
+			{
                           FillCellBranches(tau, tau_i, cellGridRef, cellIndex, cellGrid.at(cellIndex), inner);
+			}
+
                   }
               }
           }
@@ -485,20 +490,48 @@ public:
                 }
             }
         };
+	
+	//Create an experimental getBestObj for locating the best object that is also part
+	//of the boosted tau signal
+	const auto getBestBoostedObj = [&](CellObjectType type, size_t& n_total, size_t& best_idx, const Tau& tau){
+	  const auto& index_set = cell[type];
+	  //n_total = index_set.size();
+	  //We need to filter this n_total down to the number of
+	  //valid objects in the boosted tau signal candidates
+	  //This should help trigger (or not) the "valid" flag later
+	  //This doesn't have to be elegant. We're just experimenting her	  	  
+	  //The index we grab should also be checked to be sure that it is a part of the signal or iso
+	  n_total = 0;
+	  double max_pt = std::numeric_limits<double>::lowest();
+	  for(size_t index: index_set){
+	    const double pt = getPt(type, index);
+	    if(pt > max_pt && (tau.pfCand_boostedTauSignal.at(index) == 1 || tau.pfCand_boostedTauIso.at(index) == 1)){
+	      max_pt = pt;
+	      best_idx = index;
+	      ++n_total;
+	    }
+	  }
+	};
+
+
         { // CellObjectType::GridGlobal
             typedef GridGlobal_Features Br;
             fillGrid(Br::rho, tau.rho);
-            fillGrid(Br::tau_pt, tau.tau_pt);
-            fillGrid(Br::tau_eta, tau.tau_eta);
-            fillGrid(Br::tau_inside_ecal_crack, tau.tau_inside_ecal_crack);
+            fillGrid(Br::boostedTau_pt, tau.boostedTau_pt);
+            fillGrid(Br::boostedTau_eta, tau.boostedTau_eta);
+            fillGrid(Br::boostedTau_inside_ecal_crack, tau.boostedTau_inside_ecal_crack);
         }
 
         { // CellObjectType::PfCand_electron
 
+	  //Okay, if we want to restrict pfcands to be only the boosted tau ones, this is the place
+	  // we do it. pf cands are 
+
             typedef PfCand_electron_Features Br;
 
             size_t n_pfCand, pfCand_idx;
-            getBestObj(CellObjectType::PfCand_electron, n_pfCand, pfCand_idx);
+            getBestBoostedObj(CellObjectType::PfCand_electron, n_pfCand, pfCand_idx, tau);
+	    //getBestObj(CellObjectType::PfCand_electron, n_pfCand, pfCand_idx);
 
             const bool valid = n_pfCand != 0;
 
@@ -542,7 +575,8 @@ public:
             typedef PfCand_muon_Features Br;
 
             size_t n_pfCand, pfCand_idx;
-            getBestObj(CellObjectType::PfCand_muon, n_pfCand, pfCand_idx);
+            getBestBoostedObj(CellObjectType::PfCand_muon, n_pfCand, pfCand_idx, tau);
+	    //getBestObj(CellObjectType::PfCand_muon, n_pfCand, pfCand_idx);
 
             const bool valid = n_pfCand != 0;
             fillGrid(Br::pfCand_muon_valid, static_cast<float>(valid));
@@ -588,7 +622,8 @@ public:
           typedef PfCand_chHad_Features Br;
 
           size_t n_pfCand, pfCand_idx;
-          getBestObj(CellObjectType::PfCand_chHad, n_pfCand, pfCand_idx);
+          getBestBoostedObj(CellObjectType::PfCand_chHad, n_pfCand, pfCand_idx, tau);
+	  //getBestObj(CellObjectType::PfCand_chHad, n_pfCand, pfCand_idx);
           const bool valid = n_pfCand != 0;
           fillGrid(Br::pfCand_chHad_valid, static_cast<float>(valid));
 
@@ -638,7 +673,8 @@ public:
           typedef PfCand_nHad_Features Br;
 
           size_t n_pfCand, pfCand_idx;
-          getBestObj(CellObjectType::PfCand_nHad, n_pfCand, pfCand_idx);
+          getBestBoostedObj(CellObjectType::PfCand_nHad, n_pfCand, pfCand_idx, tau);
+	  //getBestObj(CellObjectType::PfCand_nHad, n_pfCand, pfCand_idx);
           const bool valid = n_pfCand != 0;
           fillGrid(Br::pfCand_nHad_valid, static_cast<float>(valid));
 
@@ -657,7 +693,8 @@ public:
           typedef PfCand_gamma_Features Br;
 
           size_t n_pfCand, pfCand_idx;
-          getBestObj(CellObjectType::PfCand_gamma, n_pfCand, pfCand_idx);
+          getBestBoostedObj(CellObjectType::PfCand_gamma, n_pfCand, pfCand_idx, tau);
+	  //getBestObj(CellObjectType::PfCand_gamma, n_pfCand, pfCand_idx);
           const bool valid = n_pfCand != 0;
           fillGrid(Br::pfCand_gamma_valid, valid);
 
