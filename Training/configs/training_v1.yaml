@@ -264,9 +264,9 @@ Features_all :
 
     GridGlobal:
                 - rho: [null, null, "linear", 0, 50]
-                - tau_pt: [null, null, "linear", 20, 1000]
-                - tau_eta: [null, null, "linear", -2.3, 2.3]
-                - tau_inside_ecal_crack: [null, null, "no_scaling"]
+                - boostedTau_pt: [null, null, "linear", 20, 1000]
+                - boostedTau_eta: [null, null, "linear", -2.3, 2.3]
+                - boostedTau_inside_ecal_crack: [null, null, "no_scaling"]
 
     PfCand_electron :
                 - pfCand_ele_valid: [*is_pfElectron, null, "no_scaling"]
