@@ -285,7 +285,7 @@ private:
             FillJet(tauJet.fatJet, "fatJet_");
 
             FillPFCandidates(tauJet.cands, "pfCand_");
-            FillPFCandidates(tauJet.cands, "lostTrack_");
+            FillPFCandidates(tauJet.lostTracks, "lostTrack_");
             FillElectrons(tauJet.electrons);
             FillMuons(tauJet.muons);
             FillIsoTracks(tauJet.isoTracks);
