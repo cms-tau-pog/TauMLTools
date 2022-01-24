@@ -81,6 +81,12 @@ def isPhase2(sampleType):
         sys.exit(1)
     return sampleType in ['MC_Phase2_111X', 'MC_Phase2_110X']
 
+def isRun2UL(sampleType):
+    if sampleType not in periodDict:
+        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        sys.exit(1)
+    return sampleType in ['MC_18','Run2018ABC','Run2018D','Emb_18ABC','Emb_18D']
+
 def GetPeriodCfg(sampleType):
     period = GetPeriod(sampleType)
     if period == 'Run2016':
