@@ -51,7 +51,7 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
   """
   max_runtime = law.DurationParameter(default=24.0, unit="h", significant=False,
     description="maximum runtime, default: 24h")
-  max_memory  = luigi.Parameter(default = 2000, significant = False,
+  max_memory  = luigi.Parameter(default = '2000', significant = False,
     description = 'maximum RAM usage')
   batch_name  = luigi.Parameter(default = 'TauML_law',
     description = 'HTCondor batch name')
