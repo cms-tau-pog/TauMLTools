@@ -7,9 +7,11 @@
 # base tasks in analysis/framework.py.
 
 action() {
+  luigid --port 8082 &
   eosfusebind -g
   export PYTHONPATH={{pythonpath}}:$PYTHONPATH
   export PATH={{path}}:$PATH
+
   if [ "{{environment}}" == "CMSSW" ]; then
     pushd "{{cmssw_base}}/src"
     eval `scramv1 runtime -sh`
