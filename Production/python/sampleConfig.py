@@ -69,7 +69,7 @@ def GetGlobalTag(sampleType):
         sys.exit(1)
     return globalTagMap[sampleType]
 
-def isUL(sampleType):
+def isRun2UL(sampleType):
     if sampleType not in periodDict:
         print "ERROR: unknown sample type = '{}'".format(sampleType)
         sys.exit(1)
@@ -81,7 +81,7 @@ def isPhase2(sampleType):
         sys.exit(1)
     return sampleType in ['MC_Phase2_111X', 'MC_Phase2_110X']
 
-def isRun2UL(sampleType):
+def isRun2PreUL(sampleType):
     if sampleType not in periodDict:
         print "ERROR: unknown sample type = '{}'".format(sampleType)
         sys.exit(1)
