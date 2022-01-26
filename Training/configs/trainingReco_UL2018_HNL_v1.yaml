@@ -1,10 +1,10 @@
 Setup:
     n_tau                :  250 # number of candidates in one batch 
     n_threads            :  1
-    input_dir            : "/nfs/dust/cms/user/mykytaua/dataLLSTAU/tuples-tau-pog/UL2018_stau_100_250_400_mix_law/train"
+    input_dir            : "/nfs/dust/cms/user/mykytaua/dataLLSTAU/tuples-tau-pog/HN_trilepton_M-4_tau/"
     output_classes       :  2
     dataloader_core      : "TauMLTools/Training/interface/DataLoaderReco_main.h"
-    genLepton_geantMode  : 1 # 1-GeantMode, 2-Normal GenParticle collection
+    genLepton_geantMode  : -1 # 1-GeantMode, 2-Normal GenParticle collection
     include_mismatched   : False
 
 SetupNN:
@@ -18,7 +18,7 @@ SetupNN:
     n_epochs             : 1
     validation_split     : 0.2
     max_queue_size       : 15
-    n_load_workers       : 10
+    n_load_workers       : 2
     mode                 : "p4"
     n_gnn_layers         : 6
     n_dim_gnn            : 2
@@ -45,12 +45,12 @@ SequenceLength:
 
 Scaling_setup:
     # --------------------------------------------------------
-    file_path: '/nfs/dust/cms/user/mykytaua/dataLLSTAU/tuples-tau-pog/UL2018_stau_100_250_400_mix_law/*.root' # input files to be used for computation of scaling params
+    file_path: '/nfs/dust/cms/user/mykytaua/dataLLSTAU/tuples-tau-pog/HN_trilepton_M-4_tau/*.root' # input files to be used for computation of scaling params
     output_json_folder: 'output_json' # directory where json files with scaling params will be stored
     file_range: [0,10] # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
     tree_name: taus # TTree name in input files to be read
     log_step: 10 # will make a snapshot of scaling parameters per this number of input files
-    version: 'Reco_UL2018_stau_v1' # string to be added to a json filename
+    version: 'Reco_UL2018_HNL_v1' # string to be added to a json filename
 
     # --------------------------------------------------------
     # aliases for selection cuts
@@ -59,8 +59,9 @@ Scaling_setup:
       - &pi 3.141592653589793
       - &jet_valid 'jet_index >= 0'
       - &hasTrackDetails 'pfCand_hasTrackDetails == 1'
-      - &dxy_error_valid '(pfCand_hasTrackDetails == 1) & ( pfCand_dxy_error < 100.0 )' # check non-infinity of pfCand_dxy_error (normal distribution within 0.0-1.0)
-      - &dz_error_valid '(pfCand_hasTrackDetails == 1) & ( pfCand_dz_error < 100.0 )' # check non-infinity of pfCand_dz_error (normal distribution within 0.0-1.0)
+      - &dxy_error_valid '(pfCand_hasTrackDetails == 1) & ( pfCand_dxy_error < 1000.0 )' # check non-infinity of pfCand_dxy_error (normal distribution within 0.0-1.0)
+      - &dz_error_valid '(pfCand_hasTrackDetails == 1) & ( pfCand_dz_error < 1000.0 )' # check non-infinity of pfCand_dz_error (normal distribution within 0.0-1.0)
+      - &dz_valid '(pfCand_hasTrackDetails == 1) & ( pfCand_dz > -1000.0 ) & ( pfCand_dz < 1000.0 )'
       # - &hasTrackDetails_track_ndof '(pfCand_hasTrackDetails == 1)  & (pfCand_track_ndof > 0)'
 
         # parameters for inner/outer tau cones' definition
@@ -84,7 +85,7 @@ Scaling_setup:
 
 Features_all :
     PfCand :
-          - pfCand_pt                   : [ null, null, "normal", -5, 5 ]
+          - pfCand_pt                   : [ null, null, "linear", 0, 30 ]
           - pfCand_eta                  : [ null, null, "linear", -3.0, 3.0 ]
           - pfCand_phi                  : [ null, null, "linear", *mpi, *pi ]
           - pfCand_mass                 : [ null, null, "normal", -5, 5 ]
@@ -97,7 +98,7 @@ Features_all :
           - pfCand_hasTrackDetails      : [ null, null, "categorical" ]
           - pfCand_dxy                  : [ *hasTrackDetails, null, "normal", -5, 5 ]
           - pfCand_dxy_error            : [ *dxy_error_valid, null, "normal", -5, 5 ]
-          - pfCand_dz                   : [ *hasTrackDetails, null, "normal", -5, 5 ]
+          - pfCand_dz                   : [ *dz_valid, null, "normal", -5, 5 ]
           - pfCand_dz_error             : [ *dz_error_valid, null, "normal", -5, 5 ]
           - pfCand_track_chi2           : [ *hasTrackDetails, null, "normal", -5, 5 ]
           - pfCand_track_ndof           : [ *hasTrackDetails, null, "normal", -5, 5 ]

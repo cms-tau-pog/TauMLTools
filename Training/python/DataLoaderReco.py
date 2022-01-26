@@ -1,5 +1,6 @@
 import gc
 import glob
+from typing import Counter
 from DataLoaderBase import *
 
 def LoaderThread(queue_out,
@@ -131,6 +132,39 @@ class DataLoader (DataLoaderBase):
 
         return _generator
 
+    def get_predict_generator(self):
+        '''
+        The implementation of the deterministic generator
+        for suitable use of performance evaluation.
+        The use example:
+        >gen_file = dataloader.get_eval_generator()
+        >for file in files:
+        >   for x,y in en_file(file):
+        >       y_pred = ...
+        '''
+        
+        assert self.config["Setup"]["n_tau"] == 1
+        converter = torch_to_tf(True, False)
+        data_loader = R.DataLoader()
+        def read_from_file(file_path):
+            iter_ = 0
+            n_batches = self.config["SetupNN"]["n_batches"]
+            data_loader.ReadFile(R.std.string(file_path), 0, -1)
+            while data_loader.MoveNext():
+                data = data_loader.LoadData()
+                x = tuple(GetData.getsequence(data.x,
+                          self.config["Setup"]["n_tau"],
+                          self.config["CellObjectType"],
+                          self.config["SequenceLength"],
+                          self.config['n_features']))
+                y = GetData.getdata(data.y, (self.config["Setup"]["n_tau"],
+                                    self.config["Setup"]["output_classes"]))
+                item = (x,y)
+                yield converter(item)
+                iter_=iter_+1
+                if iter_ > n_batches and n_batches!=-1:
+                    break
+        return read_from_file
 
     def get_shape(self):
 

@@ -85,6 +85,11 @@ public:
                 FillLabels(tau_i, tau, Setup::output_classes);
                 FillPfCand(tau_i, tau);
                 ++tau_i;
+            } 
+            else if(Setup::include_mismatched)
+            {
+                data->y.at(tau_i*Setup::output_classes) = -666; // absance flag
+                ++tau_i;
             }
             ++current_entry;
         }
@@ -128,26 +133,62 @@ public:
                       Tau& tau,
                       size_t n_classes)
       {
-        auto genLeptons = reco_tau::gen_truth::GenLepton::fromRootTuple
+        // auto genLeptons = Setup::genLepton_geantMode == 1 ?
+        // reco_tau::gen_truth::GenLepton::fromRootTuple
+        // <std::vector<Int_t>, std::vector<Long64_t>, std::vector<Float_t>>
+        //     (
+        //         true,
+        //         tau.genLepton_lastMotherIndex,
+        //         tau.genParticle_pdgId,
+        //         tau.genParticle_status,
+        //         tau.genParticle_mother,
+        //         tau.genParticle_charge,
+        //         tau.genParticle_isFirstCopy,
+        //         tau.genParticle_isLastCopy,
+        //         tau.genParticle_pt,
+        //         tau.genParticle_eta,
+        //         tau.genParticle_phi,
+        //         tau.genParticle_mass,
+        //         tau.genParticle_vtx_x,
+        //         tau.genParticle_vtx_y,
+        //         tau.genParticle_vtx_z
+        //     ) 
+        // : reco_tau::gen_truth::GenLepton::fromRootTuple
+        // <std::vector<Int_t>, std::vector<Long64_t>, std::vector<Float_t>>
+        //     (
+        //         tau.genLepton_lastMotherIndex,
+        //         tau.genParticle_pdgId,
+        //         tau.genParticle_mother,
+        //         tau.genParticle_charge,
+        //         tau.genParticle_isFirstCopy,
+        //         tau.genParticle_isLastCopy,
+        //         tau.genParticle_pt,
+        //         tau.genParticle_eta,
+        //         tau.genParticle_phi,
+        //         tau.genParticle_mass,
+        //         tau.genParticle_vtx_x,
+        //         tau.genParticle_vtx_y,
+        //         tau.genParticle_vtx_z
+        //     ) ;
+        auto genLeptons = 
+        reco_tau::gen_truth::GenLepton::fromRootTuple
         <std::vector<Int_t>, std::vector<Long64_t>, std::vector<Float_t>>
-                        (
-                            true,
-                            tau.genLepton_lastMotherIndex,
-                            tau.genParticle_pdgId,
-                            tau.genParticle_status,
-                            tau.genParticle_mother,
-                            tau.genParticle_charge,
-                            tau.genParticle_isFirstCopy,
-                            tau.genParticle_isLastCopy,
-                            tau.genParticle_pt,
-                            tau.genParticle_eta,
-                            tau.genParticle_phi,
-                            tau.genParticle_mass,
-                            tau.genParticle_vtx_x,
-                            tau.genParticle_vtx_y,
-                            tau.genParticle_vtx_z
-                        );
-                            
+            (
+                tau.genLepton_lastMotherIndex,
+                tau.genParticle_pdgId,
+                tau.genParticle_mother,
+                tau.genParticle_charge,
+                tau.genParticle_isFirstCopy,
+                tau.genParticle_isLastCopy,
+                tau.genParticle_pt,
+                tau.genParticle_eta,
+                tau.genParticle_phi,
+                tau.genParticle_mass,
+                tau.genParticle_vtx_x,
+                tau.genParticle_vtx_y,
+                tau.genParticle_vtx_z
+            ) ;
+
         auto getVecRef = [&](size_t element) ->  Float_t&{
             return data->y.at(tau_i*n_classes + element);
             };

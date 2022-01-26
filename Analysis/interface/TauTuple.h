@@ -76,7 +76,6 @@
     VAR(Int_t, genLepton_lastMotherIndex) /* index of the last mother in genParticle_* vectors:
                                              >= 0 if at least one mother is available, -1 otherwise */ \
     VAR(std::vector<Int_t>, genParticle_pdgId) /* PDG ID */ \
-    VAR(std::vector<Int_t>, genParticle_status) /* particle status */ \
     VAR(std::vector<Long64_t>, genParticle_mother) /* index of the mother. If the paricle has more than one mother,
                                                       genParticle_mother = sum(10^(3*(mother_number-1)) * mother_index).
                                                       The maximal number of mothers = 6. */ \

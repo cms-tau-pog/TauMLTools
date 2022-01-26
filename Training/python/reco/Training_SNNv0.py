@@ -356,7 +356,7 @@ def run_training(model, data_loader, to_profile, log_suffix):
 
     return fit_hist
 
-@hydra.main(config_path='.', config_name='train')
+@hydra.main(config_path='.', config_name='train_HNL')
 def main(cfg: DictConfig) -> None:
     # set up mlflow experiment id
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
