@@ -11,7 +11,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from eval_tools import select_curve, create_roc_ratio
 
 class RocCurve:
-    def __init__(self, data, ref_roc=None):
+    def __init__(self, data, ref_roc=None, WPcurve=True):
         fpr = np.array(data['false_positive_rate'])
         n_points = len(fpr)
         self.auc_score = data.get('auc_score')
@@ -41,7 +41,7 @@ class RocCurve:
 
         if ref_roc is None:
             ref_roc = self
-        self.ratio = create_roc_ratio(self.pr[1], self.pr[0], ref_roc.pr[1], ref_roc.pr[0])
+        self.ratio = create_roc_ratio(self.pr[1], self.pr[0], ref_roc.pr[1], ref_roc.pr[0], WPcurve)
 
     def Draw(self, ax, ax_ratio = None):
         main_plot_adjusted = False
@@ -172,7 +172,7 @@ def main(cfg: DictConfig) -> None:
                 elif discr_name==ref_discr_name and curve_type==ref_curve_type:
                     curves_to_plot.append(RocCurve(discr_curve, ref_roc=None))
                 else:
-                    curves_to_plot.append(RocCurve(discr_curve, ref_roc=ref_roc))
+                    curves_to_plot.append(RocCurve(discr_curve, ref_roc=ref_roc, WPcurve='wp' in curve_type))
                 curve_names.append(discr_data['name'])
 
         fig, (ax, ax_ratio) = plt.subplots(2, 1, figsize=(7, 7), sharex=True, gridspec_kw = {'height_ratios':[3, 1]})
