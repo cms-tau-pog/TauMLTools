@@ -146,7 +146,10 @@ else:
     boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
 
 # boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
-taus_InputTag = cms.InputTag('slimmedTausNewID')
+if isRun2UL:
+    taus_InputTag = cms.InputTag('slimmedTaus')
+else:
+    taus_InputTag = cms.InputTag('slimmedTausNewID')
 
 if isPhase2:
     process.slimmedElectronsMerged = cms.EDProducer("SlimmedElectronMerger",
