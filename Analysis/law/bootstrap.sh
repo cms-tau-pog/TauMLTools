@@ -8,7 +8,12 @@
 
 action() {
   luigid --port 8082 &
-  eosfusebind -g
+
+  which eosfusebind
+  if [ $? -eq 0 ]; then
+    eosfusebind -g
+  fi
+
   export PYTHONPATH={{pythonpath}}:$PYTHONPATH
   export PATH={{path}}:$PATH
 
