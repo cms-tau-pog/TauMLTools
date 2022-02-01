@@ -7,7 +7,7 @@
 # base tasks in analysis/framework.py.
 
 action() {
-  luigid --port 8082 &
+  luigid --port 8082 --background --logdir ./luigid_logdir
 
   which eosfusebind
   if [ $? -eq 0 ]; then
