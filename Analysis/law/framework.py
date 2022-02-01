@@ -55,7 +55,7 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
     description = 'maximum RAM usage')
   batch_name  = luigi.Parameter(default = 'TauML_law',
     description = 'HTCondor batch name')
-  environment = luigi.Parameter(default = "CMSSW",
+  environment = luigi.ChoiceParameter(default = "CMSSW", choices = ['CMSSW', 'conda'], var_type = str,
     description = "Environment used to run the job")
 
   def htcondor_output_directory(self):
