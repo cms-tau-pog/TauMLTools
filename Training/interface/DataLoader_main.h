@@ -477,6 +477,29 @@ public:
                 return tau.muon_pt.at(index);
             return tau.pfCand_pt.at(index);
         };
+	const auto getEta = [&](CellObjectType type, size_t index){
+	  if(type == CellObjectType::Electron)
+	    return tau.ele_eta.at(index);
+	  if(type == CellObjectType::Muon)
+	    return tau.muon_eta.at(index);
+	  return tau.pfCand_eta.at(index);
+	};
+
+	const auto getPhi = [&](CellObjectType type, size_t index){
+	  if(type == CellObjectType::Electron)
+	    return tau.ele_phi.at(index);
+	  if(type == CellObjectType::Muon)
+	    return tau.muon_phi.at(index);
+	  return tau.pfCand_phi.at(index);
+	};
+
+	const auto getMass = [&](CellObjectType type, size_t index){
+	  if(type == CellObjectType::Electron)
+	    return tau.ele_mass.at(index);
+	  if(type == CellObjectType::Muon)
+	    return tau.muon_mass.at(index);
+	  return tau.pfCand_mass.at(index);
+	};
 
         const auto getBestObj = [&](CellObjectType type, size_t& n_total, size_t& best_idx) {
             const auto& index_set = cell[type];
@@ -499,17 +522,42 @@ public:
 	  //We need to filter this n_total down to the number of
 	  //valid objects in the boosted tau signal candidates
 	  //This should help trigger (or not) the "valid" flag later
-	  //This doesn't have to be elegant. We're just experimenting her	  	  
+	  //This doesn't have to be elegant. We're just experimenting here	  	  
 	  //The index we grab should also be checked to be sure that it is a part of the signal or iso
+	  //EDIT: 2/2/22
+	  //Muons and electrons were being neglected, as was the leading charged hadronic candidate
+	  //It also seems the signal, iso, and lead charged cand flags are 100% overlap 
+	  //between any tau, boosted or no in the same event. We can try restricting it to 
+	  // objects within 0.5 of the current tau. This isn't exactly a perfect cross cleaning
+	  // but I need additional time to figure out if it is possible or necessary.
 	  n_total = 0;
 	  double max_pt = std::numeric_limits<double>::lowest();
 	  for(size_t index: index_set){
 	    const double pt = getPt(type, index);
-	    if(pt > max_pt && (tau.pfCand_boostedTauSignal.at(index) == 1 || tau.pfCand_boostedTauIso.at(index) == 1)){
-	      max_pt = pt;
-	      best_idx = index;
-	      ++n_total;
-	    }
+	    const double eta = getEta(type, index);
+	    const double phi = getPhi(type, index);
+	    const double mass = getMass(type, index);
+
+	    TLorentzVector gridObjVector = TLorentzVector();
+	    TLorentzVector tauObjVector = TLorentzVector();
+
+	    gridObjVector.SetPtEtaPhiM(pt, eta, phi, mass);
+	    tauObjVector.SetPtEtaPhiM(tau.boostedTau_pt, tau.boostedTau_eta, tau.boostedTau_phi, tau.boostedTau_mass);
+	    
+	    const double deltaR = gridObjVector.DeltaR(tauObjVector);
+	    
+	    if(pt > max_pt && 
+	       (type == CellObjectType::Electron ||
+		type == CellObjectType::Muon||
+		tau.pfCand_boostedTauSignal.at(index) == 1 || 
+		tau.pfCand_boostedTauIso.at(index) == 1 || 
+		tau.pfCand_boostedTauLeadChargedHadrCand.at(index) == 1)
+	       && deltaR < 0.5)
+	      {
+		max_pt = pt;
+		best_idx = index;
+		++n_total;
+	      }
 	  }
 	};
 
