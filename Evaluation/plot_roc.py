@@ -11,7 +11,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from eval_tools import select_curve, create_roc_ratio
 
 class RocCurve:
-    def __init__(self, data, ref_roc=None):
+    def __init__(self, data, ref_roc=None, WPcurve=True):
         fpr = np.array(data['false_positive_rate'])
         n_points = len(fpr)
         self.auc_score = data.get('auc_score')
@@ -28,9 +28,9 @@ class RocCurve:
         else:
             self.pr_err = None
 
-        if 'threasholds' in data:
+        if 'thresholds' in data:
             self.thresholds = np.empty(n_points)
-            self.thresholds[:] = data['threashods']
+            self.thresholds[:] = data['thresholds']
         else:
             self.thresholds = None
 
@@ -41,7 +41,7 @@ class RocCurve:
 
         if ref_roc is None:
             ref_roc = self
-        self.ratio = create_roc_ratio(self.pr[1], self.pr[0], ref_roc.pr[1], ref_roc.pr[0])
+        self.ratio = create_roc_ratio(self.pr[1], self.pr[0], ref_roc.pr[1], ref_roc.pr[0], WPcurve)
 
     def Draw(self, ax, ax_ratio = None):
         main_plot_adjusted = False
@@ -133,6 +133,10 @@ def main(cfg: DictConfig) -> None:
     # retrieve pt bin from input cfg 
     assert len(cfg.pt_bin)==2 and cfg.pt_bin[0] <= cfg.pt_bin[1]
     pt_min, pt_max = cfg.pt_bin[0], cfg.pt_bin[1]
+    assert len(cfg.eta_bin)==2 and cfg.eta_bin[0] <= cfg.eta_bin[1]
+    eta_min, eta_max = cfg.eta_bin[0], cfg.eta_bin[1]
+    assert len(cfg.dm_bin)>=1
+    dm_bin = cfg.dm_bin
 
     # retrieve reference curve
     if len(cfg.reference)>1:
@@ -143,7 +147,7 @@ def main(cfg: DictConfig) -> None:
     with open(reference_json, 'r') as f:
         ref_discr_data = json.load(f)
     ref_curve = select_curve(ref_discr_data['metrics'][ref_curve_type], 
-                                pt_min=pt_min, pt_max=pt_max, vs_type=cfg.vs_type,
+                                pt_min=pt_min, pt_max=pt_max, eta_min=eta_min, eta_max=eta_max, dm_bin=dm_bin, vs_type=cfg.vs_type,
                                 dataset_alias=cfg.dataset_alias)
     if ref_curve is None:
         raise RuntimeError('[INFO] didn\'t manage to retrieve a reference curve from performance.json')
@@ -160,15 +164,15 @@ def main(cfg: DictConfig) -> None:
 
             for curve_type in curve_types: 
                 discr_curve = select_curve(discr_data['metrics'][curve_type], 
-                                            pt_min=pt_min, pt_max=pt_max, vs_type=cfg.vs_type,
+                                            pt_min=pt_min, pt_max=pt_max, eta_min=eta_min, eta_max=eta_max, dm_bin=dm_bin, vs_type=cfg.vs_type,
                                             dataset_alias=cfg.dataset_alias)
                 if discr_curve is None:
                     print(f'[INFO] Didn\'t manage to retrieve a curve ({curve_type}) for discriminator ({discr_name}) from performance.json. Will proceed without plotting it.')
                     continue
-                elif (discr_name==ref_discr_name and curve_type==ref_curve_type) or ('wp' not in curve_type):
+                elif (discr_name==ref_discr_name and curve_type==ref_curve_type) or ('wp' in curve_type and any('curve' in ctype for ctype in curve_types)): # Temporary: Don't make ratio for 'roc_wp' if there's a ratio for 'roc_curve' already
                     curves_to_plot.append(RocCurve(discr_curve, ref_roc=None))
                 else:
-                    curves_to_plot.append(RocCurve(discr_curve, ref_roc=ref_roc))
+                    curves_to_plot.append(RocCurve(discr_curve, ref_roc=ref_roc, WPcurve='wp' in curve_type))
                 curve_names.append(discr_data['name'])
 
         fig, (ax, ax_ratio) = plt.subplots(2, 1, figsize=(7, 7), sharex=True, gridspec_kw = {'height_ratios':[3, 1]})
@@ -181,7 +185,9 @@ def main(cfg: DictConfig) -> None:
         plot_setup.Apply(curve_names, plot_entries, ax, ax_ratio)
 
         header_y = 1.02
-        ax.text(0.03, 0.92 - len(plot_entries) * 0.10, ref_curve['plot_setup']['pt_text'], fontsize=14, transform=ax.transAxes)
+        ax.text(0.03, 0.89 - len(plot_entries) * 0.07, ref_curve['plot_setup']['pt_text'], fontsize=14, transform=ax.transAxes)
+        ax.text(0.03, 0.82 - len(plot_entries) * 0.07, ref_curve['plot_setup']['eta_text'], fontsize=14, transform=ax.transAxes)
+        ax.text(0.03, 0.75 - len(plot_entries) * 0.07, ref_curve['plot_setup']['dm_text'], fontsize=14, transform=ax.transAxes)
         ax.text(0.01, header_y, 'CMS', fontsize=14, transform=ax.transAxes, fontweight='bold', fontfamily='sans-serif')
         ax.text(0.12, header_y, 'Simulation Preliminary', fontsize=14, transform=ax.transAxes, fontstyle='italic',
                 fontfamily='sans-serif')

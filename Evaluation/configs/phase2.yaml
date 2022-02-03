@@ -14,16 +14,18 @@ run_id: ???
 period: 'Phase 2'
 vs_type: ??? # jet/e/mu
 dataset_alias: ??? # alias to reference a mixture of input_samples below, e.g. tau_DY_jet_TT
-pt_bins: [20, 40, 100, 300, 500, 1000]
+pt_bins: [20, 40, 100, 1000]
+eta_bins: [0, 3.0]
+dm_bins: [[0, 1, 2, 10, 11]]
 
 # selection
-input_branches: [ 'tau_pt', 'tau_decayMode' ] # add here branches with targets/prediction if necessary
+input_branches: [ 'tau_pt', 'tau_eta', 'tau_decayMode' ] # add here branches with targets/prediction if necessary
 cuts: ${apply_dm_cuts}
 
 # inputs/paths
 input_samples: # "sample_alias": [list of strings with tau types to be selected]
-  GluGluHToTauTau_M125_eventTuple_1_NEW: ['tau']
-  DYToLL_M-50_PU200_eventTuple_Hadd_NEW: ["${vs_type}"]
+  ???: ['tau']
+  ???: ["${vs_type}"]
 path_to_input: null
 path_to_pred: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/{sample_alias}/*_pred.h5'
 path_to_target: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/{sample_alias}/*_pred.h5'

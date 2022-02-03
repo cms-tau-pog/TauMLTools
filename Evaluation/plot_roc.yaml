@@ -10,7 +10,9 @@ reference:
 # region
 vs_type: ??? # jet/e/mu/tau
 dataset_alias: ??? # sample alias asigned in yaml cfg at eval step
-pt_bin: ??? # list, e.g [20, 100] 
+pt_bin: ??? # list, e.g [20, 100], min and max
+eta_bin: ??? # list, e.g [0, 1.5], min and max (of absolute eta)
+dm_bin: ??? # list, e.g [0, 1, 2, 10, 11], all DMs to be included
 
 # will log the plot to the run of the first discriminator in the "discriminators" list
-output_name: 'roc_curve_vs_${vs_type}_${dataset_alias}_pt_${pt_bin[0]}_${pt_bin[1]}'
+output_name: 'roc_curve_vs_${vs_type}_${dataset_alias}_pt_${pt_bin[0]}_${pt_bin[1]}_eta_${eta_bin[0]}_${eta_bin[1]}_dm_${dm_bin[0]}'

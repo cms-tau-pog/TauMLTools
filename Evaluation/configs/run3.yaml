@@ -15,9 +15,11 @@ period: '2018 (13 TeV)'
 vs_type: ??? # jet/e/mu
 dataset_alias: ??? # alias to reference a mixture of input_samples below, e.g. tau_DY_jet_TT
 pt_bins: [20, 100, 1000]
+eta_bins: [0, 2.5]
+dm_bins: [[0, 1, 2, 10, 11]]
 
 # selection
-input_branches: [ 'tau_pt', 'tau_decayMode' ] # add here branches with targets/prediction if necessary
+input_branches: [ 'tau_pt', 'tau_eta', 'tau_decayMode' ] # add here branches with targets/prediction if necessary
 cuts: ${apply_dm_cuts}
 
 # inputs/paths
