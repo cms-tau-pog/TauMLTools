@@ -169,7 +169,7 @@ def main(cfg: DictConfig) -> None:
                 if discr_curve is None:
                     print(f'[INFO] Didn\'t manage to retrieve a curve ({curve_type}) for discriminator ({discr_name}) from performance.json. Will proceed without plotting it.')
                     continue
-                elif discr_name==ref_discr_name and curve_type==ref_curve_type:
+                elif (discr_name==ref_discr_name and curve_type==ref_curve_type) or ('wp' in curve_type and any('curve' in ctype for ctype in curve_types)): # Temporary: Don't make ratio for 'roc_wp' if there's a ratio for 'roc_curve' already
                     curves_to_plot.append(RocCurve(discr_curve, ref_roc=None))
                 else:
                     curves_to_plot.append(RocCurve(discr_curve, ref_roc=ref_roc, WPcurve='wp' in curve_type))
