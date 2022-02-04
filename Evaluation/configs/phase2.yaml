@@ -11,11 +11,11 @@ experiment_id: ???
 run_id: ???
 
 # phase space region
-period: '2018 (13 TeV)'
+period: 'Phase 2'
 vs_type: ??? # jet/e/mu
 dataset_alias: ??? # alias to reference a mixture of input_samples below, e.g. tau_DY_jet_TT
-pt_bins: [20, 100, 1000]
-eta_bins: [0, 2.5]
+pt_bins: [20, 40, 100, 1000]
+eta_bins: [0, 3.0]
 dm_bins: [[0, 1, 2, 10, 11]]
 
 # selection

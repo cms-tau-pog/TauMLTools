@@ -54,7 +54,7 @@ def plot_ranges(file_id, var_name, cone_type, mean, median, min_value, max_value
     plt.ylim(ylim)
     plt.xlim(xlim)
     plt.legend()
-    plt.show()
+    if not close_plot: plt.show()
     if savepath is not None:
         fig.savefig(f'{savepath}/{var_name}_{cone_type}.png')
     if close_plot:
@@ -116,11 +116,8 @@ def main(
                     print(f'[INFO] Failed to retrieve scaling parameters for var_name={var_name} and cone_type={cone_type}: skipping this variable')
                     continue
 
-                ### fetch clamping params
+                ### fetch mean for clamping params
                 mean = var_scaling['mean']
-                clamp_range_left = mean + var_scaling['lim_min']*var_scaling['std']
-                clamp_range_right = mean + var_scaling['lim_max']*var_scaling['std']
-                clamp_range = [clamp_range_left, clamp_range_right]
 
                 ### fetch quantiles
                 median = var_quantiles['median']
@@ -145,15 +142,27 @@ def main(
 
                 ### check for anomalous behaviour
                 suspicious_dict = {}
-                suspicious_dict['left_within'] = clamp_range_left > two_sigma_left
-                suspicious_dict['right_within'] = clamp_range_right < two_sigma_right
-                # suspicious_dict['left_beyond'] = clamp_range_left < five_sigma_left
-                # suspicious_dict['right_beyond'] = clamp_range_right > five_sigma_right
-                suspicious_dict['one_sigma_empty'] = one_sigma_left == one_sigma_right
-                suspicious_dict['two_sigma_empty'] = two_sigma_left == two_sigma_right
-                suspicious_dict['three_sigma_empty'] = three_sigma_left == three_sigma_right
-                suspicious_dict['five_sigma_empty'] = five_sigma_left == five_sigma_right
-                is_suspicious = any(suspicious_dict.values())
+                has_None = None in [mean, median, min_value, max_value, one_sigma_left, two_sigma_left, three_sigma_left, five_sigma_left, one_sigma_right, two_sigma_right, three_sigma_right, five_sigma_right]
+                if not has_None:
+                    clamp_range_left = mean + var_scaling['lim_min']*var_scaling['std']
+                    clamp_range_right = mean + var_scaling['lim_max']*var_scaling['std']
+                    clamp_range = [clamp_range_left, clamp_range_right]
+                    suspicious_dict['left_within'] = clamp_range_left > two_sigma_left
+                    suspicious_dict['right_within'] = clamp_range_right < two_sigma_right
+                    # suspicious_dict['left_beyond'] = clamp_range_left < five_sigma_left
+                    # suspicious_dict['right_beyond'] = clamp_range_right > five_sigma_right
+                    suspicious_dict['one_sigma_empty'] = one_sigma_left == one_sigma_right
+                    suspicious_dict['two_sigma_empty'] = two_sigma_left == two_sigma_right
+                    suspicious_dict['three_sigma_empty'] = three_sigma_left == three_sigma_right
+                    suspicious_dict['five_sigma_empty'] = five_sigma_left == five_sigma_right
+                    is_suspicious = any(suspicious_dict.values())
+                elif mean is None:
+                    print(f'       {var_name}, {cone_type}: mean is empty')
+                    continue
+                else:
+                    print(f'       {var_name}, {cone_type}: quantiles are empty')
+                    continue
+
                 if is_suspicious or not only_suspicious:
                     plot_ranges(file_id, var_name, cone_type, None if var_scaling_type=='linear' else mean, median, min_value, max_value,
                                 clamp_range, one_sigma_range, two_sigma_range, three_sigma_range,

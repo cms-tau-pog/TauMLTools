@@ -16,6 +16,7 @@ Tools to perform machine learning studies for tau lepton reconstruction and iden
    ```
    where supported `ENV_NAME` are:
    - `prod2018`: for production of root-tuples for 2018 pre-UL datasets and pre-processing steps up to Shuffle&Merge
+   - `prod2018UL`: for production of root-tuples for 2018 UL datasets and pre-processing steps up to Shuffle&Merge
    - `phase2`: for production of root-tuples for Phase 2 datasets and pre-processing steps up to Shuffle&Merge
    - `lcg`: using LCG environment, if it is available (e.g. lxplus)
    - `conda`: using tau-ml conda environment -- this is the recommended environment to perform an actual NN training
