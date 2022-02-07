@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 action() {
-    eosfusebind -g
     local this_dir="$(dirname $(realpath $0))"
 
     export PYTHONPATH="$this_dir:$PYTHONPATH"
