@@ -328,7 +328,7 @@ dependencies:
   - zstandard=0.15.2=py38h497a2fe_0
   - zstd=1.4.9=ha95c52a_0
   - pip:
-    - law
+    - law==0.1.6
     - antlr4-python3-runtime==4.8
     - flatbuffers==1.12
     - greenlet==1.1.1
