@@ -355,7 +355,7 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
             sqmean_ =  compute_mean(sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
             std_ = compute_std(sums[var_type][var][cone_type], sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
 
-            scaling_params[var_type][var][cone_type]['num'] = int(counts[var_type][var].sum())
+            scaling_params[var_type][var][cone_type]['num'] = int(counts[var_type][var][cone_type].sum())
             if mean_ == None:
                 print(f"Low statistics in {var} for mean computation")
                 scaling_params[var_type][var][cone_type]['mean'] = None
