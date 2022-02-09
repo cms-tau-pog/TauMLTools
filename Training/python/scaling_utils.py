@@ -318,6 +318,8 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
             mean_ = compute_mean(sums[var_type][var], counts[var_type][var], aggregate=True)
             sqmean_ = compute_mean(sums2[var_type][var], counts[var_type][var], aggregate=True)
             std_ = compute_std(sums[var_type][var], sums2[var_type][var], counts[var_type][var], aggregate=True)
+
+            scaling_params[var_type][var]['global']['num'] = int(counts[var_type][var].sum())
             if mean_ == None:
                 print(f"Low statistics in {var} for mean computation")
                 scaling_params[var_type][var]['global']['mean'] = None
@@ -352,6 +354,8 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
             mean_ = compute_mean(sums[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
             sqmean_ =  compute_mean(sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
             std_ = compute_std(sums[var_type][var][cone_type], sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
+
+            scaling_params[var_type][var]['global']['num'] = int(counts[var_type][var].sum())
             if mean_ == None:
                 print(f"Low statistics in {var} for mean computation")
                 scaling_params[var_type][var][cone_type]['mean'] = None
