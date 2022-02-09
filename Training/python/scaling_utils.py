@@ -355,7 +355,7 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
             sqmean_ =  compute_mean(sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
             std_ = compute_std(sums[var_type][var][cone_type], sums2[var_type][var][cone_type], counts[var_type][var][cone_type], aggregate=True)
 
-            scaling_params[var_type][var]['global']['num'] = int(counts[var_type][var].sum())
+            scaling_params[var_type][var][cone_type]['num'] = int(counts[var_type][var].sum())
             if mean_ == None:
                 print(f"Low statistics in {var} for mean computation")
                 scaling_params[var_type][var][cone_type]['mean'] = None
@@ -368,9 +368,9 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
                 scaling_params[var_type][var][cone_type]['std'] = float(format(std_, '.4g'))
             if sqmean_ == None:
                 print(f"Low statistics in {var} for sqmean computation")
-                scaling_params[var_type][var]['global']['sqmean'] = None
+                scaling_params[var_type][var][cone_type]['sqmean'] = None
             else:
-                scaling_params[var_type][var]['global']['sqmean'] = float(format(sqmean_, '.4g'))
+                scaling_params[var_type][var][cone_type]['sqmean'] = float(format(sqmean_, '.4g'))
         if quantile_params:
             quantile_params[var_type][var][cone_type][file_name_i] = get_quantiles(var_array[cone_mask])
             if None in quantile_params[var_type][var][cone_type][file_name_i].values(): print(f"Low statistics in {var} for quantile computation")
