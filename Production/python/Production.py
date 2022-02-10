@@ -125,6 +125,7 @@ else:
         src = cms.InputTag("packedPFCandidates"),
         jetCollInstanceName = cms.string('subJetsForSeedingBoostedTausPAT')
     )
+    """
     process.cleanedSlimmedTausBoosted = cms.EDProducer("PATBoostedTauCleaner",
         src = cms.InputTag('slimmedTausBoosted'),
         pfcands = cms.InputTag('packedPFCandidates'),
@@ -143,6 +144,16 @@ else:
         getattr(process, updatedBoostedTauName + 'rerunMvaIsolationSequence') *
         getattr(process, updatedBoostedTauName))
     boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
+    """
+    updatedBoostedTauName = "slimmedBoostedTausNewID"
+    runTauID(process, outputTauCollection=updatedBoostedTauName, inputTauCollection="slimmedTausBoosted",
+             toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
+    process.boostedSequence = cms.Sequence(
+        process.ca8PFJetsCHSprunedForBoostedTausPAT *
+        getattr(process, updatedBoostedTauName + 'rerunMvaIsolationSequence') *
+        getattr(process, updatedBoostedTauName))
+    boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
+
 
 # boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 taus_InputTag = cms.InputTag('slimmedTausNewID')

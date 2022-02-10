@@ -5,7 +5,7 @@ from sets import Set
 import FWCore.ParameterSet.Config as cms
 import os
 
-mcSampleTypes = Set([ 'MC_16', 'MC_17', 'MC_18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D', 'MC_Phase2_111X', 'MC_Phase2_110X'])
+mcSampleTypes = Set([ 'MC_16', 'MC_17', 'MC_18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D', 'MC_Phase2_111X', 'MC_Phase2_110X', 'UL18', 'UL17','UL16','UL16APV'])
 dataSampleTypes = Set([ 'Run2016' , 'Run2017', 'Run2018ABC', 'Run2018D' ])
 
 periodDict = { 'MC_16' : 'Run2016',
@@ -21,6 +21,10 @@ periodDict = { 'MC_16' : 'Run2016',
                'Emb_18D' : 'Run2018',
                'MC_Phase2_110X' : 'Phase2',
                'MC_Phase2_111X' : 'Phase2',
+               'UL18': 'Run2018',
+               'UL17': 'Run2017',
+               'UL16': 'Run2016',
+               'UL16APV': 'Run2016',
              }
 
 globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
@@ -37,6 +41,10 @@ globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
                  'Emb_18D' : '102X_dataRun2_Prompt_v15',
                  'MC_Phase2_110X' : '110X_mcRun4_realistic_v3',
                  'MC_Phase2_111X' : 'auto:phase2_realistic_T15',
+                 'UL18': '106X_upgrade2018_realistic_v15_L1v1',
+                 'UL17': '106X_mc2017_realistic_v8',
+                 'UL16': '106X_mcRun2_asymptotic_v17',
+                 'UL16APV': '106X_mcRun2_asymptotic_preVFP_v11 '
                }
 
 def IsEmbedded(sampleType):
