@@ -13,7 +13,7 @@ Setup:
     recompute_tautype    : True
     include_mismatched   : False # whether to keep tau candidates with tau_type not present in `tau_types_names`
     #input_dir            : "<path_to_shuffle_and_merge_files>"
-    input_dir            : "/nfs_scratch/aloeliger/complete_v1_0_2/"
+    input_dir            : "/scratch/DeepBoostedTauInput/complete_v1_0_2/"
     #input_spectrum       : "<path_to_shuffle_and_merge_spectrum>.root"
     input_spectrum       : "/nfs_scratch/aloeliger/finalSpectrum.root"
     #target_spectrum      : "<path_to_shuffle_and_merge_spectrum>.root"
@@ -98,7 +98,7 @@ CellObjectType : [
 
 Scaling_setup:
     # --------------------------------------------------------
-    file_path: '/nfs_scratch/aloeliger/complete_v1_0_2/*.root' # input files to be used for computation of scaling params
+    file_path: '/scratch/DeepBoostedTauInput/complete_v1_0_2/*.root' # input files to be used for computation of scaling params
     output_json_folder: 'output_json' # directory where json files with scaling params will be stored
     file_range: [0, 100] # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
     tree_name: taus # TTree name in input files to be read
