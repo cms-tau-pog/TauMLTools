@@ -5,8 +5,8 @@ from sets import Set
 import FWCore.ParameterSet.Config as cms
 import os
 
-mcSampleTypes = Set([ 'MC_16', 'MC_17', 'MC_18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D', 'MC_Phase2_111X', 'MC_Phase2_110X'])
-dataSampleTypes = Set([ 'Run2016' , 'Run2017', 'Run2018ABC', 'Run2018D' ])
+mcSampleTypes = Set([ 'MC_16', 'MC_17', 'MC_18', 'MC_UL18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D', 'MC_Phase2_111X', 'MC_Phase2_110X'])
+dataSampleTypes = Set([ 'Run2016' , 'Run2017', 'Run2018ABC', 'Run2018D', 'RunUL2018' ])
 
 periodDict = { 'MC_16' : 'Run2016',
                'Run2016' : 'Run2016',
@@ -15,8 +15,10 @@ periodDict = { 'MC_16' : 'Run2016',
                'Run2017' : 'Run2017',
                'Emb_17' : 'Run2017',
                'MC_18' : 'Run2018',
+               'MC_UL18' : 'Run2018',
                'Run2018ABC' : 'Run2018',
                'Run2018D' : 'Run2018',
+               'RunUL2018' : 'Run2018',
                'Emb_18ABC' : 'Run2018',
                'Emb_18D' : 'Run2018',
                'MC_Phase2_110X' : 'Phase2',
@@ -31,8 +33,10 @@ globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
                  'Run2017' : '102X_dataRun2_v12',
                  'Emb_17' : '102X_dataRun2_v12',
                  'MC_18' : '102X_upgrade2018_realistic_v20',
+                 'MC_UL18' : '106X_upgrade2018_realistic_v16_L1v1',
                  'Run2018ABC' : '102X_dataRun2_v12',
                  'Run2018D' : '102X_dataRun2_Prompt_v15',
+                 'RunUL2018' : '106X_dataRun2_v35',
                  'Emb_18ABC' : '102X_dataRun2_v12',
                  'Emb_18D' : '102X_dataRun2_Prompt_v15',
                  'MC_Phase2_110X' : '110X_mcRun4_realistic_v3',
@@ -64,6 +68,24 @@ def GetGlobalTag(sampleType):
         print "ERROR: unknown sample type = '{}'".format(sampleType)
         sys.exit(1)
     return globalTagMap[sampleType]
+
+def isRun2UL(sampleType):
+    if sampleType not in periodDict:
+        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        sys.exit(1)
+    return sampleType in ['MC_UL18', 'RunUL2018']
+
+def isPhase2(sampleType):
+    if sampleType not in periodDict:
+        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        sys.exit(1)
+    return sampleType in ['MC_Phase2_111X', 'MC_Phase2_110X']
+
+def isRun2PreUL(sampleType):
+    if sampleType not in periodDict:
+        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        sys.exit(1)
+    return sampleType in ['MC_18','Run2018ABC','Run2018D','Emb_18ABC','Emb_18D']
 
 def GetPeriodCfg(sampleType):
     period = GetPeriod(sampleType)

@@ -216,15 +216,32 @@ class Discriminator:
             raise RuntimeError(f'create_roc_curve() behaviour not defined for: wp_from={self.wp_from}')
         return roc, wp_roc
 
-def create_roc_ratio(x1, y1, x2, y2):
-    sp = interpolate.interp1d(x2, y2)
-    y2_upd = sp(x1)
-    y2_upd_clean = y2_upd[y2_upd > 0]
-    x1_clean = x1[y2_upd > 0]
-    y1_clean = y1[y2_upd > 0]
-    ratio = np.empty((2, x1_clean.shape[0]))
-    ratio[0, :] = y1_clean / y2_upd_clean
-    ratio[1, :] = x1_clean
+def create_roc_ratio(x1, y1, x2, y2, wp):
+    if not wp:
+      sp1 = interpolate.interp1d(x1, y1)
+      sp2 = interpolate.interp1d(x2, y2)
+      x_comb = np.unique(np.sort(np.concatenate((x1, x2))))
+      x_sub = x_comb[np.all([ x_comb >= max(x1[0], x2[0]) , x_comb <= min(x1[-1], x2[-1]) ], axis=0)]
+      y1_upd = sp1(x_sub)
+      y2_upd = sp2(x_sub)
+      y1_upd_clean = y1_upd[y2_upd > 0]
+      y2_upd_clean = y2_upd[y2_upd > 0]
+      x_clean = x_sub[y2_upd > 0]
+      ratio = np.empty((2, x_clean.shape[0]))
+      ratio[0, :] = y1_upd_clean / y2_upd_clean
+      ratio[1, :] = x_clean
+    else:
+      sp = interpolate.interp1d(x1, y1)
+      x2_sub = x2[np.all([ x2 >= max(x1[0], x2[0]) , x2 <= min(x1[-1], x2[-1]) ], axis=0)]
+      y2_sub = y2[np.all([ x2 >= max(x1[0], x2[0]) , x2 <= min(x1[-1], x2[-1]) ], axis=0)]
+      y1_upd = sp(x2_sub)
+      y1_upd_clean = y1_upd[y2_sub > 0]
+      x2_clean = x2_sub[y2_sub > 0]
+      y2_clean = y2_sub[y2_sub > 0]
+      ratio = np.empty((2, x2_clean.shape[0]))
+      ratio[0, :] = y1_upd_clean / y2_clean
+      ratio[1, :] = x2_clean
+
     return ratio
 
 def select_curve(curve_list, **selection):

@@ -2,8 +2,17 @@ import gc
 import glob
 from DataLoaderBase import *
 
-def LoaderThread(queue_out, queue_files, batch_size, input_grids, n_sequence, n_features,
-                 output_classes, return_truth, return_weights):
+def LoaderThread(queue_out,
+                 queue_files,
+                 terminators,
+                 identifier,
+                 batch_size,
+                 input_grids,
+                 n_sequence,
+                 n_features,
+                 output_classes,
+                 return_truth,
+                 return_weights):
 
 
     data_source = DataSource(queue_files)
@@ -24,7 +33,8 @@ def LoaderThread(queue_out, queue_files, batch_size, input_grids, n_sequence, n_
         
         put_next = queue_out.put(item)
 
-    queue_out.put_terminate()
+    queue_out.put_terminate(identifier)
+    terminators[identifier].wait()
 
 class DataLoader (DataLoaderBase):
 
@@ -73,9 +83,11 @@ class DataLoader (DataLoaderBase):
 
         n_batches = self.config["SetupNN"]["n_batches"] if primary_set \
                     else self.config["SetupNN"]["n_batches_val"]
-
         print("Number of workers in DataLoader: ",
                 self.config["SetupNN"]["n_load_workers"])
+
+        converter = torch_to_tf(return_truth, return_weights)
+
         def _generator():
 
             finish_counter = 0
@@ -87,10 +99,12 @@ class DataLoader (DataLoaderBase):
 
             processes = []
             n_load_workers = self.config["SetupNN"]["n_load_workers"]
+            terminators = [ mp.Event() for _ in range(n_load_workers) ]
             for i in range(n_load_workers):
                 processes.append(
                 mp.Process(target = LoaderThread, 
                            args = (queue_out, queue_files,
+                                   terminators, i,
                                    self.config["Setup"]["n_tau"],
                                    self.config["CellObjectType"],
                                    self.config["SequenceLength"],
@@ -98,17 +112,15 @@ class DataLoader (DataLoaderBase):
                                    self.config["Setup"]["output_classes"],
                                    return_truth,
                                    return_weights)))
-                processes[-1].deamon = True
                 processes[-1].start()
 
             while finish_counter < n_load_workers:
-                
                 item = queue_out.get()
-
-                if isinstance(item, TerminateGenerator):
+                if isinstance(item, int):
                     finish_counter+=1
+                    terminators[item].set()
                 else:
-                    yield item
+                    yield converter(item)
                     
             ugly_clean(queue_files)
             queue_out.clear()

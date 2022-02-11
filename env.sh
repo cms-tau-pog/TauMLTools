@@ -3,7 +3,7 @@
 if [ $# -ne 1 ] ; then
     echo "Setup environment for TauMLTools"
     echo "Usage: source setup.sh mode"
-    echo "Supported modes: prod2018 phase2 lcg conda "
+    echo "Supported modes: prod2018 prod2018UL phase2 lcg conda "
     return 1
 fi
 
@@ -19,7 +19,7 @@ function run_cmd {
     fi
 }
 
-if [ $MODE = "prod2018" -o $MODE = "phase2" ] ; then
+if [ $MODE = "prod2018" -o $MODE = "phase2" -o $MODE = "prod2018UL" ] ; then
     if [ $MODE = "prod2018" ] ; then
         CMSSW_VER=CMSSW_10_6_20
         APPLY_BOOSTED_FIX=1
@@ -28,6 +28,10 @@ if [ $MODE = "prod2018" -o $MODE = "phase2" ] ; then
         CMSSW_VER=CMSSW_11_2_5
         APPLY_BOOSTED_FIX=0
         export SCRAM_ARCH=slc7_amd64_gcc900
+    elif [ $MODE = "prod2018UL" ] ; then
+        CMSSW_VER=CMSSW_10_6_27
+        APPLY_BOOSTED_FIX=0
+        export SCRAM_ARCH=slc7_amd64_gcc700
     fi
 
     if ! [ -f soft/$CMSSW_VER/.installed ] ; then
