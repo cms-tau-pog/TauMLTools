@@ -115,6 +115,7 @@ if isPhase2:
 elif isRun2UL:
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 else:
+    
     from TauMLTools.Production.runTauIdMVA import runTauID
     updatedTauName = "slimmedTausNewID"
     runTauID(process, outputTauCollection = updatedTauName, inputTauCollection = tau_collection,
@@ -134,7 +135,6 @@ else:
         ca8JetSrc = cms.InputTag('ca8PFJetsCHSprunedForBoostedTausPAT','subJetsForSeedingBoostedTausPAT'),
         removeOverLap = cms.bool(True),
     )
-
     updatedBoostedTauName = "slimmedBoostedTausNewID"
     runTauID(process, outputTauCollection=updatedBoostedTauName, inputTauCollection="cleanedSlimmedTausBoosted",
              toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
@@ -153,8 +153,7 @@ else:
         process.ca8PFJetsCHSprunedForBoostedTausPAT *
         getattr(process, updatedBoostedTauName + 'rerunMvaIsolationSequence') *
         getattr(process, updatedBoostedTauName))
-    boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
-
+    boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)    
 
 # boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 if isRun2UL:
@@ -246,6 +245,14 @@ if isPhase2:
 
 if isRun2PreUL:
     process.p.insert(2, process.boostedSequence)
+
+if (options.sampleType == "UL16"
+    or options.sampleType == "UL16APV"
+    or options.sampleType == "UL17"
+    or options.sampletype == "UL18"):
+    print("inserting boosted tau sequence")
+    process.p.insert(2, process.boostedSequence)
+    
 
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 x = process.maxEvents.input.value()
