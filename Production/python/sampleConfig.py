@@ -48,7 +48,7 @@ globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
                  'UL18': '106X_upgrade2018_realistic_v15_L1v1',
                  'UL17': '106X_mc2017_realistic_v8',
                  'UL16': '106X_mcRun2_asymptotic_v17',
-                 'UL16APV': '106X_mcRun2_asymptotic_preVFP_v11 '
+                 'UL16APV': '106X_mcRun2_asymptotic_preVFP_v11'
                }
 
 def IsEmbedded(sampleType):
