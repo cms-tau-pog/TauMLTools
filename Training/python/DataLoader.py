@@ -221,7 +221,7 @@ class DataLoader (DataLoaderBase):
     def get_input_config(self, return_truth = True, return_weights = True):
         # Input tensor shape and type
         input_shape, input_types = [], []
-        if self.active_features==True:
+        if 'TauFlat' in self.active_features:
             input_shape.append(tuple([None, len(self.get_branches(self.config,"TauFlat"))]))
             input_types.append(tf.float32)
         for grid in self.cell_locations:
