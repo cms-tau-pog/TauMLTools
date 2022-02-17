@@ -84,7 +84,8 @@ class DataLoader (DataLoaderBase):
         self.input_grids        = self.config["SetupNN"]["input_grids"]
         self.n_cells = { 'inner': self.n_inner_cells, 'outer': self.n_outer_cells }
         self.model_name       = self.config["SetupNN"]["model_name"]
-
+        self.use_weights = self.config["Setup"]["use_weights"]
+        
         data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
         self.train_files, self.val_files = \
              np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
@@ -204,7 +205,7 @@ class DataLoader (DataLoaderBase):
         netConf.n_cells = self.n_cells
         netConf.n_outputs = self.tau_types
         netConf.first_layer_reg = self.config["SetupNN"]["first_layer_reg"]
-        
+
         return netConf
 
     def get_input_config(self, return_truth = True, return_weights = True):

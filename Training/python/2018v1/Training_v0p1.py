@@ -267,8 +267,8 @@ def compile_model(model, opt_name, learning_rate):
 
 def run_training(model, data_loader, to_profile, log_suffix):
 
-    gen_train = data_loader.get_generator(primary_set = True)
-    gen_val = data_loader.get_generator(primary_set = False)
+    gen_train = data_loader.get_generator(primary_set = True, return_weights = data_loader.use_weights)
+    gen_val = data_loader.get_generator(primary_set = False, return_weights = data_loader.use_weights)
     input_shape, input_types = data_loader.get_input_config()
 
     data_train = tf.data.Dataset.from_generator(
