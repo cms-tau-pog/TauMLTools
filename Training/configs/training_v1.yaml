@@ -11,7 +11,7 @@ Setup:
 
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
-    tau_cut              : 0.99 # DeepTau VSjet cutoff
+    tau_cut              : 0 # DeepTau VSjet cutoff
     recompute_tautype    : True
     include_mismatched   : False # whether to keep tau candidates with tau_type not present in `tau_types_names`
     input_dir            : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_trainingSamples-2_rerun/"
@@ -19,6 +19,7 @@ Setup:
     target_spectrum      : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_TrainingSpectrum/ShuffleMergeSpectral_trainingSamples-2_rerun.root"
     weight_thr           : 100000.0
     dataloader_core      : "TauMLTools/Training/interface/DataLoader_main.h"
+    rm_inner_from_outer  : False
 
     # here define variables for the Histogram_2D class
     yaxis                : [
@@ -81,7 +82,9 @@ SetupNN:
     comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "n", "last_layer_width": 64 }
     conv_2d_net          : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": null, "window_size": 3 }
     dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 200, "last_layer_width": 200, "min_n_layers": 4 }
-    first_layer_reg      : "L1, 0.01" #null # eg "L1, reg_fact"
+    first_layer_reg      : null # eg "L1, reg_fact"
+    use_HL_feats         : True # include high level features 
+    cell_locations       : ['inner', 'outer']
 
 CellObjectType : [
                  GridGlobal,

@@ -869,7 +869,11 @@ public:
                   const bool inside_iso_cone = dR < iso_cone;
                   if(inner && !inside_signal_cone) continue;
                   // if(!inner && (inside_signal_cone || !inside_iso_cone)) continue;
-                  if(!inner && !inside_iso_cone) continue;
+                  if(rm_inner_from_outer){
+                    if(!inner && (!inside_iso_cone || inside_signal_cone)) continue;
+                  } else {
+                    if(!inner && !inside_iso_cone) continue;
+                  }
                   CellIndex cellIndex;
                   if(grid.TryGetCellIndex(deta, dphi, cellIndex))
                       grid.at(cellIndex)[type].insert(n);
