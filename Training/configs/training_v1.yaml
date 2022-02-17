@@ -6,7 +6,7 @@ Setup:
     n_outer_cells        :  21
     outer_cell_size      :  0.05
     n_threads            :  1
-
+    debug                :  False
 
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
@@ -58,9 +58,9 @@ Setup:
 
 SetupNN:
     model_name           : "DeepTau2018v0"
-    n_batches            : 80000
-    n_batches_val        : 80000
-    n_batches_log        : 1000 # monitor every n batches in tensorboard
+    n_batches            : 100 #80000
+    n_batches_val        : 10 #80000
+    n_batches_log        : 10 #1000 # monitor every n batches in tensorboard
     epoch                : 0
     n_epochs             : 1
     validation_split     : 0.3
@@ -79,6 +79,7 @@ SetupNN:
     comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "n", "last_layer_width": 64 }
     conv_2d_net          : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": null, "window_size": 3 }
     dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 200, "last_layer_width": 200, "min_n_layers": 4 }
+    first_layer_reg      : "L1, 0.01" #null # "L1, reg_fact"
 
 CellObjectType : [
                  GridGlobal,

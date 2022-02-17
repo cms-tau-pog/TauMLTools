@@ -23,6 +23,6 @@ for PATH_GLOB in ${DIRS[@]}; do
 done
 
 CMD=`echo $CMD | head -c -2`
-CMD="tensorboard --port=9090 --logdir_spec $CMD"
+CMD="tensorboard --port=1357 --logdir_spec $CMD"
 echo "$CMD"
 eval $CMD

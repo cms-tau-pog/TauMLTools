@@ -203,7 +203,8 @@ class DataLoader (DataLoaderBase):
         ]
         netConf.n_cells = self.n_cells
         netConf.n_outputs = self.tau_types
-
+        netConf.first_layer_reg = self.config["SetupNN"]["first_layer_reg"]
+        
         return netConf
 
     def get_input_config(self, return_truth = True, return_weights = True):
