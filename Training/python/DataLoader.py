@@ -85,6 +85,7 @@ class DataLoader (DataLoaderBase):
         self.n_cells = { 'inner': self.n_inner_cells, 'outer': self.n_outer_cells }
         self.model_name       = self.config["SetupNN"]["model_name"]
         self.use_weights = self.config["Setup"]["use_weights"]
+        self.tau_cut = self.config["Setup"]["tau_cut"]
         
         data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
         self.train_files, self.val_files = \
