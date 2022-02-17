@@ -83,7 +83,7 @@ SetupNN:
     conv_2d_net          : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": null, "window_size": 3 }
     dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 200, "last_layer_width": 200, "min_n_layers": 4 }
     first_layer_reg      : null # eg "L1, reg_fact"
-    use_HL_feats         : True # include high level features 
+    active_features      : ['TauFlat', 'GridGlobal', 'PfCand_electron', 'PfCand_muon', 'PfCand_chHad', 'PfCand_nHad', 'PfCand_gamma', 'Electron', 'Muon'] 
     cell_locations       : ['inner', 'outer']
 
 CellObjectType : [

@@ -166,11 +166,11 @@ class GetData():
             input_grids,
             n_inner_cells,
             n_outer_cells,
-            use_HL_feats,
+            active_features,
             cell_locations):  
         X_all = []      
         # Flat Tau features
-        if use_HL_feats==True:
+        if 'TauFlat' in active_features:
             X_all += [ __class__.getdata(data.x_tau, (batch_size, n_flat_features)) ]
         # Inner grid
         if 'inner' in cell_locations:

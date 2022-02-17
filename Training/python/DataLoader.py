@@ -16,7 +16,7 @@ def LoaderThread(queue_out,
                  tau_types,
                  return_truth,
                  return_weights,
-                 use_HL_feats,
+                 active_features,
                  cell_locations):
 
     data_source = DataSource(queue_files)
@@ -29,7 +29,7 @@ def LoaderThread(queue_out,
             break
 
         X_all = GetData.getX(data, batch_size, n_grid_features, n_flat_features,
-                             input_grids, n_inner_cells, n_outer_cells, use_HL_feats, cell_locations)
+                             input_grids, n_inner_cells, n_outer_cells, active_features, cell_locations)
 
         X_all = tuple(X_all)
 
@@ -61,14 +61,15 @@ class DataLoader (DataLoaderBase):
 
         self.config = config
 
+        for block_name, features in self.config["Features_all"].items():
+            if block_name not in self.config["SetupNN"]["active_features"]:
+                self.config["Features_disable"][block_name] = [list((self.config["Features_all"][block_name])[i].keys())[0] for i in range(len(self.config["Features_all"][block_name]))]
+
         self.n_grid_features = {}
         for celltype in self.config["Features_all"]:
             if celltype!="TauFlat":
                 self.n_grid_features[str(celltype)] = len(self.config["Features_all"][celltype]) - \
                                                       len(self.config["Features_disable"][celltype])
-
-        if self.config["SetupNN"]["use_HL_feats"] == False:  
-            self.config["Features_disable"]["TauFlat"] = [list((self.config["Features_all"]["TauFlat"])[i].keys())[0] for i in range(len(self.config["Features_all"]["TauFlat"]))]
 
         self.n_flat_features = len(self.config["Features_all"]["TauFlat"]) - \
                                len(self.config["Features_disable"]["TauFlat"])
@@ -91,9 +92,9 @@ class DataLoader (DataLoaderBase):
         self.model_name       = self.config["SetupNN"]["model_name"]
         self.use_weights = self.config["Setup"]["use_weights"]
         self.tau_cut = self.config["Setup"]["tau_cut"]
-        self.use_HL_feats = self.config["SetupNN"]["use_HL_feats"]
         self.cell_locations = self.config["SetupNN"]["cell_locations"]
         self.rm_inner_from_outer = self.config["Setup"]["rm_inner_from_outer"]
+        self.active_features = self.config["SetupNN"]["active_features"]
 
         data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
         self.train_files, self.val_files = \
@@ -131,7 +132,7 @@ class DataLoader (DataLoaderBase):
                         args = (queue_out, queue_files, terminators, i,
                                 self.input_grids, self.batch_size, self.n_inner_cells,
                                 self.n_outer_cells, self.n_flat_features, self.n_grid_features,
-                                self.tau_types, return_truth, return_weights, self.use_HL_feats, self.cell_locations)))
+                                self.tau_types, return_truth, return_weights, self.active_features, self.cell_locations)))
                 processes[-1].start()
 
             while finish_counter < self.n_load_workers:
@@ -169,7 +170,7 @@ class DataLoader (DataLoaderBase):
                 data = data_loader.LoadData()
                 x = GetData.getX(data, self.batch_size, self.n_grid_features,
                                  self.n_flat_features, self.input_grids,
-                                 self.n_inner_cells, self.n_outer_cells, self.use_HL_feats, self.cell_locations)
+                                 self.n_inner_cells, self.n_outer_cells, self.active_features, self.cell_locations)
                 y = GetData.getdata(data.y_onehot, (self.batch_size, self.tau_types))
                 yield tuple(x), y
         return read_from_file
@@ -220,7 +221,7 @@ class DataLoader (DataLoaderBase):
     def get_input_config(self, return_truth = True, return_weights = True):
         # Input tensor shape and type
         input_shape, input_types = [], []
-        if self.use_HL_feats==True:
+        if self.active_features==True:
             input_shape.append(tuple([None, len(self.get_branches(self.config,"TauFlat"))]))
             input_types.append(tf.float32)
         for grid in self.cell_locations:
