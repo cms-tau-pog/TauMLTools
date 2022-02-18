@@ -11,7 +11,7 @@ Setup:
 
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
-    tau_cut              : 0 # DeepTau VSjet cutoff
+    DeepTauvsVSjet_cut   : 0 # DeepTau VSjet cutoff
     recompute_tautype    : True
     include_mismatched   : False # whether to keep tau candidates with tau_type not present in `tau_types_names`
     input_dir            : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_trainingSamples-2_rerun/"
