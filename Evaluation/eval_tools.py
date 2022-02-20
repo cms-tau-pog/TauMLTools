@@ -324,11 +324,8 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
 def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target, path_to_artifacts):
     def path_splitter(path):
         basename = os.path.splitext(os.path.basename(path))[0]
-        if basename.endswith('_pred'):
-            i = basename.split('_')[-2]
-        else:
-            i = basename.split('_')[-1]
-        return int(i)
+        if basename.endswith('_pred'): basename = basename[:-5]
+        return basename
         
     # prepare list of files with inputs
     if path_to_input is not None:
