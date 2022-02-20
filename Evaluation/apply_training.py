@@ -70,7 +70,9 @@ def main(cfg: DictConfig) -> None:
     predictions = []
     targets = []
     if cfg.verbose: print(f'\n\n--> Processing file {input_file_name}, number of taus: {n_taus}\n')
-    for X,y in tqdm(gen_predict(input_file_name), total=n_taus/training_cfg['Setup']['n_tau']):
+    for X,y in tqdm(gen_predict(input_file_name), 
+                    total=(int(n_taus/training_cfg['Setup']['n_tau']) +\
+                          (n_taus%training_cfg['Setup']['n_tau'] > 0))):
         predictions.append(model.predict(X))
         targets.append(y)
     
