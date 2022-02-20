@@ -92,7 +92,7 @@ class DataSource:
                     return None
 
             if self.data_loader.MoveNext():
-                return self.data_loader.LoadData()
+                return self.data_loader.LoadData(True)
             else:
                 self.require_file = True
 
@@ -121,6 +121,7 @@ class GetData():
 
     @staticmethod
     def getdata(_obj_f,
+                _filled_tau,
                 _reshape,
                 _dtype=np.float32):
         x = np.copy(np.frombuffer(_obj_f.data(), dtype=_dtype, count=_obj_f.size()))
@@ -128,10 +129,11 @@ class GetData():
             print("Nan detected! element=",x.shape)
             print(np.argwhere(np.isnan(x)))
             raise RuntimeError("Terminate: nans detected in the tensor.")
-        return torch.from_numpy(x) if _reshape==-1 else torch.reshape(torch.from_numpy(x), _reshape)
+        return torch.from_numpy(x)[:_filled_tau] if _reshape==-1 else torch.reshape(torch.from_numpy(x), _reshape)[:_filled_tau]
 
     @staticmethod
     def getgrid(_obj_grid,
+                _filled_tau,
                 batch_size,
                 n_grid_features,
                 input_grids,
@@ -141,7 +143,7 @@ class GetData():
         for group in input_grids:
             _X.append(
                 torch.cat(
-                    [ __class__.getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner],
+                    [ __class__.getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner], _filled_tau,
                      (batch_size, _n_cells, _n_cells, n_grid_features[fname])) for fname in group ],
                     dim=-1
                     )
@@ -150,28 +152,31 @@ class GetData():
     
     @staticmethod
     def getsequence(_obj_grid,
+                    _filled_tau,
                     _n_tau,
                     _input_grids,
                     _n_seq,
                     _n_features):
-        return [ __class__.getdata(_obj_grid[getattr(R.CellObjectType,group)],
+        return [ __class__.getdata(_obj_grid[getattr(R.CellObjectType,group)], _filled_tau,
                 (_n_tau, _n_seq[group], _n_features[group]))
                 for group in _input_grids]
 
     @staticmethod
     def getX(data,
+            filled_tau,
             batch_size,
             n_grid_features,
             n_flat_features,
             input_grids,
             n_inner_cells,
-            n_outer_cells):        
+            n_outer_cells):
+
         # Flat Tau features
-        X_all = [ __class__.getdata(data.x_tau, (batch_size, n_flat_features)) ]
+        X_all = [ __class__.getdata(data.x_tau, filled_tau, (batch_size, n_flat_features)) ]
         # Inner grid
-        X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
+        X_all += __class__.getgrid(data.x_grid, filled_tau, batch_size, n_grid_features,
                                    input_grids, n_inner_cells, True) # 500 11 11 176
         # Outer grid
-        X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
+        X_all += __class__.getgrid(data.x_grid, filled_tau, batch_size, n_grid_features,
                                    input_grids, n_outer_cells, False) # 500 11 11 176
         return X_all

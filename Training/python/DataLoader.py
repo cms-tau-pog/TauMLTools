@@ -26,15 +26,16 @@ def LoaderThread(queue_out,
         if data is None:
             break
 
-        X_all = GetData.getX(data, batch_size, n_grid_features, n_flat_features,
+        filled_taus = data.filled_tau
+        X_all = GetData.getX(data, filled_taus, batch_size, n_grid_features, n_flat_features,
                              input_grids, n_inner_cells, n_outer_cells)
 
         X_all = tuple(X_all)
 
         if return_weights:
-            weights = GetData.getdata(data.weight, -1)
+            weights = GetData.getdata(data.weight, filled_taus, -1)
         if return_truth:
-            Y = GetData.getdata(data.y_onehot, (batch_size, tau_types))
+            Y = GetData.getdata(data.y_onehot, filled_taus, (batch_size, tau_types))
 
         if return_truth and return_weights:
             item = (X_all, Y, weights)
@@ -89,6 +90,9 @@ class DataLoader (DataLoaderBase):
         self.train_files, self.val_files = \
              np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
 
+        self.train_files = self.train_files[:1]
+        self.val_files = self.val_files[:1]
+
         print("Files for training:", len(self.train_files))
         print("Files for validation:", len(self.val_files))
 
@@ -141,7 +145,7 @@ class DataLoader (DataLoaderBase):
 
         return _generator
 
-    def get_predict_generator(self):
+    def get_predict_generator(self, return_truth=True, return_weights=False):
         '''
         The implementation of the deterministic generator
         for suitable use of performance evaluation.
@@ -151,17 +155,19 @@ class DataLoader (DataLoaderBase):
         >   for x,y in en_file(file):
         >       y_pred = ...
         '''
-        assert self.batch_size == 1
+        converter = torch_to_tf(return_truth, return_weights)
         data_loader = R.DataLoader()
         def read_from_file(file_path):
             data_loader.ReadFile(R.std.string(file_path), 0, -1)
-            while data_loader.MoveNext():
-                data = data_loader.LoadData()
-                x = GetData.getX(data, self.batch_size, self.n_grid_features,
+            while True:
+                full_tensor = data_loader.MoveNext()
+                data = data_loader.LoadData(full_tensor)
+                x = GetData.getX(data, data.filled_tau, self.batch_size, self.n_grid_features,
                                  self.n_flat_features, self.input_grids,
                                  self.n_inner_cells, self.n_outer_cells)
-                y = GetData.getdata(data.y_onehot, (self.batch_size, self.tau_types))
-                yield tuple(x), y
+                y = GetData.getdata(data.y_onehot, data.filled_tau, (self.batch_size, self.tau_types))
+                yield converter((tuple(x), y))
+                if full_tensor==False: break
         return read_from_file
 
     @staticmethod

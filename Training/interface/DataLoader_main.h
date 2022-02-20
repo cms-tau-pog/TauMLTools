@@ -104,7 +104,7 @@ struct Data {
          size_t n_outer_cells, size_t globalgrid_fn, size_t pfelectron_fn, size_t pfmuon_fn,
          size_t pfchargedhad_fn, size_t pfneutralhad_fn, size_t pfgamma_fn,
          size_t electron_fn, size_t muon_fn, size_t tau_labels) :
-         x_tau(n_tau * tau_fn, 0), weight(n_tau, 0), y_onehot(n_tau * tau_labels, 0)
+         filled_tau(0), x_tau(n_tau * tau_fn, 0), weight(n_tau, 0), y_onehot(n_tau * tau_labels, 0)
          {
            x_grid[CellObjectType::GridGlobal][0].resize(n_tau * n_outer_cells * n_outer_cells * globalgrid_fn,0);
            x_grid[CellObjectType::GridGlobal][1].resize(n_tau * n_inner_cells * n_inner_cells * globalgrid_fn,0);
@@ -130,7 +130,7 @@ struct Data {
            x_grid[CellObjectType::Muon][0].resize(n_tau * n_outer_cells * n_outer_cells * muon_fn,0);
            x_grid[CellObjectType::Muon][1].resize(n_tau * n_inner_cells * n_inner_cells * muon_fn,0);
          }
-
+    size_t filled_tau; // the number of taus filled in the tensor filled_tau <= n_tau;
     std::vector<float> x_tau;
     GridMap x_grid; // [enum class CellObjectType][ 0 - outer, 1 - inner]
     std::vector<float> weight;
@@ -261,14 +261,15 @@ public:
           if (!tau_is_set && include_mismatched)
             ++tau_i;
           ++current_entry;
+          data->filled_tau = tau_i;
         }
         fullData = true;
         return true;
     }
 
-    const Data* LoadData() {
-      if(!fullData)
-        throw std::runtime_error("Data was not loaded with MoveNext()");
+    const Data* LoadData(bool needFull) {
+      if(!fullData && needFull)
+        throw std::runtime_error("Data was not loaded with MoveNext() or array was not fully filled");
       fullData = false;
       hasData = false;
       return data.get();
