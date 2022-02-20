@@ -61,7 +61,8 @@ def main(cfg: DictConfig) -> None:
        
     # open input file
     input_file_name = to_absolute_path(cfg.path_to_file)
-    output_file_name = os.path.splitext(os.path.basename(input_file_name))[0] + '_pred'
+    #output_file_name = os.path.splitext(os.path.basename(input_file_name))[0] + '_pred'
+    output_file_name = os.path.splitext( input_file_name.split("/")[-2]+"_"+input_file_name.split("/")[-1] )[0] + '_pred'
     with uproot.open(input_file_name) as f:
         t = f['taus']
         n_taus = len(t['evt'].array())
@@ -108,6 +109,12 @@ def main(cfg: DictConfig) -> None:
         json_file.seek(0) 
         json_file.write(json.dumps(filemap_data, indent=4))
         json_file.truncate()
+
+    # create symlink to input file
+    if not os.path.isdir(f'{path_to_artifacts}/eval_data'): os.mkdir(f'{path_to_artifacts}/eval_data')
+    if not os.path.isdir(f'{path_to_artifacts}/eval_data/{cfg.sample_alias}'): os.mkdir(f'{path_to_artifacts}/eval_data/{cfg.sample_alias}')
+    if not os.path.islink(f'{path_to_artifacts}/eval_data/{cfg.sample_alias}/{output_file_name.replace("_pred",".root")}'):
+      os.symlink(f'{input_file_name}', f'{path_to_artifacts}/eval_data/{cfg.sample_alias}/{output_file_name.replace("_pred",".root")}')
 
 if __name__ == '__main__':
     repo = git.Repo(to_absolute_path('.'), search_parent_directories=True)

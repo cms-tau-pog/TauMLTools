@@ -185,7 +185,12 @@ class Discriminator:
             roc.pr[0, :] = fpr
             roc.pr[1, :] = tpr
             roc.thresholds = thresholds
-            roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
+            if not (np.isnan(roc.pr[0, :]).any() or np.isnan(roc.pr[1, :]).any()):
+              roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
+            else:
+              print('[INFO] ROC curve is empty!')
+              roc.pr[0, :] = np.nan_to_num(roc.pr[0, :])
+              roc.pr[1, :] = np.nan_to_num(roc.pr[1, :])
         else:
             print('[INFO] raw=False, will skip creating ROC curve')        
         
@@ -198,7 +203,7 @@ class Discriminator:
                         df_x = df[df['gen_tau'] == kind]
                         n_passed = self.count_passed(df_x, wp_name)
                         n_total = np.sum(df_x.weight.values)
-                        eff = float(n_passed) / n_total
+                        eff = float(n_passed) / n_total if n_total > 0 else 0.0
                         wp_roc.pr[kind, n_wp - wp_i - 1] = eff
                         if not self.raw:
                             if sys.version_info.major > 2:

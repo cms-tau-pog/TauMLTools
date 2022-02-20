@@ -73,10 +73,12 @@ def main(cfg: DictConfig) -> None:
 
         # loop over pt bins
         print(f'\n{discriminator.name}')
+        pt_bins = [v for l in cfg.pt_bins for v in l]
+        eta_bins = [v for l in cfg.eta_bins for v in l]
         for dm_bin in cfg.dm_bins:
-         for eta_index, (eta_min, eta_max) in enumerate(zip(cfg.eta_bins[:-1], cfg.eta_bins[1:])):
-          for pt_index, (pt_min, pt_max) in enumerate(zip(cfg.pt_bins[:-1], cfg.pt_bins[1:])):
-            # apply pt bin selection
+         for eta_index, (eta_min, eta_max) in enumerate(zip(eta_bins[0::2], eta_bins[1::2])):
+          for pt_index, (pt_min, pt_max) in enumerate(zip(pt_bins[0::2], pt_bins[1::2])):
+            # apply pt/eta/dm bin selection
             df_cut = df_all.query(f'tau_pt >= {pt_min} and tau_pt < {pt_max} and abs(tau_eta) >= {eta_min} and abs(tau_eta) < {eta_max} and tau_decayMode in {dm_bin}')
             if df_cut.shape[0] == 0:
                 print("Warning: bin with pt ({}, {}) and eta ({}, {}) and DMs {} is empty.".format(pt_min, pt_max, eta_min, eta_max, dm_bin))
