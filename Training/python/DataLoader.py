@@ -91,7 +91,7 @@ class DataLoader (DataLoaderBase):
         self.n_cells = { 'inner': self.n_inner_cells, 'outer': self.n_outer_cells }
         self.model_name       = self.config["SetupNN"]["model_name"]
         self.use_weights = self.config["Setup"]["use_weights"]
-        self.DeepTauvsVSjet_cut  = self.config["Setup"]["DeepTauvsVSjet_cut "]
+        self.DeepTauVSjet_cut  = self.config["Setup"]["DeepTauVSjet_cut"]
         self.cell_locations = self.config["SetupNN"]["cell_locations"]
         self.rm_inner_from_outer = self.config["Setup"]["rm_inner_from_outer"]
         self.active_features = self.config["SetupNN"]["active_features"]

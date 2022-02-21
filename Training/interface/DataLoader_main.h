@@ -242,7 +242,7 @@ public:
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
           bool tau_is_set = false;
 
-          if (gen_match &&tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauvsVSjet_cut){
+          if (gen_match &&tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
             }
