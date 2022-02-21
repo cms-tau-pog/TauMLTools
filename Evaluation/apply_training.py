@@ -73,9 +73,17 @@ def main(cfg: DictConfig) -> None:
     for X,y in tqdm(gen_predict(input_file_name), 
                     total=(int(n_taus/training_cfg['Setup']['n_tau']) +\
                           (n_taus%training_cfg['Setup']['n_tau'] > 0))):
-        predictions.append(model.predict(X))
+
+        pred_all = np.zeros(y.shape)
+        valid = np.logical_not((y==0).all(axis=1))
+        pred_all[valid] = model.predict(tuple(X_part[valid] for X_part in X))
+
+        predictions.append(pred_all)
         targets.append(y)
-    
+
+        # predictions.append(model.predict(X))
+        # targets.append(y)
+
     # concat and check for validity
     predictions = np.concatenate(predictions, axis=0)
     targets = np.concatenate(targets, axis=0)
