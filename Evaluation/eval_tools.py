@@ -342,7 +342,7 @@ def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target,
             if os.path.exists(json_filemap_name):
                 with open(json_filemap_name, 'r') as json_file:
                     pred_input_map = json.load(json_file)
-                    pred_files, input_files = zip(*sorted(pred_input_map.items(), key=lambda item: path_splitter(item[1])))  # sort by values (input files)
+                    pred_files, input_files = zip(*sorted(pred_input_map.items(), key=lambda item: path_splitter(item[0])))  # sort by values (pred files)
             else:
                 raise FileNotFoundError(f'File {json_filemap_name} does not exist. Please make sure that input<->pred file mapping is stored in mlflow run artifacts.')
         else: # use paths from cfg 
