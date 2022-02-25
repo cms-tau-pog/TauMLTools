@@ -25,6 +25,17 @@ Tools to perform machine learning studies for tau lepton reconstruction and iden
 
 The second step (`source env.sh ENV_NAME`) should be repeated each time you open a new shell session.
 
+### Installing law
+Some parts of the ntuple production and network training can be split into different jobs and run on the HTCondor cluster. To do so, we use the [law](https://github.com/riga/law) package. Law can be installed via conda's pip (reccommended if running jobs which run in a conda environent) using the [environment yaml file](https://github.com/cms-tau-pog/TauMLTools/blob/master/tau-ml-env.yaml), or via standard pip (recommended when running jobs in the CMSSW environment) running the command
+```bash
+python -m pip install law
+```
+If installing with standard pip, be sure that law is added to the PATH variable and that the LAW libraries (e.g. $HOME/.local/lib/pythonX.Y/site-packages/) are added to the PYTHONPATH variable. It may also be needed to change the shebang of the law executable (e.g. e.g. $HOME/.local/bin/law) from **#!/some/path/to/python3** to **#!/usr/bin/env python3** in order to access CMSSW python modules. As an alternative to this last step, one can install law with the command below (not fully tested)
+```bash
+LAW_INSTALL_EXECUTABLE="/usr/bin/env python3" python3 -m pip install law --user --no-binary :all:
+```
+which automatically sets the correct shebang.
+
 ## How to produce inputs
 
 Steps below describe how to process input datasets starting from MiniAOD up to the representation that can be directly used as an input for the training.
@@ -211,7 +222,7 @@ ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
 In order to find appropriate binning and `--tau-ratio` in correspondence to the present statistics it might be useful to execute one job in `--refill-spectrum false --lastbin-takeall false` mode and study the output of `./out/*.root` files. In the \<DataGroupName>_n.root files the number of entries in required  `--pt-bins --eta-bins` can be found. \<DataGroupName>.root files show the probability of accepting candidate from corresponding pt-eta bin.
 
 #### ShuffleMergeSpectral on HTCondor
-ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following [this](https://github.com/riga/law/wiki/Usage-at-CERN) instructions. Then, set up the environment
+ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following the instructions in the first section. Then, set up the environment
 ```sh
 cd $CMSSW_BASE/src
 cmsenv
@@ -387,6 +398,32 @@ python plot_quantile_ranges.py --train-cfg ../configs/training_v1.yaml --scaling
 
 This will produce a plot of the clamped range plotted side-by-side with quantile ranges for the corresponding feature's distribution, so that it's possible to compare if the former overshoots/undershoots the actual distribution. However, please note that this representation is dependant on the input file (`--file-id` argument), so it is advisable to check whether quantiles are robust to a file change. For more details please have a look at [this presentation](https://indico.cern.ch/event/1044740/contributions/4389426/attachments/2255446/3827568/scaling_update_1June.pdf) of the method.
 
+#### Running on HTCondor
+As an alternative to the interactive mode described above, the scaling parameter computation can be distributed to multiple jobs and run on HTCondor. The code run on HTCondor is the same that would be run interactivelly.
+To run with law, first activate the right conda environment (note: it's recommended to have law installed via conda's pip), then:
+```bash
+cd TauMLTools/Analysis/law
+source setup.sh
+law index
+```
+then run the job submission
+```bash
+law run FeatureScaling --version version_tag --environment conda --cfg /path/to/yaml/cfg.yaml --output-path /path/to/dir/ --file-per-job M --n-jobs N
+```
+where ```--version``` specifies the job submission version (used by law to monitor the status of the jobs), ```--environment``` specifies the shell environment to be used (*conda* in this case, see [TauMLTools/Analysis/law/bootstrap.sh](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/law/bootstrap.sh)), ```--cfg``` is the yaml configuration file (the same used in interactive mode), ```--files-per-job``` specifies the number of files processed by each job, ```--n-jobs``` specifies the number of jobs to run, and ```--output-path``` specifies the path to the output directory, used to save the results. 
+The law task run by the code above (stored in [TauMLTools/Analysis/law/FeatureScaling/task.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/law/FeatureScaling/tasks.py)) implements the same script used locally, with the following caveat:
+
+- the number of files per job is specified by the ```--files-per-job``` argument
+- the total number of jobs is defined by the ```--n-jobs``` argument, which, together with the ```--files-per-job``` argument, determines the total number of files read from the input path. Leave this to the default value (0) to run on all the input files with ```--files-per-job``` files per job
+- the yaml configuration parameters ```Scaling_setup/file_range``` and ```Scaling_setup/log_step``` are ignored when running on law
+- the output directory is specified using an argument, so the configuration in the .yaml file if ignored.    
+
+The results from each single job can be merged together to obtain the final set of scaling parameters, using the interactive python script [TauMLTools/Training/python/merge_feature_scaling_jobs.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/merge_feature_scaling_jobs.py), as follows:
+```bash
+python merge_feature_scaling_jobs.py --output /path/to/dir --input "job*/scaling_params_v5.json"
+```
+where ```--output``` determines the output directory which stores the merged results and ```--input``` is a string pointing to the results of the single jobs (using a glob pattern, as in the example above. **NOTE** use the quotation marks!).  
+In order to create convergence plots using the [`Training/python/plot_scaling_convergence.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/plot_scaling_convergence.py) script described in the main section above, *merge_feature_scaling_jobs.py* accepts the ```--step``` *int* argument. If this value is specified, the script will create intermediate output files merging an increasing number of jobs with step equal to ```--step``` (e.g., if ```--step``` is equal to 10, the first intermediate output file will merge 10 jobs, the second 20, the third 30 and so on). 
 
 ### Single run
 In order to have organized storage of models and its associated files, [mlflow](https://mlflow.org/docs/latest/index.html) is used from the training step onwards. At the training step, it takes care of logging necessary configuration parameters used to run the given training, plus additional artifacts, i.e. associated files like model/cfg files or output logs). Conceptually, mlflow augments the training code with additional logging of requested parameters/files whenever it is requested. Please note that hereafter mlflow notions of __run__ (a single training) and __experiment__ (a group of runs) will be used. 

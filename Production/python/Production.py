@@ -39,7 +39,7 @@ options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarPa
 options.register('rerunTauReco', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                 "If true, tau reconstruction is re-run on MINIAOD with a larger signal cone and no DM finding filter")
 options.register('useBoostedTauFilter', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
-                 "Implement boosted tau filter in the boosted the process to get boosted tau enriched files.")
+                 "Implement boosted tau filter in the process to only consider events with some boosted tau content")
 options.parseArguments()
 
 sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
