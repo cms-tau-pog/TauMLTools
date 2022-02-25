@@ -115,8 +115,8 @@ if isPhase2:
     tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 elif isRun2UL:
-    boostedTaus_InputTag = cms.InputTag("slimmedTausBoosted")    
-else:    
+    boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')    
+else:
     from TauMLTools.Production.runTauIdMVA import runTauID
     updatedTauName = "slimmedTausNewID"
     runTauID(process, outputTauCollection = updatedTauName, inputTauCollection = tau_collection,
@@ -135,6 +135,7 @@ else:
         ca8JetSrc = cms.InputTag('ca8PFJetsCHSprunedForBoostedTausPAT','subJetsForSeedingBoostedTausPAT'),
         removeOverLap = cms.bool(True),
     )
+
     updatedBoostedTauName = "slimmedBoostedTausNewID"
     runTauID(process, outputTauCollection=updatedBoostedTauName, inputTauCollection="cleanedSlimmedTausBoosted",
              toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
