@@ -115,24 +115,6 @@ if isPhase2:
     tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 elif isRun2UL:
-    #this reruns the ID process...
-    #but this shouldn't be necessary for UL
-    """
-    from TauMLTools.Production.runTauIdMVA import runTauID
-    from RecoTauTag.Configuration.boostedHPSPFTaus_cff import ca8PFJetsCHSprunedForBoostedTaus
-    process.ca8PFJetsCHSprunedForBoostedTausPAT = ca8PFJetsCHSprunedForBoostedTaus.clone(
-        src = cms.InputTag("packedPFCandidates"),
-        jetCollInstanceName = cms.string('subJetsForSeedingBoostedTausPAT')
-    )
-    updatedBoostedTauName = "slimmedBoostedTausNewID"
-    runTauID(process, outputTauCollection=updatedBoostedTauName, inputTauCollection="slimmedTausBoosted",
-             toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
-    process.boostedSequence = cms.Sequence(
-        process.ca8PFJetsCHSprunedForBoostedTausPAT *
-        getattr(process, updatedBoostedTauName + 'rerunMvaIsolationSequence') *
-        getattr(process, updatedBoostedTauName))
-    boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)    
-    """
     boostedTaus_InputTag = cms.InputTag("slimmedTausBoosted")    
 else:    
     from TauMLTools.Production.runTauIdMVA import runTauID
