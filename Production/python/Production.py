@@ -38,6 +38,8 @@ options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarPa
                 " If 'reclusterJets' set true a new collection of uncorrected ak4PFJets is built to seed taus (as at RECO), otherwise standard slimmedJets are used")
 options.register('rerunTauReco', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                 "If true, tau reconstruction is re-run on MINIAOD with a larger signal cone and no DM finding filter")
+options.register('useBoostedTauFilter', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                 "Implement boosted tau filter in the boosted the process to get boosted tau enriched files.")
 options.parseArguments()
 
 sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
@@ -249,10 +251,14 @@ if isRun2PreUL:
 if (options.sampleType == "UL16"
     or options.sampleType == "UL16APV"
     or options.sampleType == "UL17"
-    or options.sampletype == "UL18"):
-    print("inserting boosted tau sequence")
+    or options.sampleType == "UL18"):
     process.p.insert(2, process.boostedSequence)
-    
+
+if options.useBoostedTauFilter:
+    process.theBoostedTauFilter = cms.EDFilter('BoostedTauProductionFilter',
+                                               boostedTauCollection = cms.InputTag("slimmedTausBoosted"),
+                                               verboseDebug = cms.bool(False))
+    process.p.insert(0, process.theBoostedTauFilter)
 
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 x = process.maxEvents.input.value()
