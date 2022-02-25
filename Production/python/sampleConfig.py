@@ -81,7 +81,7 @@ def isRun2UL(sampleType):
     if sampleType not in periodDict:
         print "ERROR: unknown sample type = '{}'".format(sampleType)
         sys.exit(1)
-    return sampleType in ['MC_UL18', 'RunUL2018']
+    return sampleType in ['MC_UL18', 'RunUL2018', 'UL16', 'UL16APV', 'UL17', 'UL18']
 
 def isPhase2(sampleType):
     if sampleType not in periodDict:
