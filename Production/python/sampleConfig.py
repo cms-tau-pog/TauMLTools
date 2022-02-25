@@ -6,7 +6,7 @@ import FWCore.ParameterSet.Config as cms
 import os
 
 mcSampleTypes = Set([ 'MC_16', 'MC_17', 'MC_18', 'MC_UL18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D', 'MC_Phase2_111X', 'MC_Phase2_110X', 'UL18', 'UL17','UL16','UL16APV'])
-dataSampleTypes = Set([ 'Run2016' , 'Run2017', 'Run2018ABC', 'Run2018D' ])
+dataSampleTypes = Set([ 'Run2016' , 'Run2017', 'Run2018ABC', 'Run2018D', 'RunUL2018' ])
 
 periodDict = { 'MC_16' : 'Run2016',
                'Run2016' : 'Run2016',
