@@ -165,13 +165,19 @@ class GetData():
             n_flat_features,
             input_grids,
             n_inner_cells,
-            n_outer_cells):        
+            n_outer_cells,
+            active_features,
+            cell_locations):  
+        X_all = []      
         # Flat Tau features
-        X_all = [ __class__.getdata(data.x_tau, (batch_size, n_flat_features)) ]
+        if 'TauFlat' in active_features:
+            X_all += [ __class__.getdata(data.x_tau, (batch_size, n_flat_features)) ]
         # Inner grid
-        X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
-                                   input_grids, n_inner_cells, True) # 500 11 11 176
+        if 'inner' in cell_locations:
+            X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
+                                    input_grids, n_inner_cells, True) # 500 11 11 176
         # Outer grid
-        X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
-                                   input_grids, n_outer_cells, False) # 500 11 11 176
+        if 'outer' in cell_locations:
+            X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
+                                    input_grids, n_outer_cells, False) # 500 11 11 176
         return X_all
