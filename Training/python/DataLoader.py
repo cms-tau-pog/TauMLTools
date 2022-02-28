@@ -63,7 +63,7 @@ class DataLoader (DataLoaderBase):
 
         for block_name, features in self.config["Features_all"].items():
             if block_name not in self.config["SetupNN"]["active_features"]:
-                self.config["Features_disable"][block_name] = [list((self.config["Features_all"][block_name])[i].keys())[0] for i in range(len(self.config["Features_all"][block_name]))]
+                self.config["Features_disable"][block_name] = [list(x.keys())[0] for x in self.config["Features_all"][block_name]]
 
         self.n_grid_features = {}
         for celltype in self.config["Features_all"]:
