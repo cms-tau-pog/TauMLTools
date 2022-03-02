@@ -67,17 +67,17 @@ data_que = Queue(maxsize = n_batches_store)
 
 times = []
 
-def getdata(_obj_f, filled_tau, _reshape, _dtype=np.float32):
+def getdata(_obj_f, tau_i, _reshape, _dtype=np.float32):
     x = np.copy(np.frombuffer(_obj_f.data(), dtype=_dtype, count=_obj_f.size()))
-    return x[:filled_tau] if _reshape==-1 else x.reshape(_reshape)[:filled_tau]
+    return x[:tau_i] if _reshape==-1 else x.reshape(_reshape)[:tau_i]
 
-def getgrid(_obj_grid, filled_tau, _inner):
+def getgrid(_obj_grid, tau_i, _inner):
     _n_cells = n_inner_cells if _inner else n_outer_cells
     _X = []
     for group in input_grids:
         _X.append(
             np.concatenate(
-                [ getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner], filled_tau,
+                [ getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner], tau_i,
                     (n_tau, _n_cells, _n_cells, n_grid_features[fname])) for fname in group ],
                 axis=-1
                 )
@@ -105,16 +105,16 @@ for i in range(n_batches):
     data = data_loader.LoadData(checker)
 
     # Flat Tau features
-    X = [getdata(data.x_tau, data.filled_tau, (n_tau, n_fe_tau))]
+    X = [getdata(data.x_tau, data.tau_i, (n_tau, n_fe_tau))]
     # Inner grid
-    X += getgrid(data.x_grid, data.filled_tau, 1) # 500 11 11 176
+    X += getgrid(data.x_grid, data.tau_i, 1) # 500 11 11 176
     # Outer grid
-    X += getgrid(data.x_grid, data.filled_tau, 0) # 500 21 21 176
+    X += getgrid(data.x_grid, data.tau_i, 0) # 500 21 21 176
 
     X = tuple(X)
 
-    weights = getdata(data.weight, data.filled_tau, -1)
-    Y = getdata(data.y_onehot, data.filled_tau, (n_tau, tau_types))
+    weights = getdata(data.weight, data.tau_i, -1)
+    Y = getdata(data.y_onehot, data.tau_i, (n_tau, tau_types))
 
 
     data_que.put(X)

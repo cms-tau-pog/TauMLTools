@@ -104,7 +104,8 @@ struct Data {
          size_t n_outer_cells, size_t globalgrid_fn, size_t pfelectron_fn, size_t pfmuon_fn,
          size_t pfchargedhad_fn, size_t pfneutralhad_fn, size_t pfgamma_fn,
          size_t electron_fn, size_t muon_fn, size_t tau_labels) :
-         filled_tau(0), x_tau(n_tau * tau_fn, 0), weight(n_tau, 0), y_onehot(n_tau * tau_labels, 0)
+         tau_i(0), x_tau(n_tau * tau_fn, 0), weight(n_tau, 0), y_onehot(n_tau * tau_labels, 0),
+         uncompress_index(n_tau, 0), uncompress_size(0)
          {
            x_grid[CellObjectType::GridGlobal][0].resize(n_tau * n_outer_cells * n_outer_cells * globalgrid_fn,0);
            x_grid[CellObjectType::GridGlobal][1].resize(n_tau * n_inner_cells * n_inner_cells * globalgrid_fn,0);
@@ -130,7 +131,10 @@ struct Data {
            x_grid[CellObjectType::Muon][0].resize(n_tau * n_outer_cells * n_outer_cells * muon_fn,0);
            x_grid[CellObjectType::Muon][1].resize(n_tau * n_inner_cells * n_inner_cells * muon_fn,0);
          }
-    size_t filled_tau; // the number of taus filled in the tensor filled_tau <= n_tau;
+    Long64_t tau_i; // the number of taus filled in the tensor filled_tau <= n_tau;
+    std::vector<unsigned long> uncompress_index; // index of the tau when events are dropped;
+    Long64_t uncompress_size;
+
     std::vector<float> x_tau;
     GridMap x_grid; // [enum class CellObjectType][ 0 - outer, 1 - inner]
     std::vector<float> weight;
@@ -227,10 +231,11 @@ public:
                                         n_PfCand_electron, n_PfCand_muon, n_PfCand_chHad, n_PfCand_nHad,
                                         n_PfCand_gamma, n_Electron, n_Muon, tau_types_names.size()
                                         );
-          tau_i = 0;
+          data->tau_i = 0;
+          data->uncompress_size = 0;
           hasData = true;
         }
-        while(tau_i < n_tau) {
+        while(data->tau_i < n_tau) {
           if(current_entry == end_entry) {
             hasFile = false;
             return false;
@@ -240,7 +245,6 @@ public:
 
           const auto gen_match = analysis::GetGenLeptonMatch(tau);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
-          bool tau_is_set = false;
 
           if (gen_match){
             if (recompute_tautype){
@@ -249,19 +253,17 @@ public:
 
             // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
             if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
-              data->y_onehot[ tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
-              data->weight.at(tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
-              FillTauBranches(tau, tau_i);
-              FillCellGrid(tau, tau_i, innerCellGridRef, true);
-              FillCellGrid(tau, tau_i, outerCellGridRef, false);
-              ++tau_i;
-              tau_is_set = true;
+              data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
+              data->weight.at(data->tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
+              FillTauBranches(tau, data->tau_i);
+              FillCellGrid(tau, data->tau_i, innerCellGridRef, true);
+              FillCellGrid(tau, data->tau_i, outerCellGridRef, false);
+              data->uncompress_index[data->tau_i] = data->uncompress_size;
+              ++(data->tau_i);
             }
           }
-          if (!tau_is_set && include_mismatched)
-            ++tau_i;
+          ++(data->uncompress_size);
           ++current_entry;
-          data->filled_tau = tau_i;
         }
         fullData = true;
         return true;
@@ -893,7 +895,6 @@ private:
   Long64_t end_entry;
   Long64_t current_entry; // number of the current entry in the file
   Long64_t current_tau; // number of the current tau candidate
-  Long64_t tau_i;
   const CellGrid innerCellGridRef, outerCellGridRef;
   // const std::vector<std::string> input_files;
 

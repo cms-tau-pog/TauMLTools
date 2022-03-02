@@ -323,7 +323,7 @@ def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target,
             i = basename.split('_')[-2]
         else:
             i = basename.split('_')[-1]
-        return int(i)
+        return i
         
     # prepare list of files with inputs
     if path_to_input is not None:

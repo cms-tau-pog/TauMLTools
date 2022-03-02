@@ -9,7 +9,7 @@ import DataLoader
 
 with open(os.path.abspath( "../../configs/training_v1.yaml")) as f:
     config = yaml.safe_load(f)
-scaling  = os.path.abspath("../../configs/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json")
+scaling  = os.path.abspath("../../configs/ShuffleMergeSpectral_trainingSamples-2_rerun_files_0_19.json")
 dataloader = DataLoader.DataLoader(config, scaling)
 
 gen_train = dataloader.get_generator(primary_set = True)
@@ -20,7 +20,7 @@ input_shape, input_types = dataloader.get_input_config()
 
 data_train = tf.data.Dataset.from_generator(
     gen_train, output_types = input_types, output_shapes = input_shape
-    ).prefetch(10)
+    ).prefetch(tf.data.AUTOTUNE)
 
 time_checkpoints = [time.time()]
 

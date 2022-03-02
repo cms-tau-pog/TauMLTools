@@ -26,16 +26,16 @@ def LoaderThread(queue_out,
         if data is None:
             break
 
-        filled_taus = data.filled_tau
-        X_all = GetData.getX(data, filled_taus, batch_size, n_grid_features, n_flat_features,
+        tau_i = data.tau_i
+        X_all = GetData.getX(data, tau_i, batch_size, n_grid_features, n_flat_features,
                              input_grids, n_inner_cells, n_outer_cells)
 
         X_all = tuple(X_all)
 
         if return_weights:
-            weights = GetData.getdata(data.weight, filled_taus, -1)
+            weights = GetData.getdata(data.weight, tau_i, -1)
         if return_truth:
-            Y = GetData.getdata(data.y_onehot, filled_taus, (batch_size, tau_types))
+            Y = GetData.getdata(data.y_onehot, tau_i, (batch_size, tau_types))
 
         if return_truth and return_weights:
             item = (X_all, Y, weights)
@@ -162,11 +162,14 @@ class DataLoader (DataLoaderBase):
             while True:
                 full_tensor = data_loader.MoveNext()
                 data = data_loader.LoadData(full_tensor)
-                x = GetData.getX(data, data.filled_tau, self.batch_size, self.n_grid_features,
+                x = GetData.getX(data, data.tau_i, self.batch_size, self.n_grid_features,
                                  self.n_flat_features, self.input_grids,
                                  self.n_inner_cells, self.n_outer_cells)
-                y = GetData.getdata(data.y_onehot, data.filled_tau, (self.batch_size, self.tau_types))
-                yield converter((tuple(x), y))
+                y = GetData.getdata(data.y_onehot, data.tau_i, (self.batch_size, self.tau_types))
+                uncompress_index = np.copy(np.frombuffer(data.uncompress_index.data(),
+                                                         dtype=np.int,
+                                                         count=data.uncompress_index.size()))
+                yield converter((tuple(x), y)), uncompress_index[:data.tau_i], data.uncompress_size
                 if full_tensor==False: break
         return read_from_file
 
