@@ -20,6 +20,8 @@ Setup:
     weight_thr           : 100000.0
     dataloader_core      : "TauMLTools/Training/interface/DataLoader_main.h"
     rm_inner_from_outer  : False
+    input_type           : "tf" # supported 'ROOT' or 'tf'
+    tf_input_dir         : "/home/russell/tfdata/emb_21k_99cut"
 
     # here define variables for the Histogram_2D class
     yaxis                : [

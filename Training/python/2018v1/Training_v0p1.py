@@ -31,6 +31,29 @@ sys.path.insert(0, "..")
 from common import *
 import DataLoader
 
+def reshape_tensor(x, y, weights, active): 
+    x_out = []
+    count = 0
+    for elem in x:
+        count +=1
+        if count in active:
+            x_out.append(elem)
+    return tuple(x_out), y, weights
+
+def rm_inner(x, y, weights): 
+    x_out = []
+    for elem in x[:4]:
+        x_out.append(elem)
+    for elem in x[4:7]:
+        s = elem.get_shape().as_list()
+        m = np.ones((21, 21, s[3])) 
+        m[8:13, 8:13, :] = 0
+        m = m[None,:, :, :]
+        t = tf.constant(m, dtype=tf.float32)
+        out = tf.multiply(elem, t)
+        x_out.append(out)
+    return tuple(x_out), y, weights
+
 class NetSetup:
     def __init__(self, activation, dropout_rate=0, reduction_rate=1, kernel_regularizer=None):
         self.activation = activation
@@ -267,16 +290,38 @@ def compile_model(model, opt_name, learning_rate):
 
 def run_training(model, data_loader, to_profile, log_suffix):
 
-    gen_train = data_loader.get_generator(primary_set = True, return_weights = data_loader.use_weights)
-    gen_val = data_loader.get_generator(primary_set = False, return_weights = data_loader.use_weights)
-    input_shape, input_types = data_loader.get_input_config()
-
-    data_train = tf.data.Dataset.from_generator(
-        gen_train, output_types = input_types, output_shapes = input_shape
-        ).prefetch(tf.data.AUTOTUNE)
-    data_val = tf.data.Dataset.from_generator(
-        gen_val, output_types = input_types, output_shapes = input_shape
-        ).prefetch(tf.data.AUTOTUNE)
+    if data_loader.input_type == "tf":
+        total_batches = data_loader.n_batches + data_loader.n_batches_val
+        ds = tf.data.experimental.load(data_loader.tf_input_dir, compression="GZIP") # import dataset
+        if data_loader.rm_inner_from_outer:
+            my_ds = ds.map(rm_inner)
+        else: 
+            my_ds = ds
+        cell_locations = data_loader.cell_locations
+        active_features = data_loader.active_features
+        active = [] #list of elements to be kept
+        if "TauFlat" in active_features:
+            active.append(1)
+        if "inner" in cell_locations:
+            active.extend([2,3,4])
+        if "outer" in cell_locations:
+            active.extend([5,6,7])
+        dataset = my_ds.map(lambda x, y, weights: reshape_tensor(x, y, weights, active))
+        data_train = dataset.take(data_loader.n_batches) #take first values for training
+        data_val = dataset.skip(data_loader.n_batches).take(data_loader.n_batches_val) # take next values for validation
+        print("Dataset Loaded with TensorFlow")
+    elif data_loader.input_type == "ROOT":
+        gen_train = data_loader.get_generator(primary_set = True, return_weights = data_loader.use_weights)
+        gen_val = data_loader.get_generator(primary_set = False, return_weights = data_loader.use_weights)
+        input_shape, input_types = data_loader.get_input_config()
+        data_train = tf.data.Dataset.from_generator(
+            gen_train, output_types = input_types, output_shapes = input_shape
+            ).prefetch(tf.data.AUTOTUNE)
+        data_val = tf.data.Dataset.from_generator(
+            gen_val, output_types = input_types, output_shapes = input_shape
+            ).prefetch(tf.data.AUTOTUNE)
+    else:
+        raise RuntimeError("Input type not supported, please select 'ROOT' or 'tf'")
 
     model_name = data_loader.model_name
     log_name = '%s_%s' % (model_name, log_suffix)
