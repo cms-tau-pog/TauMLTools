@@ -30,7 +30,7 @@ class Histogram_2D{
     void print(const char* dir);
 
     //use this function only for weights, not for counts
-    TH2D& get_weights_th2d(const char* name, const char* title);
+    std::shared_ptr<TH2D> get_weights_th2d(const char* name, const char* title);
 
   private:
     int find_bin_by_value_(const double& y);
@@ -41,7 +41,7 @@ class Histogram_2D{
     std::vector<std::shared_ptr<TH1D>>  yaxis_content_;
     std::vector<bool> occupancy_;
 
-    std::shared_ptr<TH2D> histo_ = std::make_shared<TH2D>();
+    //std::shared_ptr<TH2D> histo_ = std::make_shared<TH2D>();
 
     double xmin_ = std::numeric_limits<float>::max();
     double xmax_ = std::numeric_limits<float>::lowest();
@@ -173,7 +173,7 @@ void Histogram_2D::divide(const Histogram_2D& histo){
   }
 }
 
-TH2D& Histogram_2D::get_weights_th2d(const char* name, const char* title){
+std::shared_ptr<TH2D> Histogram_2D::get_weights_th2d(const char* name, const char* title){
   double xwidthmin = std::numeric_limits<float>::max();
   double ywidthmin = std::numeric_limits<float>::max();
 
@@ -194,7 +194,7 @@ TH2D& Histogram_2D::get_weights_th2d(const char* name, const char* title){
   int ny = (yaxis_.back() - yaxis_.front()) / ywidthmin;
   int nx = (xmax_ - xmin_) / xwidthmin;
 
-  histo_ = std::shared_ptr<TH2D>(new TH2D(name, title, nx, xmin_, xmax_, ny, yaxis_.front(), yaxis_.back()));
+  auto histo_ = std::make_shared<TH2D>(name, title, nx, xmin_, xmax_, ny, yaxis_.front(), yaxis_.back());
 
   for(int iy = 1; iy <= ny; iy++){
   for(int ix = 1; ix <= nx; ix++){
@@ -209,7 +209,7 @@ TH2D& Histogram_2D::get_weights_th2d(const char* name, const char* title){
     histo_->SetBinError  (ix, iy, error  );
   }}
 
-  return *histo_;
+  return histo_;
 }
 
 void Histogram_2D::print(const char* dir){
