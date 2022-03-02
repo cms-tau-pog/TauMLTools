@@ -98,7 +98,7 @@ class DataLoader (DataLoaderBase):
         self.active_features = self.config["SetupNN"]["active_features"]
         self.input_type = self.config["Setup"]["input_type"]
         self.tf_input_dir = self.config["Setup"]["tf_input_dir"]
-        
+
         if self.input_type == "ROOT":
             data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root') 
             self.train_files, self.val_files = \
@@ -171,6 +171,7 @@ class DataLoader (DataLoaderBase):
         '''
         assert self.batch_size == 1
         data_loader = R.DataLoader()
+        converter = torch_to_tf(return_truth=True, return_weights=False)
         def read_from_file(file_path):
             data_loader.ReadFile(R.std.string(file_path), 0, -1)
             while data_loader.MoveNext():
@@ -180,6 +181,7 @@ class DataLoader (DataLoaderBase):
                                  self.n_inner_cells, self.n_outer_cells, self.active_features, self.cell_locations)
                 y = GetData.getdata(data.y_onehot, (self.batch_size, self.tau_types))
                 yield tuple(x), y
+                yield converter((tuple(x),y))
         return read_from_file
 
     @staticmethod
