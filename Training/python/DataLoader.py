@@ -17,39 +17,46 @@ def LoaderThread(queue_out,
                  return_truth,
                  return_weights):
 
+    def DataProcess(data):
+
+        X_all = GetData.getX(data, data.tau_i, batch_size, n_grid_features, n_flat_features,
+                             input_grids, n_inner_cells, n_outer_cells)
+
+        if return_weights:
+            weights = GetData.getdata(data.weight, data.tau_i, -1)
+        if return_truth:
+            Y = GetData.getdata(data.y_onehot, data.tau_i, (batch_size, tau_types))
+
+        if return_truth and return_weights:
+            item = [X_all, Y, weights]
+        elif return_truth:
+            item = [X_all, Y]
+        elif return_weights:
+            item = [X_all, weights]
+        else:
+            item = X_all
+
+        return item
+
     data_source = DataSource(queue_files)
     put_next = True
 
     while put_next:
 
         data = data_source.get()
-        if data is None:
-            break
-
-        tau_i = data.tau_i
-        X_all = GetData.getX(data, tau_i, batch_size, n_grid_features, n_flat_features,
-                             input_grids, n_inner_cells, n_outer_cells)
-
-        X_all = tuple(X_all)
-
-        if return_weights:
-            weights = GetData.getdata(data.weight, tau_i, -1)
-        if return_truth:
-            Y = GetData.getdata(data.y_onehot, tau_i, (batch_size, tau_types))
-
-        if return_truth and return_weights:
-            item = (X_all, Y, weights)
-        elif return_truth:
-            item = (X_all, Y)
-        elif return_weights:
-            item = (X_all, weights)
-        else:
-            item = X_all
-
+        if data is None: break
+        item = DataProcess(data)
         put_next = queue_out.put(item)
 
     queue_out.put_terminate(identifier)
-    terminators[identifier].wait()
+    terminators[identifier][0].wait()
+
+    if (data := data_source.get_remains()) is not None:
+        item = DataProcess(data)
+        _ = queue_out.put(item)
+
+    queue_out.put_terminate(identifier)
+    terminators[identifier][1].wait()
 
 class DataLoader (DataLoaderBase):
 
@@ -90,8 +97,6 @@ class DataLoader (DataLoaderBase):
         self.train_files, self.val_files = \
              np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
 
-        self.train_files = self.train_files[:1]
-        self.val_files = self.val_files[:1]
 
         print("Files for training:", len(self.train_files))
         print("Files for validation:", len(self.val_files))
@@ -110,13 +115,11 @@ class DataLoader (DataLoaderBase):
 
         def _generator():
 
-            finish_counter = 0
-
             queue_files = mp.Queue()
             [ queue_files.put(file) for file in _files ]
 
             queue_out = QueueEx(max_size = self.max_queue_size, max_n_puts = n_batches)
-            terminators = [ mp.Event() for _ in range(self.n_load_workers) ]
+            terminators = [ [mp.Event(),mp.Event()] for _ in range(self.n_load_workers) ]
 
             processes = []
             for i in range(self.n_load_workers):
@@ -128,13 +131,32 @@ class DataLoader (DataLoaderBase):
                                 self.tau_types, return_truth, return_weights,)))
                 processes[-1].start()
 
+            # First part to iterate through the main part
+            finish_counter = 0
             while finish_counter < self.n_load_workers:
                 item = queue_out.get()
                 if isinstance(item, int):
                     finish_counter+=1
-                    terminators[item].set()
                 else:
                     yield converter(item)
+            for i in range(self.n_load_workers):
+                terminators[i][0].set()
+
+            # Second part to collect remains
+            collector = Collector(self.batch_size)
+            finish_counter = 0
+            while finish_counter < self.n_load_workers:
+                item = queue_out.get()
+                if isinstance(item, int):
+                    finish_counter+=1
+                else:
+                    collector.fill(item)
+            remains = collector.get()
+            if remains is not None:
+                for item in remains:
+                    yield item
+            for i in range(self.n_load_workers):
+                terminators[i][1].set()
 
             queue_out.clear()
             ugly_clean(queue_files)

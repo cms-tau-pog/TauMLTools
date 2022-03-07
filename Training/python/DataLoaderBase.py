@@ -32,6 +32,42 @@ def torch_to_tf(return_truth = True, return_weights = True):
     else:
         raise RuntimeError("Error: conversion rule from torch.tensor is unknown!")
 
+class Collector():
+
+    def __init__(self, n_taus):
+        self.Xremains = None
+        self.n_taus = n_taus
+
+    def fill(self, item):
+        if self.Xremains is None:
+            self.Xremains = item.copy()
+        else:
+            for j, x_part in enumerate(self.Xremains):
+                if j == 0:
+                    for i, x_grid in enumerate(self.Xremains[j]):
+                        self.Xremains[j][i] = np.concatenate((x_grid,item[j][i].clone().numpy()))
+                else:
+                    self.Xremains[j] = np.concatenate((x_part,item[j].clone().numpy()))
+
+    @staticmethod
+    def get_slice(X, a, b):
+        out_tuple = []
+        for j in range(len(X)):
+            if j == 0:
+                out_tuple.append(
+                    tuple([ X[j][i][a:b] for i in range(len(X[j])) ])
+                )
+            else:
+                out_tuple.append(X[j][a:b])
+        return tuple(out_tuple)
+
+    def get(self):
+        if self.Xremains is None: return None
+        n_available = self.Xremains[0][0].shape[0]
+        ranges = [n for n in range(0,n_available,self.n_taus)] + [n_available]
+        return [__class__.get_slice(self.Xremains, ranges[i], ranges[i+1]) \
+                for i in range(len(ranges)-1)]
+
 def ugly_clean(queue):
     while True:
         try:
@@ -95,6 +131,12 @@ class DataSource:
                 return self.data_loader.LoadData(True)
             else:
                 self.require_file = True
+
+    def get_remains(self):
+        if self.data_loader.hasAnyData():
+            return self.data_loader.LoadData(False)
+        else:
+            return None
 
 class DataLoaderBase:
 

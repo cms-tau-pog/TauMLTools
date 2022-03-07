@@ -24,13 +24,13 @@ data_train = tf.data.Dataset.from_generator(
 
 time_checkpoints = [time.time()]
 
-for epoch in range(3):
+for epoch in range(1):
     print("Epoch ->", epoch)
-    for i,_ in enumerate(data_train):
+    for i,X in enumerate(data_train):
         # if i % 10 == 0:
         #     time.sleep(10)
         time_checkpoints.append(time.time())
-        print(i, " ", time_checkpoints[-1]-time_checkpoints[-2], "s.")
+        print(i, " ", time_checkpoints[-1]-time_checkpoints[-2], "s.", X[0][0].shape[0])
     
 # for i,_ in enumerate(gen_train()):
 #     time_checkpoints.append(time.time())

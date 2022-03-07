@@ -269,6 +269,8 @@ public:
         return true;
     }
 
+    bool hasAnyData() {return hasData;}
+
     const Data* LoadData(bool needFull) {
       if(!fullData && needFull)
         throw std::runtime_error("Data was not loaded with MoveNext() or array was not fully filled");
