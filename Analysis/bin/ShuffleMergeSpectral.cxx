@@ -26,7 +26,7 @@ void sumBasedSplit(const std::vector<size_t>& files_entries, const size_t job_id
   // sumBasedSplit splits files into n_job sub-intervals
   // the entry events for the job number job_idx are [point_entry, point_exit]...
   // if sum(files_entries) % n_job != 0 some events will be lost in datagroup
-
+  
   step = std::accumulate(files_entries.begin(), files_entries.end(), 0) / n_job;
   auto find_idx = [&](const size_t index, const bool isExit) -> std::pair<size_t, size_t>{
     size_t sum_accumulate = 0;
@@ -352,7 +352,7 @@ public:
       while(SpectrumSource->DoNextStep()) {
         const Tau& tuple = SpectrumSource->GetNextTau();
         const TauType& type = SpectrumSource->GetType();
-        ttype_entries.at(type)->Fill(std::abs(tuple.tau_eta), tuple.tau_pt);
+        ttype_entries.at(type)->Fill(std::abs(tuple.boostedTau_eta), tuple.boostedTau_pt);
         n_entries += 1;
       }
     }
@@ -388,7 +388,7 @@ public:
         ttype_prob.at(type)->GetBinXYZ(MaxBin, x, y, z);
 
         if(ttype_prob.at(type)->GetBinContent(x,y)==0)
-          throw exception("Histogram '%1%' in '%4%' is empty.")
+          throw exception("Histogram '%1%' in '%2%' is empty.")
           % ToString(type) % groupname;
 
         if(lastbin_takeall==false) { // option 1: last pt bin will be taken into account for probability calculations
@@ -636,13 +636,13 @@ private:
         if(refill_spectrum) {
           std::cout << "ReFilling spectrums for - " <<  dsc.name << std::endl;
           const std::set<std::string> enabled_branches =
-                                      {"tau_pt", "tau_eta", "sampleType",
-                                        "genLepton_kind", "tau_index",
+                                      {"boostedTau_pt", "boostedTau_eta", "sampleType",
+                                        "genLepton_kind", "boostedTau_index",
                                         "genLepton_index", "genJet_index",
                                         "genLepton_vis_pt", "genLepton_vis_eta",
                                         "genLepton_vis_phi", "genLepton_vis_mass",
-                                        "tau_pt", "tau_eta", "tau_phi",
-                                        "tau_mass", "evt"};
+                                        "boostedTau_pt", "boostedTau_eta", "boostedTau_phi",
+                                        "boostedTau_mass", "evt"};
           std::shared_ptr<SourceDesc> spectrum_source = std::make_shared<SourceDesc>(dsc.name,
                     dsc.total_entries, dsc.name_hash,
                     dsc.data_files, dsc.data_set_names_hashes,
