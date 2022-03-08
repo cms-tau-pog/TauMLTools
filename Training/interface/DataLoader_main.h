@@ -246,7 +246,7 @@ public:
           const auto gen_match = analysis::GetGenLeptonMatch(tau);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
 
-          if (gen_match){
+          if (gen_match &&tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
             }
@@ -872,9 +872,9 @@ public:
                   const double dR = std::hypot(deta, dphi);
                   const bool inside_signal_cone = dR < getInnerSignalConeRadius(tau_pt);
                   const bool inside_iso_cone = dR < iso_cone;
-                  if(inner && !inside_signal_cone) continue;
-                  // if(!inner && (inside_signal_cone || !inside_iso_cone)) continue;
-                  if(!inner && !inside_iso_cone) continue;
+                  const bool accept_inner = inner && inside_signal_cone;
+                  const bool accept_outer = !inner && inside_iso_cone && (!rm_inner_from_outer || !inside_signal_cone);
+                  if(!(accept_inner || accept_outer)) continue;
                   CellIndex cellIndex;
                   if(grid.TryGetCellIndex(deta, dphi, cellIndex))
                       grid.at(cellIndex)[type].insert(n);
