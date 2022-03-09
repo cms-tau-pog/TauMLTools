@@ -98,7 +98,8 @@ class DataLoader (DataLoaderBase):
         self.active_features = self.config["SetupNN"]["active_features"]
         self.input_type = self.config["Setup"]["input_type"]
         self.tf_input_dir = self.config["Setup"]["tf_input_dir"]
-
+        self.tf_dataset_x_order = self.config["Setup"]["tf_dataset_x_order"]
+        
         if self.input_type == "ROOT":
             data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root') 
             self.train_files, self.val_files = \
@@ -121,7 +122,7 @@ class DataLoader (DataLoaderBase):
         def _generator():
 
             finish_counter = 0
-            if show_progress:
+            if show_progress and n_batches>0:
                 pbar = tqdm(total = n_batches)
 
             queue_files = mp.Queue()
@@ -146,7 +147,7 @@ class DataLoader (DataLoaderBase):
                     finish_counter+=1
                     terminators[item].set()
                 else:
-                    if show_progress:
+                    if show_progress and n_batches>0:
                         pbar.update(1)
                     yield converter(item)
 
@@ -159,7 +160,7 @@ class DataLoader (DataLoaderBase):
 
         return _generator
 
-    def get_predict_generator(self):
+    def get_predict_generator(self, convert = True):
         '''
         The implementation of the deterministic generator
         for suitable use of performance evaluation.
@@ -171,7 +172,8 @@ class DataLoader (DataLoaderBase):
         '''
         assert self.batch_size == 1
         data_loader = R.DataLoader()
-        converter = torch_to_tf(return_truth=True, return_weights=False)
+        if convert:
+            converter = torch_to_tf(return_truth=True, return_weights=False)
         def read_from_file(file_path):
             data_loader.ReadFile(R.std.string(file_path), 0, -1)
             while data_loader.MoveNext():
@@ -180,8 +182,10 @@ class DataLoader (DataLoaderBase):
                                  self.n_flat_features, self.input_grids,
                                  self.n_inner_cells, self.n_outer_cells, self.active_features, self.cell_locations)
                 y = GetData.getdata(data.y_onehot, (self.batch_size, self.tau_types))
-                yield tuple(x), y
-                yield converter((tuple(x),y))
+                if convert:
+                    yield converter((tuple(x),y))
+                else:  
+                    yield tuple(x), y
         return read_from_file
 
     @staticmethod

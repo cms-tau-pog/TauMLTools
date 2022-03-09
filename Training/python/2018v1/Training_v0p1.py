@@ -35,23 +35,27 @@ def reshape_tensor(x, y, weights, active):
     x_out = []
     count = 0
     for elem in x:
-        count +=1
         if count in active:
             x_out.append(elem)
+        count +=1
     return tuple(x_out), y, weights
 
-def rm_inner(x, y, weights): 
+def rm_inner(x, y, weights, i_outer): 
     x_out = []
-    for elem in x[:4]:
-        x_out.append(elem)
-    for elem in x[4:7]:
-        s = elem.get_shape().as_list()
-        m = np.ones((21, 21, s[3])) 
-        m[8:13, 8:13, :] = 0
-        m = m[None,:, :, :]
-        t = tf.constant(m, dtype=tf.float32)
-        out = tf.multiply(elem, t)
-        x_out.append(out)
+    count = 0
+    for elem in x:
+        if count in i_outer: 
+            s = elem.get_shape().as_list()
+            m = np.ones((21, 21, s[3])) 
+            m[8:13, 8:13, :] = 0
+            m = m[None,:, :, :]
+            t = tf.constant(m, dtype=tf.float32)
+            out = tf.multiply(elem, t)
+            x_out.append(out)
+        else: 
+            x_out.append(elem)
+        count+=1
+    print("Removed Inner Area From Outer Cone")
     return tuple(x_out), y, weights
 
 class NetSetup:
@@ -292,20 +296,24 @@ def run_training(model, data_loader, to_profile, log_suffix):
 
     if data_loader.input_type == "tf":
         total_batches = data_loader.n_batches + data_loader.n_batches_val
+        tf_dataset_x_order = data_loader.tf_dataset_x_order
+        tauflat_index = tf_dataset_x_order.index("TauFlat")
+        inner_indices = [i for i, elem in enumerate(tf_dataset_x_order) if 'inner' in elem]
+        outer_indices = [i for i, elem in enumerate(tf_dataset_x_order) if 'outer' in elem]
         ds = tf.data.experimental.load(data_loader.tf_input_dir, compression="GZIP") # import dataset
         if data_loader.rm_inner_from_outer:
-            my_ds = ds.map(rm_inner)
+            my_ds = ds.map(lambda x, y, weights: rm_inner(x, y, weights, outer_indices))
         else: 
             my_ds = ds
         cell_locations = data_loader.cell_locations
         active_features = data_loader.active_features
         active = [] #list of elements to be kept
         if "TauFlat" in active_features:
-            active.append(1)
+            active.append(tauflat_index)
         if "inner" in cell_locations:
-            active.extend([2,3,4])
+            active.extend(inner_indices)
         if "outer" in cell_locations:
-            active.extend([5,6,7])
+            active.extend(outer_indices)
         dataset = my_ds.map(lambda x, y, weights: reshape_tensor(x, y, weights, active))
         data_train = dataset.take(data_loader.n_batches) #take first values for training
         data_val = dataset.skip(data_loader.n_batches).take(data_loader.n_batches_val) # take next values for validation
