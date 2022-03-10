@@ -35,9 +35,9 @@ def LoaderThread(queue_out,
         X_all = tuple(X_all)
 
         if return_weights:
-            weights = GetData.getdata(data.weight, -1)
+            weights = GetData.getdata(data.weight, -1, debug_area="weights")
         if return_truth:
-            Y = GetData.getdata(data.y_onehot, (batch_size, tau_types))
+            Y = GetData.getdata(data.y_onehot, (batch_size, tau_types), debug_area="truth")
 
         if return_truth and return_weights:
             item = (X_all, Y, weights)
@@ -160,7 +160,7 @@ class DataLoader (DataLoaderBase):
 
         return _generator
 
-    def get_predict_generator(self, convert = True):
+    def get_predict_generator(self, convert_torch_to_tf = True):
         '''
         The implementation of the deterministic generator
         for suitable use of performance evaluation.
@@ -172,7 +172,7 @@ class DataLoader (DataLoaderBase):
         '''
         assert self.batch_size == 1
         data_loader = R.DataLoader()
-        if convert:
+        if convert_torch_to_tf:
             converter = torch_to_tf(return_truth=True, return_weights=False)
         def read_from_file(file_path):
             data_loader.ReadFile(R.std.string(file_path), 0, -1)
@@ -182,7 +182,7 @@ class DataLoader (DataLoaderBase):
                                  self.n_flat_features, self.input_grids,
                                  self.n_inner_cells, self.n_outer_cells, self.active_features, self.cell_locations)
                 y = GetData.getdata(data.y_onehot, (self.batch_size, self.tau_types))
-                if convert:
+                if convert_torch_to_tf:
                     yield converter((tuple(x),y))
                 else:  
                     yield tuple(x), y
