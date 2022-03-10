@@ -181,7 +181,8 @@ def reduce_n_features_1d(input_layer, net_setup, block_name, first_layer_reg = N
 
 def conv_block(prev_layer, filters, kernel_size, net_setup, block_name, n):
     conv = Conv2D(filters, kernel_size, name="{}_conv_{}".format(block_name, n),
-                  kernel_initializer=net_setup.kernel_init)(prev_layer)
+                  kernel_initializer=net_setup.kernel_init,
+                  kernel_regularizer=net_setup.kernel_regularizer)(prev_layer)
     return add_block_ending(net_setup, '{}_{{}}_{}'.format(block_name, n), conv)
 
 def reduce_n_features_2d(input_layer, net_setup, block_name, first_layer_reg = None):
