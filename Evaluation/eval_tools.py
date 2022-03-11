@@ -369,7 +369,7 @@ def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target,
         path_to_pred = os.path.abspath(to_absolute_path(fill_placeholders(path_to_pred, {"{sample_alias}": sample_alias})))
         pred_common_suffix = find_common_suffix(glob(path_to_pred))
         pred_files = sorted(glob(path_to_pred), key=partial(path_splitter, common_suffix=pred_common_suffix))
-        if len(target_files) != len(input_files):
+        if len(pred_files) != len(input_files):
             raise Exception(f'Number of input files ({len(input_files)}) not equal to number of prediction files with labels ({len(pred_files)})')
     else: # will assume that predictions are present in input files
         assert len(input_files)>0
