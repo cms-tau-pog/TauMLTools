@@ -41,7 +41,6 @@ class Histogram_2D{
     std::vector<std::shared_ptr<TH1D>>  yaxis_content_;
     std::vector<bool> occupancy_;
 
-    //std::shared_ptr<TH2D> histo_ = std::make_shared<TH2D>();
 
     double xmin_ = std::numeric_limits<float>::max();
     double xmax_ = std::numeric_limits<float>::lowest();
