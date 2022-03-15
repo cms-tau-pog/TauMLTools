@@ -198,8 +198,6 @@ class DataLoader (DataLoaderBase):
         '''
         converter = torch_to_tf(return_truth, return_weights)
         data_loader = R.DataLoader()
-        if convert_torch_to_tf:
-            converter = torch_to_tf(return_truth=True, return_weights=False)
         def read_from_file(file_path):
             data_loader.ReadFile(R.std.string(file_path), 0, -1)
             while True:
