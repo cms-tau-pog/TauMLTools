@@ -1,8 +1,9 @@
 # will update baseline training cfg (retrieved from run artifacts) with these parameters
 training_cfg_upd:
   Setup:
-    n_tau: 1
-    include_mismatched: True
+    n_tau: 1000
+    dataloader_core: "TauMLTools/Training/interface/DataLoader_main.h"
+    debug: False
   SetupNN:
     n_batches: -1
     n_batches_val: -1

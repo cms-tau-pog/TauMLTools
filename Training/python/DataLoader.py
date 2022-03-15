@@ -19,38 +19,45 @@ def LoaderThread(queue_out,
                  active_features,
                  cell_locations):
 
+    def DataProcess(data):
+
+        X_all = GetData.getX(data, data.tau_i, batch_size, n_grid_features, n_flat_features,
+                             input_grids, n_inner_cells, n_outer_cells, active_features, cell_locations)
+        if return_weights:
+            weights = GetData.getdata(data.weight, data.tau_i, -1)
+        if return_truth:
+            Y = GetData.getdata(data.y_onehot, data.tau_i, (batch_size, tau_types))
+
+        if return_truth and return_weights:
+            item = [X_all, Y, weights]
+        elif return_truth:
+            item = [X_all, Y]
+        elif return_weights:
+            item = [X_all, weights]
+        else:
+            item = X_all
+
+        return item
+
     data_source = DataSource(queue_files)
     put_next = True
 
     while put_next:
 
         data = data_source.get()
-        if data is None:
-            break
-
-        X_all = GetData.getX(data, batch_size, n_grid_features, n_flat_features,
-                             input_grids, n_inner_cells, n_outer_cells, active_features, cell_locations)
-
-        X_all = tuple(X_all)
-
-        if return_weights:
-            weights = GetData.getdata(data.weight, -1)
-        if return_truth:
-            Y = GetData.getdata(data.y_onehot, (batch_size, tau_types))
-
-        if return_truth and return_weights:
-            item = (X_all, Y, weights)
-        elif return_truth:
-            item = (X_all, Y)
-        elif return_weights:
-            item = (X_all, weights)
-        else:
-            item = X_all
-
+        if data is None: break
+        item = DataProcess(data)
         put_next = queue_out.put(item)
 
     queue_out.put_terminate(identifier)
-    terminators[identifier].wait()
+    terminators[identifier][0].wait()
+
+    if (data := data_source.get_remains()) is not None:
+        item = DataProcess(data)
+        _ = queue_out.put(item)
+
+    queue_out.put_terminate(identifier)
+    terminators[identifier][1].wait()
 
 class DataLoader (DataLoaderBase):
 
@@ -100,6 +107,7 @@ class DataLoader (DataLoaderBase):
         self.train_files, self.val_files = \
              np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
 
+
         print("Files for training:", len(self.train_files))
         print("Files for validation:", len(self.val_files))
 
@@ -117,13 +125,11 @@ class DataLoader (DataLoaderBase):
 
         def _generator():
 
-            finish_counter = 0
-
             queue_files = mp.Queue()
             [ queue_files.put(file) for file in _files ]
 
             queue_out = QueueEx(max_size = self.max_queue_size, max_n_puts = n_batches)
-            terminators = [ mp.Event() for _ in range(self.n_load_workers) ]
+            terminators = [ [mp.Event(),mp.Event()] for _ in range(self.n_load_workers) ]
 
             processes = []
             for i in range(self.n_load_workers):
@@ -135,13 +141,32 @@ class DataLoader (DataLoaderBase):
                                 self.tau_types, return_truth, return_weights, self.active_features, self.cell_locations)))
                 processes[-1].start()
 
+            # First part to iterate through the main part
+            finish_counter = 0
             while finish_counter < self.n_load_workers:
                 item = queue_out.get()
                 if isinstance(item, int):
                     finish_counter+=1
-                    terminators[item].set()
                 else:
                     yield converter(item)
+            for i in range(self.n_load_workers):
+                terminators[i][0].set()
+
+            # Second part to collect remains
+            collector = Collector(self.batch_size)
+            finish_counter = 0
+            while finish_counter < self.n_load_workers:
+                item = queue_out.get()
+                if isinstance(item, int):
+                    finish_counter+=1
+                else:
+                    collector.fill(item)
+            remains = collector.get()
+            if remains is not None:
+                for item in remains:
+                    yield item
+            for i in range(self.n_load_workers):
+                terminators[i][1].set()
 
             queue_out.clear()
             ugly_clean(queue_files)
@@ -152,7 +177,7 @@ class DataLoader (DataLoaderBase):
 
         return _generator
 
-    def get_predict_generator(self):
+    def get_predict_generator(self, return_truth=True, return_weights=False):
         '''
         The implementation of the deterministic generator
         for suitable use of performance evaluation.
@@ -162,17 +187,23 @@ class DataLoader (DataLoaderBase):
         >   for x,y in en_file(file):
         >       y_pred = ...
         '''
-        assert self.batch_size == 1
+        converter = torch_to_tf(return_truth, return_weights)
         data_loader = R.DataLoader()
         def read_from_file(file_path):
             data_loader.ReadFile(R.std.string(file_path), 0, -1)
-            while data_loader.MoveNext():
-                data = data_loader.LoadData()
-                x = GetData.getX(data, self.batch_size, self.n_grid_features,
+            while True:
+                full_tensor = data_loader.MoveNext()
+                data = data_loader.LoadData(full_tensor)
+                x = GetData.getX(data, data.tau_i, self.batch_size, self.n_grid_features,
                                  self.n_flat_features, self.input_grids,
-                                 self.n_inner_cells, self.n_outer_cells, self.active_features, self.cell_locations)
-                y = GetData.getdata(data.y_onehot, (self.batch_size, self.tau_types))
-                yield tuple(x), y
+                                 self.n_inner_cells, self.n_outer_cells,
+                                 self.active_features, self.cell_locations)
+                y = GetData.getdata(data.y_onehot, data.tau_i, (self.batch_size, self.tau_types))
+                uncompress_index = np.copy(np.frombuffer(data.uncompress_index.data(),
+                                                         dtype=np.int,
+                                                         count=data.uncompress_index.size()))
+                yield converter((tuple(x), y)), uncompress_index[:data.tau_i], data.uncompress_size
+                if full_tensor==False: break
         return read_from_file
 
     @staticmethod

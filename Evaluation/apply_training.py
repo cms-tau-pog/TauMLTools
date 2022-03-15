@@ -69,10 +69,22 @@ def main(cfg: DictConfig) -> None:
     predictions = []
     targets = []
     if cfg.verbose: print(f'\n\n--> Processing file {input_file_name}, number of taus: {n_taus}\n')
-    for X,y in tqdm(gen_predict(input_file_name), total=n_taus/training_cfg['Setup']['n_tau']):
-        predictions.append(model.predict(X))
-        targets.append(y)
-    
+
+    with tqdm(total=n_taus) as pbar:
+
+        for (X,y),indexes,size in gen_predict(input_file_name):
+
+            y_pred = np.zeros((size, y.shape[1]))
+            y_target = np.zeros((size, y.shape[1]))
+
+            y_pred[indexes] = model.predict(X)
+            y_target[indexes] = y
+
+            predictions.append(y_pred)
+            targets.append(y_target)
+
+            pbar.update(size)
+
     # concat and check for validity
     predictions = np.concatenate(predictions, axis=0)
     targets = np.concatenate(targets, axis=0)

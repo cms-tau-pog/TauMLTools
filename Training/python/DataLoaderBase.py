@@ -32,6 +32,42 @@ def torch_to_tf(return_truth = True, return_weights = True):
     else:
         raise RuntimeError("Error: conversion rule from torch.tensor is unknown!")
 
+class Collector():
+
+    def __init__(self, n_taus):
+        self.Xremains = None
+        self.n_taus = n_taus
+
+    def fill(self, item):
+        if self.Xremains is None:
+            self.Xremains = item.copy()
+        else:
+            for j, x_part in enumerate(self.Xremains):
+                if j == 0:
+                    for i, x_grid in enumerate(self.Xremains[j]):
+                        self.Xremains[j][i] = np.concatenate((x_grid,item[j][i].clone().numpy()))
+                else:
+                    self.Xremains[j] = np.concatenate((x_part,item[j].clone().numpy()))
+
+    @staticmethod
+    def get_slice(X, a, b):
+        out_tuple = []
+        for j in range(len(X)):
+            if j == 0:
+                out_tuple.append(
+                    tuple([ X[j][i][a:b] for i in range(len(X[j])) ])
+                )
+            else:
+                out_tuple.append(X[j][a:b])
+        return tuple(out_tuple)
+
+    def get(self):
+        if self.Xremains is None: return None
+        n_available = self.Xremains[0][0].shape[0]
+        ranges = [n for n in range(0,n_available,self.n_taus)] + [n_available]
+        return [__class__.get_slice(self.Xremains, ranges[i], ranges[i+1]) \
+                for i in range(len(ranges)-1)]
+
 def ugly_clean(queue):
     while True:
         try:
@@ -92,9 +128,15 @@ class DataSource:
                     return None
 
             if self.data_loader.MoveNext():
-                return self.data_loader.LoadData()
+                return self.data_loader.LoadData(True)
             else:
                 self.require_file = True
+
+    def get_remains(self):
+        if self.data_loader.hasAnyData():
+            return self.data_loader.LoadData(False)
+        else:
+            return None
 
 class DataLoaderBase:
 
@@ -121,6 +163,7 @@ class GetData():
 
     @staticmethod
     def getdata(_obj_f,
+                _filled_tau,
                 _reshape,
                 _dtype=np.float32):
         x = np.copy(np.frombuffer(_obj_f.data(), dtype=_dtype, count=_obj_f.size()))
@@ -128,10 +171,11 @@ class GetData():
             print("Nan detected! element=",x.shape)
             print(np.argwhere(np.isnan(x)))
             raise RuntimeError("Terminate: nans detected in the tensor.")
-        return torch.from_numpy(x) if _reshape==-1 else torch.reshape(torch.from_numpy(x), _reshape)
+        return torch.from_numpy(x)[:_filled_tau] if _reshape==-1 else torch.reshape(torch.from_numpy(x), _reshape)[:_filled_tau]
 
     @staticmethod
     def getgrid(_obj_grid,
+                _filled_tau,
                 batch_size,
                 n_grid_features,
                 input_grids,
@@ -141,7 +185,7 @@ class GetData():
         for group in input_grids:
             _X.append(
                 torch.cat(
-                    [ __class__.getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner],
+                    [ __class__.getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner], _filled_tau,
                      (batch_size, _n_cells, _n_cells, n_grid_features[fname])) for fname in group ],
                     dim=-1
                     )
@@ -150,16 +194,18 @@ class GetData():
     
     @staticmethod
     def getsequence(_obj_grid,
+                    _filled_tau,
                     _n_tau,
                     _input_grids,
                     _n_seq,
                     _n_features):
-        return [ __class__.getdata(_obj_grid[getattr(R.CellObjectType,group)],
+        return [ __class__.getdata(_obj_grid[getattr(R.CellObjectType,group)], _filled_tau,
                 (_n_tau, _n_seq[group], _n_features[group]))
                 for group in _input_grids]
 
     @staticmethod
     def getX(data,
+            filled_tau,
             batch_size,
             n_grid_features,
             n_flat_features,
@@ -171,13 +217,13 @@ class GetData():
         X_all = []      
         # Flat Tau features
         if 'TauFlat' in active_features:
-            X_all += [ __class__.getdata(data.x_tau, (batch_size, n_flat_features)) ]
+            X_all += [ __class__.getdata(data.x_tau, filled_tau, (batch_size, n_flat_features)) ]
         # Inner grid
         if 'inner' in cell_locations:
-            X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
+            X_all += __class__.getgrid(data.x_grid, filled_tau, batch_size, n_grid_features,
                                     input_grids, n_inner_cells, True) # 500 11 11 176
         # Outer grid
         if 'outer' in cell_locations:
-            X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,
+            X_all += __class__.getgrid(data.x_grid, filled_tau, batch_size, n_grid_features,
                                     input_grids, n_outer_cells, False) # 500 11 11 176
         return X_all
