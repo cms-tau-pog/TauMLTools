@@ -144,7 +144,7 @@ class GetData():
         for group in input_grids:
             _X.append(
                 torch.cat(
-                    [ __class__.getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner],
+                    [ __class__.getdata(_obj_grid[ getattr(R.CellObjectType,fname) ][_inner], _filled_tau,
                      (batch_size, _n_cells, _n_cells, n_grid_features[fname]), debug_area=fname+"_in_getgrid") for fname in group ],
                     dim=-1
                     )
@@ -157,7 +157,7 @@ class GetData():
                     _input_grids,
                     _n_seq,
                     _n_features):
-        return [ __class__.getdata(_obj_grid[getattr(R.CellObjectType,group)],
+        return [ __class__.getdata(_obj_grid[getattr(R.CellObjectType,group)], _filled_tau,
                 (_n_tau, _n_seq[group], _n_features[group]), debug_area=group+"_in_getsequence")
                 for group in _input_grids]
 
@@ -174,7 +174,7 @@ class GetData():
         X_all = []      
         # Flat Tau features
         if 'TauFlat' in active_features:
-            X_all += [ __class__.getdata(data.x_tau, (batch_size, n_flat_features), debug_area="TauFlat") ]
+            X_all += [ __class__.getdata(data.x_tau, filled_tau, (batch_size, n_flat_features), debug_area="TauFlat") ]
         # Inner grid
         if 'inner' in cell_locations:
             X_all += __class__.getgrid(data.x_grid, batch_size, n_grid_features,

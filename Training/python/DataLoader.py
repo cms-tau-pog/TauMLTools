@@ -160,7 +160,7 @@ class DataLoader (DataLoaderBase):
 
         return _generator
 
-    def get_predict_generator(self, convert_torch_to_tf = True):
+    def get_predict_generator(self, return_truth=True, return_weights=False, convert_torch_to_tf=True):
         '''
         The implementation of the deterministic generator
         for suitable use of performance evaluation.
@@ -181,7 +181,7 @@ class DataLoader (DataLoaderBase):
                 x = GetData.getX(data, self.batch_size, self.n_grid_features,
                                  self.n_flat_features, self.input_grids,
                                  self.n_inner_cells, self.n_outer_cells, self.active_features, self.cell_locations)
-                y = GetData.getdata(data.y_onehot, (self.batch_size, self.tau_types))
+                y = GetData.getdata(data.y_onehot, data.tau_i, (self.batch_size, self.tau_types))
                 if convert_torch_to_tf:
                     yield converter((tuple(x),y))
                 else:  
