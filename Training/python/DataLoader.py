@@ -25,15 +25,9 @@ def LoaderThread(queue_out,
         X_all = GetData.getX(data, data.tau_i, batch_size, n_grid_features, n_flat_features,
                              input_grids, n_inner_cells, n_outer_cells, active_features, cell_locations)
         if return_weights:
-<<<<<<< HEAD
             weights = GetData.getdata(data.weight, data.tau_i, -1, debug_area="weights")
         if return_truth:
             Y = GetData.getdata(data.y_onehot, data.tau_i, (batch_size, tau_types), debug_area="truth")
-=======
-            weights = GetData.getdata(data.weight, data.tau_i, -1)
-        if return_truth:
-            Y = GetData.getdata(data.y_onehot, data.tau_i, (batch_size, tau_types))
->>>>>>> master
 
         if return_truth and return_weights:
             item = [X_all, Y, weights]
@@ -122,11 +116,7 @@ class DataLoader (DataLoaderBase):
 
 
 
-        print("Files for training:", len(self.train_files))
-        print("Files for validation:", len(self.val_files))
-
-
-    def get_generator(self, primary_set = True, return_truth = True, return_weights = True):
+    def get_generator(self, primary_set = True, return_truth = True, return_weights = True, show_progress = False):
 
         _files = self.train_files if primary_set else self.val_files
         if len(_files)==0:
@@ -138,6 +128,9 @@ class DataLoader (DataLoaderBase):
         converter = torch_to_tf(return_truth, return_weights)
 
         def _generator():
+            
+            if show_progress and n_batches>0:
+                pbar = tqdm(total = n_batches)
 
             queue_files = mp.Queue()
             [ queue_files.put(file) for file in _files ]
