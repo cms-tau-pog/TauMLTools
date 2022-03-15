@@ -60,8 +60,7 @@ def main(cfg: DictConfig) -> None:
     tau_types_names = training_cfg['Setup']['tau_types_names']
        
     # open input file
-    input_file_name = to_absolute_path(cfg.path_to_file)
-    output_file_name = os.path.splitext(os.path.basename(input_file_name))[0] + '_pred'
+    input_file_name = to_absolute_path(f'{cfg.path_to_input_dir}/{cfg.input_filename}.root')
     with uproot.open(input_file_name) as f:
         t = f['taus']
         n_taus = len(t['evt'].array())
@@ -87,13 +86,13 @@ def main(cfg: DictConfig) -> None:
     # store into intermediate hdf5 file
     predictions = pd.DataFrame({f'node_{tau_type}': predictions[:, int(idx)] for idx, tau_type in tau_types_names.items()})
     targets = pd.DataFrame({f'node_{tau_type}': targets[:, int(idx)] for idx, tau_type in tau_types_names.items()}, dtype=np.int64)
-    predictions.to_hdf(f'{output_file_name}.h5', key='predictions', mode='w', format='fixed', complevel=1, complib='zlib')
-    targets.to_hdf(f'{output_file_name}.h5', key='targets', mode='r+', format='fixed', complevel=1, complib='zlib')
+    predictions.to_hdf(f'{cfg.output_filename}.h5', key='predictions', mode='w', format='fixed', complevel=1, complib='zlib')
+    targets.to_hdf(f'{cfg.output_filename}.h5', key='targets', mode='r+', format='fixed', complevel=1, complib='zlib')
     
     # log to mlflow and delete intermediate file
     with mlflow.start_run(experiment_id=cfg.experiment_id, run_id=cfg.run_id) as active_run:
-        mlflow.log_artifact(f'{output_file_name}.h5', f'predictions/{cfg.sample_alias}')
-    os.remove(f'{output_file_name}.h5')
+        mlflow.log_artifact(f'{cfg.output_filename}.h5', f'predictions/{cfg.sample_alias}')
+    os.remove(f'{cfg.output_filename}.h5')
 
     # log mapping between prediction file and corresponding input file 
     json_filemap_name = f'{path_to_artifacts}/predictions/{cfg.sample_alias}/pred_input_filemap.json'
@@ -104,7 +103,7 @@ def main(cfg: DictConfig) -> None:
             filemap_data = json.load(json_file)
         else: # create dictionary to fill with data
             filemap_data = {}
-        filemap_data[os.path.abspath(f'{path_to_artifacts}/predictions/{cfg.sample_alias}/{output_file_name}.h5')] = input_file_name
+        filemap_data[os.path.abspath(f'{path_to_artifacts}/predictions/{cfg.sample_alias}/{cfg.output_filename}.h5')] = input_file_name
         json_file.seek(0) 
         json_file.write(json.dumps(filemap_data, indent=4))
         json_file.truncate()
