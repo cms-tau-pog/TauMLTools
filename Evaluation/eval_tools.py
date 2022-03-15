@@ -190,8 +190,7 @@ class Discriminator:
               roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
             else:
               print('[INFO] ROC curve is empty!')
-              roc.pr[0, :] = np.nan_to_num(roc.pr[0, :])
-              roc.pr[1, :] = np.nan_to_num(roc.pr[1, :])
+              return None, None
         else:
             print('[INFO] raw=False, will skip creating ROC curve')        
         
@@ -324,6 +323,8 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
 
 def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target, path_to_artifacts):
     def find_common_suffix(l):
+        if not all([isinstance(s, str) for s in l]):
+            raise TypeError("Iterable for finding common suffix doesn't contain all strings")
         l_inverse = [s[::-1] for s in l]
         suffix = os.path.commonprefix(l_inverse)[::-1]
         return suffix
@@ -351,7 +352,7 @@ def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target,
             if os.path.exists(json_filemap_name):
                 with open(json_filemap_name, 'r') as json_file:
                     target_input_map = json.load(json_file)
-                    target_common_suffix = find_common_suffix(target_input_map.items())
+                    target_common_suffix = find_common_suffix(target_input_map.keys())
                     target_files, input_files = zip(*sorted(target_input_map.items(), key=lambda item: partial(path_splitter, common_suffix=target_common_suffix)(item[0])))  # sort by values (target files)
             else:
                 raise FileNotFoundError(f'File {json_filemap_name} does not exist. Please make sure that input<->target file mapping is stored in mlflow run artifacts.')
