@@ -14,6 +14,7 @@ import sys
 from glob import glob
 from dataclasses import dataclass, field
 from hydra.utils import to_absolute_path
+from functools import partial
 
 if sys.version_info.major > 2:
     from statsmodels.stats.proportion import proportion_confint
@@ -185,7 +186,11 @@ class Discriminator:
             roc.pr[0, :] = fpr
             roc.pr[1, :] = tpr
             roc.thresholds = thresholds
-            roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
+            if not (np.isnan(roc.pr[0, :]).any() or np.isnan(roc.pr[1, :]).any()):
+              roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
+            else:
+              print('[INFO] ROC curve is empty!')
+              return None, None
         else:
             print('[INFO] raw=False, will skip creating ROC curve')        
         
@@ -198,7 +203,7 @@ class Discriminator:
                         df_x = df[df['gen_tau'] == kind]
                         n_passed = self.count_passed(df_x, wp_name)
                         n_total = np.sum(df_x.weight.values)
-                        eff = float(n_passed) / n_total
+                        eff = float(n_passed) / n_total if n_total > 0 else 0.0
                         wp_roc.pr[kind, n_wp - wp_i - 1] = eff
                         if not self.raw:
                             if sys.version_info.major > 2:
@@ -317,50 +322,60 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
     return df
 
 def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target, path_to_artifacts):
-    def path_splitter(path):
+    def find_common_suffix(l):
+        if not all([isinstance(s, str) for s in l]):
+            raise TypeError("Iterable for finding common suffix doesn't contain all strings")
+        l_inverse = [s[::-1] for s in l]
+        suffix = os.path.commonprefix(l_inverse)[::-1]
+        return suffix
+    def path_splitter(path, common_suffix):
         basename = os.path.splitext(os.path.basename(path))[0]
-        if basename.endswith('_pred'):
-            i = basename.split('_')[-2]
+        if basename.endswith(common_suffix):
+            return basename[:-len(common_suffix)]
         else:
-            i = basename.split('_')[-1]
-        return i
+            return basename
         
     # prepare list of files with inputs
     if path_to_input is not None:
         path_to_input = os.path.abspath(to_absolute_path(fill_placeholders(path_to_input, {"{sample_alias}": sample_alias})))
-        input_files = sorted(glob(path_to_input), key=path_splitter)
+        input_common_suffix = find_common_suffix(glob(path_to_input))
+        input_files = sorted(glob(path_to_input), key=partial(path_splitter, common_suffix=input_common_suffix))
     else:
         input_files = []
+
+    # prepare list of files with target labels
+    if path_to_target is not None:
+        path_to_target = os.path.abspath(to_absolute_path(fill_placeholders(path_to_target, {"{sample_alias}": sample_alias})))
+        if f'artifacts/predictions/{sample_alias}' in path_to_target: # fetch corresponding input files from mlflow logs
+            #json_filemap_name = f'{path_to_artifacts}/predictions/{sample_alias}/pred_input_filemap.json'
+            json_filemap_name = path_to_target.replace(path_to_target.split("/")[-1], 'pred_input_filemap.json')
+            if os.path.exists(json_filemap_name):
+                with open(json_filemap_name, 'r') as json_file:
+                    target_input_map = json.load(json_file)
+                    target_common_suffix = find_common_suffix(target_input_map.keys())
+                    target_files, input_files = zip(*sorted(target_input_map.items(), key=lambda item: partial(path_splitter, common_suffix=target_common_suffix)(item[0])))  # sort by values (target files)
+            else:
+                raise FileNotFoundError(f'File {json_filemap_name} does not exist. Please make sure that input<->target file mapping is stored in mlflow run artifacts.')
+        else: # use paths from cfg 
+            target_common_suffix = find_common_suffix(glob(path_to_target))
+            target_files = sorted(glob(path_to_target), key=partial(path_splitter, common_suffix=target_common_suffix)) 
+            if len(target_files) != len(input_files):
+                raise Exception(f'Number of input files ({len(input_files)}) not equal to number of target files with labels ({len(target_files)})')
+    else: # will assume that target branches "gen_*" are present in input files
+        assert len(input_files)>0
+        target_files = [None]*len(input_files)
 
     # prepare list of files with inputs/predictions
     if path_to_pred is not None:
         path_to_pred = os.path.abspath(to_absolute_path(fill_placeholders(path_to_pred, {"{sample_alias}": sample_alias})))
-        if f'artifacts/predictions/{sample_alias}' in path_to_pred: # fetch corresponding input files from mlflow logs
-            json_filemap_name = f'{path_to_artifacts}/predictions/{sample_alias}/pred_input_filemap.json'
-            if os.path.exists(json_filemap_name):
-                with open(json_filemap_name, 'r') as json_file:
-                    pred_input_map = json.load(json_file)
-                    pred_files, input_files = zip(*sorted(pred_input_map.items(), key=lambda item: path_splitter(item[1])))  # sort by values (input files)
-            else:
-                raise FileNotFoundError(f'File {json_filemap_name} does not exist. Please make sure that input<->pred file mapping is stored in mlflow run artifacts.')
-        else: # use paths from cfg 
-            pred_files = sorted(glob(path_to_pred), key=path_splitter)
-            if len(pred_files) != len(input_files):
-                raise Exception(f'Number of input files ({len(input_files)}) not equal to number of files with predictions ({len(pred_files)})')
+        pred_common_suffix = find_common_suffix(glob(path_to_pred))
+        pred_files = sorted(glob(path_to_pred), key=partial(path_splitter, common_suffix=pred_common_suffix))
+        if len(pred_files) != len(input_files):
+            raise Exception(f'Number of input files ({len(input_files)}) not equal to number of prediction files with labels ({len(pred_files)})')
     else: # will assume that predictions are present in input files
         assert len(input_files)>0
         pred_files = [None]*len(input_files)
     
-    # prepare list of files with target labels
-    if path_to_target is not None:
-        path_to_target = os.path.abspath(to_absolute_path(fill_placeholders(path_to_target, {"{sample_alias}": sample_alias})))
-        target_files = sorted(glob(path_to_target), key=path_splitter) 
-        if len(target_files) != len(input_files):
-            raise Exception(f'Number of input files ({len(input_files)}) not equal to number of files with labels ({len(target_files)})')
-    else: # will assume that target branches "gen_*" are present in input files
-        assert len(input_files)>0
-        target_files = [None]*len(input_files)
-        
     return input_files, pred_files, target_files
 
 def fill_placeholders(string, placeholder_to_value):

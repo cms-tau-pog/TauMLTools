@@ -106,7 +106,13 @@ class PlotSetup:
         ax.set_ylabel(self.ylabel, fontsize=16)
         ax.tick_params(labelsize=14)
         ax.grid(True)
-        ax.legend(entries, names, fontsize=14, loc=self.legend_loc)
+        lentries = []
+        lnames = []
+        for e,n in zip(entries, names):
+          if n not in lnames:
+            lentries.append(e)
+            lnames.append(n)
+        ax.legend(lentries, lnames, fontsize=14, loc=self.legend_loc)
 
         if ax_ratio is not None:
             if self.ratio_ylim is not None:
@@ -127,7 +133,8 @@ from omegaconf import OmegaConf, DictConfig
 def main(cfg: DictConfig) -> None:
     path_to_mlflow = to_absolute_path(cfg.path_to_mlflow)
     mlflow.set_tracking_uri(f"file://{path_to_mlflow}")
-    path_to_pdf = f'./{cfg.output_name}.pdf' # hydra log directory
+    dmname = '_'.join([str(x) for x in cfg.dm_bin])
+    path_to_pdf = f'./{cfg.output_name}{dmname}.pdf' # hydra log directory
     print()
 
     # retrieve pt bin from input cfg 
@@ -185,9 +192,9 @@ def main(cfg: DictConfig) -> None:
         plot_setup.Apply(curve_names, plot_entries, ax, ax_ratio)
 
         header_y = 1.02
-        ax.text(0.03, 0.89 - len(plot_entries) * 0.07, ref_curve['plot_setup']['pt_text'], fontsize=14, transform=ax.transAxes)
-        ax.text(0.03, 0.82 - len(plot_entries) * 0.07, ref_curve['plot_setup']['eta_text'], fontsize=14, transform=ax.transAxes)
-        ax.text(0.03, 0.75 - len(plot_entries) * 0.07, ref_curve['plot_setup']['dm_text'], fontsize=14, transform=ax.transAxes)
+        ax.text(0.03, 0.89 - len(set(curve_names)) * 0.07, ref_curve['plot_setup']['pt_text'], fontsize=14, transform=ax.transAxes)
+        ax.text(0.03, 0.82 - len(set(curve_names)) * 0.07, ref_curve['plot_setup']['eta_text'], fontsize=14, transform=ax.transAxes)
+        ax.text(0.03, 0.75 - len(set(curve_names)) * 0.07, ref_curve['plot_setup']['dm_text'], fontsize=14, transform=ax.transAxes)
         ax.text(0.01, header_y, 'CMS', fontsize=14, transform=ax.transAxes, fontweight='bold', fontfamily='sans-serif')
         ax.text(0.12, header_y, 'Simulation Preliminary', fontsize=14, transform=ax.transAxes, fontstyle='italic',
                 fontfamily='sans-serif')
