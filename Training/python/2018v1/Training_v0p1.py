@@ -40,14 +40,14 @@ def reshape_tensor(x, y, weights, active):
         count +=1
     return tuple(x_out), y, weights
 
-def rm_inner(x, y, weights, i_outer): 
+def rm_inner(x, y, weights, i_outer, i_start_cut, i_end_cut): 
     x_out = []
     count = 0
     for elem in x:
         if count in i_outer: 
             s = elem.get_shape().as_list()
-            m = np.ones((21, 21, s[3])) 
-            m[8:13, 8:13, :] = 0
+            m = np.ones((s[1], s[2], s[3])) 
+            m[i_start_cut:i_end_cut, i_start_cut:i_end_cut, :] = 0
             m = m[None,:, :, :]
             t = tf.constant(m, dtype=tf.float32)
             out = tf.multiply(elem, t)
@@ -303,7 +303,19 @@ def run_training(model, data_loader, to_profile, log_suffix):
         outer_indices = [i for i, elem in enumerate(tf_dataset_x_order) if 'outer' in elem]
         ds = tf.data.experimental.load(data_loader.tf_input_dir, compression="GZIP") # import dataset
         if data_loader.rm_inner_from_outer:
-            my_ds = ds.map(lambda x, y, weights: rm_inner(x, y, weights, outer_indices))
+            n_inner = data_loader.n_inner_cells
+            n_outer = data_loader.n_outer_cells
+            if n_inner % 2 == 0 or n_outer % 2 == 0:
+                raise Exception("Number of cells not supported")
+            inner_size = data_loader.inner_cell_size
+            outer_size = data_loader.outer_cell_size
+            n_inner_right = (n_inner - 1) / 2
+            n_outer_right = np.ceil(n_inner_right * inner_size /  outer_size)
+            n_outer_to_remove = n_outer_right*2 + 1
+            i_middle = (n_outer-1)/2
+            i_start = int(i_middle - (n_outer_to_remove-1)/2)
+            i_end = int(i_middle + (n_outer_to_remove-1)/2 + 1) # +1 as end index not included
+            my_ds = ds.map(lambda x, y, weights: rm_inner(x, y, weights, outer_indices, i_start, i_end))
         else: 
             my_ds = ds
         cell_locations = data_loader.cell_locations

@@ -86,6 +86,8 @@ class DataLoader (DataLoaderBase):
         self.batch_size     = self.config["Setup"]["n_tau"]
         self.n_inner_cells  = self.config["Setup"]["n_inner_cells"]
         self.n_outer_cells  = self.config["Setup"]["n_outer_cells"]
+        self.inner_cell_size = self.config["Setup"]["inner_cell_size"]
+        self.outer_cell_size = self.config["Setup"]["outer_cell_size"]
         self.tau_types      = len(self.config["Setup"]["tau_types_names"])
         self.n_load_workers   = self.config["SetupNN"]["n_load_workers"]
         self.n_batches        = self.config["SetupNN"]["n_batches"]
