@@ -311,10 +311,9 @@ def run_training(model, data_loader, to_profile, log_suffix):
             outer_size = data_loader.outer_cell_size
             n_inner_right = (n_inner - 1) / 2
             n_outer_right = np.ceil(n_inner_right * inner_size /  outer_size)
-            n_outer_to_remove = n_outer_right*2 + 1
             i_middle = (n_outer-1)/2
-            i_start = int(i_middle - (n_outer_to_remove-1)/2)
-            i_end = int(i_middle + (n_outer_to_remove-1)/2 + 1) # +1 as end index not included
+            i_start = int(i_middle - n_outer_right)
+            i_end = int(i_middle + n_outer_right + 1) # +1 as end index not included
             my_ds = ds.map(lambda x, y, weights: rm_inner(x, y, weights, outer_indices, i_start, i_end))
         else: 
             my_ds = ds
