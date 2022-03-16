@@ -205,7 +205,7 @@ def get_n_filters_conv2d(n_input, current_size, window_size, reduction_rate):
     if reduction_rate is None:
         return n_input
     if window_size <= 1 or current_size < window_size:
-        raise RuntineError("Unable to compute number of filters for the next Conv2D layer.")
+        raise RuntimeError("Unable to compute number of filters for the next Conv2D layer.")
     n_filters = ((float(current_size) / float(current_size - window_size + 1)) ** 2) * n_input / reduction_rate
     return int(math.ceil(n_filters))
 
