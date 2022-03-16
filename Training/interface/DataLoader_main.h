@@ -194,10 +194,10 @@ public:
         input_histogram .th2d_add(*(input_th2d .get()));
 
         target_histogram.divide(input_histogram);
-        hist_weights[tau_type] = std::make_shared<TH2D>(target_histogram.get_weights_th2d(
+        hist_weights[tau_type] = target_histogram.get_weights_th2d(
             ("w_1_"+tau_name).c_str(),
             ("w_1_"+tau_name).c_str()
-        ));
+        );
         if (debug) hist_weights[tau_type]->SaveAs(("Temp_"+tau_name+".root").c_str()); // It's required that all bins are filled in these histograms; save them to check incase binning is too fine and some bins are empty
 
         target_histogram.reset();
@@ -781,7 +781,7 @@ public:
             fillGrid(Br::muon_dphi, DeltaPhi(tau.muon_phi.at(idx), tau.tau_phi));
 
             fillGrid(Br::muon_dxy, tau.muon_dxy.at(idx));
-            if(tau.muon_dxy_error.at(idx) != 0)
+            if(std::isnormal(tau.muon_dxy_error.at(idx)) && std::isnormal(tau.muon_dxy.at(idx))) 
               fillGrid(Br::muon_dxy_sig, std::abs(tau.muon_dxy.at(idx)) / tau.muon_dxy_error.at(idx));
 
             const bool normalizedChi2_valid = tau.muon_normalizedChi2.at(idx) >= 0;
