@@ -376,21 +376,6 @@ def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target,
         assert len(input_files)>0
         pred_files = [None]*len(input_files)
     
-<<<<<<< HEAD
-    # prepare list of files with target labels
-    if path_to_target is not None:
-        path_to_target = os.path.abspath(to_absolute_path(fill_placeholders(path_to_target, {"{sample_alias}": sample_alias})))
-        target_files = sorted(glob(path_to_target), key=path_splitter) 
-        print(input_files)
-        print(target_files)
-        if len(target_files) != len(input_files):
-            raise Exception(f'Number of input files ({len(input_files)}) not equal to number of files with labels ({len(target_files)})')
-    else: # will assume that target branches "gen_*" are present in input files
-        assert len(input_files)>0
-        target_files = [None]*len(input_files)
-        
-=======
->>>>>>> master
     return input_files, pred_files, target_files
 
 def fill_placeholders(string, placeholder_to_value):
