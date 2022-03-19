@@ -201,7 +201,7 @@ public:
             ("w_1_"+boostedTau_name).c_str(),
             ("w_1_"+boostedTau_name).c_str()
         );
-        //if (debug) hist_weights[tau_type]->SaveAs(("Temp_"+tau_name+".root").c_str()); // It's required that all bins are filled in these histograms; save them to check incase binning is too fine and some bins are empty
+        if (debug) hist_weights[tau_type]->SaveAs(("Temp_"+tau_name+".root").c_str()); // It's required that all bins are filled in these histograms; save them to check incase binning is too fine and some bins are empty
 
         target_histogram.reset();
         input_histogram .reset();
@@ -531,9 +531,6 @@ public:
         }
 
         { // CellObjectType::PfCand_electron
-
-	  //Okay, if we want to restrict pfcands to be only the boosted tau ones, this is the place
-	  // we do it. pf cands are 
 
             typedef PfCand_electron_Features Br;
 
