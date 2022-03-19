@@ -80,8 +80,8 @@ def run_scaling(cfg, var_types, file_list=None, output_folder=None):
                 for var_type in var_types:
                     # loop over variables of the given type
                     for var_dict in features_dict[var_type]:
-                        (var, (selection_cut, aliases, scaling_type, *lim_params)), = var_dict.items()
                         begin_var = time.time()
+                        (var, (selection_cut, aliases, scaling_type, *lim_params)), = var_dict.items()
                         if scaling_type == 'linear':
                             # dict with scaling params already fully filled after init_dictionaries() call, here compute only variable's quantiles
                             if len(lim_params) == 2 and lim_params[0] <= lim_params[1]:
