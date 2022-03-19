@@ -8,7 +8,7 @@ import math
 import numpy as np
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
-
+import copy
 import tensorflow as tf
 from tensorflow import keras
 import tensorflow.keras.backend as K
@@ -30,6 +30,33 @@ from omegaconf import DictConfig, OmegaConf
 sys.path.insert(0, "..")
 from common import *
 import DataLoader
+
+def reshape_tensor(x, y, weights, active): 
+    x_out = []
+    count = 0
+    for elem in x:
+        if count in active:
+            x_out.append(elem)
+        count +=1
+    return tuple(x_out), y, weights
+
+def rm_inner(x, y, weights, i_outer, i_start_cut, i_end_cut): 
+    x_out = []
+    count = 0
+    for elem in x:
+        if count in i_outer: 
+            s = elem.get_shape().as_list()
+            m = np.ones((s[1], s[2], s[3])) 
+            m[i_start_cut:i_end_cut, i_start_cut:i_end_cut, :] = 0
+            m = m[None,:, :, :]
+            t = tf.constant(m, dtype=tf.float32)
+            out = tf.multiply(elem, t)
+            x_out.append(out)
+        else: 
+            x_out.append(elem)
+        count+=1
+    print("Removed Inner Area From Outer Cone")
+    return tuple(x_out), y, weights
 
 class NetSetup:
     def __init__(self, activation, dropout_rate=0, reduction_rate=1, kernel_regularizer=None):
@@ -137,31 +164,48 @@ def get_layer_size_sequence(net_setup):
             break
     return layer_sizes
 
-def reduce_n_features_1d(input_layer, net_setup, block_name):
+def reduce_n_features_1d(input_layer, net_setup, block_name, first_layer_reg = None):
     prev_layer = input_layer
     layer_sizes = get_layer_size_sequence(net_setup)
     for n, layer_size in enumerate(layer_sizes):
-        prev_layer = dense_block(prev_layer, layer_size, net_setup, block_name, n+1)
+        if n == 0 and first_layer_reg is not None:
+            reg_name, reg_param = str(first_layer_reg).split(",")
+            reg_param = float(reg_param)
+            setup = copy.deepcopy(net_setup)
+            setup.kernel_regularizer = getattr(tf.keras.regularizers, reg_name)(reg_param)
+            print("Regularisation applied to ", "{}_dense_{}".format(block_name, n+1))
+        else:
+            setup = net_setup
+        prev_layer = dense_block(prev_layer, layer_size, setup, block_name, n+1)
     return prev_layer
 
 def conv_block(prev_layer, filters, kernel_size, net_setup, block_name, n):
     conv = Conv2D(filters, kernel_size, name="{}_conv_{}".format(block_name, n),
-                  kernel_initializer=net_setup.kernel_init)(prev_layer)
+                  kernel_initializer=net_setup.kernel_init,
+                  kernel_regularizer=net_setup.kernel_regularizer)(prev_layer)
     return add_block_ending(net_setup, '{}_{{}}_{}'.format(block_name, n), conv)
 
-def reduce_n_features_2d(input_layer, net_setup, block_name):
+def reduce_n_features_2d(input_layer, net_setup, block_name, first_layer_reg = None):
     conv_kernel=(1, 1)
     prev_layer = input_layer
     layer_sizes = get_layer_size_sequence(net_setup)
     for n, layer_size in enumerate(layer_sizes):
-        prev_layer = conv_block(prev_layer, layer_size, conv_kernel, net_setup, block_name, n+1)
+        if n == 0 and first_layer_reg is not None:
+            reg_name, reg_param = str(first_layer_reg).split(",")
+            reg_param = float(reg_param)
+            setup = copy.deepcopy(net_setup)
+            setup.kernel_regularizer = getattr(tf.keras.regularizers, reg_name)(reg_param)
+            print("Regularisation applied to", "{}_conv_{}".format(block_name, n+1))
+        else: 
+            setup = net_setup
+        prev_layer = conv_block(prev_layer, layer_size, conv_kernel, setup, block_name, n+1)
     return prev_layer
 
 def get_n_filters_conv2d(n_input, current_size, window_size, reduction_rate):
     if reduction_rate is None:
         return n_input
     if window_size <= 1 or current_size < window_size:
-        raise RuntineError("Unable to compute number of filters for the next Conv2D layer.")
+        raise RuntimeError("Unable to compute number of filters for the next Conv2D layer.")
     n_filters = ((float(current_size) / float(current_size - window_size + 1)) ** 2) * n_input / reduction_rate
     return int(math.ceil(n_filters))
 
@@ -179,7 +223,7 @@ def create_model(net_config, model_name):
         input_layer_tau = Input(name="input_tau", shape=(net_config.n_tau_branches,))
         input_layers.append(input_layer_tau)
         tau_net_setup.ComputeLayerSizes(net_config.n_tau_branches)
-        processed_tau = reduce_n_features_1d(input_layer_tau, tau_net_setup, 'tau')
+        processed_tau = reduce_n_features_1d(input_layer_tau, tau_net_setup, 'tau', net_config.first_layer_reg)
         high_level_features.append(processed_tau)
 
     for loc in net_config.cell_locations:
@@ -191,7 +235,7 @@ def create_model(net_config, model_name):
                                      shape=(net_config.n_cells[loc], net_config.n_cells[loc], n_comp_features))
             input_layers.append(input_layer_comp)
             comp_net_setup.ComputeLayerSizes(n_comp_features)
-            reduced_comp = reduce_n_features_2d(input_layer_comp, comp_net_setup, "{}_{}".format(loc, comp_name))
+            reduced_comp = reduce_n_features_2d(input_layer_comp, comp_net_setup, "{}_{}".format(loc, comp_name), net_config.first_layer_reg)
             reduced_inputs.append(reduced_comp)
 
         if len(net_config.comp_names) > 1:
@@ -251,16 +295,53 @@ def compile_model(model, opt_name, learning_rate):
 
 def run_training(model, data_loader, to_profile, log_suffix):
 
-    gen_train = data_loader.get_generator(primary_set = True)
-    gen_val = data_loader.get_generator(primary_set = False)
-    input_shape, input_types = data_loader.get_input_config()
-
-    data_train = tf.data.Dataset.from_generator(
-        gen_train, output_types = input_types, output_shapes = input_shape
-        ).prefetch(tf.data.AUTOTUNE)
-    data_val = tf.data.Dataset.from_generator(
-        gen_val, output_types = input_types, output_shapes = input_shape
-        ).prefetch(tf.data.AUTOTUNE)
+    if data_loader.input_type == "tf":
+        total_batches = data_loader.n_batches + data_loader.n_batches_val
+        tf_dataset_x_order = data_loader.tf_dataset_x_order
+        tauflat_index = tf_dataset_x_order.index("TauFlat")
+        inner_indices = [i for i, elem in enumerate(tf_dataset_x_order) if 'inner' in elem]
+        outer_indices = [i for i, elem in enumerate(tf_dataset_x_order) if 'outer' in elem]
+        ds = tf.data.experimental.load(data_loader.tf_input_dir, compression="GZIP") # import dataset
+        if data_loader.rm_inner_from_outer:
+            n_inner = data_loader.n_inner_cells
+            n_outer = data_loader.n_outer_cells
+            if n_inner % 2 == 0 or n_outer % 2 == 0:
+                raise Exception("Number of cells not supported")
+            inner_size = data_loader.inner_cell_size
+            outer_size = data_loader.outer_cell_size
+            n_inner_right = (n_inner - 1) / 2
+            n_outer_right = np.ceil(n_inner_right * inner_size /  outer_size)
+            i_middle = (n_outer-1)/2
+            i_start = int(i_middle - n_outer_right)
+            i_end = int(i_middle + n_outer_right + 1) # +1 as end index not included
+            my_ds = ds.map(lambda x, y, weights: rm_inner(x, y, weights, outer_indices, i_start, i_end))
+        else: 
+            my_ds = ds
+        cell_locations = data_loader.cell_locations
+        active_features = data_loader.active_features
+        active = [] #list of elements to be kept
+        if "TauFlat" in active_features:
+            active.append(tauflat_index)
+        if "inner" in cell_locations:
+            active.extend(inner_indices)
+        if "outer" in cell_locations:
+            active.extend(outer_indices)
+        dataset = my_ds.map(lambda x, y, weights: reshape_tensor(x, y, weights, active))
+        data_train = dataset.take(data_loader.n_batches) #take first values for training
+        data_val = dataset.skip(data_loader.n_batches).take(data_loader.n_batches_val) # take next values for validation
+        print("Dataset Loaded with TensorFlow")
+    elif data_loader.input_type == "ROOT":
+        gen_train = data_loader.get_generator(primary_set = True, return_weights = data_loader.use_weights)
+        gen_val = data_loader.get_generator(primary_set = False, return_weights = data_loader.use_weights)
+        input_shape, input_types = data_loader.get_input_config()
+        data_train = tf.data.Dataset.from_generator(
+            gen_train, output_types = input_types, output_shapes = input_shape
+            ).prefetch(tf.data.AUTOTUNE)
+        data_val = tf.data.Dataset.from_generator(
+            gen_val, output_types = input_types, output_shapes = input_shape
+            ).prefetch(tf.data.AUTOTUNE)
+    else:
+        raise RuntimeError("Input type not supported, please select 'ROOT' or 'tf'")
 
     model_name = data_loader.model_name
     log_name = '%s_%s' % (model_name, log_suffix)
