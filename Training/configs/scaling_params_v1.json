@@ -34,7 +34,7 @@
         }
     },
     "TauFlat": {
-        "boostedTau_pt": {
+        "tau_pt": {
             "global": {
                 "mean": 510.0,
                 "std": 490.0,
@@ -42,7 +42,7 @@
                 "lim_max": 1.0
             }
         },
-        "boostedTau_eta": {
+        "tau_eta": {
             "global": {
                 "mean": 0.0,
                 "std": 2.3,
@@ -50,7 +50,7 @@
                 "lim_max": 1.0
             }
         },
-        "boostedTau_phi": {
+        "tau_phi": {
             "global": {
                 "mean": 0.0,
                 "std": 3.141592653589793,
@@ -58,7 +58,7 @@
                 "lim_max": 1.0
             }
         },
-        "boostedTau_mass": {
+        "tau_mass": {
             "global": {
                 "mean": 0.5537,
                 "std": 0.537,
@@ -66,7 +66,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_E_over_pt": {
+        "tau_E_over_pt": {
             "global": {
                 "mean": 1.968,
                 "std": 1.134,
@@ -74,7 +74,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_charge": {
+        "tau_charge": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -82,7 +82,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_n_charged_prongs": {
+        "tau_n_charged_prongs": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -90,7 +90,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_n_neutral_prongs": {
+        "tau_n_neutral_prongs": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -98,7 +98,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_chargedIsoPtSum": {
+        "tau_chargedIsoPtSum": {
             "global": {
                 "mean": 15.42,
                 "std": 45.38,
@@ -106,7 +106,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_chargedIsoPtSumdR03_over_dR05": {
+        "tau_chargedIsoPtSumdR03_over_dR05": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -114,7 +114,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_footprintCorrection": {
+        "tau_footprintCorrection": {
             "global": {
                 "mean": 2.192,
                 "std": 7.054,
@@ -122,7 +122,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_neutralIsoPtSum": {
+        "tau_neutralIsoPtSum": {
             "global": {
                 "mean": 12.38,
                 "std": 49.01,
@@ -130,7 +130,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_neutralIsoPtSumWeight_over_neutralIsoPtSum": {
+        "tau_neutralIsoPtSumWeight_over_neutralIsoPtSum": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -138,7 +138,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum": {
+        "tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -146,7 +146,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_neutralIsoPtSumdR03_over_dR05": {
+        "tau_neutralIsoPtSumdR03_over_dR05": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -154,7 +154,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_photonPtSumOutsideSignalCone": {
+        "tau_photonPtSumOutsideSignalCone": {
             "global": {
                 "mean": 1.202,
                 "std": 3.838,
@@ -162,7 +162,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_puCorrPtSum": {
+        "tau_puCorrPtSum": {
             "global": {
                 "mean": 22.15,
                 "std": 13.24,
@@ -170,7 +170,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_dxy_valid": {
+        "tau_dxy_valid": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -178,7 +178,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_dxy": {
+        "tau_dxy": {
             "global": {
                 "mean": 0.002245,
                 "std": 0.009914,
@@ -186,7 +186,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_dxy_sig": {
+        "tau_dxy_sig": {
             "global": {
                 "mean": 2.341,
                 "std": 4.28,
@@ -194,7 +194,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_ip3d_valid": {
+        "tau_ip3d_valid": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -202,7 +202,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_ip3d": {
+        "tau_ip3d": {
             "global": {
                 "mean": 0.003048,
                 "std": 0.01366,
@@ -210,7 +210,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_ip3d_sig": {
+        "tau_ip3d_sig": {
             "global": {
                 "mean": 2.911,
                 "std": 4.573,
@@ -218,7 +218,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_dz": {
+        "tau_dz": {
             "global": {
                 "mean": 9.213e-05,
                 "std": 0.4737,
@@ -226,7 +226,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_dz_sig_valid": {
+        "tau_dz_sig_valid": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -234,7 +234,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_dz_sig": {
+        "tau_dz_sig": {
             "global": {
                 "mean": 18.23,
                 "std": 204.2,
@@ -242,7 +242,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_flightLength_x": {
+        "tau_flightLength_x": {
             "global": {
                 "mean": -0.001129,
                 "std": 0.3903,
@@ -250,7 +250,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_flightLength_y": {
+        "tau_flightLength_y": {
             "global": {
                 "mean": 0.0001038,
                 "std": 0.3944,
@@ -258,7 +258,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_flightLength_z": {
+        "tau_flightLength_z": {
             "global": {
                 "mean": -0.0007168,
                 "std": 1.1,
@@ -266,7 +266,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_flightLength_sig": {
+        "tau_flightLength_sig": {
             "global": {
                 "mean": -5.64,
                 "std": 8.777,
@@ -274,7 +274,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_pt_weighted_deta_strip": {
+        "tau_pt_weighted_deta_strip": {
             "global": {
                 "mean": 0.5,
                 "std": 0.5,
@@ -282,7 +282,7 @@
                 "lim_max": 1.0
             }
         },
-        "boostedTau_pt_weighted_dphi_strip": {
+        "tau_pt_weighted_dphi_strip": {
             "global": {
                 "mean": 0.5,
                 "std": 0.5,
@@ -290,7 +290,7 @@
                 "lim_max": 1.0
             }
         },
-        "boostedTau_pt_weighted_dr_signal": {
+        "tau_pt_weighted_dr_signal": {
             "global": {
                 "mean": 0.007316,
                 "std": 0.01859,
@@ -298,7 +298,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_pt_weighted_dr_iso": {
+        "tau_pt_weighted_dr_iso": {
             "global": {
                 "mean": 0.5,
                 "std": 0.5,
@@ -306,7 +306,7 @@
                 "lim_max": 1.0
             }
         },
-        "boostedTau_leadingTrackNormChi2": {
+        "tau_leadingTrackNormChi2": {
             "global": {
                 "mean": 1.714,
                 "std": 5.214,
@@ -314,7 +314,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_e_ratio_valid": {
+        "tau_e_ratio_valid": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -322,7 +322,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_e_ratio": {
+        "tau_e_ratio": {
             "global": {
                 "mean": 0.5,
                 "std": 0.5,
@@ -330,7 +330,7 @@
                 "lim_max": 1.0
             }
         },
-        "boostedTau_gj_angle_diff_valid": {
+        "tau_gj_angle_diff_valid": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -338,7 +338,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_gj_angle_diff": {
+        "tau_gj_angle_diff": {
             "global": {
                 "mean": 1.5707963267948966,
                 "std": 1.5707963267948966,
@@ -346,7 +346,7 @@
                 "lim_max": 1.0
             }
         },
-        "boostedTau_n_photons": {
+        "tau_n_photons": {
             "global": {
                 "mean": 2.294,
                 "std": 3.042,
@@ -354,7 +354,7 @@
                 "lim_max": 5
             }
         },
-        "boostedTau_emFraction": {
+        "tau_emFraction": {
             "global": {
                 "mean": 0.0,
                 "std": 1.0,
@@ -362,7 +362,7 @@
                 "lim_max": 1.0
             }
         },
-        "boostedTau_inside_ecal_crack": {
+        "tau_inside_ecal_crack": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -370,7 +370,7 @@
                 "lim_max": "inf"
             }
         },
-        "boostedTau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta": {
+        "tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta": {
             "global": {
                 "mean": 0.0002084,
                 "std": 0.0374,
