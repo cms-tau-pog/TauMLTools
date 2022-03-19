@@ -34,18 +34,6 @@ def run_scaling(cfg, var_types, file_list=None, output_folder=None):
     cone_definition_dict        = setup_dict['cone_definition']
     cone_selection_dict         = setup_dict['cone_selection']
 
-    # read cfg parameters
-    setup_dict = scaling_dict['Scaling_setup']
-    features_dict = scaling_dict['Features_all']
-    disabledFeatures = [variableName for sublist in (scaling_dict['Features_disable'][featureType] for featureType in scaling_dict['Features_disable']) for variableName in sublist] # get the list of disabled features, and flatten it.
-    #
-    assert type(args.var_types) == list
-    if args.var_types[0] == '-1' and len(args.var_types) == 1:
-        var_types = features_dict.keys()
-    else:
-        var_types = args.var_types
-    file_path = setup_dict['file_path']
-    output_json_folder = setup_dict['output_json_folder']
     if not os.path.exists(output_json_folder):
         os.makedirs(output_json_folder)
 
@@ -93,8 +81,6 @@ def run_scaling(cfg, var_types, file_list=None, output_folder=None):
                     # loop over variables of the given type
                     for var_dict in features_dict[var_type]:
                         (var, (selection_cut, aliases, scaling_type, *lim_params)), = var_dict.items()
-                        if var in disabledFeatures:
-                            continue #we don't need to consider disabled features in the scaling
                         begin_var = time.time()
                         if scaling_type == 'linear':
                             # dict with scaling params already fully filled after init_dictionaries() call, here compute only variable's quantiles
