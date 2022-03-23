@@ -368,7 +368,7 @@ def create_model(net_config, model_name):
                          kernel_initializer=dense_net_setup.kernel_init)(final_dense)
     softmax_output = Activation("softmax", name="main_output")(output_layer)
 
-    model = Model(input_layers, softmax_output, name=model_name)
+    model = DeepTauModel(input_layers, softmax_output, name=model_name)
     return model
 
 def compile_model(model, opt_name, learning_rate):
@@ -385,7 +385,7 @@ def compile_model(model, opt_name, learning_rate):
         TauLosses.Hcat_eInv, TauLosses.Hcat_muInv, TauLosses.Hcat_jetInv,
         TauLosses.Fe, TauLosses.Fmu, TauLosses.Fjet, TauLosses.Fcmb
     ]
-    model.compile(loss=TauLosses.tau_crossentropy_v2, optimizer=opt, metrics=metrics, weighted_metrics=metrics)
+    model.compile(loss=None, optimizer=opt, metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
 
     # log metric names for passing them during model loading
     metric_names = {(m if isinstance(m, str) else m.__name__): '' for m in metrics}
