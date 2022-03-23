@@ -32,18 +32,12 @@ from common import *
 import DataLoader
 
 class DeepTauModel(keras.Model):
-    _loss_tracker = keras.metrics.Mean(name="loss")
-    _pure_loss_tracker = keras.metrics.Mean(name="pure_loss")
-    _reg_loss_tracker = keras.metrics.Mean(name ="reg_loss")
 
-    def loss_tracker(self): # tracker to compute the weighted total loss
-        return type(self)._loss_tracker
-
-    def pure_loss_tracker(self):
-        return type(self)._pure_loss_tracker
-
-    def reg_loss_tracker(self):
-        return type(self)._reg_loss_tracker
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.loss_tracker = keras.metrics.Mean(name="loss")
+        self.pure_loss_tracker = keras.metrics.Mean(name="pure_loss")
+        self.reg_loss_tracker = keras.metrics.Mean(name ="reg_loss")
 
     def train_step(self, data):
         # Unpack the data
@@ -70,9 +64,9 @@ class DeepTauModel(keras.Model):
         # Update weights
         self.optimizer.apply_gradients(zip(gradients, trainable_vars))
         # Update metrics (including the ones that track losses)
-        self.loss_tracker().update_state(loss, sample_weight=sample_weight)
-        self.pure_loss_tracker().update_state(pure_loss, sample_weight=sample_weight) 
-        self.reg_loss_tracker().update_state(reg_loss)
+        self.loss_tracker.update_state(loss, sample_weight=sample_weight)
+        self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+        self.reg_loss_tracker.update_state(reg_loss)
         self.compiled_metrics.update_state(y, y_pred, sample_weight)
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
@@ -99,9 +93,9 @@ class DeepTauModel(keras.Model):
             reg_loss = reg_losses # empty
             loss = pure_loss
         # Update the metrics (including the ones that track losses)
-        self.loss_tracker().update_state(loss, sample_weight=sample_weight)
-        self.pure_loss_tracker().update_state(pure_loss, sample_weight=sample_weight) 
-        self.reg_loss_tracker().update_state(reg_loss)
+        self.loss_tracker.update_state(loss, sample_weight=sample_weight)
+        self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+        self.reg_loss_tracker.update_state(reg_loss)
         self.compiled_metrics.update_state(y, y_pred, sample_weight)
         # Return a dict mapping metric names to current value
         metrics_out = {m.name: m.result() for m in self.metrics}
@@ -113,9 +107,9 @@ class DeepTauModel(keras.Model):
         # called automatically at the start of each epoch
         # or at the start of `evaluate()`
         metrics = []
-        metrics.append(self.loss_tracker()) 
-        metrics.append(self.reg_loss_tracker())
-        metrics.append(self.pure_loss_tracker())
+        metrics.append(self.loss_tracker) 
+        metrics.append(self.reg_loss_tracker)
+        metrics.append(self.pure_loss_tracker)
         if self._is_compiled:
             #  Track `LossesContainer` and `MetricsContainer` objects
             # so that attr names are not load-bearing.
