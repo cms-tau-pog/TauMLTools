@@ -31,6 +31,98 @@ sys.path.insert(0, "..")
 from common import *
 import DataLoader
 
+class DeepTauModel(keras.Model):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.loss_tracker = keras.metrics.Mean(name="loss")
+        self.pure_loss_tracker = keras.metrics.Mean(name="pure_loss")
+        self.reg_loss_tracker = keras.metrics.Mean(name ="reg_loss")
+
+    def train_step(self, data):
+        # Unpack the data
+        if len(data) == 3:
+            x, y, sample_weight = data
+        else:
+            sample_weight = None
+            x, y = data
+        with tf.GradientTape() as tape:
+            y_pred = self(x, training=True)  # Forward pass
+            reg_losses = self.losses # Regularisation loss
+            tau_crossentropy_v2 = TauLosses.tau_crossentropy_v2(y, y_pred) # Compute loss function
+            pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
+            # Compute the total loss value
+            if reg_losses:
+                reg_loss = tf.add_n(reg_losses)
+                loss = pure_loss + reg_loss
+            else:
+                reg_loss = reg_losses # empty
+                loss = pure_loss
+        # Compute gradients
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+        # Update weights
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        # Update metrics (including the ones that track losses)
+        self.loss_tracker.update_state(loss, sample_weight=sample_weight)
+        self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+        self.reg_loss_tracker.update_state(reg_loss)
+        self.compiled_metrics.update_state(y, y_pred, sample_weight)
+        # Return a dict mapping metric names to current value (printout)
+        metrics_out =  {m.name: m.result() for m in self.metrics}
+        return metrics_out
+    
+    def test_step(self, data):
+        # Unpack the data
+        if len(data) == 3:
+            x, y, sample_weight = data
+        else:
+            sample_weight = None
+            x, y = data
+        # Compute predictions
+        y_pred = self(x, training=False)
+        # Define the losses
+        reg_losses = self.losses # Regularisation loss
+        tau_crossentropy_v2 = TauLosses.tau_crossentropy_v2(y, y_pred) # Compute loss function
+        pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
+        # Compute the total loss value
+        if reg_losses:
+            reg_loss = tf.add_n(reg_losses)
+            loss = pure_loss + reg_loss
+        else:
+            reg_loss = reg_losses # empty
+            loss = pure_loss
+        # Update the metrics (including the ones that track losses)
+        self.loss_tracker.update_state(loss, sample_weight=sample_weight)
+        self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+        self.reg_loss_tracker.update_state(reg_loss)
+        self.compiled_metrics.update_state(y, y_pred, sample_weight)
+        # Return a dict mapping metric names to current value
+        metrics_out = {m.name: m.result() for m in self.metrics}
+        return metrics_out
+    
+    @property
+    def metrics(self):
+        # define metrics here so that `reset_states()` can be
+        # called automatically at the start of each epoch
+        # or at the start of `evaluate()`
+        metrics = []
+        metrics.append(self.loss_tracker) 
+        metrics.append(self.reg_loss_tracker)
+        metrics.append(self.pure_loss_tracker)
+        if self._is_compiled:
+            #  Track `LossesContainer` and `MetricsContainer` objects
+            # so that attr names are not load-bearing.
+            if self.compiled_loss is not None:
+                metrics += self.compiled_loss.metrics
+            if self.compiled_metrics is not None:
+                metrics += self.compiled_metrics.metrics
+
+        for l in self._flatten_layers():
+            metrics.extend(l._metrics)  # pylint: disable=protected-access
+
+        return metrics
+
 def reshape_tensor(x, y, weights, active): 
     x_out = []
     count = 0
@@ -270,7 +362,7 @@ def create_model(net_config, model_name):
                          kernel_initializer=dense_net_setup.kernel_init)(final_dense)
     softmax_output = Activation("softmax", name="main_output")(output_layer)
 
-    model = Model(input_layers, softmax_output, name=model_name)
+    model = DeepTauModel(input_layers, softmax_output, name=model_name)
     return model
 
 def compile_model(model, opt_name, learning_rate):
@@ -287,7 +379,7 @@ def compile_model(model, opt_name, learning_rate):
         TauLosses.Hcat_eInv, TauLosses.Hcat_muInv, TauLosses.Hcat_jetInv,
         TauLosses.Fe, TauLosses.Fmu, TauLosses.Fjet, TauLosses.Fcmb
     ]
-    model.compile(loss=TauLosses.tau_crossentropy_v2, optimizer=opt, metrics=metrics, weighted_metrics=metrics)
+    model.compile(loss=None, optimizer=opt, metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
 
     # log metric names for passing them during model loading
     metric_names = {(m if isinstance(m, str) else m.__name__): '' for m in metrics}
