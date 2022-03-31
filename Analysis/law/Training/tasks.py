@@ -19,22 +19,9 @@ class Training(Task, HTCondorWorkflow, law.LocalWorkflow):
     cuda_memory  = luigi.Parameter(default = 10000, significant = False, description = 'Required CUDA Global Memory (in Mb).')
     input_cmds   = luigi.Parameter(description = 'Path to the txt file with input commands.')
 
-    # conda setups
-    conda_path   = luigi.Parameter(description = 'e.g: /nfs/dust/cms/user/mykytaua/softML/miniconda3/bin/conda')
-    env_name     = luigi.Parameter(default = 'tau-ml',
-                        description = 'conda env name (e.g: tau-ml): $ conda activate tau-ml')
+
     comp_facility = luigi.Parameter(default = 'desy-naf',
                         description = 'Computing facility for specific setups e.g: desy-naf, lxplus')
-
-    def htcondor_bootstrap_file(self):
-        # each job can define a bootstrap file that is executed prior to the actual job
-        # in order to setup software and environment variables
-        return law.util.rel_path(__file__, "bootstrap_train.sh")
-
-    def source_conda_cmd(self):
-        cmd  = f"eval \"$({self.conda_path} shell.zsh hook)\" ;\n"
-        cmd += f"conda activate {self.env_name};\n"
-        return cmd
 
     def htcondor_job_config(self, config, job_num, branches):
         main_dir = os.getenv("ANALYSIS_PATH")
@@ -95,9 +82,8 @@ class Training(Task, HTCondorWorkflow, law.LocalWorkflow):
         if not os.path.exists(os.path.abspath(self.working_dir)):
             raise Exception('Working folder {} does not exist'.format(job_folder))
 
-        command = self.source_conda_cmd() \
-                + "cd " + self.working_dir + ";\n"\
-                + self.branch_data
+        command = "cd " + self.working_dir + ";\n"\
+                  + self.branch_data
 
         print ('>> {}'.format(command))
         proc = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
