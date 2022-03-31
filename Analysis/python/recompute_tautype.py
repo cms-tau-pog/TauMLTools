@@ -13,7 +13,7 @@ R.gInterpreter.ProcessLine('''
 
 ''')
 
-def redefine(df):
+def compute(df):
     df = df.Define("mytauType", """analysis::GenMatchToTauType(*analysis::GetGenLeptonMatch(genLepton_kind, genLepton_index, tau_pt, tau_eta, tau_phi, tau_mass,
         genLepton_vis_pt, genLepton_vis_eta, genLepton_vis_phi, genLepton_vis_mass, genJet_index), analysis::SampleType(sampleType))""")
     print("Tau Types Recomputed")
