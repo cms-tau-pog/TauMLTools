@@ -6,7 +6,7 @@
 #include "TauMLTools/Core/interface/exception.h"
 
 namespace analysis {
-    boost::optional<GenLeptonMatch> GetGenLeptonMatch(Int_t tau_genLepton_kind,  Int_t genLepton_index,  Float_t tau_pt,  Float_t tau_eta,
+    std::optional<GenLeptonMatch> GetGenLeptonMatch(Int_t tau_genLepton_kind,  Int_t genLepton_index,  Float_t tau_pt,  Float_t tau_eta,
      Float_t tau_phi,  Float_t tau_mass,  Float_t genLepton_vis_pt,  Float_t genLepton_vis_eta,  Float_t genLepton_vis_phi,  Float_t genLepton_vis_mass,
      Int_t genJet_index)
     {   
@@ -21,27 +21,27 @@ namespace analysis {
                                 genLepton_vis_mass);
 
             if (ROOT::Math::VectorUtil::DeltaR(tauv, genv) > 0.2){
-                return boost::none;
+                return std::nullopt;
             }
 
             if (genLepton_kind == GTGenLeptonKind::PromptElectron){
-                if (genLepton_vis_pt < 8.0) return boost::none;
+                if (genLepton_vis_pt < 8.0) return std::nullopt;
                 return GenLeptonMatch::Electron;
             }
             else if (genLepton_kind == GTGenLeptonKind::PromptMuon){
-                if (genLepton_vis_pt < 8.0) return boost::none;
+                if (genLepton_vis_pt < 8.0) return std::nullopt;
                 return GenLeptonMatch::Muon;
             }
             else if (genLepton_kind == GTGenLeptonKind::TauDecayedToElectron){
-                if (genLepton_vis_pt < 8.0) return boost::none;
+                if (genLepton_vis_pt < 8.0) return std::nullopt;
                 return GenLeptonMatch::TauElectron;
             }
             else if (genLepton_kind == GTGenLeptonKind::TauDecayedToMuon){
-                if (genLepton_vis_pt < 8.0) return boost::none;
+                if (genLepton_vis_pt < 8.0) return std::nullopt;
                 return GenLeptonMatch::TauMuon;
             }
             else if (genLepton_kind == GTGenLeptonKind::TauDecayedToHadrons){
-                if (genLepton_vis_pt < 15.0) return boost::none;
+                if (genLepton_vis_pt < 15.0) return std::nullopt;
                 return GenLeptonMatch::Tau;
             }
             else {
@@ -53,7 +53,7 @@ namespace analysis {
             return GenLeptonMatch::NoMatch;
         }
         else {
-            return boost::none;
+            return std::nullopt;
         }
     }
 } // namespace analysis
