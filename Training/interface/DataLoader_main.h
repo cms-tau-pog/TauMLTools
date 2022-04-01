@@ -249,7 +249,7 @@ public:
           const auto gen_match = analysis::GetGenLeptonMatch(tau);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
 
-          if (gen_match &&tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
+          if (gen_match && (DeepTauVSjet_cut < 0 || tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut)){
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
             }
