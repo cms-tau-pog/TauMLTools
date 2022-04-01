@@ -12,29 +12,30 @@ R.gInterpreter.ProcessLine('''
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 #include "TauMLTools/Analysis/interface/AnalysisTypes.h"
 
+int GetMyTauType(Int_t tau_genLepton_kind,  Int_t genLepton_index,  Float_t tau_pt,  Float_t tau_eta,
+     Float_t tau_phi,  Float_t tau_mass,  Float_t genLepton_vis_pt,  Float_t genLepton_vis_eta,  Float_t genLepton_vis_phi,  
+     Float_t genLepton_vis_mass, Int_t genJet_index, Int_t sampleType)
+     {
+        const auto gen_match = analysis::GetGenLeptonMatch(tau_genLepton_kind, genLepton_index, tau_pt, tau_eta, tau_phi, tau_mass, 
+                                                            genLepton_vis_pt, genLepton_vis_eta, genLepton_vis_phi, 
+                                                            genLepton_vis_mass, genJet_index);
+        const auto sample_type= static_cast<analysis::SampleType> (sampleType);
+        int mytauType;
+        if (gen_match){
+            mytauType = static_cast<int>(analysis::GenMatchToTauType(*gen_match, sample_type));
+            return mytauType;
+        }
+        else{
+            mytauType = -1;
+            return mytauType;
+        }   
+}
+
 ''')
 
-df = R.RDataFrame("taus", "~/histograms/eventTuple_15.root")
-
-#print(df.GetColumnNames())
 def compute(df):
-    df = df.Define("gen_match", """analysis::GetGenLeptonMatch(genLepton_kind, genLepton_index, tau_pt, tau_eta, tau_phi, tau_mass, 
-    genLepton_vis_pt, genLepton_vis_eta, genLepton_vis_phi, genLepton_vis_mass, genJet_index)""")
-    df = df.Define("sample_type", """static_cast<analysis::SampleType>(sampleType)""")
-    df = df.Define("mytauType", "static_cast<int>(analysis::GenMatchToTauType(*gen_match, sample_type))")
+    df = df.Define("mytauType", """GetMyTauType(genLepton_kind, genLepton_index, tau_pt, tau_eta, tau_phi, tau_mass, 
+                        genLepton_vis_pt, genLepton_vis_eta, genLepton_vis_phi, genLepton_vis_mass, genJet_index, sampleType)""")
     print("Tau Types Recomputed")
     return df
 
-df = compute(df)
-print(df.GetColumnNames())
-test = df.AsNumpy(columns=["tauType"])
-npdf = df.AsNumpy(columns=["gen_match"])
-npdf2 = df.AsNumpy(columns=["sample_type"])
-npdf3 = df.AsNumpy(columns=["mytauType"])
-print(npdf)
-print(npdf2)
-print(test)
-print(npdf3)
-
-    # df = df.Define("mytauType", """static_cast<Int_t>(analysis::GenMatchToTauType(*analysis::GetGenLeptonMatch(genLepton_kind, genLepton_index, tau_pt, tau_eta, tau_phi, tau_mass,
-    #     genLepton_vis_pt, genLepton_vis_eta, genLepton_vis_phi, genLepton_vis_mass, genJet_index), static_cast<analysis::SampleType>(sampleType)))""")
