@@ -12,8 +12,7 @@ Setup:
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
     DeepTauVSjet_cut     : -1.0 
-    #recompute_tautype    : True
-    recompute_tautype    : False
+    recompute_tautype    : True
     include_mismatched   : False # whether to keep tau candidates with tau_type not present in `tau_types_names`
     #input_dir            : "<path_to_shuffle_and_merge_files>"
     input_dir            : "/hdfs/store/user/aloeliger/ShuffledDeepBoostedTauInputs/complete_v2_0_0/"
