@@ -243,7 +243,9 @@ public:
           tauTuple->GetEntry(current_entry);
           auto& tau = const_cast<tau_tuple::Tau&>(tauTuple->data());
 
-          const auto gen_match = analysis::GetGenLeptonMatch(tau);
+          const auto gen_match = analysis::GetGenLeptonMatch(tau.genLepton_kind, tau.genLepton_index, tau.tau_pt, tau.tau_eta, tau.tau_phi,
+                                                            tau.tau_mass, tau.genLepton_vis_pt, tau.genLepton_vis_eta, tau.genLepton_vis_phi, 
+                                                            tau.genLepton_vis_mass, tau.genJet_index);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
 
           if (gen_match &&tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
