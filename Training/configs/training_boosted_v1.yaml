@@ -73,7 +73,7 @@ SetupNN:
     n_batches_val        : 10000 #-1 for whole datsset
     n_batches_log        : 1000 # monitor every n batches in tensorboard
     epoch                : 0
-    n_epochs             : 10 #check increase of epochs for final training?
+    n_epochs             : 20 #check increase of epochs for final training?
     validation_split     : 0.3
     max_queue_size       : 10
     n_load_workers       : 4
