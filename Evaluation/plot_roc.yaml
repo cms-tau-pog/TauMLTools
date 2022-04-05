@@ -4,10 +4,10 @@ experiment_id: 1
 discriminators: # in the format -> run_id: ['curve_type_1', 'curve_type_2', ...]
   #???: ['roc_curve', 'roc_wp']
   #???: ['roc_wp']
-  451f87bf9645478383cef44add6cadf7: ['roc_curve']
-  b8b109903e124d00aec6e8784dbe4527: ['roc_wp']
+  04fedb1b3f8748c781c2ab91bb045516: ['roc_curve']
+  c3a37dd417fc4dd8bc87267972633192: ['roc_wp']
 reference: 
-  451f87bf9645478383cef44add6cadf7: 'roc_curve'
+  04fedb1b3f8748c781c2ab91bb045516: 'roc_curve'
 
 # region
 vs_type: ??? # jet/e/mu/tau
