@@ -34,6 +34,7 @@ int GetMyTauType(Int_t tau_genLepton_kind,  Int_t genLepton_index,  Float_t tau_
 ''')
 
 def compute(df):
+    # currently define a new branch in the dataframe while we wait for ROOT v6.26 where we can use Redefine("tauType")
     df = df.Define("mytauType", """GetMyTauType(genLepton_kind, genLepton_index, tau_pt, tau_eta, tau_phi, tau_mass, 
                         genLepton_vis_pt, genLepton_vis_eta, genLepton_vis_phi, genLepton_vis_mass, genJet_index, sampleType)""")
     print("Tau Types Recomputed")
