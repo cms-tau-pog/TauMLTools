@@ -5,9 +5,6 @@ _rootpath = os.path.abspath(os.path.dirname(__file__)+"../../../..")
 R.gROOT.ProcessLine(".include "+_rootpath)
 R.gInterpreter.ProcessLine('''
 
-#include "TauMLTools/Analysis/interface/TauTuple.h"
-#include "TROOT.h"
-#include "TLorentzVector.h"
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 #include "TauMLTools/Analysis/interface/AnalysisTypes.h"
 
