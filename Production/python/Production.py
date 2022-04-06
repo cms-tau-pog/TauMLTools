@@ -39,7 +39,7 @@ options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarPa
 options.register('rerunTauReco', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                 "If true, tau reconstruction is re-run on MINIAOD with a larger signal cone and no DM finding filter")
 options.register('useBoostedTauFilter', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
-                 "Implement boosted tau filter in the process to only consider events with some boosted tau content")
+                 "Implement boosted tau filter in the process to only consider tau jets that are boosted taus")
 options.parseArguments()
 
 sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
@@ -194,6 +194,7 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     requireGenMatch          = cms.bool(options.requireGenMatch),
     requireGenORRecoTauMatch = cms.bool(options.requireGenORRecoTauMatch),
     applyRecoPtSieve         = cms.bool(options.applyRecoPtSieve),
+    useBoostedTauFilter      = cms.bool(options.useBoostedTauFilter),
     tauJetBuilderSetup       = tauJetBuilderSetup,
 
     lheEventProduct    = cms.InputTag('externalLHEProducer'),
@@ -237,12 +238,6 @@ if isPhase2:
 
 if isRun2PreUL:
     process.p.insert(2, process.boostedSequence)
-
-if options.useBoostedTauFilter:
-    process.theBoostedTauFilter = cms.EDFilter('BoostedTauProductionFilter',
-                                               boostedTauCollection = cms.InputTag("slimmedTausBoosted"),
-                                               verboseDebug = cms.bool(False))
-    process.p.insert(0, process.theBoostedTauFilter)
 
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 x = process.maxEvents.input.value()
