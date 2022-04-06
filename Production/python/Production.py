@@ -115,7 +115,15 @@ if isPhase2:
     tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 elif isRun2UL:
-    boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
+    from TauMLTools.Production.runTauIdMVA import runTauID
+    updatedBoostedTauName = "slimmedBoostedTausNewID"
+    runTauID(process, outputTauCollection=updatedBoostedTauName, inputTauCollection="slimmedTausBoosted",
+             toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
+    process.boostedSequence = cms.Sequence(
+        getattr(process, updatedBoostedTauName+'rerunMvaIsolationSequence') *
+        getattr(process, updatedBoostedTauName)
+    )
+    boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
 else:
     from TauMLTools.Production.runTauIdMVA import runTauID
     updatedTauName = "slimmedTausNewID"
@@ -238,6 +246,9 @@ if isPhase2:
 
 if isRun2PreUL:
     process.p.insert(2, process.boostedSequence)
+
+if isRun2UL:
+    process.p.insert(0, process.boostedSequence)
 
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 x = process.maxEvents.input.value()
