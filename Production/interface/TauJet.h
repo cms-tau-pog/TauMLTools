@@ -109,7 +109,7 @@ public:
                   const pat::ElectronCollection& electrons, const pat::MuonCollection& muons,
                   const pat::IsolatedTrackCollection& isoTracks, const pat::PackedCandidateCollection& lostTracks,
                   const reco::GenParticleCollection* genParticles, const reco::GenJetCollection* genJets,
-                  bool requireGenMatch, bool requireGenORRecoTauMatch, bool applyRecoPtSieve);
+                  bool requireGenMatch, bool requireGenORRecoTauMatch, bool applyRecoPtSieve, bool useBoostedTauFilter);
 
     TauJetBuilder(const TauJetBuilder&) = delete;
     TauJetBuilder& operator=(const TauJetBuilder&) = delete;
@@ -139,7 +139,7 @@ private:
     const pat::PackedCandidateCollection& lostTracks_;
     const reco::GenParticleCollection* genParticles_;
     const reco::GenJetCollection* genJets_;
-    const bool requireGenMatch_, requireGenORRecoTauMatch_, applyRecoPtSieve_;
+    const bool requireGenMatch_, requireGenORRecoTauMatch_, applyRecoPtSieve_, useBoostedTauFilter_;
 
     std::deque<TauJet> tauJets_;
     std::vector<reco_tau::gen_truth::GenLepton> genLeptons_;

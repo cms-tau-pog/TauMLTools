@@ -39,7 +39,7 @@ options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarPa
 options.register('rerunTauReco', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                 "If true, tau reconstruction is re-run on MINIAOD with a larger signal cone and no DM finding filter")
 options.register('useBoostedTauFilter', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
-                 "Implement boosted tau filter in the process to only consider events with some boosted tau content")
+                 "Implement boosted tau filter in the process to only consider tau jets that are boosted taus")
 options.parseArguments()
 
 sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
@@ -115,26 +115,16 @@ if isPhase2:
     tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 elif isRun2UL:
-    #this reruns the ID process...
-    #but this shouldn't be necessary for UL
-    """
     from TauMLTools.Production.runTauIdMVA import runTauID
-    from RecoTauTag.Configuration.boostedHPSPFTaus_cff import ca8PFJetsCHSprunedForBoostedTaus
-    process.ca8PFJetsCHSprunedForBoostedTausPAT = ca8PFJetsCHSprunedForBoostedTaus.clone(
-        src = cms.InputTag("packedPFCandidates"),
-        jetCollInstanceName = cms.string('subJetsForSeedingBoostedTausPAT')
-    )
     updatedBoostedTauName = "slimmedBoostedTausNewID"
     runTauID(process, outputTauCollection=updatedBoostedTauName, inputTauCollection="slimmedTausBoosted",
              toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
     process.boostedSequence = cms.Sequence(
-        process.ca8PFJetsCHSprunedForBoostedTausPAT *
-        getattr(process, updatedBoostedTauName + 'rerunMvaIsolationSequence') *
-        getattr(process, updatedBoostedTauName))
-    boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)    
-    """
-    boostedTaus_InputTag = cms.InputTag("slimmedTausBoosted")    
-else:    
+        getattr(process, updatedBoostedTauName+'rerunMvaIsolationSequence') *
+        getattr(process, updatedBoostedTauName)
+    )
+    boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
+else:
     from TauMLTools.Production.runTauIdMVA import runTauID
     updatedTauName = "slimmedTausNewID"
     runTauID(process, outputTauCollection = updatedTauName, inputTauCollection = tau_collection,
@@ -211,6 +201,7 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     requireGenMatch          = cms.bool(options.requireGenMatch),
     requireGenORRecoTauMatch = cms.bool(options.requireGenORRecoTauMatch),
     applyRecoPtSieve         = cms.bool(options.applyRecoPtSieve),
+    useBoostedTauFilter      = cms.bool(options.useBoostedTauFilter),
     tauJetBuilderSetup       = tauJetBuilderSetup,
 
     lheEventProduct    = cms.InputTag('externalLHEProducer'),
@@ -255,11 +246,8 @@ if isPhase2:
 if isRun2PreUL:
     process.p.insert(2, process.boostedSequence)
 
-if options.useBoostedTauFilter:
-    process.theBoostedTauFilter = cms.EDFilter('BoostedTauProductionFilter',
-                                               boostedTauCollection = cms.InputTag("slimmedTausBoosted"),
-                                               verboseDebug = cms.bool(False))
-    process.p.insert(0, process.theBoostedTauFilter)
+if isRun2UL:
+    process.p.insert(0, process.boostedSequence)
 
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 x = process.maxEvents.input.value()
