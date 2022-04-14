@@ -253,6 +253,9 @@ public:
                                                             tau.genLepton_vis_mass, tau.genJet_index);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
 
+          // std::cout << tau.tau_pt << std::endl;
+          // std::cout << tau.dataset_id << std::endl;
+
           if (gen_match &&tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
@@ -318,9 +321,14 @@ public:
 
       }
 
-      const double GetAdversarialWeight(const int dataset_id, const double pt) const
+      const double GetAdversarialWeight(const ULong64_t dataset_id, const double pt) const
       {
         // if(pt<=pt_min || pt>=pt_max) return 0;
+        // if (dataset_id<0){
+        //   throw std::runtime_error("Selection ID not recognised, value: " + std::to_string(dataset_id));
+        // } else{
+        //   return 1;
+        // }
         if (dataset_id==0){
           return data_w->GetBinContent(data_w->FindBin(pt));
         } else if (dataset_id==1){
