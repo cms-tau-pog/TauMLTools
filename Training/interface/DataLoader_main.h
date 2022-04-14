@@ -256,7 +256,8 @@ public:
             // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
             if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
               data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
-              data->weight.at(data->tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
+              // data->weight.at(data->tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
+              data->weight.at(data->tau_i) = GetAdversarialWeight(tau.sampleType, tau.tau_pt); // filling weights
               FillTauBranches(tau, data->tau_i);
               FillCellGrid(tau, data->tau_i, innerCellGridRef, true);
               FillCellGrid(tau, data->tau_i, outerCellGridRef, false);
@@ -268,6 +269,8 @@ public:
           ++current_entry;
         }
         fullData = true;
+        
+        //adv_weights->Close();
         return true;
     }
 
@@ -308,6 +311,28 @@ public:
                hist_weights.at(type_id)->GetXaxis()->FindFixBin(eta),
                hist_weights.at(type_id)->GetYaxis()->FindFixBin(pt));
 
+      }
+
+      const double GetAdversarialWeight(const int sample_type, const double pt) const
+      {
+        // if(pt<=pt_min || pt>=pt_max) return 0;
+        if (sample_type==0){
+          return data_w->GetBinContent(data_w->FindBin(pt));
+        } else if (sample_type==1){
+            return DYT_w->GetBinContent(DYT_w->FindBin(pt));
+        } else if (sample_type==2){
+            return TTT_w->GetBinContent(TTT_w->FindBin(pt));
+        } else if (sample_type==3){
+            return DYM_w->GetBinContent(DYM_w->FindBin(pt));
+        } else if (sample_type==4){
+            return TTJ_w->GetBinContent(TTJ_w->FindBin(pt));
+        } else if (sample_type==5){
+            return WJ_w->GetBinContent(WJ_w->FindBin(pt));
+        } else if (sample_type==6){
+            return QCD_w->GetBinContent(QCD_w->FindBin(pt));
+        } else{
+            throw std::runtime_error("Selection ID not recognised");
+        }
       }
 
       template<typename Scalar>
@@ -910,5 +935,13 @@ private:
   std::unique_ptr<TauTuple> tauTuple;
   std::unique_ptr<Data> data;
   std::unordered_map<int ,std::shared_ptr<TH2D>> hist_weights;
+  TFile* adv_weights = TFile::Open(adversarial_weights.c_str(),"READ");
+  TH1D* data_w = (TH1D*)adv_weights->Get("data");
+  TH1D* DYT_w = (TH1D*)adv_weights->Get("DYT");
+  TH1D* TTT_w = (TH1D*)adv_weights->Get("TTT");
+  TH1D* DYM_w = (TH1D*)adv_weights->Get("DYM");
+  TH1D* TTJ_w = (TH1D*)adv_weights->Get("TTJ");
+  TH1D* WJ_w = (TH1D*)adv_weights->Get("WJ");
+  TH1D* QCD_w = (TH1D*)adv_weights->Get("QCD");
 
 };
