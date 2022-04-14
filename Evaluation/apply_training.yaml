@@ -18,11 +18,11 @@ run_id: ???
 
 # training/scaling cfg to init DataLoader class
 path_to_training_cfg: ${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/input_cfg/training_cfg.yaml
-scaling_cfg: ${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/input_cfg/ShuffleMergeSpectral_trainingSamples-2_files_0_50.json
+scaling_cfg: ${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/input_cfg/ShuffleMergeSpectral_trainingSamples-2_files_0_498.json
 
 # input path and file name
 path_to_input_dir: ???
-input_filename: ??? # without file extension
+input_filename: null # without file extension
 
 # output path and file name // will store prediction file in -> artifacts/predictions/{sample_alias}/{output_filename}.h5 
 sample_alias: ??? 
