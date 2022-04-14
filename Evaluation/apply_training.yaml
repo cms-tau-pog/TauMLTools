@@ -35,4 +35,4 @@ gpu_cfg: # for running on CPU specify "gpu_cfg: null"
 
 # misc.
 verbose: True
-checkout_train_repo: True # whether to checkout git commit used for running the training (fetched from artifacts)
+checkout_train_repo: False # whether to checkout git commit used for running the training (fetched from artifacts)
