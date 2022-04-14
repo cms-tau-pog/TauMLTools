@@ -59,6 +59,10 @@ private:
         "VVLoose VLoose Loose Medium Tight VTight VVTight") \
     TAU_ID(byIsolationMVADBnewDMwLTPhase2, "by{wp}IsolationMVADBnewDMwLTPhase2{raw}", true, \
         "VVLoose VLoose Loose Medium Tight VTight VVTight") \
+    TAU_ID(againstElectronMVA6, "againstElectron{wp}MVA6", false, \
+           "VLoose Loose Medium Tight VTight") \
+      TAU_ID(againstMuon, "againstMuon{wp}3", false, \
+	     "Loose Tight") \
     /**/
 
 #define TAU_ID(name, pattern, has_raw, wp_list) name,
