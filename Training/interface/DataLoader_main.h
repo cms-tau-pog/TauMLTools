@@ -1,4 +1,4 @@
-#include "TauMLTools/Analysis/interface/TauTuple.h"
+// #include "TauMLTools/Analysis/interface/TauTuple.h"
 #include "TauMLTools/Training/interface/DataLoader_tools.h"
 #include "TauMLTools/Training/interface/histogram2d.h"
 
@@ -147,7 +147,9 @@ using namespace Setup;
 class DataLoader {
 
 public:
-    using Tau = tau_tuple::Tau;
+    // using Tau = tau_tuple::Tau;  
+    // using TauTuple = tau_tuple::TauTuple;
+    using Tau = tau_tuple::Tau;  
     using TauTuple = tau_tuple::TauTuple;
     using LorentzVectorM = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>;
 
@@ -159,6 +161,9 @@ public:
     {
       ROOT::EnableThreadSafety();
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
+
+
+      // LR Do somewhere here
 
       if (yaxis.size() != (xaxis_list.size() + 1)){
         throw std::invalid_argument("Y binning list does not match X binning length");
@@ -212,7 +217,7 @@ public:
     void ReadFile(std::string file_name, Long64_t start_file, Long64_t end_file) { // put end_file=-1 to read all events from file
         tauTuple.reset();
         file = std::make_unique<TFile>(file_name.c_str());
-        tauTuple = std::make_unique<tau_tuple::TauTuple>(file.get(), true);
+        tauTuple = std::make_unique<tau_tuple::TauTuple>(file.get(), true); //LR tau
         current_entry = start_file;
         end_entry = tauTuple->GetEntries();
         if(end_file!=-1) end_entry = std::min(end_file, end_entry);
@@ -257,7 +262,7 @@ public:
             if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
               data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
               // data->weight.at(data->tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
-              data->weight.at(data->tau_i) = GetAdversarialWeight(tau.sampleType, tau.tau_pt); // filling weights
+              data->weight.at(data->tau_i) = GetAdversarialWeight(tau.dataset_id, tau.tau_pt); // filling weights
               FillTauBranches(tau, data->tau_i);
               FillCellGrid(tau, data->tau_i, innerCellGridRef, true);
               FillCellGrid(tau, data->tau_i, outerCellGridRef, false);
@@ -313,25 +318,25 @@ public:
 
       }
 
-      const double GetAdversarialWeight(const int sample_type, const double pt) const
+      const double GetAdversarialWeight(const int dataset_id, const double pt) const
       {
         // if(pt<=pt_min || pt>=pt_max) return 0;
-        if (sample_type==0){
+        if (dataset_id==0){
           return data_w->GetBinContent(data_w->FindBin(pt));
-        } else if (sample_type==1){
+        } else if (dataset_id==1){
             return DYT_w->GetBinContent(DYT_w->FindBin(pt));
-        } else if (sample_type==2){
+        } else if (dataset_id==2){
             return TTT_w->GetBinContent(TTT_w->FindBin(pt));
-        } else if (sample_type==3){
+        } else if (dataset_id==3){
             return DYM_w->GetBinContent(DYM_w->FindBin(pt));
-        } else if (sample_type==4){
+        } else if (dataset_id==4){
             return TTJ_w->GetBinContent(TTJ_w->FindBin(pt));
-        } else if (sample_type==5){
+        } else if (dataset_id==5){
             return WJ_w->GetBinContent(WJ_w->FindBin(pt));
-        } else if (sample_type==6){
+        } else if (dataset_id==6){
             return QCD_w->GetBinContent(QCD_w->FindBin(pt));
         } else{
-            throw std::runtime_error("Selection ID not recognised");
+            throw std::runtime_error("Selection ID not recognised, value: " + std::to_string(dataset_id));
         }
       }
 
@@ -888,8 +893,8 @@ public:
           CellGrid grid = cellGridRef;
           const double tau_pt = tau.tau_pt, tau_eta = tau.tau_eta, tau_phi = tau.tau_phi;
 
-          const auto fillCells = [&](CellObjectType type, const std::vector<float>& eta_vec,
-                                    const std::vector<float>& phi_vec, const std::vector<int>& particleType = {}) {
+          const auto fillCells = [&](CellObjectType type, auto eta_vec,
+                                    auto phi_vec, auto particleType) {
               if(eta_vec.size() != phi_vec.size())
                   throw std::runtime_error("Inconsistent cell inputs.");
               for(size_t n = 0; n < eta_vec.size(); ++n) {
@@ -913,8 +918,8 @@ public:
           fillCells(CellObjectType::PfCand_chHad, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_particleType);
           fillCells(CellObjectType::PfCand_nHad, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_particleType);
           fillCells(CellObjectType::PfCand_gamma, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_particleType);
-          fillCells(CellObjectType::Electron, tau.ele_eta, tau.ele_phi);
-          fillCells(CellObjectType::Muon, tau.muon_eta, tau.muon_phi);
+          fillCells(CellObjectType::Electron, tau.ele_eta, tau.ele_phi, std::vector<int>());
+          fillCells(CellObjectType::Muon, tau.muon_eta, tau.muon_phi, std::vector<int>());
 
           return grid;
       }
