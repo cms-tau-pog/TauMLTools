@@ -7,6 +7,7 @@
 
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 #include "TauMLTools/Analysis/interface/AnalysisTypes.h"
+#include "TauMLTools/Core/interface/RootExt.h"
 
 template <typename T, typename Tuple>
 struct ElementIndex;
@@ -161,9 +162,14 @@ public:
     {
       ROOT::EnableThreadSafety();
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
-
-
-      // LR Do somewhere here
+      
+      std::shared_ptr<TFile> adv_weights = root_ext::OpenRootFile(adversarial_weights);
+      auto data_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "data", "data_w", true);
+      auto DYT_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "DYT", "DYT_w", true);
+      auto TTT_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "TTT", "TTT_w", true);
+      auto DYM_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "DYM", "DYM_w", true);
+      auto WJ_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "WJ", "WJ_w", true);
+      auto QCD_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "QCD", "QCD_w", true);
 
       if (yaxis.size() != (xaxis_list.size() + 1)){
         throw std::invalid_argument("Y binning list does not match X binning length");
@@ -323,12 +329,6 @@ public:
 
       const double GetAdversarialWeight(const ULong64_t dataset_id, const double pt) const
       {
-        // if(pt<=pt_min || pt>=pt_max) return 0;
-        // if (dataset_id<0){
-        //   throw std::runtime_error("Selection ID not recognised, value: " + std::to_string(dataset_id));
-        // } else{
-        //   return 1;
-        // }
         if (dataset_id==0){
           return data_w->GetBinContent(data_w->FindBin(pt));
         } else if (dataset_id==1){
@@ -948,13 +948,16 @@ private:
   std::unique_ptr<TauTuple> tauTuple;
   std::unique_ptr<Data> data;
   std::unordered_map<int ,std::shared_ptr<TH2D>> hist_weights;
-  TFile* adv_weights = TFile::Open(adversarial_weights.c_str(),"READ");
-  TH1D* data_w = (TH1D*)adv_weights->Get("data");
-  TH1D* DYT_w = (TH1D*)adv_weights->Get("DYT");
-  TH1D* TTT_w = (TH1D*)adv_weights->Get("TTT");
-  TH1D* DYM_w = (TH1D*)adv_weights->Get("DYM");
-  TH1D* TTJ_w = (TH1D*)adv_weights->Get("TTJ");
-  TH1D* WJ_w = (TH1D*)adv_weights->Get("WJ");
-  TH1D* QCD_w = (TH1D*)adv_weights->Get("QCD");
+  
+  
+  //TFile* adv_weights = TFile::Open(adversarial_weights.c_str(),"READ");
+  // TH1D* data_w = (TH1D*)adv_weights->Get("data");
+  // TH1D* DYT_w = (TH1D*)adv_weights->Get("DYT");
+  // TH1D* TTT_w = (TH1D*)adv_weights->Get("TTT");
+  // TH1D* DYM_w = (TH1D*)adv_weights->Get("DYM");
+  // TH1D* TTJ_w = (TH1D*)adv_weights->Get("TTJ");
+  // TH1D* WJ_w = (TH1D*)adv_weights->Get("WJ");
+  // TH1D* QCD_w = (TH1D*)adv_weights->Get("QCD");
+  
 
 };
