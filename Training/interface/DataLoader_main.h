@@ -162,6 +162,10 @@ public:
     {
       ROOT::EnableThreadSafety();
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
+      if (yaxis.size() != (xaxis_list.size() + 1)){
+        throw std::invalid_argument("Y binning list does not match X binning length");
+      }
+
       
       std::shared_ptr<TFile> adv_weights = root_ext::OpenRootFile(adversarial_weights);
       auto data_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "data", "data_w", true);
@@ -170,10 +174,6 @@ public:
       auto DYM_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "DYM", "DYM_w", true);
       auto WJ_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "WJ", "WJ_w", true);
       auto QCD_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "QCD", "QCD_w", true);
-
-      if (yaxis.size() != (xaxis_list.size() + 1)){
-        throw std::invalid_argument("Y binning list does not match X binning length");
-      }
 
       // file = OpenRootFile(file_name);
       // tauTuple = std::make_shared<tau_tuple::TauTuple>(file.get(), true);
