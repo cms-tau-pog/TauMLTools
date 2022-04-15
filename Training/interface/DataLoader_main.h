@@ -172,8 +172,19 @@ public:
       auto DYT_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "DYT", "DYT_w", true);
       auto TTT_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "TTT", "TTT_w", true);
       auto DYM_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "DYM", "DYM_w", true);
+      auto TTJ_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "TTJ", "TTJ_w", true);
       auto WJ_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "WJ", "WJ_w", true);
       auto QCD_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "QCD", "QCD_w", true);
+
+      a_weights.insert(std::make_pair(0, data_w));
+      a_weights.insert(std::make_pair(1, DYT_w));
+      a_weights.insert(std::make_pair(2, TTT_w));
+      a_weights.insert(std::make_pair(3, DYM_w));
+      a_weights.insert(std::make_pair(4, TTJ_w));
+      a_weights.insert(std::make_pair(5, WJ_w));
+      a_weights.insert(std::make_pair(6, QCD_w));
+
+  
 
       // file = OpenRootFile(file_name);
       // tauTuple = std::make_shared<tau_tuple::TauTuple>(file.get(), true);
@@ -329,23 +340,24 @@ public:
 
       const double GetAdversarialWeight(const ULong64_t dataset_id, const double pt) const
       {
-        if (dataset_id==0){
-          return data_w->GetBinContent(data_w->FindBin(pt));
-        } else if (dataset_id==1){
-            return DYT_w->GetBinContent(DYT_w->FindBin(pt));
-        } else if (dataset_id==2){
-            return TTT_w->GetBinContent(TTT_w->FindBin(pt));
-        } else if (dataset_id==3){
-            return DYM_w->GetBinContent(DYM_w->FindBin(pt));
-        } else if (dataset_id==4){
-            return TTJ_w->GetBinContent(TTJ_w->FindBin(pt));
-        } else if (dataset_id==5){
-            return WJ_w->GetBinContent(WJ_w->FindBin(pt));
-        } else if (dataset_id==6){
-            return QCD_w->GetBinContent(QCD_w->FindBin(pt));
-        } else{
-            throw std::runtime_error("Selection ID not recognised, value: " + std::to_string(dataset_id));
-        }
+        return a_weights.at(dataset_id)->GetBinContent(a_weights.at(dataset_id)->FindBin(pt));
+        // if (dataset_id==0){
+        //   return data_w->GetBinContent(data_w->FindBin(pt));
+        // } else if (dataset_id==1){
+        //     return DYT_w->GetBinContent(DYT_w->FindBin(pt));
+        // } else if (dataset_id==2){
+        //     return TTT_w->GetBinContent(TTT_w->FindBin(pt));
+        // } else if (dataset_id==3){
+        //     return DYM_w->GetBinContent(DYM_w->FindBin(pt));
+        // } else if (dataset_id==4){
+        //     return TTJ_w->GetBinContent(TTJ_w->FindBin(pt));
+        // } else if (dataset_id==5){
+        //     return WJ_w->GetBinContent(WJ_w->FindBin(pt));
+        // } else if (dataset_id==6){
+        //     return QCD_w->GetBinContent(QCD_w->FindBin(pt));
+        // } else{
+        //     throw std::runtime_error("Selection ID not recognised, value: " + std::to_string(dataset_id));
+        // }
       }
 
       template<typename Scalar>
@@ -948,7 +960,7 @@ private:
   std::unique_ptr<TauTuple> tauTuple;
   std::unique_ptr<Data> data;
   std::unordered_map<int ,std::shared_ptr<TH2D>> hist_weights;
-  
+  std::map<Long64_t, std::shared_ptr<TH1D>> a_weights;
   
   //TFile* adv_weights = TFile::Open(adversarial_weights.c_str(),"READ");
   // TH1D* data_w = (TH1D*)adv_weights->Get("data");
