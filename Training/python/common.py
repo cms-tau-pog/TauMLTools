@@ -231,12 +231,10 @@ class TauLosses:
     @staticmethod
     @tf.function
     def tau_crossentropy_v2(target, output):
-        F_factor = tf.constant(5, dtype=output.dtype.base_dtype)
-        sf = tf.constant([TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf],
-                         dtype=output.dtype.base_dtype)
-        return sf[tau] * TauLosses.Htau(target, output) + (sf[e] + sf[mu] + sf[jet]) * TauLosses.Fcmb(target, output) \
-               + F_factor * (sf[e] * TauLosses.Fe(target, output) + sf[mu] * TauLosses.Fmu(target, output) \
-                             + sf[jet] * TauLosses.Fjet(target, output))
+        tau_target = target[:, 2:3] # MC_tau->0, data_tau->1, this is done by setting y_onehot in main DataLoader 
+        tau_output = output[:, 2:3] # LR: only look at tau output (index 2)
+        loss = tf.keras.losses.binary_crossentropy(tau_target, tau_output) # LR: Standard cross entropy loss function
+        return loss
 
     @staticmethod
     @tf.function

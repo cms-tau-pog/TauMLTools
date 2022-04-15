@@ -201,21 +201,22 @@ public:
       if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
 
       for( auto const& [tau_type, tau_name] : tau_types_names)
-      {
-        std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
-        if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+tau_name);
-        target_histogram.th2d_add(*(target_th2d.get()));
-        input_histogram .th2d_add(*(input_th2d .get()));
+      { if (tau_type != 8){
+          std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
+          if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+tau_name);
+          target_histogram.th2d_add(*(target_th2d.get()));
+          input_histogram .th2d_add(*(input_th2d .get()));
 
-        target_histogram.divide(input_histogram);
-        hist_weights[tau_type] = target_histogram.get_weights_th2d(
-            ("w_1_"+tau_name).c_str(),
-            ("w_1_"+tau_name).c_str()
-        );
-        if (debug) hist_weights[tau_type]->SaveAs(("Temp_"+tau_name+".root").c_str()); // It's required that all bins are filled in these histograms; save them to check incase binning is too fine and some bins are empty
+          target_histogram.divide(input_histogram);
+          hist_weights[tau_type] = target_histogram.get_weights_th2d(
+              ("w_1_"+tau_name).c_str(),
+              ("w_1_"+tau_name).c_str()
+          );
+          if (debug) hist_weights[tau_type]->SaveAs(("Temp_"+tau_name+".root").c_str()); // It's required that all bins are filled in these histograms; save them to check incase binning is too fine and some bins are empty
 
-        target_histogram.reset();
-        input_histogram .reset();
+          target_histogram.reset();
+          input_histogram .reset();
+      }
       }
       MaxDisbCheck(hist_weights, weight_thr);
     }
@@ -270,11 +271,11 @@ public:
           //   }
 
 
-          if (gen_match &&tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
+          if ((gen_match || tau.tauType == 8) && tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
 
-            if (tau.dataset_id==0){
-              std::cout<<"Data passed gen match"<<std::endl;
-            }
+            // if (tau.dataset_id==0){
+            //   std::cout<<"Data passed gen match"<<std::endl;
+            // }
 
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
@@ -283,9 +284,10 @@ public:
             // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
             if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
 
-              if (tau.dataset_id==0){
+              if (tau.tauType==8){
                 data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // label 1 for data
-                std::cout<<"Data passed selection"<<std::endl;
+                // std::cout<<"Data passed selection"<<std::endl;
+
               } else{
                 data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 0.0; // label 0 for all others
                 // std::cout<<"Something else passed selection"<<std::endl;
