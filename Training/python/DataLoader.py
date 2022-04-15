@@ -111,7 +111,7 @@ class DataLoader (DataLoaderBase):
         
         if self.input_type == "ROOT":
             data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
-            self.train_files = ["/home/russell/MC_dataset/mixedOutput_train.root "]
+            self.train_files = ["/home/russell/MC_dataset/Combined/mixedOutput_all.root "] #if runnign training direct from ROOT
             self.val_files = ["/home/russell/MC_dataset/mixedOutput_valid.root "] # put this here so doesn't complain
             # self.train_files, self.val_files = \
             #     np.split(data_files, [int(len(data_files)*(1-self.validation_split))])

@@ -265,14 +265,32 @@ public:
           // std::cout << tau.tau_pt << std::endl;
           // std::cout << tau.dataset_id << std::endl;
 
+          // if (tau.dataset_id==0){
+          //     std::cout<<"Data event inside batch loop"<<std::endl;
+          //   }
+
+
           if (gen_match &&tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
+
+            if (tau.dataset_id==0){
+              std::cout<<"Data passed gen match"<<std::endl;
+            }
+
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
             }
 
             // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
             if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
-              data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
+
+              if (tau.dataset_id==0){
+                data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // label 1 for data
+                std::cout<<"Data passed selection"<<std::endl;
+              } else{
+                data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 0.0; // label 0 for all others
+                // std::cout<<"Something else passed selection"<<std::endl;
+              }
+              
               // data->weight.at(data->tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
               data->weight.at(data->tau_i) = GetAdversarialWeight(tau.dataset_id, tau.tau_pt); // filling weights
               FillTauBranches(tau, data->tau_i);

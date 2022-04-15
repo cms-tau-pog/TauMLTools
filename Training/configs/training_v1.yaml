@@ -14,7 +14,7 @@ Setup:
     DeepTauVSjet_cut     : -1.0 
     recompute_tautype    : True
     include_mismatched   : False # whether to keep tau candidates with tau_type not present in `tau_types_names`
-    input_dir            : "/home/russell/MC_dataset"
+    input_dir            : "/home/russell/MC_dataset/Combined"
     input_spectrum       : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_TrainingSpectrum/ShuffleMergeSpectral_trainingSamples-2_rerun.root"
     target_spectrum      : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_TrainingSpectrum/ShuffleMergeSpectral_trainingSamples-2_rerun.root"
     weight_thr           : 100000.0
@@ -65,8 +65,8 @@ Setup:
 
 SetupNN:
     model_name           : "DeepTau2018v0"
-    n_batches            : 150
-    n_batches_val        : 50
+    n_batches            : 20
+    n_batches_val        : 0
     n_batches_log        : 10 # monitor every n batches in tensorboard
     epoch                : 0
     n_epochs             : 1
