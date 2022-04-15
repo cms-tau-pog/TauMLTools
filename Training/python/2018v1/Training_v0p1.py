@@ -26,6 +26,7 @@ mlflow.tensorflow.autolog(log_models=False)
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
+import json
 
 sys.path.insert(0, "..")
 from common import *
@@ -365,7 +366,7 @@ def create_model(net_config, model_name):
     model = DeepTauModel(input_layers, softmax_output, name=model_name)
     return model
 
-def compile_model(model, opt_name, learning_rate):
+def compile_model(model, loss, opt_name, learning_rate):
     # opt = keras.optimizers.Adam(lr=learning_rate)
     opt = getattr(tf.keras.optimizers, opt_name)(learning_rate=learning_rate)
     #opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, schedule_decay=1e-4)
@@ -379,11 +380,15 @@ def compile_model(model, opt_name, learning_rate):
         TauLosses.Hcat_eInv, TauLosses.Hcat_muInv, TauLosses.Hcat_jetInv,
         TauLosses.Fe, TauLosses.Fmu, TauLosses.Fjet, TauLosses.Fcmb
     ]
-    model.compile(loss=None, optimizer=opt, metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
+    model.compile(loss=loss, optimizer=opt, metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
 
     # log metric names for passing them during model loading
     metric_names = {(m if isinstance(m, str) else m.__name__): '' for m in metrics}
     mlflow.log_dict(metric_names, 'input_cfg/metric_names.json')
+
+    # need to save only custome object for model load
+    metric_names_cus = {(m.__name__): '' for m in metrics if not isinstance(m, str)}
+    mlflow.log_dict(metric_names_cus, 'input_cfg/metric_names_custom.json')
 
 def run_training(model, data_loader, to_profile, log_suffix):
 
@@ -491,8 +496,26 @@ def main(cfg: DictConfig) -> None:
         print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
 
         netConf_full = dataloader.get_net_config()
-        model = create_model(netConf_full, dataloader.model_name)
-        compile_model(model, setup["optimizer_name"], setup["learning_rate"])
+        compile_loss = None if setup["loss"] is None else getattr(TauLosses,setup["loss"])
+
+        if cfg.pretrained is None:
+            print("Warning: no pretrained NN -> training will be started from scratch")
+            model = create_model(netConf_full, dataloader.model_name)
+        else:
+            print("Warning: training will be started from pretrained model.")
+            print(f"Model: run_id={cfg.pretrained.run_id}, experiment_id={cfg.pretrained.experiment_id}, model={cfg.pretrained.starting_model}")
+            path_to_pretrain = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.pretrained.experiment_id}/{cfg.pretrained.run_id}/artifacts/')
+            with open(to_absolute_path(f'{path_to_pretrain}/input_cfg/metric_names_custom.json')) as f:
+                metric_names = json.load(f)
+            custom_objects = {"DeepTauModel": DeepTauModel, **{name: getattr(TauLosses,name) for name in metric_names.keys()}}
+            model = load_model(path_to_pretrain+f"/model_checkpoints/{cfg.pretrained.starting_model}",
+                compile=False, custom_objects = custom_objects)
+
+            # Currently not working option:
+            # model = create_model(netConf_full, dataloader.model_name)
+            # model.load_weights(path_to_pretrain+f"/model_checkpoints/{cfg.pretrained.starting_model}", by_name=True)
+
+        compile_model(model, compile_loss, setup["optimizer_name"], setup["learning_rate"])
         fit_hist = run_training(model, dataloader, False, cfg.log_suffix)
 
         # log NN params
