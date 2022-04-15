@@ -168,23 +168,15 @@ public:
 
       
       std::shared_ptr<TFile> adv_weights = root_ext::OpenRootFile(adversarial_weights);
-      auto data_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "data", "data_w", true);
-      auto DYT_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "DYT", "DYT_w", true);
-      auto TTT_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "TTT", "TTT_w", true);
-      auto DYM_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "DYM", "DYM_w", true);
-      auto TTJ_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "TTJ", "TTJ_w", true);
-      auto WJ_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "WJ", "WJ_w", true);
-      auto QCD_w = root_ext::ReadCloneObject<TH1D>(*adv_weights, "QCD", "QCD_w", true);
 
-      a_weights.insert(std::make_pair(0, data_w));
-      a_weights.insert(std::make_pair(1, DYT_w));
-      a_weights.insert(std::make_pair(2, TTT_w));
-      a_weights.insert(std::make_pair(3, DYM_w));
-      a_weights.insert(std::make_pair(4, TTJ_w));
-      a_weights.insert(std::make_pair(5, WJ_w));
-      a_weights.insert(std::make_pair(6, QCD_w));
+      a_weights.insert(std::make_pair(0, root_ext::ReadCloneObject<TH1D>(*adv_weights, "data", "data_w", true)));
+      a_weights.insert(std::make_pair(1, root_ext::ReadCloneObject<TH1D>(*adv_weights, "DYT", "DYT_w", true)));
+      a_weights.insert(std::make_pair(2, root_ext::ReadCloneObject<TH1D>(*adv_weights, "TTT", "TTT_w", true)));
+      a_weights.insert(std::make_pair(3, root_ext::ReadCloneObject<TH1D>(*adv_weights, "DYM", "DYM_w", true)));
+      a_weights.insert(std::make_pair(4, root_ext::ReadCloneObject<TH1D>(*adv_weights, "TTJ", "TTJ_w", true)));
+      a_weights.insert(std::make_pair(5, root_ext::ReadCloneObject<TH1D>(*adv_weights, "WJ", "WJ_w", true)));
+      a_weights.insert(std::make_pair(6, root_ext::ReadCloneObject<TH1D>(*adv_weights, "QCD", "QCD_w", true)));
 
-  
 
       // file = OpenRootFile(file_name);
       // tauTuple = std::make_shared<tau_tuple::TauTuple>(file.get(), true);
