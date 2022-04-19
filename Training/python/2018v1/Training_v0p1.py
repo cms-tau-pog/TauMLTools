@@ -482,7 +482,12 @@ def main(cfg: DictConfig) -> None:
         run_kwargs = {'experiment_id': experiment_id}
 
     # run the training with mlflow tracking
-    with mlflow.start_run(**run_kwargs) as active_run:
+    with mlflow.start_run(**run_kwargs) as main_run:
+        if cfg["pretrained"] is not None:
+            mlflow.start_run(experiment_id=run_kwargs['experiment_id'], nested=True)
+        active_run = mlflow.active_run()
+        run_id = active_run.info.run_id
+
         run_id = active_run.info.run_id
         setup_gpu(cfg.gpu_cfg)
         training_cfg = OmegaConf.to_object(cfg.training_cfg) # convert to python dictionary
@@ -542,6 +547,7 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_param('run_id', run_id)
         mlflow.log_param('git_commit', _get_git_commit(to_absolute_path('.')))
         print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {run_id}\n')
-
+        mlflow.end_run()
+       
 if __name__ == '__main__':
     main()
