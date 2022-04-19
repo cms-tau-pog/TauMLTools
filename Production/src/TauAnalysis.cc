@@ -39,4 +39,13 @@ double CalculateDeltaEtaCrack(double eta)
     return std::abs(retVal);
 }
 
+double PFIsolation(const pat::Muon& muon)
+{
+    const double sum_neutral = muon.pfIsolationR04().sumNeutralHadronEt
+                             + muon.pfIsolationR04().sumPhotonEt
+                             - 0.5 * muon.pfIsolationR04().sumPUPt;
+    const double abs_iso = muon.pfIsolationR04().sumChargedHadronPt + std::max(sum_neutral, 0.0);
+    return abs_iso / muon.pt();
+}
+
 } // namespace tau_analysis
