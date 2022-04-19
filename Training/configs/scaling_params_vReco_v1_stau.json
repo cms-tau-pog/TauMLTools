@@ -1,0 +1,254 @@
+{
+    "PfCand": {
+        "pfCand_pt": {
+            "global": {
+                "mean": 1.791,
+                "std": 14.75,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_eta": {
+            "global": {
+                "mean": 0.0,
+                "std": 3.0,
+                "lim_min": -1.0,
+                "lim_max": 1.0
+            }
+        },
+        "pfCand_phi": {
+            "global": {
+                "mean": 0.0,
+                "std": 3.141592653589793,
+                "lim_min": -1.0,
+                "lim_max": 1.0
+            }
+        },
+        "pfCand_mass": {
+            "global": {
+                "mean": 0.09171,
+                "std": 0.06613,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_charge": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_puppiWeight": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_puppiWeightNoLep": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_lostInnerHits": {
+            "global": {
+                "mean": 5.0,
+                "std": 5.0,
+                "lim_min": -1.0,
+                "lim_max": 1.0
+            }
+        },
+        "pfCand_nPixelHits": {
+            "global": {
+                "mean": 5.0,
+                "std": 5.0,
+                "lim_min": -1.0,
+                "lim_max": 1.0
+            }
+        },
+        "pfCand_nHits": {
+            "global": {
+                "mean": 5.765,
+                "std": 8.224,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_hasTrackDetails": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_dxy": {
+            "global": {
+                "mean": -0.01459,
+                "std": 2.34,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_dxy_error": {
+            "global": {
+                "mean": 0.02774,
+                "std": 0.08977,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_dz": {
+            "global": {
+                "mean": -0.0212,
+                "std": 7.826,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_dz_error": {
+            "global": {
+                "mean": 0.0479,
+                "std": 0.686,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_track_chi2": {
+            "global": {
+                "mean": 10.52,
+                "std": 57.13,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_track_ndof": {
+            "global": {
+                "mean": 13.59,
+                "std": 6.872,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_caloFraction": {
+            "global": {
+                "mean": 0.5,
+                "std": 0.5,
+                "lim_min": -1.0,
+                "lim_max": 1.0
+            }
+        },
+        "pfCand_hcalFraction": {
+            "global": {
+                "mean": 0.5,
+                "std": 0.5,
+                "lim_min": -1.0,
+                "lim_max": 1.0
+            }
+        },
+        "pfCand_rawCaloFraction": {
+            "global": {
+                "mean": 1.3,
+                "std": 1.3,
+                "lim_min": -1.0,
+                "lim_max": 1.0
+            }
+        },
+        "pfCand_rawHcalFraction": {
+            "global": {
+                "mean": 0.5,
+                "std": 0.5,
+                "lim_min": -1.0,
+                "lim_max": 1.0
+            }
+        },
+        "pfCand_valid": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_px": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_py": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_pz": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_E": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_deta": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_dphi": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        }
+    },
+    "PfCandCategorical": {
+        "pfCand_particleType": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_pvAssociationQuality": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        },
+        "pfCand_fromPV": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf"
+            }
+        }
+    }
+}

@@ -101,13 +101,15 @@ struct Data {
     typedef std::unordered_map<CellObjectType, std::unordered_map<bool, std::vector<float>>> GridMap;
 
     Data(size_t n_tau, size_t tau_fn, size_t n_inner_cells,
-         size_t n_outer_cells, size_t pfelectron_fn, size_t pfmuon_fn,
+         size_t n_outer_cells, size_t globalgrid_fn, size_t pfelectron_fn, size_t pfmuon_fn,
          size_t pfchargedhad_fn, size_t pfneutralhad_fn, size_t pfgamma_fn,
          size_t electron_fn, size_t muon_fn, size_t tau_labels) :
-         x_tau(n_tau * tau_fn, 0), weight(n_tau, 0), y_onehot(n_tau * tau_labels, 0)
+         tau_i(0), x_tau(n_tau * tau_fn, 0), weight(n_tau, 0), y_onehot(n_tau * tau_labels, 0),
+         uncompress_index(n_tau, 0), uncompress_size(0)
          {
-          // pf electron
-           // x_grid[CellObjectType::PfCand_electron][0] = std::vector<float>(n_tau * n_outer_cells * n_outer_cells * pfelectron_fn,0);
+           x_grid[CellObjectType::GridGlobal][0].resize(n_tau * n_outer_cells * n_outer_cells * globalgrid_fn,0);
+           x_grid[CellObjectType::GridGlobal][1].resize(n_tau * n_inner_cells * n_inner_cells * globalgrid_fn,0);
+           // pf electron
            x_grid[CellObjectType::PfCand_electron][0].resize(n_tau * n_outer_cells * n_outer_cells * pfelectron_fn,0);
            x_grid[CellObjectType::PfCand_electron][1].resize(n_tau * n_inner_cells * n_inner_cells * pfelectron_fn,0);
            // pf muons
@@ -129,6 +131,9 @@ struct Data {
            x_grid[CellObjectType::Muon][0].resize(n_tau * n_outer_cells * n_outer_cells * muon_fn,0);
            x_grid[CellObjectType::Muon][1].resize(n_tau * n_inner_cells * n_inner_cells * muon_fn,0);
          }
+    Long64_t tau_i; // the number of taus filled in the tensor filled_tau <= n_tau;
+    std::vector<unsigned long> uncompress_index; // index of the tau when events are dropped;
+    Long64_t uncompress_size;
 
     std::vector<float> x_tau;
     GridMap x_grid; // [enum class CellObjectType][ 0 - outer, 1 - inner]
@@ -151,7 +156,7 @@ public:
         innerCellGridRef(n_inner_cells, n_inner_cells, inner_cell_size, inner_cell_size),
         outerCellGridRef(n_outer_cells, n_outer_cells, outer_cell_size, outer_cell_size),
         hasData(false), fullData(false), hasFile(false)
-    { 
+    {
       ROOT::EnableThreadSafety();
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
 
@@ -180,7 +185,7 @@ public:
 
       std::shared_ptr<TH2D> target_th2d = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
       if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
-      
+
       for( auto const& [tau_type, tau_name] : tau_types_names)
       {
         std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
@@ -189,10 +194,11 @@ public:
         input_histogram .th2d_add(*(input_th2d .get()));
 
         target_histogram.divide(input_histogram);
-        hist_weights[tau_type] = std::make_shared<TH2D>(target_histogram.get_weights_th2d(
+        hist_weights[tau_type] = target_histogram.get_weights_th2d(
             ("w_1_"+tau_name).c_str(),
             ("w_1_"+tau_name).c_str()
-        ));
+        );
+        if (debug) hist_weights[tau_type]->SaveAs(("Temp_"+tau_name+".root").c_str()); // It's required that all bins are filled in these histograms; save them to check incase binning is too fine and some bins are empty
 
         target_histogram.reset();
         input_histogram .reset();
@@ -211,7 +217,7 @@ public:
         end_entry = tauTuple->GetEntries();
         if(end_file!=-1) end_entry = std::min(end_file, end_entry);
         hasFile = true;
-    } 
+    }
 
     bool MoveNext() {
         if(!hasFile)
@@ -221,14 +227,15 @@ public:
           throw std::runtime_error("TauTuple is not loaded!");
 
         if(!hasData) {
-          data = std::make_unique<Data>(n_tau, n_TauFlat, n_inner_cells, n_outer_cells,
+          data = std::make_unique<Data>(n_tau, n_TauFlat, n_inner_cells, n_outer_cells, n_GridGlobal,
                                         n_PfCand_electron, n_PfCand_muon, n_PfCand_chHad, n_PfCand_nHad,
                                         n_PfCand_gamma, n_Electron, n_Muon, tau_types_names.size()
                                         );
-          tau_i = 0;
+          data->tau_i = 0;
+          data->uncompress_size = 0;
           hasData = true;
         }
-        while(tau_i < n_tau) {
+        while(data->tau_i < n_tau) {
           if(current_entry == end_entry) {
             hasFile = false;
             return false;
@@ -236,33 +243,39 @@ public:
           tauTuple->GetEntry(current_entry);
           auto& tau = const_cast<tau_tuple::Tau&>(tauTuple->data());
 
-          const auto gen_match = analysis::GetGenLeptonMatch(tau);
+          const auto gen_match = analysis::GetGenLeptonMatch(tau.genLepton_kind, tau.genLepton_index, tau.tau_pt, tau.tau_eta, tau.tau_phi,
+                                                            tau.tau_mass, tau.genLepton_vis_pt, tau.genLepton_vis_eta, tau.genLepton_vis_phi, 
+                                                            tau.genLepton_vis_mass, tau.genJet_index);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
 
-          if (gen_match){
+          if (gen_match &&tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
             }
 
             // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
             if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
-              data->y_onehot[ tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
-              data->weight.at(tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
-              FillTauBranches(tau, tau_i);
-              FillCellGrid(tau, tau_i, innerCellGridRef, true);
-              FillCellGrid(tau, tau_i, outerCellGridRef, false);
-              ++tau_i;
+              data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
+              data->weight.at(data->tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
+              FillTauBranches(tau, data->tau_i);
+              FillCellGrid(tau, data->tau_i, innerCellGridRef, true);
+              FillCellGrid(tau, data->tau_i, outerCellGridRef, false);
+              data->uncompress_index[data->tau_i] = data->uncompress_size;
+              ++(data->tau_i);
             }
           }
+          ++(data->uncompress_size);
           ++current_entry;
         }
         fullData = true;
         return true;
     }
 
-    const Data* LoadData() {
-      if(!fullData)
-        throw std::runtime_error("Data was not loaded with MoveNext()");
+    bool hasAnyData() {return hasData;}
+
+    const Data* LoadData(bool needFull) {
+      if(!fullData && needFull)
+        throw std::runtime_error("Data was not loaded with MoveNext() or array was not fully filled");
       fullData = false;
       hasData = false;
       return data.get();
@@ -312,8 +325,8 @@ public:
       template <typename FeatureT>
       const float Scale(const int idx, const float value, const bool inner)
       {
-        return std::clamp((value - FeatureT::mean[idx][inner]) / FeatureT::std[idx][inner],
-                          FeatureT::lim_min[idx][inner], FeatureT::lim_max[idx][inner]);
+        return std::clamp((value - FeatureT::mean.at(idx).at(inner)) / FeatureT::std.at(idx).at(inner),
+                          FeatureT::lim_min.at(idx).at(inner), FeatureT::lim_max.at(idx).at(inner));
       }
 
       void FillTauBranches(const Tau& tau, Long64_t tau_i)
@@ -328,6 +341,7 @@ public:
             data->x_tau.at(index) = Scale<Scaling::TauFlat>(_fe_ind, value, false);
         };
 
+        fill_tau(TauFlat_Features::rho, tau.rho);
         fill_tau(TauFlat_Features::tau_pt, tau.tau_pt);
         fill_tau(TauFlat_Features::tau_eta, tau.tau_eta);
         fill_tau(TauFlat_Features::tau_phi, tau.tau_phi);
@@ -478,6 +492,13 @@ public:
                 }
             }
         };
+        { // CellObjectType::GridGlobal
+            typedef GridGlobal_Features Br;
+            fillGrid(Br::rho, tau.rho);
+            fillGrid(Br::tau_pt, tau.tau_pt);
+            fillGrid(Br::tau_eta, tau.tau_eta);
+            fillGrid(Br::tau_inside_ecal_crack, tau.tau_inside_ecal_crack);
+        }
 
         { // CellObjectType::PfCand_electron
 
@@ -762,7 +783,7 @@ public:
             fillGrid(Br::muon_dphi, DeltaPhi(tau.muon_phi.at(idx), tau.tau_phi));
 
             fillGrid(Br::muon_dxy, tau.muon_dxy.at(idx));
-            if(tau.muon_dxy_error.at(idx) != 0)
+            if(std::isnormal(tau.muon_dxy_error.at(idx)) && std::isnormal(tau.muon_dxy.at(idx))) 
               fillGrid(Br::muon_dxy_sig, std::abs(tau.muon_dxy.at(idx)) / tau.muon_dxy_error.at(idx));
 
             const bool normalizedChi2_valid = tau.muon_normalizedChi2.at(idx) >= 0;
@@ -818,7 +839,7 @@ public:
       }
 
       static bool isSameCellObjectType(int particleType, CellObjectType type)
-      { 
+      {
           static const std::set<int> other_types = {0, 6, 7};
 
           static const std::map<int, CellObjectType> obj_types = {
@@ -828,7 +849,7 @@ public:
               { 5, CellObjectType::PfCand_nHad },
               { 1, CellObjectType::PfCand_chHad }
           };
-          
+
           if(other_types.find(particleType) != other_types.end()) return false;
           auto iter = obj_types.find(particleType);
           if(iter == obj_types.end())
@@ -853,9 +874,9 @@ public:
                   const double dR = std::hypot(deta, dphi);
                   const bool inside_signal_cone = dR < getInnerSignalConeRadius(tau_pt);
                   const bool inside_iso_cone = dR < iso_cone;
-                  if(inner && !inside_signal_cone) continue;
-                  // if(!inner && (inside_signal_cone || !inside_iso_cone)) continue;
-                  if(!inner && !inside_iso_cone) continue;
+                  const bool accept_inner = inner && inside_signal_cone;
+                  const bool accept_outer = !inner && inside_iso_cone && (!rm_inner_from_outer || !inside_signal_cone);
+                  if(!(accept_inner || accept_outer)) continue;
                   CellIndex cellIndex;
                   if(grid.TryGetCellIndex(deta, dphi, cellIndex))
                       grid.at(cellIndex)[type].insert(n);
@@ -878,7 +899,6 @@ private:
   Long64_t end_entry;
   Long64_t current_entry; // number of the current entry in the file
   Long64_t current_tau; // number of the current tau candidate
-  Long64_t tau_i;
   const CellGrid innerCellGridRef, outerCellGridRef;
   // const std::vector<std::string> input_files;
 

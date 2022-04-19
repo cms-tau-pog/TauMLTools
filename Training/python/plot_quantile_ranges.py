@@ -7,11 +7,8 @@ import numpy as np
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 sns.set_theme(context='notebook', font='sans-serif', style='white', palette=None, font_scale=1.5,
               rc={"lines.linewidth": 2.5, "font.sans-serif": 'DejaVu Sans', "text.usetex": False})
-
-## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def plot_ranges(file_id, var_name, cone_type, mean, median, min_value, max_value,
                 clamp_range, one_sigma_range, two_sigma_range, three_sigma_range,
@@ -57,7 +54,7 @@ def plot_ranges(file_id, var_name, cone_type, mean, median, min_value, max_value
     plt.ylim(ylim)
     plt.xlim(xlim)
     plt.legend()
-    plt.show()
+    if not close_plot: plt.show()
     if savepath is not None:
         fig.savefig(f'{savepath}/{var_name}_{cone_type}.png')
     if close_plot:
@@ -67,17 +64,17 @@ def plot_ranges(file_id, var_name, cone_type, mean, median, min_value, max_value
     help="Plot for input features their interquantile ranges along with ranges to be clamped as a part of scaling step."
 )
 @click.option("--train-cfg", type=str, default='../configs/training_v1.yaml', help="Path to yaml configuration file used for training", show_default=True)
-@click.option("--scaling-file", type=str, default='../configs/scaling_params_v1.json', help="Path to json file with scaling parameters", show_default=True)
-@click.option("--quantile-file", type=str, default='../configs/quantile_params_v1_fid_0.json', help="Path to json file with quantile parameters", show_default=True)
+@click.option("--scaling-file", type=str, help="Path to json file with scaling parameters")
+@click.option("--quantile-file", type=str, help="Path to json file with quantile parameters")
 @click.option("--file-id", type=int, default=0, help="File ID to be picked from quantile parameters file", show_default=True)
-@click.option("--output-folder", type=str, default='quantile_plots', help="Folder to store range plots", show_default=True)
-@click.option('--only-suspicious', type=bool, default=True, show_default=True )
+@click.option("--output-folder", type=str, default='scaling_plots/quantiles', help="Folder to store range plots", show_default=True)
+@click.option('--only-suspicious', type=bool, default=False, show_default=True )
 def main(
     train_cfg, scaling_file, quantile_file, file_id,
     output_folder, only_suspicious
 ):
     if not os.path.isdir(output_folder):
-        os.mkdir(output_folder)
+        os.makedirs(output_folder)
     with open(train_cfg) as f:
         training_cfg = yaml.load(f, Loader=yaml.FullLoader)
     with open(scaling_file) as f:
@@ -88,7 +85,7 @@ def main(
     ### fetch type of scaling for a given variable
     for var_type in training_cfg['Features_all']: # loop over types of variables (particle types) specified in the training cfg
         if not os.path.isdir(f'{output_folder}/{var_type}'):
-            os.mkdir(f'{output_folder}/{var_type}')
+            os.makedirs(f'{output_folder}/{var_type}')
         print('\n\n')
         print(f'  <{var_type}>')
         print()
@@ -98,24 +95,29 @@ def main(
             var_scaling_type = var_dict[var_name][2]
             if var_scaling_type=='no_scaling' or var_scaling_type=='categorical':
                 continue
-            for cone_type in scaling_params[var_type][var_name]: # loop over cone types for which scaling params were computed
+            if var_type not in scaling_params:
+                print(f'[INFO] Variable type ({var_type}) is not present in the scaling json file, skipping it.')
+                continue
+            if var_name not in scaling_params[var_type]:
+                print(f'[INFO] Variable ({var_name}) is not present for variable type ({var_type}) in the scaling json file, skipping it.')
+                continue
+
+            # loop over cone types for which scaling params were computed
+            for cone_type in scaling_params[var_type][var_name]:
                 ### fetch variable's quantile and scaling dictionaries
                 try:
                     var_quantiles = quantile_params[var_type][var_name][cone_type][str(file_id)]
-                except Exception as e:
+                except:
                     print(f'[INFO] Failed to retrieve quantile parameters for var_name={var_name} and cone_type={cone_type}: skipping this variable')
                     continue
                 try:
                     var_scaling = scaling_params[var_type][var_name][cone_type]
-                except Exception as e:
+                except:
                     print(f'[INFO] Failed to retrieve scaling parameters for var_name={var_name} and cone_type={cone_type}: skipping this variable')
                     continue
 
-                ### fetch clamping params
+                ### fetch mean for clamping params
                 mean = var_scaling['mean']
-                clamp_range_left = mean + var_scaling['lim_min']*var_scaling['std']
-                clamp_range_right = mean + var_scaling['lim_max']*var_scaling['std']
-                clamp_range = [clamp_range_left, clamp_range_right]
 
                 ### fetch quantiles
                 median = var_quantiles['median']
@@ -140,15 +142,27 @@ def main(
 
                 ### check for anomalous behaviour
                 suspicious_dict = {}
-                suspicious_dict['left_within'] = clamp_range_left > two_sigma_left
-                suspicious_dict['right_within'] = clamp_range_right < two_sigma_right
-                # suspicious_dict['left_beyond'] = clamp_range_left < five_sigma_left
-                # suspicious_dict['right_beyond'] = clamp_range_right > five_sigma_right
-                suspicious_dict['one_sigma_empty'] = one_sigma_left == one_sigma_right
-                suspicious_dict['two_sigma_empty'] = two_sigma_left == two_sigma_right
-                suspicious_dict['three_sigma_empty'] = three_sigma_left == three_sigma_right
-                suspicious_dict['five_sigma_empty'] = five_sigma_left == five_sigma_right
-                is_suspicious = any(suspicious_dict.values())
+                has_None = None in [mean, median, min_value, max_value, one_sigma_left, two_sigma_left, three_sigma_left, five_sigma_left, one_sigma_right, two_sigma_right, three_sigma_right, five_sigma_right]
+                if not has_None:
+                    clamp_range_left = mean + var_scaling['lim_min']*var_scaling['std']
+                    clamp_range_right = mean + var_scaling['lim_max']*var_scaling['std']
+                    clamp_range = [clamp_range_left, clamp_range_right]
+                    suspicious_dict['left_within'] = clamp_range_left > two_sigma_left
+                    suspicious_dict['right_within'] = clamp_range_right < two_sigma_right
+                    # suspicious_dict['left_beyond'] = clamp_range_left < five_sigma_left
+                    # suspicious_dict['right_beyond'] = clamp_range_right > five_sigma_right
+                    suspicious_dict['one_sigma_empty'] = one_sigma_left == one_sigma_right
+                    suspicious_dict['two_sigma_empty'] = two_sigma_left == two_sigma_right
+                    suspicious_dict['three_sigma_empty'] = three_sigma_left == three_sigma_right
+                    suspicious_dict['five_sigma_empty'] = five_sigma_left == five_sigma_right
+                    is_suspicious = any(suspicious_dict.values())
+                elif mean is None:
+                    print(f'       {var_name}, {cone_type}: mean is empty')
+                    continue
+                else:
+                    print(f'       {var_name}, {cone_type}: quantiles are empty')
+                    continue
+
                 if is_suspicious or not only_suspicious:
                     plot_ranges(file_id, var_name, cone_type, None if var_scaling_type=='linear' else mean, median, min_value, max_value,
                                 clamp_range, one_sigma_range, two_sigma_range, three_sigma_range,
@@ -160,8 +174,6 @@ def main(
                     print()
                 else:
                     print(f'       {var_name}, {cone_type}: OK')
-
-################################################################################
 
 if __name__ == '__main__':
     main()

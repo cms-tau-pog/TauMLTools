@@ -12,6 +12,7 @@ def main(cfg: DictConfig) -> None:
         run_kwargs = {'experiment_id': experiment.experiment_id} 
     else: # create new experiment
         experiment_id = mlflow.create_experiment(cfg.experiment_name)
+        print(f'\nCreated experiment {cfg.experiment_name} with ID: {experiment_id}')
         run_kwargs = {'experiment_id': experiment_id} 
     if cfg.run_id is not None:
         run_kwargs['run_id'] = cfg.run_id # to log data into existing run

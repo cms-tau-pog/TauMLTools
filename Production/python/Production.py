@@ -7,10 +7,6 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 import RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD as tauAtMiniTools
 import os
 
-# include Phase2 specific configuration only after 11_0_X
-cmssw_release_numbers = os.environ.get('CMSSW_VERSION').replace('CMSSW_','').split("_")
-isPhase2 = int(cmssw_release_numbers[0]) >= 11
-
 
 options = VarParsing('analysis')
 options.register('sampleType', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
@@ -51,6 +47,9 @@ options.parseArguments()
 sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
 isData = sampleConfig.IsData(options.sampleType)
 isEmbedded = sampleConfig.IsEmbedded(options.sampleType)
+isRun2UL = sampleConfig.isRun2UL(options.sampleType)
+isRun2PreUL = sampleConfig.isRun2PreUL(options.sampleType)
+isPhase2 = sampleConfig.isPhase2(options.sampleType)
 period = sampleConfig.GetPeriod(options.sampleType)
 period_cfg = sampleConfig.GetPeriodCfg(options.sampleType)
 
@@ -117,6 +116,8 @@ if isPhase2:
     )
     tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
+elif isRun2UL:
+    boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 else:
     from TauMLTools.Production.runTauIdMVA import runTauID
     updatedTauName = "slimmedTausNewID"
@@ -149,7 +150,10 @@ else:
     boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
 
 # boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
-taus_InputTag = cms.InputTag('slimmedTausNewID')
+if isRun2UL:
+    taus_InputTag = cms.InputTag('slimmedTaus')
+else:
+    taus_InputTag = cms.InputTag('slimmedTausNewID')
 
 if isPhase2:
     process.slimmedElectronsMerged = cms.EDProducer("SlimmedElectronMerger",
@@ -226,6 +230,8 @@ if isPhase2:
         getattr(process, updatedTauName) +
         process.tupleProductionSequence
     )
+elif isRun2UL:
+    process.p = cms.Path(process.tupleProductionSequence)
 else:
     process.p = cms.Path(
         getattr(process, updatedTauName + 'rerunMvaIsolationSequence') +
@@ -245,6 +251,11 @@ if len(options.triggers) > 0:
     )
     process.p.insert(0, process.hltFilter)
 
+if isPhase2:
+    process.p.insert(0, process.slimmedElectronsMerged)
+
+if isRun2PreUL:
+    process.p.insert(2, process.boostedSequence)
 
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 x = process.maxEvents.input.value()

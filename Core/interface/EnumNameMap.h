@@ -74,7 +74,7 @@ public:
     const std::string& EnumToString(const Enum& e) const
     {
         if(!HasEnum(e))
-            throw exception("The corresponding string is not found for an element of the enum '%1%'.") % enum_name;
+            throw exception("The corresponding string is not found for an element = %1% of the enum '%2%'.") % static_cast<int>(e) % enum_name;
         return enum_to_string_map.at(e);
     }
 

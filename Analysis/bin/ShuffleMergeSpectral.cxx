@@ -20,7 +20,7 @@
 
 namespace analysis {
 
-void sumBasedSplit(const std::vector<size_t>& files_entries, const size_t job_idx, const size_t n_job,
+void sumBasedSplit(const std::vector<size_t>& files_entries, const size_t job_idx, const size_t n_job, const bool overflowjob,
                   std::pair<size_t, size_t>& point_entry,  std::pair<size_t, size_t>& point_exit, size_t& step)
 { 
   // sumBasedSplit splits files into n_job sub-intervals
@@ -42,6 +42,10 @@ void sumBasedSplit(const std::vector<size_t>& files_entries, const size_t job_id
    // .second - index of last event
   point_entry = find_idx(job_idx, false);
   point_exit = find_idx(job_idx, true);
+  if(overflowjob && job_idx+1 == n_job){
+    step = step + (std::accumulate(files_entries.begin(), files_entries.end(), 0) % n_job);
+    point_exit = std::make_pair(files_entries.size()-1, files_entries[files_entries.size()-1]-1);
+  }
 };
 
 enum class MergeMode { MergeAll = 1 };
@@ -84,6 +88,8 @@ struct Arguments {
     run::Argument<bool> refill_spectrum{"refill-spectrum", "If true - spectrums of the input data will be recalculated on flight, "
                                         "only events that correspond to the current job will be considered.", false};
     run::Argument<bool> enable_emptybin{"enable-emptybin", "In case of empty pt-eta bin, the probability in this bin will be set to 0", false};
+    run::Argument<bool> overflow_job{"overflow-job", "If true - include all remaining Taus from the ntuples in the last job. "
+                                        "(The number of Taus included, instead of being ignored, should be less than the number of jobs.)", false};
 };
 
 struct SourceDesc {
@@ -115,7 +121,6 @@ struct SourceDesc {
     bool DoNextStep()
     {
       do {
-        
         if(current_file_index == point_exit.first && current_entry > entries_end ) return false;
         while(!current_file_index || current_entry > entries_end) {
             if(!current_file_index)
@@ -141,6 +146,7 @@ struct SourceDesc {
         current_tuple->GetEntry(current_entry++);
         ++total_n_processed;
 
+        current_tau_type = boost::none;
         const auto gen_match = GetGenLeptonMatch((*current_tuple)());
         const auto sample_type = static_cast<SampleType>((*current_tuple)().sampleType);
 
@@ -148,9 +154,9 @@ struct SourceDesc {
 
         current_tau_type = GenMatchToTauType(*gen_match, sample_type);
 
-      } while (tau_types.find(current_tau_type) == tau_types.end());
+        } while (!current_tau_type || tau_types.find(current_tau_type.get()) == tau_types.end());
 
-      (*current_tuple)().tauType = static_cast<Int_t>(current_tau_type);
+      (*current_tuple)().tauType = static_cast<Int_t>(current_tau_type.get());
       (*current_tuple)().dataset_id = dataset_hash;
       (*current_tuple)().dataset_group_id = group_hash;
       return true;
@@ -159,7 +165,7 @@ struct SourceDesc {
     const Tau& GetNextTau() { return current_tuple->data(); }
     const size_t GetNumberOfProcessed() const { return total_n_processed; }
     const size_t GetTotalEntries() const { return total_entries; }
-    const TauType GetType() { return current_tau_type; }
+    const TauType GetType() { return current_tau_type.get(); }
 
   private:
     const std::string name;
@@ -180,7 +186,7 @@ struct SourceDesc {
     size_t entries_end;
     size_t current_entry;
     size_t total_n_processed;
-    TauType current_tau_type;
+    boost::optional<TauType> current_tau_type;
     ULong64_t dataset_hash;
   };
 
@@ -204,7 +210,7 @@ struct EntryDesc {
               const std::string& input_paths,
               const std::string& prefix,
               const size_t job_idx, const size_t n_jobs,
-              const bool refill_spectrum)
+              const bool refill_spectrum, const bool overflow_job)
     {
         using boost::regex;
         using boost::regex_match;
@@ -282,7 +288,7 @@ struct EntryDesc {
         if(job_idx >= n_jobs)
           throw exception("Wrong job_idx! The index should be > 0 and < n_jobs");
         
-        sumBasedSplit(files_entries, job_idx, n_jobs,point_entry, point_exit, total_entries);
+        sumBasedSplit(files_entries, job_idx, n_jobs, overflow_job, point_entry, point_exit, total_entries);
         
         std::cout <<  name << ": " <<
                      "Entry point-> " << point_entry.first << " " << point_entry.second << ", " <<
@@ -363,12 +369,12 @@ public:
             if(ttype_entries.at(type)->GetBinContent(i_x,i_y)==0) {
               if(enable_emptybin) {
                 std::cout << "WARNING: empty bin (pt_i:"
-                          << i_x << ", eta_i:" << i_y  << ") "
+                          << i_y << ", eta_i:" << i_x  << ") "
                           << ToString(type) << " " << groupname << std::endl;
                 ratio_h->SetBinContent(i_x,i_y,0.0);
               } else {
                 throw exception("Empty bin (pt_i:'%1%', eta_i:'%2%') for tau type '%3%' in '%4%'.")
-                % i_x % i_y % ToString(type) % groupname;
+                % i_y % i_x % ToString(type) % groupname;
               }
             } else {
             ratio_h->SetBinContent(i_x,i_y,
@@ -398,6 +404,9 @@ public:
           double dis_scale = std::min(1.0, exp_disbalance*
                              ttype_entries.at(type)->Integral(0,binNx,binNy-1,binNy)*
                              ttype_prob.at(type)->GetBinContent(x,y));
+          if(dis_scale<=0.0) // As a result of ttype_entries.at(type)->Integral(0,binNx,binNy-1,binNy)==0.0
+            throw exception("Disbalance scale factor is 0 for histogram '%1%' in '%2%' for bin (pt_i:'%3%', eta_i:'%4%')")
+            % ToString(type) % groupname % binNy % binNx;
           if(dis_scale!=1.0)
             std::cout << "WARNING: Disbalance for "<< ToString(type)
                       <<" is bigger, scale factor will be applied" << std::endl;
@@ -548,6 +557,7 @@ public:
       }
       std::cout << "No taus at: " << current_datagroup << std::endl;
       std::cout << "stop procedure..." << std::endl;
+      PrintStatusReport();
       return false;
     }
 
@@ -559,7 +569,7 @@ public:
       for(auto source: sources) {
         size_t n_processed = source.second->GetNumberOfProcessed();
         size_t n_total = source.second->GetTotalEntries();
-        std::cout << source.first << ":" << (float)n_processed/n_total*100 <<"% ";
+        std::cout << source.first << ":" << (float)n_processed/n_total*100 <<"% (" << n_total-n_processed << " left),";
       }
       std::cout << std::endl;
     }
@@ -825,7 +835,7 @@ private:
         for(const auto& item : reader.GetItems()){
             entries.emplace_back(item.second,  args.path_spectrum(), args.input(),
                                  args.prefix(), args.job_idx(), args.n_jobs(),
-                                 args.refill_spectrum());
+                                 args.refill_spectrum(), args.overflow_job());
         }
         return entries;
     }

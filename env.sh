@@ -5,7 +5,7 @@ if (( $# < 1 )) ; then
 Setup environment for TauMLTools
 Usage: source env.sh mode [mode_arg_1] [mode_arg_2] ...
 
-Supported modes: prod2018 phase2 lcg conda
+Supported modes: prod2018 prod2018UL phase2 lcg conda
 
 Mode-specific arguments:
 conda
@@ -26,8 +26,8 @@ function run_cmd {
     fi
 }
 
-if [[ $MODE = "prod2018" || $MODE = "phase2" ]]; then
-    if [[ $MODE = "prod2018" ]]; then
+if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" ]]; then
+    if [ $MODE = "prod2018" ] ; then
         CMSSW_VER=CMSSW_10_6_29
         APPLY_BOOSTED_FIX=1
         export SCRAM_ARCH=slc7_amd64_gcc700
@@ -35,6 +35,10 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" ]]; then
         CMSSW_VER=CMSSW_11_2_5
         APPLY_BOOSTED_FIX=0
         export SCRAM_ARCH=slc7_amd64_gcc900
+    elif [ $MODE = "prod2018UL" ] ; then
+        CMSSW_VER=CMSSW_10_6_29
+        APPLY_BOOSTED_FIX=0
+        export SCRAM_ARCH=slc7_amd64_gcc700
     fi
 
     if ! [ -f soft/$CMSSW_VER/.installed ]; then
