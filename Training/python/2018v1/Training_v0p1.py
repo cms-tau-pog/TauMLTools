@@ -34,11 +34,15 @@ import DataLoader
 
 class DeepTauModel(keras.Model):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, loss=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.pure_loss_tracker = keras.metrics.Mean(name="pure_loss")
         self.reg_loss_tracker = keras.metrics.Mean(name ="reg_loss")
+        if loss is None:
+            self.model_loss = TauLosses.tau_crossentropy_v2
+        else:
+            self.model_loss = getattr(TauLosses,loss)
 
     def train_step(self, data):
         # Unpack the data
@@ -50,8 +54,7 @@ class DeepTauModel(keras.Model):
         with tf.GradientTape() as tape:
             y_pred = self(x, training=True)  # Forward pass
             reg_losses = self.losses # Regularisation loss
-            tau_crossentropy_v2 = TauLosses.tau_crossentropy_v2(y, y_pred) # Compute loss function
-            pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
+            pure_loss = self.model_loss(y, y_pred)
             # Compute the total loss value
             if reg_losses:
                 reg_loss = tf.add_n(reg_losses)
@@ -302,7 +305,7 @@ def get_n_filters_conv2d(n_input, current_size, window_size, reduction_rate):
     n_filters = ((float(current_size) / float(current_size - window_size + 1)) ** 2) * n_input / reduction_rate
     return int(math.ceil(n_filters))
 
-def create_model(net_config, model_name):
+def create_model(net_config, model_name, loss=None):
     tau_net_setup = NetSetup1D(**net_config.tau_net)
     comp_net_setup = NetSetup2D(**net_config.comp_net)
     comp_merge_net_setup = NetSetup2D(**net_config.comp_merge_net)
@@ -363,10 +366,10 @@ def create_model(net_config, model_name):
                          kernel_initializer=dense_net_setup.kernel_init)(final_dense)
     softmax_output = Activation("softmax", name="main_output")(output_layer)
 
-    model = DeepTauModel(input_layers, softmax_output, name=model_name)
+    model = DeepTauModel(input_layers, softmax_output, loss=loss, name=model_name)
     return model
 
-def compile_model(model, loss, opt_name, learning_rate):
+def compile_model(model, opt_name, learning_rate):
     # opt = keras.optimizers.Adam(lr=learning_rate)
     opt = getattr(tf.keras.optimizers, opt_name)(learning_rate=learning_rate)
     #opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, schedule_decay=1e-4)
@@ -380,7 +383,7 @@ def compile_model(model, loss, opt_name, learning_rate):
         TauLosses.Hcat_eInv, TauLosses.Hcat_muInv, TauLosses.Hcat_jetInv,
         TauLosses.Fe, TauLosses.Fmu, TauLosses.Fjet, TauLosses.Fcmb
     ]
-    model.compile(loss=loss, optimizer=opt, metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
+    model.compile(loss=None, optimizer=opt, metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
 
     # log metric names for passing them during model loading
     metric_names = {(m if isinstance(m, str) else m.__name__): '' for m in metrics}
@@ -475,8 +478,11 @@ def main(cfg: DictConfig) -> None:
     # set up mlflow experiment id
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
     experiment = mlflow.get_experiment_by_name(cfg.experiment_name)
-    if experiment is not None: # fetch existing experiment id
+
+    if experiment is not None:
         run_kwargs = {'experiment_id': experiment.experiment_id}
+        if cfg["pretrained"] is not None: # initialise with pretrained run, otherwise create a new run
+            run_kwargs['run_id'] = cfg["pretrained"]["run_id"]
     else: # create new experiment
         experiment_id = mlflow.create_experiment(cfg.experiment_name)
         run_kwargs = {'experiment_id': experiment_id}
@@ -485,10 +491,11 @@ def main(cfg: DictConfig) -> None:
     with mlflow.start_run(**run_kwargs) as main_run:
         if cfg["pretrained"] is not None:
             mlflow.start_run(experiment_id=run_kwargs['experiment_id'], nested=True)
+            if cfg["pretrained"] is not None: # initialise with pretrained run, otherwise create a new run
+                run_kwargs['run_id'] = cfg["pretrained"]["run_id"]
         active_run = mlflow.active_run()
         run_id = active_run.info.run_id
 
-        run_id = active_run.info.run_id
         setup_gpu(cfg.gpu_cfg)
         training_cfg = OmegaConf.to_object(cfg.training_cfg) # convert to python dictionary
         scaling_cfg = to_absolute_path(cfg.scaling_cfg)
@@ -498,8 +505,7 @@ def main(cfg: DictConfig) -> None:
         print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
 
         netConf_full = dataloader.get_net_config()
-        compile_loss = None if setup["loss"] is None else getattr(TauLosses,setup["loss"])
-        model = create_model(netConf_full, dataloader.model_name)
+        model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"])
 
         if cfg.pretrained is None:
             print("Warning: no pretrained NN -> training will be started from scratch")
@@ -521,7 +527,7 @@ def main(cfg: DictConfig) -> None:
                 if not weights_found:
                     print(f"Weights for layer '{layer.name}' not found.")
 
-        compile_model(model, compile_loss, setup["optimizer_name"], setup["learning_rate"])
+        compile_model(model, setup["optimizer_name"], setup["learning_rate"])
         fit_hist = run_training(model, dataloader, False, cfg.log_suffix)
 
         # log NN params
