@@ -1,19 +1,18 @@
 import ROOT
 
-ROOT.gInterpreter.ProcessLine('''
 
-EDataType GetBranchType(TBranch* br) {
-    TClass* cl = nullptr;
-    EDataType t;
-    br->GetExpectedType(cl, t);
-    return t;
-}
-''')
 
 def MakeTupleClass(tree_name, tree_file, namespace_name, data_class_name, tree_class_name):
     
-    #known_types_simple_types = [ 'Int_t', 'Float_t', 'Long64_t', 'UInt_t', 'ULong64_t', 'UShort_t' ]
-    
+    if not hasattr(ROOT, 'GetBranchType'):
+        ROOT.gInterpreter.ProcessLine('''
+        EDataType GetBranchType(TBranch* br) {
+            TClass* cl = nullptr;
+            EDataType t;
+            br->GetExpectedType(cl, t);
+            return t;
+        }
+        ''')
     simple_type_names = {}
     for type_name in dir(ROOT.EDataType):
         if type_name[0] == 'k':
