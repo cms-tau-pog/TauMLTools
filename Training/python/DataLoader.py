@@ -65,7 +65,6 @@ class DataLoader (DataLoaderBase):
     def __init__(self, config, file_scaling):
 
         self.dataloader_core = config["Setup"]["dataloader_core"]
-        self.compile_classes(config, file_scaling, self.dataloader_core)
 
         self.config = config
 
@@ -116,13 +115,15 @@ class DataLoader (DataLoaderBase):
             print("Files for training:", len(self.train_files))
             print("Files for validation:", len(self.val_files))
 
+        self.compile_classes(config, file_scaling, self.dataloader_core, data_files)
+
 
 
     def get_generator(self, primary_set = True, return_truth = True, return_weights = True, show_progress = False):
 
         _files = self.train_files if primary_set else self.val_files
         if len(_files)==0:
-            raise RuntimeError(("Taining" if primary_set else "Validation")+\
+            raise RuntimeError(("Training" if primary_set else "Validation")+\
                                " file list is empty.")
 
         n_batches = self.n_batches if primary_set else self.n_batches_val

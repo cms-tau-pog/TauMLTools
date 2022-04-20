@@ -1,4 +1,3 @@
-#include "TauMLTools/Analysis/interface/TauTuple.h"
 #include "TauMLTools/Training/interface/DataLoader_tools.h"
 #include "TauMLTools/Training/interface/histogram2d.h"
 
@@ -7,6 +6,7 @@
 
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 #include "TauMLTools/Analysis/interface/AnalysisTypes.h"
+#include "TauMLTools/Core/interface/RootExt.h"
 
 template <typename T, typename Tuple>
 struct ElementIndex;
@@ -159,7 +159,6 @@ public:
     {
       ROOT::EnableThreadSafety();
       if(n_threads > 1) ROOT::EnableImplicitMT(n_threads);
-
       if (yaxis.size() != (xaxis_list.size() + 1)){
         throw std::invalid_argument("Y binning list does not match X binning length");
       }
@@ -863,8 +862,8 @@ public:
           CellGrid grid = cellGridRef;
           const double tau_pt = tau.tau_pt, tau_eta = tau.tau_eta, tau_phi = tau.tau_phi;
 
-          const auto fillCells = [&](CellObjectType type, const std::vector<float>& eta_vec,
-                                    const std::vector<float>& phi_vec, const std::vector<int>& particleType = {}) {
+          const auto fillCells = [&](CellObjectType type, auto eta_vec,
+                                    auto phi_vec, auto particleType) {
               if(eta_vec.size() != phi_vec.size())
                   throw std::runtime_error("Inconsistent cell inputs.");
               for(size_t n = 0; n < eta_vec.size(); ++n) {
@@ -888,8 +887,8 @@ public:
           fillCells(CellObjectType::PfCand_chHad, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_particleType);
           fillCells(CellObjectType::PfCand_nHad, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_particleType);
           fillCells(CellObjectType::PfCand_gamma, tau.pfCand_eta, tau.pfCand_phi, tau.pfCand_particleType);
-          fillCells(CellObjectType::Electron, tau.ele_eta, tau.ele_phi);
-          fillCells(CellObjectType::Muon, tau.muon_eta, tau.muon_phi);
+          fillCells(CellObjectType::Electron, tau.ele_eta, tau.ele_phi, std::vector<int>());
+          fillCells(CellObjectType::Muon, tau.muon_eta, tau.muon_phi, std::vector<int>());
 
           return grid;
       }
