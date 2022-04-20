@@ -88,6 +88,7 @@ SetupNN:
     first_layer_reg      : null # eg "L1, reg_fact"
     active_features      : ['TauFlat', 'GridGlobal', 'PfCand_electron', 'PfCand_muon', 'PfCand_chHad', 'PfCand_nHad', 'PfCand_gamma', 'Electron', 'Muon']
     cell_locations       : ['inner', 'outer']
+    loss                 : "tau_crossentropy_v2" # should not be specified when using DeepTauModel() class
 
 CellObjectType : [
                  GridGlobal,
