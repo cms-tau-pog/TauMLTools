@@ -74,8 +74,7 @@ def main(cfg: DictConfig) -> None:
 
         # open input file
         with uproot.open(input_file_name) as f:
-            t = f['taus']
-            n_taus = len(t['evt'].array())
+            n_taus = f['taus'].numentries
 
         # run predictions
         predictions = []
