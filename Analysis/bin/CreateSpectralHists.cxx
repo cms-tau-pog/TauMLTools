@@ -138,7 +138,9 @@ private:
 
     void AddTau(const Tau& tau)
     {
-        const auto gen_match = GetGenLeptonMatch(tau);
+        const auto gen_match = GetGenLeptonMatch(static_cast<reco_tau::gen_truth::GenLepton::Kind>(tau.genLepton_kind), tau.genLepton_index, 
+                                                              tau.tau_pt, tau.tau_eta, tau.tau_phi, tau.tau_mass, tau.genLepton_vis_pt, 
+                                                              tau.genLepton_vis_eta, tau.genLepton_vis_phi, tau.genLepton_vis_mass, tau.genJet_index);
         if(PassSelection(tau) && gen_match) {
             const auto sample_type = static_cast<SampleType>(tau.sampleType);
             const TauType tau_type = analysis::GenMatchToTauType(*gen_match, sample_type);

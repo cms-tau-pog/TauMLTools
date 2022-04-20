@@ -18,7 +18,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 
 namespace root_ext {
 
-std::shared_ptr<TFile> CreateRootFile(const std::string& file_name, ROOT::ECompressionAlgorithm compression = ROOT::kZLIB,
+std::shared_ptr<TFile> inline CreateRootFile(const std::string& file_name, ROOT::ECompressionAlgorithm compression = ROOT::kZLIB,
                                              int compression_level = 9){
     std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "RECREATE", "", compression * 100 + compression_level));
     if(!file || file->IsZombie())
@@ -26,7 +26,7 @@ std::shared_ptr<TFile> CreateRootFile(const std::string& file_name, ROOT::ECompr
     return file;
 }
 
-std::shared_ptr<TFile> OpenRootFile(const std::string& file_name){
+std::shared_ptr<TFile> inline OpenRootFile(const std::string& file_name){
     std::shared_ptr<TFile> file(TFile::Open(file_name.c_str(), "READ"));
     if(!file || file->IsZombie())
         throw analysis::exception("File '%1%' not opened.") % file_name;

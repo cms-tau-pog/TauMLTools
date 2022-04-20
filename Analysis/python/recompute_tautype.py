@@ -8,11 +8,11 @@ R.gInterpreter.ProcessLine('''
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 #include "TauMLTools/Analysis/interface/AnalysisTypes.h"
 
-int GetMyTauType(Int_t tau_genLepton_kind,  Int_t genLepton_index,  Float_t tau_pt,  Float_t tau_eta,
+int GetMyTauType(Int_t genLepton_kind,  Int_t genLepton_index,  Float_t tau_pt,  Float_t tau_eta,
      Float_t tau_phi,  Float_t tau_mass,  Float_t genLepton_vis_pt,  Float_t genLepton_vis_eta,  Float_t genLepton_vis_phi,  
      Float_t genLepton_vis_mass, Int_t genJet_index, Int_t sampleType)
      {
-        const auto gen_match = analysis::GetGenLeptonMatch(tau_genLepton_kind, genLepton_index, tau_pt, tau_eta, tau_phi, tau_mass, 
+        const auto gen_match = analysis::GetGenLeptonMatch(static_cast<reco_tau::gen_truth::GenLepton::Kind>(genLepton_kind), genLepton_index, tau_pt, tau_eta, tau_phi, tau_mass, 
                                                             genLepton_vis_pt, genLepton_vis_eta, genLepton_vis_phi, 
                                                             genLepton_vis_mass, genJet_index);
         const auto sample_type= static_cast<analysis::SampleType> (sampleType);
@@ -35,4 +35,3 @@ def compute(df):
                         genLepton_vis_pt, genLepton_vis_eta, genLepton_vis_phi, genLepton_vis_mass, genJet_index, sampleType)""")
     print("Tau Types Recomputed")
     return df
-
