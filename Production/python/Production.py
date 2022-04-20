@@ -25,6 +25,10 @@ options.register('dumpPython', False, VarParsing.multiplicity.singleton, VarPars
                  "Dump full config into stdout.")
 options.register('numberOfThreads', 1, VarParsing.multiplicity.singleton, VarParsing.varType.int,
                  "Number of threads.")
+options.register('selector', 'None', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                 "Name of the tauJet selector.")
+options.register('triggers', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                 "Store only events that pass the specified HLT paths.")
 options.register('storeJetsWithoutTau', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Store jets that don't match to any pat::Tau.")
 options.register('requireGenMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
@@ -193,6 +197,7 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     requireGenORRecoTauMatch = cms.bool(options.requireGenORRecoTauMatch),
     applyRecoPtSieve         = cms.bool(options.applyRecoPtSieve),
     tauJetBuilderSetup       = tauJetBuilderSetup,
+    selector                 = cms.string(options.selector),
 
     lheEventProduct    = cms.InputTag('externalLHEProducer'),
     genEvent           = cms.InputTag('generator'),
@@ -211,24 +216,40 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     lostTracks         = cms.InputTag('lostTracks'),
     genJets            = cms.InputTag('slimmedGenJets'),
     genJetFlavourInfos = cms.InputTag('slimmedGenJetsFlavourInfos'),
+    METs               = cms.InputTag('slimmedMETs'),
+    triggerResults     = cms.InputTag('TriggerResults', '', 'HLT'),
+    triggerObjects     = cms.InputTag('slimmedPatTrigger'),
 )
 
 process.tupleProductionSequence = cms.Sequence(process.tauTupleProducer)
 
 if isPhase2:
     process.p = cms.Path(
-        getattr(process, 'rerunMvaIsolationSequence') *
-        getattr(process, updatedTauName) *
+        process.slimmedElectronsMerged +
+        getattr(process, 'rerunMvaIsolationSequence') +
+        getattr(process, updatedTauName) +
         process.tupleProductionSequence
     )
 elif isRun2UL:
     process.p = cms.Path(process.tupleProductionSequence)
 else:
     process.p = cms.Path(
-        getattr(process, updatedTauName + 'rerunMvaIsolationSequence') *
-        getattr(process, updatedTauName) *
+        getattr(process, updatedTauName + 'rerunMvaIsolationSequence') +
+        getattr(process, updatedTauName) +
+        process.boostedSequence +
         process.tupleProductionSequence
     )
+
+if len(options.triggers) > 0:
+    hlt_paths = options.triggers.split(',')
+    process.hltFilter = cms.EDFilter('TriggerResultsFilter',
+        hltResults = cms.InputTag('TriggerResults', '', 'HLT'),
+        l1tResults = cms.InputTag(''),
+        l1tIgnoreMaskAndPrescale = cms.bool(False),
+        throw = cms.bool(True),
+        triggerConditions = cms.vstring(hlt_paths),
+    )
+    process.p.insert(0, process.hltFilter)
 
 if isPhase2:
     process.p.insert(0, process.slimmedElectronsMerged)

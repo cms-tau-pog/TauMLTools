@@ -64,6 +64,7 @@
     VAR4(Float_t, pv_xE, pv_yE, pv_zE, pv_tE) /* position and time errors of the primary vertex (PV) */ \
     VAR(Float_t, pv_chi2) /* chi^2 of the primary vertex (PV) */ \
     VAR(Float_t, pv_ndof) /* number of degrees of freedom of the primary vertex (PV) */ \
+    VAR2(Float_t, met_pt, met_phi) /* MET momentum */ \
     VAR(Int_t, entry_index) /* Index of the entry in the event */ \
     VAR(Int_t, total_entries) /* The total number of entries in the event */ \
     /* Gen lepton with the full decay chain */ \
@@ -108,6 +109,12 @@
     VAR(Int_t, genJet_n_leptons) /* number of leptons clustered inside the jet */ \
     VAR(Int_t, genJet_hadronFlavour) /* hadron-based flavour */ \
     VAR(Int_t, genJet_partonFlavour) /* parton-based flavour */ \
+    /* Tag object variables (for tag-and-probe data) */ \
+    VAR(Int_t, tagObj_valid) /* indicates presence of the tag object */ \
+    VAR4(Float_t, tagObj_pt, tagObj_eta, tagObj_phi, tagObj_mass) /* 4-momentum of the tag object */ \
+    VAR(Int_t, tagObj_charge) /* charge of the tag object */ \
+    VAR(UInt_t, tagObj_id) /* ID of the tag object */ \
+    VAR(Float_t, tagObj_iso) /* isolation of the tag object */ \
     /* Jet variables (for both AK4 and AK8 (aka "fat") jets) */ \
     JET_VAR(Int_t, index) /* index of the jet */ \
     JET_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the jet */ \
@@ -328,6 +335,8 @@
                               RPCMuon = 1 << 6;
                               GEMMuon = 1 << 7;
                               ME0Muon = 1 << 8; */ \
+    MUON_VAR(UInt_t, id) /* Muon ID: Loose = 1 << 0, Medium = 1 << 1, Tight = 1 << 2 */ \
+    MUON_VAR(Float_t, pfRelIso04) /* PF-based relative isolation computed with 0.4 deltaR cone */ \
     MUON_VAR4(Int_t, n_matches_DT_1, n_matches_DT_2, n_matches_DT_3, \
                      n_matches_DT_4) /* number of segment matches for the DT subdetector stations */ \
     MUON_VAR4(Int_t, n_matches_CSC_1, n_matches_CSC_2, n_matches_CSC_3, \
