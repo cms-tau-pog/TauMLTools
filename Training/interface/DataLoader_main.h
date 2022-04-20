@@ -285,13 +285,10 @@ public:
             if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
 
               if (tau.tauType==8){
-                data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // label 1 for data
+                data->y_onehot[ data->tau_i * tau_types_names.size()] = 1.0; // label 1 for data
                 // std::cout<<"Data passed selection"<<std::endl;
 
-              } else{
-                data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 0.0; // label 0 for all others
-                // std::cout<<"Something else passed selection"<<std::endl;
-              }
+              } 
               
               // data->weight.at(data->tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
               data->weight.at(data->tau_i) = GetAdversarialWeight(tau.dataset_id, tau.tau_pt); // filling weights

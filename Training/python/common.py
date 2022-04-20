@@ -231,8 +231,8 @@ class TauLosses:
     @staticmethod
     @tf.function
     def tau_crossentropy_v2(target, output):
-        tau_target = target[:, 2:3] # MC_tau->0, data_tau->1, this is done by setting y_onehot in main DataLoader 
-        tau_output = output[:, 2:3] # LR: only look at tau output (index 2)
+        tau_target = target[:, 0:1] # MC_tau->0, data_tau->1, this is done by setting y_onehot in main DataLoader 
+        tau_output = output[:, 0:1] # LR: only look at tau output (index 2)
         loss = tf.keras.losses.binary_crossentropy(tau_target, tau_output) # LR: Standard cross entropy loss function
         return loss
 
