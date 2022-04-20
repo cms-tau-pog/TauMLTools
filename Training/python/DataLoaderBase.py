@@ -142,12 +142,11 @@ class DataSource:
 class DataLoaderBase:
 
     @staticmethod
-    def compile_classes(config, file_scaling, dataloader_core):
+    def compile_classes(config, file_scaling, dataloader_core, data_files):
 
         _rootpath = os.path.abspath(os.path.dirname(__file__)+"/../../..")
         R.gROOT.ProcessLine(".include "+_rootpath)
-        class_def = MakeTupleClass('taus', '/home/russell/skimmed_tuples/WJetsToLNu/WJetsToLNu_skimmed_pt30.root', 'tau_tuple',
-               'Tau', 'TauTuple')
+        class_def = MakeTupleClass('taus', data_files[0], 'tau_tuple', 'Tau', 'TauTuple')
         R.gInterpreter.ProcessLine(class_def)
 
         if not os.path.isfile(file_scaling):

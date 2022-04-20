@@ -65,7 +65,6 @@ class DataLoader (DataLoaderBase):
     def __init__(self, config, file_scaling):
 
         self.dataloader_core = config["Setup"]["dataloader_core"]
-        self.compile_classes(config, file_scaling, self.dataloader_core)
 
         self.config = config
 
@@ -115,6 +114,8 @@ class DataLoader (DataLoaderBase):
                 np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
             print("Files for training:", len(self.train_files))
             print("Files for validation:", len(self.val_files))
+
+        self.compile_classes(config, file_scaling, self.dataloader_core, data_files)
 
 
 

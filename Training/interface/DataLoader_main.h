@@ -147,7 +147,7 @@ using namespace Setup;
 class DataLoader {
 
 public:
-    using Tau = tau_tuple::Tau;  
+    using Tau = tau_tuple::Tau;
     using TauTuple = tau_tuple::TauTuple;
     using LorentzVectorM = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>;
 
@@ -211,7 +211,7 @@ public:
     void ReadFile(std::string file_name, Long64_t start_file, Long64_t end_file) { // put end_file=-1 to read all events from file
         tauTuple.reset();
         file = std::make_unique<TFile>(file_name.c_str());
-        tauTuple = std::make_unique<tau_tuple::TauTuple>(file.get(), true); 
+        tauTuple = std::make_unique<tau_tuple::TauTuple>(file.get(), true);
         current_entry = start_file;
         end_entry = tauTuple->GetEntries();
         if(end_file!=-1) end_entry = std::min(end_file, end_entry);
@@ -247,7 +247,7 @@ public:
                                                             tau.genLepton_vis_mass, tau.genJet_index);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
 
-          if (gen_match && tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
+          if (gen_match &&tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
             }
@@ -909,6 +909,5 @@ private:
   std::unique_ptr<TauTuple> tauTuple;
   std::unique_ptr<Data> data;
   std::unordered_map<int ,std::shared_ptr<TH2D>> hist_weights;
-
 
 };

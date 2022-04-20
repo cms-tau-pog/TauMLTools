@@ -10,7 +10,7 @@ Setup:
     use_weights          :  True
 
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
-    tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet"}
+    tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
     DeepTauVSjet_cut     : -1.0 
     recompute_tautype    : True
     include_mismatched   : False # whether to keep tau candidates with tau_type not present in `tau_types_names`
@@ -20,7 +20,7 @@ Setup:
     weight_thr           : 100000.0
     dataloader_core      : "TauMLTools/Training/interface/DataLoader_main.h"
     rm_inner_from_outer  : False
-    input_type           : "tf" # supported 'ROOT' or 'tf'
+    input_type           : "ROOT" # supported 'ROOT' or 'tf'
     tf_input_dir         : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/tf_datasets/emb_21k_99cut" # path to saved tf dataset
     tf_dataset_x_order   : ["TauFlat", "inner_egamma", "inner_muon", "inner_hadron", "outer_egamma", "outer_muon", "outer_hadron"] # specify order of layers in tf dataset
 
@@ -68,7 +68,7 @@ SetupNN:
     n_batches_val        : 80000
     n_batches_log        : 1000 # monitor every n batches in tensorboard
     epoch                : 0
-    n_epochs             : 10
+    n_epochs             : 1
     validation_split     : 0.3
     max_queue_size       : 10
     n_load_workers       : 4

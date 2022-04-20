@@ -19,9 +19,8 @@ def MakeTupleClass(tree_name, tree_file, namespace_name, data_class_name, tree_c
         if type_name[0] == 'k':
             enum_v = getattr(ROOT.EDataType, type_name)
             simple_type_names[enum_v] = type_name[1:]
-        # TEMPORATILY HAVE FULL PATH
     class_def = f'''
-#include "/home/russell/AdversarialTauML/TauMLTools//Core/interface/SmartTree.h" 
+#include "TauMLTools/Core/interface/SmartTree.h" 
 namespace {namespace_name} {{
 struct {data_class_name} : public root_ext::detail::BaseDataClass {{
 '''
@@ -77,17 +76,4 @@ private:
 };
 }
 '''
-    #ROOT.gInterpreter.ProcessLine(class_def)
     return class_def
-
-# class_def = MakeTupleClass('taus', '/home/russell/skimmed_tuples/WJetsToLNu/WJetsToLNu_skimmed_pt30.root', 'input_tuple',
-#                'Tau', 'TauTuple')
-
-# with open('my_tauTuple.h', 'w') as f:
-#     f.write(class_def)
-    
-# ROOT.gInterpreter.ProcessLine('#include "my_tauTuple.h"')
-
-# tau = ROOT.input_tuple.Tau()
-
-# print(tau.run)
