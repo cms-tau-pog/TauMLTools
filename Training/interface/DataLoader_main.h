@@ -1,4 +1,3 @@
-// #include "TauMLTools/Analysis/interface/TauTuple.h"
 #include "TauMLTools/Training/interface/DataLoader_tools.h"
 #include "TauMLTools/Training/interface/histogram2d.h"
 
@@ -148,8 +147,6 @@ using namespace Setup;
 class DataLoader {
 
 public:
-    // using Tau = tau_tuple::Tau;  
-    // using TauTuple = tau_tuple::TauTuple;
     using Tau = tau_tuple::Tau;  
     using TauTuple = tau_tuple::TauTuple;
     using LorentzVectorM = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>;
@@ -165,18 +162,6 @@ public:
       if (yaxis.size() != (xaxis_list.size() + 1)){
         throw std::invalid_argument("Y binning list does not match X binning length");
       }
-
-      
-      std::shared_ptr<TFile> adv_weights = root_ext::OpenRootFile(adversarial_weights);
-
-      a_weights.insert(std::make_pair(0, root_ext::ReadCloneObject<TH1D>(*adv_weights, "data", "data_w", true)));
-      a_weights.insert(std::make_pair(1, root_ext::ReadCloneObject<TH1D>(*adv_weights, "DYT", "DYT_w", true)));
-      a_weights.insert(std::make_pair(2, root_ext::ReadCloneObject<TH1D>(*adv_weights, "TTT", "TTT_w", true)));
-      a_weights.insert(std::make_pair(3, root_ext::ReadCloneObject<TH1D>(*adv_weights, "DYM", "DYM_w", true)));
-      a_weights.insert(std::make_pair(4, root_ext::ReadCloneObject<TH1D>(*adv_weights, "TTJ", "TTJ_w", true)));
-      a_weights.insert(std::make_pair(5, root_ext::ReadCloneObject<TH1D>(*adv_weights, "WJ", "WJ_w", true)));
-      a_weights.insert(std::make_pair(6, root_ext::ReadCloneObject<TH1D>(*adv_weights, "QCD", "QCD_w", true)));
-
 
       // file = OpenRootFile(file_name);
       // tauTuple = std::make_shared<tau_tuple::TauTuple>(file.get(), true);
@@ -201,22 +186,21 @@ public:
       if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
 
       for( auto const& [tau_type, tau_name] : tau_types_names)
-      { if (tau_type != 8){
-          std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
-          if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+tau_name);
-          target_histogram.th2d_add(*(target_th2d.get()));
-          input_histogram .th2d_add(*(input_th2d .get()));
+      {
+        std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
+        if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+tau_name);
+        target_histogram.th2d_add(*(target_th2d.get()));
+        input_histogram .th2d_add(*(input_th2d .get()));
 
-          target_histogram.divide(input_histogram);
-          hist_weights[tau_type] = target_histogram.get_weights_th2d(
-              ("w_1_"+tau_name).c_str(),
-              ("w_1_"+tau_name).c_str()
-          );
-          if (debug) hist_weights[tau_type]->SaveAs(("Temp_"+tau_name+".root").c_str()); // It's required that all bins are filled in these histograms; save them to check incase binning is too fine and some bins are empty
+        target_histogram.divide(input_histogram);
+        hist_weights[tau_type] = target_histogram.get_weights_th2d(
+            ("w_1_"+tau_name).c_str(),
+            ("w_1_"+tau_name).c_str()
+        );
+        if (debug) hist_weights[tau_type]->SaveAs(("Temp_"+tau_name+".root").c_str()); // It's required that all bins are filled in these histograms; save them to check incase binning is too fine and some bins are empty
 
-          target_histogram.reset();
-          input_histogram .reset();
-      }
+        target_histogram.reset();
+        input_histogram .reset();
       }
       MaxDisbCheck(hist_weights, weight_thr);
     }
@@ -227,7 +211,7 @@ public:
     void ReadFile(std::string file_name, Long64_t start_file, Long64_t end_file) { // put end_file=-1 to read all events from file
         tauTuple.reset();
         file = std::make_unique<TFile>(file_name.c_str());
-        tauTuple = std::make_unique<tau_tuple::TauTuple>(file.get(), true); //LR tau
+        tauTuple = std::make_unique<tau_tuple::TauTuple>(file.get(), true); 
         current_entry = start_file;
         end_entry = tauTuple->GetEntries();
         if(end_file!=-1) end_entry = std::min(end_file, end_entry);
@@ -263,35 +247,15 @@ public:
                                                             tau.genLepton_vis_mass, tau.genJet_index);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
 
-          // std::cout << tau.tau_pt << std::endl;
-          // std::cout << tau.dataset_id << std::endl;
-
-          // if (tau.dataset_id==0){
-          //     std::cout<<"Data event inside batch loop"<<std::endl;
-          //   }
-
-
-          if ((gen_match || tau.tauType == 8) && tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
-
-            // if (tau.dataset_id==0){
-            //   std::cout<<"Data passed gen match"<<std::endl;
-            // }
-
+          if (gen_match && tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
             }
 
             // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
             if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
-
-              if (tau.tauType==8){
-                data->y_onehot[ data->tau_i * tau_types_names.size()] = 1.0; // label 1 for data
-                // std::cout<<"Data passed selection"<<std::endl;
-
-              } 
-              
-              // data->weight.at(data->tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
-              data->weight.at(data->tau_i) = GetAdversarialWeight(tau.dataset_id, tau.tau_pt); // filling weights
+              data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
+              data->weight.at(data->tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
               FillTauBranches(tau, data->tau_i);
               FillCellGrid(tau, data->tau_i, innerCellGridRef, true);
               FillCellGrid(tau, data->tau_i, outerCellGridRef, false);
@@ -303,8 +267,6 @@ public:
           ++current_entry;
         }
         fullData = true;
-        
-        //adv_weights->Close();
         return true;
     }
 
@@ -345,28 +307,6 @@ public:
                hist_weights.at(type_id)->GetXaxis()->FindFixBin(eta),
                hist_weights.at(type_id)->GetYaxis()->FindFixBin(pt));
 
-      }
-
-      const double GetAdversarialWeight(const ULong64_t dataset_id, const double pt) const
-      {
-        return a_weights.at(dataset_id)->GetBinContent(a_weights.at(dataset_id)->FindBin(pt));
-        // if (dataset_id==0){
-        //   return data_w->GetBinContent(data_w->FindBin(pt));
-        // } else if (dataset_id==1){
-        //     return DYT_w->GetBinContent(DYT_w->FindBin(pt));
-        // } else if (dataset_id==2){
-        //     return TTT_w->GetBinContent(TTT_w->FindBin(pt));
-        // } else if (dataset_id==3){
-        //     return DYM_w->GetBinContent(DYM_w->FindBin(pt));
-        // } else if (dataset_id==4){
-        //     return TTJ_w->GetBinContent(TTJ_w->FindBin(pt));
-        // } else if (dataset_id==5){
-        //     return WJ_w->GetBinContent(WJ_w->FindBin(pt));
-        // } else if (dataset_id==6){
-        //     return QCD_w->GetBinContent(QCD_w->FindBin(pt));
-        // } else{
-        //     throw std::runtime_error("Selection ID not recognised, value: " + std::to_string(dataset_id));
-        // }
       }
 
       template<typename Scalar>
@@ -969,16 +909,6 @@ private:
   std::unique_ptr<TauTuple> tauTuple;
   std::unique_ptr<Data> data;
   std::unordered_map<int ,std::shared_ptr<TH2D>> hist_weights;
-  std::map<Long64_t, std::shared_ptr<TH1D>> a_weights;
-  
-  //TFile* adv_weights = TFile::Open(adversarial_weights.c_str(),"READ");
-  // TH1D* data_w = (TH1D*)adv_weights->Get("data");
-  // TH1D* DYT_w = (TH1D*)adv_weights->Get("DYT");
-  // TH1D* TTT_w = (TH1D*)adv_weights->Get("TTT");
-  // TH1D* DYM_w = (TH1D*)adv_weights->Get("DYM");
-  // TH1D* TTJ_w = (TH1D*)adv_weights->Get("TTJ");
-  // TH1D* WJ_w = (TH1D*)adv_weights->Get("WJ");
-  // TH1D* QCD_w = (TH1D*)adv_weights->Get("QCD");
-  
+
 
 };

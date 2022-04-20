@@ -1,7 +1,7 @@
 import ROOT as R
 import os
 
-_rootpath = os.path.abspath(os.path.dirname(__file__)+"../../..") #Had to remove one for LPHE
+_rootpath = os.path.abspath(os.path.dirname(__file__)+"../../../..")
 R.gROOT.ProcessLine(".include "+_rootpath)
 R.gInterpreter.ProcessLine('''
 

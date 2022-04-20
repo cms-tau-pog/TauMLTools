@@ -12,8 +12,6 @@ import os
 import time
 from makeTree import MakeTupleClass
 
-
-
 # class TerminateGenerator:
 #     pass
 
