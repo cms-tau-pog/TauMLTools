@@ -491,8 +491,6 @@ def main(cfg: DictConfig) -> None:
     with mlflow.start_run(**run_kwargs) as main_run:
         if cfg["pretrained"] is not None:
             mlflow.start_run(experiment_id=run_kwargs['experiment_id'], nested=True)
-            if cfg["pretrained"] is not None: # initialise with pretrained run, otherwise create a new run
-                run_kwargs['run_id'] = cfg["pretrained"]["run_id"]
         active_run = mlflow.active_run()
         run_id = active_run.info.run_id
 
