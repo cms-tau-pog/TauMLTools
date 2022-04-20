@@ -11,7 +11,6 @@ namespace analysis {
      Int_t genJet_index)
     {   
         using GTGenLeptonKind = reco_tau::gen_truth::GenLepton::Kind;
-        // const GTGenLeptonKind genLepton_kind = static_cast<GTGenLeptonKind> (tau_genLepton_kind);
 
         if (genLepton_index >= 0){
             LorentzVectorM genv(tau_pt, tau_eta, tau_phi, tau_mass);
