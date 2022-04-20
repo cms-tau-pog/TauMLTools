@@ -15,7 +15,7 @@ import eval_tools
 @hydra.main(config_path='configs', config_name='run3')
 def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
-    
+
     # setting paths
     # path_to_weights_taus = to_absolute_path(cfg.path_to_weights_taus) if cfg.path_to_weights_taus is not None else None
     # path_to_weights_vs_type = to_absolute_path(cfg.path_to_weights_vs_type) if cfg.path_to_weights_vs_type is not None else None
@@ -129,7 +129,8 @@ def main(cfg: DictConfig) -> None:
                     'dashed': curve.dashed,
                     'marker_size': curve.marker_size
                 }
-                curve_data['plot_setup']['ratio_title'] = 'MVA/DeepTau' if cfg.vs_type != 'mu' else 'cut based/DeepTau'
+                # curve_data['plot_setup']['ratio_title'] = 'MVA/DeepTau' if cfg.vs_type != 'mu' else 'cut based/DeepTau'
+                curve_data['plot_setup']['ratio_title'] = "ratio"
 
                 # plot setup for the curve
                 for lim_name in [ 'x', 'y', 'ratio_y' ]:
