@@ -6,12 +6,12 @@
 #include "TauMLTools/Core/interface/exception.h"
 
 namespace analysis {
-    std::optional<GenLeptonMatch> GetGenLeptonMatch(Int_t tau_genLepton_kind,  Int_t genLepton_index,  Float_t tau_pt,  Float_t tau_eta,
+    std::optional<GenLeptonMatch> GetGenLeptonMatch(reco_tau::gen_truth::GenLepton::Kind genLepton_kind,  Int_t genLepton_index,  Float_t tau_pt,  Float_t tau_eta,
      Float_t tau_phi,  Float_t tau_mass,  Float_t genLepton_vis_pt,  Float_t genLepton_vis_eta,  Float_t genLepton_vis_phi,  Float_t genLepton_vis_mass,
      Int_t genJet_index)
     {   
         using GTGenLeptonKind = reco_tau::gen_truth::GenLepton::Kind;
-        const GTGenLeptonKind genLepton_kind = static_cast<GTGenLeptonKind> (tau_genLepton_kind);
+        // const GTGenLeptonKind genLepton_kind = static_cast<GTGenLeptonKind> (tau_genLepton_kind);
 
         if (genLepton_index >= 0){
             LorentzVectorM genv(tau_pt, tau_eta, tau_phi, tau_mass);
@@ -46,7 +46,7 @@ namespace analysis {
             }
             else {
                 throw exception("genLepton_kind = %1% should not happend when genLepton_index is %2%")
-                    %tau_genLepton_kind %genLepton_index;
+                    %static_cast<int>(genLepton_kind) %genLepton_index;
             }
         }
         else if (genJet_index >= 0){
