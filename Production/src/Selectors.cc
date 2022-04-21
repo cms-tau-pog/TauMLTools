@@ -35,7 +35,7 @@ bool electronveto (const std::vector<pat::Electron>& electrons, const reco::Vert
 }
 
 bool dimuonveto (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, const reco::Vertex& primaryVertex){
-    const std::vector<pat::Muon> dimuon_candidates; // vector of all muons that pass selection
+    std::vector<pat::Muon> dimuon_candidates; // vector of all muons that pass selection
     for(const pat::Muon& muon : muons) {
         if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isLooseMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
                 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045&& &muon != ref_muon)
