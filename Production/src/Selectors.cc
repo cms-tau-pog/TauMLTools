@@ -101,7 +101,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
         for(const pat::Muon& muon : muons) {
             if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isLooseMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
                     && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045&& &muon != ref_muon){
-                        dimuon_candidates.push_back(&muon);
+                        dimuon_candidates.push_back(muon);
                     }
         for (const pat::Muon& muon1 : dimuon_candidates) { // look at all possible matches
             for (const pat::Muon& muon2 : dimuon_candidates) {
