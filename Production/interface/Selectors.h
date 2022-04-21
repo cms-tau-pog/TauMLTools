@@ -18,6 +18,12 @@ struct TagObject {
     // define bool
 };
 
+bool muonveto (const std::vector<pat::Muon>& muons);
+
+bool electronveto (const std::vector<pat::Electron>& electrons);
+
+bool dimuonveto (const std::vector<pat::Muon>& muons);
+
 struct TauJetSelector {
     using Result = std::tuple<std::vector<const TauJet*>, std::shared_ptr<TagObject>>;
 

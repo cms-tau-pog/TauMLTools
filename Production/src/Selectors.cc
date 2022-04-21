@@ -15,6 +15,39 @@ std::shared_ptr<TauJetSelector> TauJetSelector::Make(const std::string& name)
     throw analysis::exception("Unknown selector name = '%1%'") % name;
 }
 
+bool muonveto (const std::vector<pat::Muon>& muons){
+    for(const pat::Muon& muon : muons) {
+        if(muon.pt() > 10 && std::abs(muon.eta()) < 2.4 && muon.isMediumMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
+                && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045&& &muon != ref_muon){
+            return true;
+        }
+    }
+}
+
+bool electronveto (const std::vector<pat::Electron>& electrons){
+    for(const pat::Electron& electron : electrons) {
+        if(electron.pt() > 10 && std::abs(electron.eta()) < 2.5 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && PFRelIsolation_e(electron)<0.3
+            && std::abs(electron.electronBestTrack()->dxy(primaryVertex.position())) < 0.2 && std::abs(electron.electronBestTrack()->dz(primaryVertex.position())) < 0.0045){
+            return true;
+        }
+    }
+}
+
+bool dimuonveto (const std::vector<pat::Muon>& muons){
+    const std::vector<pat::Muon>& dimuon_candidates; // vector of all muons that pass selection
+    for(const pat::Muon& muon : muons) {
+        if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isLooseMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
+                && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045&& &muon != ref_muon)
+                    dimuon_candidates.push_back(muon);
+    }
+    for (const pat::Muon& muon1 : dimuon_candidates) { // look at all possible matches
+        for (const pat::Muon& muon2 : dimuon_candidates) {
+            if (&muon1 != &muon2 && reco::deltaR(muon1.polarP4(), muon2.polarP4()) > 0.15 && (muon1.charge() + muon2.charge()) == 0 )
+                return true;
+        }
+    }
+}
+
 TauJetSelector::Result TauJetSelector::Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
                                       const std::vector<pat::Electron>& electrons,
                                       const std::vector<pat::Muon>& muons, const pat::MET& met,
@@ -77,39 +110,6 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
     if(!(selectedTau && (selectedTau->tau->charge() + ref_muon->charge()) == 0)) return {};
     std::vector<const TauJet*> selectedTauJets = { selectedTau };
 
-    bool muonveto (const std::vector<pat::Muon>& muons){
-        for(const pat::Muon& muon : muons) {
-            if(muon.pt() > 10 && std::abs(muon.eta()) < 2.4 && muon.isMediumMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
-                    && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045&& &muon != ref_muon){
-                return true;
-            }
-        }
-    }
-
-    bool electronveto (const std::vector<pat::Electron>& electrons){
-        for(const pat::Electron& electron : electrons) {
-            if(electron.pt() > 10 && std::abs(electron.eta()) < 2.5 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && PFRelIsolation_e(electron)<0.3
-                && std::abs(electron.electronBestTrack()->dxy(primaryVertex.position())) < 0.2 && std::abs(electron.electronBestTrack()->dz(primaryVertex.position())) < 0.0045){
-                return true;
-            }
-        }
-    }
-
-    bool dimuonveto (const std::vector<pat::Muon>& muons){
-        const std::vector<pat::Muon>& dimuon_candidates; // vector of all muons that pass selection
-        for(const pat::Muon& muon : muons) {
-            if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isLooseMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
-                    && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045&& &muon != ref_muon){
-                        dimuon_candidates.push_back(muon);
-                    }
-        for (const pat::Muon& muon1 : dimuon_candidates) { // look at all possible matches
-            for (const pat::Muon& muon2 : dimuon_candidates) {
-                if (&muon1 != &muon2 && reco::deltaR(muon1.polarP4(), muon2.polarP4()) > 0.15 && (muon1.charge() + muon2.charge()) == 0 ){
-                    return true;
-                }
-            }
-        }
-    }
 
     bool extramuon = muonveto(muons);
     bool extraelectron = electronveto(electrons);
