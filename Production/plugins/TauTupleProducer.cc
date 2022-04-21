@@ -271,7 +271,7 @@ private:
                               *isoTracks, *lostTracks, genParticles, genJets, requireGenMatch,
                               requireGenORRecoTauMatch, applyRecoPtSieve);
         const auto [tauJets, tagObj] = selector->Select(event, builder.GetTauJets(), *electrons, *muons,
-                                                           METs->at(0), PV, *triggerObjects, *triggerResults);
+                                                           METs->at(0), PV, *triggerObjects, *triggerResults, static_cast<float>(*rho));
         tauTuple().tagObj_valid = tagObj != nullptr;                                                    
         tauTuple().tagObj_pt = tagObj ? tagObj->p4.pt() : default_value;
         tauTuple().tagObj_eta = tagObj ? tagObj->p4.eta() : default_value;

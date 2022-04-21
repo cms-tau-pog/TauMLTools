@@ -50,5 +50,5 @@ bool CalculateGottfriedJacksonAngleDifference(const pat::Tau& tau, double& gj_di
 
 double PFRelIsolation(const pat::Muon& muon);
 
-double PFRelIsolation_e(const pat::Electron& electron);
+double PFRelIsolation_e(const pat::Electron& electron, const float rho);
 } // namespace tau_analysis

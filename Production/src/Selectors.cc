@@ -20,7 +20,7 @@ TauJetSelector::Result TauJetSelector::Select(const edm::Event& event, const std
                                       const std::vector<pat::Muon>& muons, const pat::MET& met,
                                       const reco::Vertex& primaryVertex,
                                       const pat::TriggerObjectStandAloneCollection& triggerObjects,
-                                      const edm::TriggerResults& triggerResults)
+                                      const edm::TriggerResults& triggerResults, const float rho)
 {
     std::vector<const TauJet*> selected;
     for(const TauJet& tauJet :tauJets)
@@ -33,7 +33,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
                                      const std::vector<pat::Muon>& muons, const pat::MET& met,
                                      const reco::Vertex& primaryVertex,
                                      const pat::TriggerObjectStandAloneCollection& triggerObjects,
-                                     const edm::TriggerResults& triggerResults)
+                                     const edm::TriggerResults& triggerResults, const float rho)
 {
     static const std::string filterName = "hltL3crIsoL1sSingleMu22L1f0L210QL3f24QL3trkIsoFiltered0p07";
     static const std::set<int> decayModes = { 0, 1, 10, 11 };
@@ -99,7 +99,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
     bool dimuonveto (const std::vector<pat::Muon>& muons){
         const std::vector<pat::Muon>& dimuon_candidates; // vector of all muons that pass selection
         for(const pat::Muon& muon : muons) {
-            if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isMediumMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
+            if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isLooseMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
                     && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045&& &muon != ref_muon){
                         dimuon_candidates.push_back(&muon);
                     }
