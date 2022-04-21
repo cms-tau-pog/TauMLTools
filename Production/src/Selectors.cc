@@ -105,7 +105,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
                     }
         for (const pat::Muon& muon1 : dimuon_candidates) { // look at all possible matches
             for (const pat::Muon& muon2 : dimuon_candidates) {
-                if (&muon1 != &muon2 && reco::deltaR(muon1.polarP4(), muon2.polarP4()) > 0.15 && (muon1.charge + muon2.charge) == 0 ){
+                if (&muon1 != &muon2 && reco::deltaR(muon1.polarP4(), muon2.polarP4()) > 0.15 && (muon1.charge() + muon2.charge()) == 0 ){
                     return true;
                 }
             }
