@@ -22,19 +22,20 @@ bool muonveto (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, c
             return true;
         }
     }
+    return false;
 }
 
 bool electronveto (const std::vector<pat::Electron>& electrons, const reco::Vertex& primaryVertex, const float rho){
     for(const pat::Electron& electron : electrons) {
-        if(electron.pt() > 10 && std::abs(electron.eta()) < 2.5 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && PFRelIsolation_e(electron, rho)<0.3
-            && std::abs(electron.electronBestTrack()->dxy(primaryVertex.position())) < 0.2 && std::abs(electron.electronBestTrack()->dz(primaryVertex.position())) < 0.0045){
+        if(electron.pt() > 10 && std::abs(electron.eta()) < 2.5 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && PFRelIsolation_e(electron, rho)<0.3){
             return true;
         }
     }
+    return false;
 }
 
 bool dimuonveto (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, const reco::Vertex& primaryVertex){
-    const std::vector<pat::Muon>& dimuon_candidates; // vector of all muons that pass selection
+    const std::vector<pat::Muon> dimuon_candidates; // vector of all muons that pass selection
     for(const pat::Muon& muon : muons) {
         if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isLooseMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
                 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045&& &muon != ref_muon)
@@ -46,6 +47,7 @@ bool dimuonveto (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon,
                 return true;
         }
     }
+    return false;
 }
 
 TauJetSelector::Result TauJetSelector::Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
