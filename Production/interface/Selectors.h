@@ -20,11 +20,11 @@ struct TagObject {
     bool extradimuon;
 };
 
-bool muonveto (const std::vector<pat::Muon>& muons);
+bool muonveto (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, const reco::Vertex& primaryVertex);
 
-bool electronveto (const std::vector<pat::Electron>& electrons);
+bool electronveto (const std::vector<pat::Electron>& electrons, const reco::Vertex& primaryVertex, const float rho);
 
-bool dimuonveto (const std::vector<pat::Muon>& muons);
+bool dimuonveto (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, const reco::Vertex& primaryVertex);
 
 struct TauJetSelector {
     using Result = std::tuple<std::vector<const TauJet*>, std::shared_ptr<TagObject>>;
