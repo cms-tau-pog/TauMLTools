@@ -46,9 +46,8 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
             continue;
         if(!ref_muon || PFRelIsolation(*ref_muon) < PFRelIsolation(muon) || (PFRelIsolation(*ref_muon) == PFRelIsolation(muon) && ref_muon->pt() < muon.pt()))
             ref_muon = &muon;
-        }
-
     }
+
     if(!(ref_muon && analysis::Calculate_MT(ref_muon->polarP4(), met.polarP4()) < 30)) return {};
 
     bool passTrigger = false;
