@@ -15,7 +15,9 @@ struct TagObject {
     int charge;
     unsigned id;
     float isolation;
-    // define bool
+    bool extramuon;
+    bool extraelectron;
+    bool extradimuon;
 };
 
 bool muonveto (const std::vector<pat::Muon>& muons);
