@@ -44,7 +44,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
                 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
                 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045))
             continue;
-        if(!ref_muon || PFRelIsolation(ref_muon) < PFRelIsolation(muon) || (PFRelIsolation(ref_muon) = PFRelIsolation(muon) && ref_muon->pt() < muon.pt()))
+        if(!ref_muon || PFRelIsolation(*ref_muon) < PFRelIsolation(muon) || (PFRelIsolation(*ref_muon) = PFRelIsolation(muon) && ref_muon->pt() < muon.pt()))
             ref_muon = &muon;
         }
 
