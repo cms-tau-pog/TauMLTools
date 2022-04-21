@@ -15,6 +15,7 @@ struct TagObject {
     int charge;
     unsigned id;
     float isolation;
+    // define bool
 };
 
 struct TauJetSelector {

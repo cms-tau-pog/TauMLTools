@@ -280,6 +280,9 @@ private:
         tauTuple().tagObj_charge = tagObj ? tagObj->charge : default_int_value;
         tauTuple().tagObj_id = tagObj ? tagObj->id : 0;
         tauTuple().tagObj_iso = tagObj ? tagObj->isolation : default_value;
+        tauTuple().extramuon = tagObj ? tagObj->extramuon : default_value;
+        tauTuple().extraelectron = tagObj ? tagObj->extraelectron : default_value;
+        tauTuple().extradimuon = tagObj ? tagObj->extradimuon : default_value;
 
         tauTuple().total_entries = static_cast<int>(tauJets.size());
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {
@@ -790,7 +793,7 @@ private:
             tauTuple().muon_type.push_back(muon->type());
             tauTuple().muon_id.push_back(unsigned(muon->isLooseMuon()) * 1 + unsigned(muon->isMediumMuon()) * 2
                                          + unsigned(muon->isTightMuon(PV)) * 4);
-            tauTuple().muon_pfRelIso04.push_back(static_cast<float>(PFIsolation(*muon)));
+            tauTuple().muon_pfRelIso04.push_back(static_cast<float>(PFRelIsolation(*muon)));
 
             const MuonHitMatch hit_match(*muon);
             for(int subdet : MuonHitMatch::ConsideredSubdets()) {
