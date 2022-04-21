@@ -58,12 +58,12 @@ double PFRelIsolation_e(const pat::Electron& electron, const float rho)
     const std::vector<float> ea_values = {0.1440, 0.1562, 0.1032, 0.0859, 0.1116, 0.1321, 0.1654};
 
     auto eta_bin = std::lower_bound(eta_lower.begin(), eta_lower.end(), electron.eta()); // iterator pointing to corresponding eta value
-    float ea = ea.values.at(std::distance(eta_lower.begin(), eta_bin)); // get EA at that index
+    float ea = ea_values.at(std::distance(eta_lower.begin(), eta_bin)); // get EA at that index
 
-    const double sum_neutral = electron.chargedHadronIso()
+    const double sum_neutral = electron.neutralHadronIso()
                              + electron.photonIso()
                              - ea* rho;
-    const double abs_iso = electron.chargedHadronIso().sumChargedHadronPt + std::max(sum_neutral, 0.0);
+    const double abs_iso = electron.chargedHadronIso() + std::max(sum_neutral, 0.0);
     return abs_iso / electron.pt();
 }
 
