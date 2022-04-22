@@ -64,10 +64,10 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = 
             run_cmd git cms-merge-topic -u cms-tau-pog:CMSSW_10_6_X_tau-pog_boostedTausMiniFix
         fi
 
-        # if (( $DO_GRID_COMPARE == 1 )); then
-        #     git cms-addpkg RecoTauTag/RecoTau
-        #     git apply ../../../../print_DeepTauIdInput.patch
-        # fi
+        if (( $DO_GRID_COMPARE == 1 )); then
+            git cms-addpkg RecoTauTag/RecoTau
+            git apply ../../../../print_DeepTauIdInput.patch
+        fi
 
         run_cmd mkdir TauMLTools
         run_cmd cd TauMLTools
