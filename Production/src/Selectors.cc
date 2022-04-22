@@ -3,6 +3,46 @@
 #include "TauMLTools/Core/interface/AnalysisMath.h"
 #include "TauMLTools/Production/interface/TauAnalysis.h"
 
+namespace {
+
+bool hasExtraMuon (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, const reco::Vertex& primaryVertex){
+    for(const pat::Muon& muon : muons) {
+        if(muon.pt() > 10 && std::abs(muon.eta()) < 2.4 && muon.isMediumMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.2
+                && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.0045 && &muon != ref_muon){
+            return true;
+        }
+    }
+    return false;
+}
+
+bool hasExtraElectron (const std::vector<pat::Electron>& electrons, float rho){
+    for(const pat::Electron& electron : electrons) {
+        if(electron.pt() > 10 && std::abs(electron.eta()) < 2.5 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && PFRelIsolation_e(electron, rho)<0.3){
+            return true;
+        }
+    }
+    return false;
+}
+
+bool hasExtraDimuon (const std::vector<pat::Muon>& muons, const reco::Vertex& primaryVertex){
+    std::vector<const pat::Muon*> dimuon_cands; // vector of all muons that pass selection
+    for(const pat::Muon& muon : muons) {
+        if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isLooseMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.2
+                && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.0045)
+                    dimuon_cands.push_back(muon);
+    }
+    for(size_t m1 = 0; m1 < dimoun_cands.size(); ++m1) {
+        for(size_t m2 = m1 + 1; m2 < dimuon_cands.size(); ++m2){
+            if (&dimuon_cands.at(m1) != &dimuon_cands.at(m2) && reco::deltaR(dimuon_cands.at(m1).polarP4(), dimuon_cands.at(m2).polarP4()) > 0.15 
+                && (dimuon_cands.at(m1).charge() + dimuon_cands.at(m2).charge()) == 0 )
+                return true;
+        }   
+    }
+    return false;
+}
+
+}
+
 namespace tau_analysis {
 namespace selectors {
 
@@ -15,47 +55,14 @@ std::shared_ptr<TauJetSelector> TauJetSelector::Make(const std::string& name)
     throw analysis::exception("Unknown selector name = '%1%'") % name;
 }
 
-bool muonveto (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, const reco::Vertex& primaryVertex){
-    for(const pat::Muon& muon : muons) {
-        if(muon.pt() > 10 && std::abs(muon.eta()) < 2.4 && muon.isMediumMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
-                && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045&& &muon != ref_muon){
-            return true;
-        }
-    }
-    return false;
-}
 
-bool electronveto (const std::vector<pat::Electron>& electrons, const reco::Vertex& primaryVertex, const float rho){
-    for(const pat::Electron& electron : electrons) {
-        if(electron.pt() > 10 && std::abs(electron.eta()) < 2.5 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && PFRelIsolation_e(electron, rho)<0.3){
-            return true;
-        }
-    }
-    return false;
-}
-
-bool dimuonveto (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, const reco::Vertex& primaryVertex){
-    std::vector<pat::Muon> dimuon_candidates; // vector of all muons that pass selection
-    for(const pat::Muon& muon : muons) {
-        if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isLooseMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
-                && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045)
-                    dimuon_candidates.push_back(muon);
-    }
-    for (const pat::Muon& muon1 : dimuon_candidates) { // look at all possible matches
-        for (const pat::Muon& muon2 : dimuon_candidates) {
-            if (&muon1 != &muon2 && reco::deltaR(muon1.polarP4(), muon2.polarP4()) > 0.15 && (muon1.charge() + muon2.charge()) == 0 )
-                return true;
-        }
-    }
-    return false;
-}
 
 TauJetSelector::Result TauJetSelector::Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
                                       const std::vector<pat::Electron>& electrons,
                                       const std::vector<pat::Muon>& muons, const pat::MET& met,
                                       const reco::Vertex& primaryVertex,
                                       const pat::TriggerObjectStandAloneCollection& triggerObjects,
-                                      const edm::TriggerResults& triggerResults, const float rho)
+                                      const edm::TriggerResults& triggerResults, float rho)
 {
     std::vector<const TauJet*> selected;
     for(const TauJet& tauJet :tauJets)
@@ -68,22 +75,20 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
                                      const std::vector<pat::Muon>& muons, const pat::MET& met,
                                      const reco::Vertex& primaryVertex,
                                      const pat::TriggerObjectStandAloneCollection& triggerObjects,
-                                     const edm::TriggerResults& triggerResults, const float rho)
+                                     const edm::TriggerResults& triggerResults, float rho)
 {
     static const std::string filterName = "hltL3crIsoL1sSingleMu22L1f0L2f10QL3f24QL3trkIsoFiltered0p07";
     static const std::set<int> decayModes = { 0, 1, 10, 11 };
 
-    // std::cout<< "In MuTau Selector" << std::endl;
 
     const pat::Muon *ref_muon = nullptr;
     for(const pat::Muon& muon : muons) {
         if(!(muon.pt() > 25 && std::abs(muon.eta()) < 2.1 && muon.isMediumMuon() && PFRelIsolation(muon) < 0.15
-                && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
-                && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045))
+                && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.2
+                && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.0045))
             continue;
-        if(!ref_muon || PFRelIsolation(*ref_muon) < PFRelIsolation(muon) || (PFRelIsolation(*ref_muon) == PFRelIsolation(muon) && ref_muon->pt() < muon.pt())){
+        if(!ref_muon || PFRelIsolation(*ref_muon) > PFRelIsolation(muon) || (PFRelIsolation(*ref_muon) == PFRelIsolation(muon) && ref_muon->pt() < muon.pt())){
             ref_muon = &muon;
-            // std::cout<<"Reference muon assigned" << std::endl;
         }          
     }
 
@@ -96,7 +101,6 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
         unpackedTriggerObject.unpackFilterLabels(event, triggerResults);
         if(unpackedTriggerObject.hasFilterLabel(filterName)) {
             passTrigger = true;
-            // std::cout<< "Passed trigger" << std::endl;
             break;
         }
     }
@@ -113,7 +117,6 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
         if(!selectedTau || selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")< tau.tauID("byDeepTau2017v2p1VSjetraw") 
             || (selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")== tau.tauID("byDeepTau2017v2p1VSjetraw") && selectedTau->tau->pt() < tau.pt())){
                 selectedTau = &tauJet;
-                // std::cout << "Tau Candidate Selected" << std::endl;
              }
             
     }
@@ -121,19 +124,9 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
     std::vector<const TauJet*> selectedTauJets = { selectedTau };
 
 
-    bool extramuon = muonveto(muons, ref_muon, primaryVertex);
-    // if(extramuon){
-    //     std::cout<< "Extra muon" << std::endl;
-    // }
-    bool extraelectron = electronveto(electrons, primaryVertex, rho);
-    // if(extraelectron){
-    //     std::cout<< "Extra electron" << std::endl;
-    // }
-    bool dimuon = dimuonveto(muons, ref_muon, primaryVertex);
-    // if(dimuon){
-    //     std::cout<< "Muon pair" << std::endl;
-    // }
-
+    bool hasextramuon = hasExtraMuon(muons, ref_muon, primaryVertex);
+    bool hasextraelectron = hasExtraElectron(electrons, rho);
+    bool hasdimuon = hasExtraDimuon(muons, primaryVertex);
 
 
     auto tagObject = std::make_shared<TagObject>();
@@ -142,9 +135,9 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
     tagObject->id = unsigned(ref_muon->isLooseMuon()) * 1 + unsigned(ref_muon->isMediumMuon()) * 2
                     + unsigned(ref_muon->isTightMuon(primaryVertex)) * 4;
     tagObject->isolation = PFRelIsolation(*ref_muon);
-    tagObject->extramuon = extramuon;
-    tagObject->extraelectron = extraelectron;
-    tagObject->dimuon = dimuon;
+    tagObject->has_extramuon = hasextramuon;
+    tagObject->has_extraelectron = hasextraelectron;
+    tagObject->has_dimuon = hasdimuon;
     return Result(selectedTauJets, tagObject);
 }
 

@@ -15,16 +15,10 @@ struct TagObject {
     int charge;
     unsigned id;
     float isolation;
-    bool extramuon;
-    bool extraelectron;
-    bool dimuon;
+    bool has_extramuon;
+    bool has_extraelectron;
+    bool has_dimuon;
 };
-
-bool muonveto (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, const reco::Vertex& primaryVertex);
-
-bool electronveto (const std::vector<pat::Electron>& electrons, const reco::Vertex& primaryVertex, const float rho);
-
-bool dimuonveto (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, const reco::Vertex& primaryVertex);
 
 struct TauJetSelector {
     using Result = std::tuple<std::vector<const TauJet*>, std::shared_ptr<TagObject>>;
@@ -35,7 +29,7 @@ struct TauJetSelector {
                           const std::vector<pat::Muon>& muons, const pat::MET& met,
                           const reco::Vertex& primaryVertex,
                           const pat::TriggerObjectStandAloneCollection& triggerObjects,
-                          const edm::TriggerResults& triggerResults, const float rho);
+                          const edm::TriggerResults& triggerResults, float rho);
 
     static std::shared_ptr<TauJetSelector> Make(const std::string& name);
 };
@@ -46,7 +40,7 @@ struct MuTau : TauJetSelector {
                           const std::vector<pat::Muon>& muons, const pat::MET& met,
                           const reco::Vertex& primaryVertex,
                           const pat::TriggerObjectStandAloneCollection& triggerObjects,
-                          const edm::TriggerResults& triggerResults, const float rho) override;
+                          const edm::TriggerResults& triggerResults, float rho) override;
 };
 
 } // namespace selectors
