@@ -73,6 +73,8 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
     static const std::string filterName = "hltL3crIsoL1sSingleMu22L1f0L210QL3f24QL3trkIsoFiltered0p07";
     static const std::set<int> decayModes = { 0, 1, 10, 11 };
 
+    std::cout<< "In MuTau Selector" << std::endl;
+
     const pat::Muon *ref_muon = nullptr;
     for(const pat::Muon& muon : muons) {
         if(!(muon.pt() > 25 && std::abs(muon.eta()) < 2.1 && muon.isMediumMuon() && PFRelIsolation(muon) < 0.15
@@ -81,6 +83,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
             continue;
         if(!ref_muon || PFRelIsolation(*ref_muon) < PFRelIsolation(muon) || (PFRelIsolation(*ref_muon) == PFRelIsolation(muon) && ref_muon->pt() < muon.pt()))
             ref_muon = &muon;
+            std::cout<<"Reference muon assigned" << std::endl;
     }
 
     if(!(ref_muon && analysis::Calculate_MT(ref_muon->polarP4(), met.polarP4()) < 30)) return {};
@@ -92,6 +95,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
         unpackedTriggerObject.unpackFilterLabels(event, triggerResults);
         if(unpackedTriggerObject.hasFilterLabel(filterName)) {
             passTrigger = true;
+            std::cout<< "Passed trigger" << std::endl;
             break;
         }
     }
@@ -108,14 +112,25 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
         if(!selectedTau || selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")< tau.tauID("byDeepTau2017v2p1VSjetraw") 
                             || (selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")== tau.tauID("byDeepTau2017v2p1VSjetraw") && selectedTau->tau->pt() < tau.pt()))
             selectedTau = &tauJet;
+            std::cout << "Tau Candidate Selected" << std::endl;
     }
     if(!(selectedTau && (selectedTau->tau->charge() + ref_muon->charge()) == 0)) return {};
     std::vector<const TauJet*> selectedTauJets = { selectedTau };
 
 
     bool extramuon = muonveto(muons, ref_muon, primaryVertex);
+    if(extramuon){
+        std::cout<< "Extra muon" << std::endl;
+    }
     bool extraelectron = electronveto(electrons, primaryVertex, rho);
+    if(extraelectron){
+        std::cout<< "Extra electron" << std::endl;
+    }
     bool extradimuon = dimuonveto(muons, ref_muon, primaryVertex);
+    if(extradimuon){
+        std::cout<< "Extra muon pair" << std::endl;
+    }
+
 
 
     auto tagObject = std::make_shared<TagObject>();
