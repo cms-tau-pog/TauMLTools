@@ -17,7 +17,7 @@ bool hasExtraMuon (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muo
 
 bool hasExtraElectron (const std::vector<pat::Electron>& electrons, float rho){
     for(const pat::Electron& electron : electrons) {
-        if(electron.pt() > 10 && std::abs(electron.eta()) < 2.5 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && tau_analysis::PFRelIsolation_e(electron, rho)<0.3){
+        if(electron.pt() > 10 && std::abs(electron.eta()) < 2.5 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && tau_analysis::PFRelIsolation(electron, rho)<0.3){
             return true;
         }
     }
