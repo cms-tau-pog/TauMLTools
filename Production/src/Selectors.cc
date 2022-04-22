@@ -81,9 +81,10 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
                 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
                 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045))
             continue;
-        if(!ref_muon || PFRelIsolation(*ref_muon) < PFRelIsolation(muon) || (PFRelIsolation(*ref_muon) == PFRelIsolation(muon) && ref_muon->pt() < muon.pt()))
+        if(!ref_muon || PFRelIsolation(*ref_muon) < PFRelIsolation(muon) || (PFRelIsolation(*ref_muon) == PFRelIsolation(muon) && ref_muon->pt() < muon.pt())){
             ref_muon = &muon;
             std::cout<<"Reference muon assigned" << std::endl;
+        }          
     }
 
     if(!(ref_muon && analysis::Calculate_MT(ref_muon->polarP4(), met.polarP4()) < 30)) return {};
@@ -110,9 +111,11 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
                 && decayModes.count(tau.decayMode()) && tau.tauID("byMediumDeepTau2017v2p1VSjet") > 0.5f
                 && reco::deltaR(ref_muon->polarP4(), tau.polarP4()) > 0.5)) continue;
         if(!selectedTau || selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")< tau.tauID("byDeepTau2017v2p1VSjetraw") 
-                            || (selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")== tau.tauID("byDeepTau2017v2p1VSjetraw") && selectedTau->tau->pt() < tau.pt()))
-            selectedTau = &tauJet;
-            std::cout << "Tau Candidate Selected" << std::endl;
+            || (selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")== tau.tauID("byDeepTau2017v2p1VSjetraw") && selectedTau->tau->pt() < tau.pt())){
+                selectedTau = &tauJet;
+                std::cout << "Tau Candidate Selected" << std::endl;
+             }
+            
     }
     if(!(selectedTau && (selectedTau->tau->charge() + ref_muon->charge()) == 0)) return {};
     std::vector<const TauJet*> selectedTauJets = { selectedTau };
