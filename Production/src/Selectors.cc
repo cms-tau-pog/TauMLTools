@@ -73,7 +73,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
     static const std::string filterName = "hltL3crIsoL1sSingleMu22L1f0L2f10QL3f24QL3trkIsoFiltered0p07";
     static const std::set<int> decayModes = { 0, 1, 10, 11 };
 
-    std::cout<< "In MuTau Selector" << std::endl;
+    // std::cout<< "In MuTau Selector" << std::endl;
 
     const pat::Muon *ref_muon = nullptr;
     for(const pat::Muon& muon : muons) {
@@ -83,7 +83,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
             continue;
         if(!ref_muon || PFRelIsolation(*ref_muon) < PFRelIsolation(muon) || (PFRelIsolation(*ref_muon) == PFRelIsolation(muon) && ref_muon->pt() < muon.pt())){
             ref_muon = &muon;
-            std::cout<<"Reference muon assigned" << std::endl;
+            // std::cout<<"Reference muon assigned" << std::endl;
         }          
     }
 
@@ -96,7 +96,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
         unpackedTriggerObject.unpackFilterLabels(event, triggerResults);
         if(unpackedTriggerObject.hasFilterLabel(filterName)) {
             passTrigger = true;
-            std::cout<< "Passed trigger" << std::endl;
+            // std::cout<< "Passed trigger" << std::endl;
             break;
         }
     }
@@ -113,7 +113,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
         if(!selectedTau || selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")< tau.tauID("byDeepTau2017v2p1VSjetraw") 
             || (selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")== tau.tauID("byDeepTau2017v2p1VSjetraw") && selectedTau->tau->pt() < tau.pt())){
                 selectedTau = &tauJet;
-                std::cout << "Tau Candidate Selected" << std::endl;
+                // std::cout << "Tau Candidate Selected" << std::endl;
              }
             
     }
@@ -122,17 +122,17 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
 
 
     bool extramuon = muonveto(muons, ref_muon, primaryVertex);
-    if(extramuon){
-        std::cout<< "Extra muon" << std::endl;
-    }
+    // if(extramuon){
+    //     std::cout<< "Extra muon" << std::endl;
+    // }
     bool extraelectron = electronveto(electrons, primaryVertex, rho);
-    if(extraelectron){
-        std::cout<< "Extra electron" << std::endl;
-    }
+    // if(extraelectron){
+    //     std::cout<< "Extra electron" << std::endl;
+    // }
     bool dimuon = dimuonveto(muons, ref_muon, primaryVertex);
-    if(dimuon){
-        std::cout<< "Muon pair" << std::endl;
-    }
+    // if(dimuon){
+    //     std::cout<< "Muon pair" << std::endl;
+    // }
 
 
 
