@@ -33,8 +33,7 @@ bool hasExtraDimuon (const std::vector<pat::Muon>& muons, const reco::Vertex& pr
     }
     for(size_t m1 = 0; m1 < dimuon_cands.size(); ++m1) {
         for(size_t m2 = m1 + 1; m2 < dimuon_cands.size(); ++m2){
-            if (&dimuon_cands.at(m1) != &dimuon_cands.at(m2) && reco::deltaR(dimuon_cands.at(m1)->polarP4(), dimuon_cands.at(m2)->polarP4()) > 0.15 
-                && (dimuon_cands.at(m1)->charge() + dimuon_cands.at(m2)->charge()) == 0 )
+            if (reco::deltaR(dimuon_cands.at(m1)->polarP4(), dimuon_cands.at(m2)->polarP4()) > 0.15 && (dimuon_cands.at(m1)->charge() + dimuon_cands.at(m2)->charge()) == 0 )
                 return true;
         }   
     }
@@ -113,7 +112,8 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
 
         if(!(tau.pt() > 20 && std::abs(tau.eta()) < 2.3 && tau.tauID("decayModeFindingNewDMs")
                 && decayModes.count(tau.decayMode()) && tau.tauID("byMediumDeepTau2017v2p1VSjet") > 0.5f
-                && reco::deltaR(ref_muon->polarP4(), tau.polarP4()) > 0.5)) continue;
+                && reco::deltaR(ref_muon->polarP4(), tau.polarP4()) > 0.5) 
+                && std::abs(tau.leadChargedHadrCand()->dz(primaryVertex.position())) < 0.2) continue;
         if(!selectedTau || selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")< tau.tauID("byDeepTau2017v2p1VSjetraw") 
             || (selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")== tau.tauID("byDeepTau2017v2p1VSjetraw") && selectedTau->tau->pt() < tau.pt())){
                 selectedTau = &tauJet;
@@ -123,21 +123,15 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
     if(!(selectedTau && (selectedTau->tau->charge() + ref_muon->charge()) == 0)) return {};
     std::vector<const TauJet*> selectedTauJets = { selectedTau };
 
-
-    bool hasextramuon = hasExtraMuon(muons, ref_muon, primaryVertex);
-    bool hasextraelectron = hasExtraElectron(electrons, rho);
-    bool hasdimuon = hasExtraDimuon(muons, primaryVertex);
-
-
     auto tagObject = std::make_shared<TagObject>();
     tagObject->p4 = ref_muon->polarP4();
     tagObject->charge = ref_muon->charge();
     tagObject->id = unsigned(ref_muon->isLooseMuon()) * 1 + unsigned(ref_muon->isMediumMuon()) * 2
                     + unsigned(ref_muon->isTightMuon(primaryVertex)) * 4;
     tagObject->isolation = PFRelIsolation(*ref_muon);
-    tagObject->has_extramuon = hasextramuon;
-    tagObject->has_extraelectron = hasextraelectron;
-    tagObject->has_dimuon = hasdimuon;
+    tagObject->has_extramuon = hasExtraMuon(muons, ref_muon, primaryVertex);
+    tagObject->has_extraelectron = hasExtraElectron(electrons, rho);
+    tagObject->has_dimuon = hasExtraDimuon(muons, primaryVertex);
     return Result(selectedTauJets, tagObject);
 }
 
