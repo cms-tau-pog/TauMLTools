@@ -70,7 +70,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
                                      const pat::TriggerObjectStandAloneCollection& triggerObjects,
                                      const edm::TriggerResults& triggerResults, const float rho)
 {
-    static const std::string filterName = "hltL3crIsoL1sSingleMu22L1f0L210QL3f24QL3trkIsoFiltered0p07";
+    static const std::string filterName = "hltL3crIsoL1sSingleMu22L1f0L2f10QL3f24QL3trkIsoFiltered0p07";
     static const std::set<int> decayModes = { 0, 1, 10, 11 };
 
     std::cout<< "In MuTau Selector" << std::endl;
