@@ -112,8 +112,8 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
 
         if(!(tau.pt() > 20 && std::abs(tau.eta()) < 2.3 && tau.tauID("decayModeFindingNewDMs")
                 && decayModes.count(tau.decayMode()) && tau.tauID("byMediumDeepTau2017v2p1VSjet") > 0.5f
-                && reco::deltaR(ref_muon->polarP4(), tau.polarP4()) > 0.5) 
-                && dynamic_cast<const pat::PackedCandidate*>(tau.leadChargedHadrCand().get())->dz() < 0.2) continue;
+                && reco::deltaR(ref_muon->polarP4(), tau.polarP4()) > 0.5
+                && std::abs(dynamic_cast<const pat::PackedCandidate*>(tau.leadChargedHadrCand().get())->dz()) < 0.2)) continue;
         if(!selectedTau || selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")< tau.tauID("byDeepTau2017v2p1VSjetraw") 
             || (selectedTau->tau->tauID("byDeepTau2017v2p1VSjetraw")== tau.tauID("byDeepTau2017v2p1VSjetraw") && selectedTau->tau->pt() < tau.pt())){
                 selectedTau = &tauJet;
