@@ -7,7 +7,7 @@ namespace {
 
 bool hasExtraMuon (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, const reco::Vertex& primaryVertex){
     for(const pat::Muon& muon : muons) {
-        if(muon.pt() > 10 && std::abs(muon.eta()) < 2.4 && muon.isMediumMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.2
+        if(muon.pt() > 10 && std::abs(muon.eta()) < 2.4 && muon.isMediumMuon() && tau_analysis::PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.2
                 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.0045 && &muon != ref_muon){
             return true;
         }
@@ -17,7 +17,7 @@ bool hasExtraMuon (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muo
 
 bool hasExtraElectron (const std::vector<pat::Electron>& electrons, float rho){
     for(const pat::Electron& electron : electrons) {
-        if(electron.pt() > 10 && std::abs(electron.eta()) < 2.5 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && PFRelIsolation_e(electron, rho)<0.3){
+        if(electron.pt() > 10 && std::abs(electron.eta()) < 2.5 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && tau_analysis::PFRelIsolation_e(electron, rho)<0.3){
             return true;
         }
     }
@@ -27,14 +27,14 @@ bool hasExtraElectron (const std::vector<pat::Electron>& electrons, float rho){
 bool hasExtraDimuon (const std::vector<pat::Muon>& muons, const reco::Vertex& primaryVertex){
     std::vector<const pat::Muon*> dimuon_cands; // vector of all muons that pass selection
     for(const pat::Muon& muon : muons) {
-        if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isLooseMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.2
+        if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isLooseMuon() && tau_analysis::PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.2
                 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.0045)
-                    dimuon_cands.push_back(muon);
+                    dimuon_cands.push_back(&muon);
     }
-    for(size_t m1 = 0; m1 < dimoun_cands.size(); ++m1) {
+    for(size_t m1 = 0; m1 < dimuon_cands.size(); ++m1) {
         for(size_t m2 = m1 + 1; m2 < dimuon_cands.size(); ++m2){
-            if (&dimuon_cands.at(m1) != &dimuon_cands.at(m2) && reco::deltaR(dimuon_cands.at(m1).polarP4(), dimuon_cands.at(m2).polarP4()) > 0.15 
-                && (dimuon_cands.at(m1).charge() + dimuon_cands.at(m2).charge()) == 0 )
+            if (&dimuon_cands.at(m1) != &dimuon_cands.at(m2) && reco::deltaR(dimuon_cands.at(m1)->polarP4(), dimuon_cands.at(m2)->polarP4()) > 0.15 
+                && (dimuon_cands.at(m1)->charge() + dimuon_cands.at(m2)->charge()) == 0 )
                 return true;
         }   
     }
