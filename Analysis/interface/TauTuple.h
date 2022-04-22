@@ -117,7 +117,7 @@
     VAR(Float_t, tagObj_iso) /* isolation of the tag object */ \
     VAR(Int_t, tagObj_extramuon) /* Extra muon present */ \
     VAR(Int_t, tagObj_extraelectron) /* Extra electron present */ \
-    VAR(Int_t, tagObj_extradimuon) /* Extra muon pair present */ \
+    VAR(Int_t, tagObj_dimuon) /* Extra muon pair present */ \
     /* Jet variables (for both AK4 and AK8 (aka "fat") jets) */ \
     JET_VAR(Int_t, index) /* index of the jet */ \
     JET_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the jet */ \

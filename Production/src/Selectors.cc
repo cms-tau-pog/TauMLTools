@@ -38,7 +38,7 @@ bool dimuonveto (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon,
     std::vector<pat::Muon> dimuon_candidates; // vector of all muons that pass selection
     for(const pat::Muon& muon : muons) {
         if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isLooseMuon() && PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.2
-                && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045&& &muon != ref_muon)
+                && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.0045)
                     dimuon_candidates.push_back(muon);
     }
     for (const pat::Muon& muon1 : dimuon_candidates) { // look at all possible matches
@@ -129,9 +129,9 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
     if(extraelectron){
         std::cout<< "Extra electron" << std::endl;
     }
-    bool extradimuon = dimuonveto(muons, ref_muon, primaryVertex);
-    if(extradimuon){
-        std::cout<< "Extra muon pair" << std::endl;
+    bool dimuon = dimuonveto(muons, ref_muon, primaryVertex);
+    if(dimuon){
+        std::cout<< "Muon pair" << std::endl;
     }
 
 
@@ -144,7 +144,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
     tagObject->isolation = PFRelIsolation(*ref_muon);
     tagObject->extramuon = extramuon;
     tagObject->extraelectron = extraelectron;
-    tagObject->extradimuon = extradimuon;
+    tagObject->dimuon = dimuon;
     return Result(selectedTauJets, tagObject);
 }
 

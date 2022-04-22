@@ -17,7 +17,7 @@ struct TagObject {
     float isolation;
     bool extramuon;
     bool extraelectron;
-    bool extradimuon;
+    bool dimuon;
 };
 
 bool muonveto (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, const reco::Vertex& primaryVertex);

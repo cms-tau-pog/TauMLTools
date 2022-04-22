@@ -282,7 +282,7 @@ private:
         tauTuple().tagObj_iso = tagObj ? tagObj->isolation : default_value;
         tauTuple().tagObj_extramuon = tagObj ? tagObj->extramuon : default_value;
         tauTuple().tagObj_extraelectron = tagObj ? tagObj->extraelectron : default_value;
-        tauTuple().tagObj_extradimuon = tagObj ? tagObj->extradimuon : default_value;
+        tauTuple().tagObj_dimuon = tagObj ? tagObj->dimuon : default_value;
 
         tauTuple().total_entries = static_cast<int>(tauJets.size());
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {

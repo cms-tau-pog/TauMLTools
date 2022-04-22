@@ -50,10 +50,6 @@ double PFRelIsolation(const pat::Muon& muon)
 
 double PFRelIsolation_e(const pat::Electron& electron, const float rho)
 {   
-    // const std::vector<std::pair<float, float>> EA = {
-    //     {1.0, 0.1440}, {1.479, 0.1562}, {2.0, 0.1032}, {2.2, 0.0859}, {2.3, 0.1116}, 
-    //     {2.4, 0.1321}, {5.0, 0.1654}
-    // }; //upper eta limit, value
     const std::vector<float> eta_lower = {0.0, 1.0, 1.479, 2.0, 2.2, 2.3, 2.4};
     const std::vector<float> ea_values = {0.1440, 0.1562, 0.1032, 0.0859, 0.1116, 0.1321, 0.1654};
 
