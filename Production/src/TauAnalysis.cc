@@ -39,13 +39,28 @@ double CalculateDeltaEtaCrack(double eta)
     return std::abs(retVal);
 }
 
-double PFIsolation(const pat::Muon& muon)
+double PFRelIsolation(const pat::Muon& muon)
 {
     const double sum_neutral = muon.pfIsolationR04().sumNeutralHadronEt
                              + muon.pfIsolationR04().sumPhotonEt
                              - 0.5 * muon.pfIsolationR04().sumPUPt;
     const double abs_iso = muon.pfIsolationR04().sumChargedHadronPt + std::max(sum_neutral, 0.0);
     return abs_iso / muon.pt();
+}
+
+double PFRelIsolation(const pat::Electron& electron, float rho)
+{   
+    const std::vector<float> eta_lower = {0.0, 1.0, 1.479, 2.0, 2.2, 2.3, 2.4};
+    const std::vector<float> ea_values = {0.1440, 0.1562, 0.1032, 0.0859, 0.1116, 0.1321, 0.1654};
+
+    auto eta_bin = std::lower_bound(eta_lower.begin(), eta_lower.end(), std::abs(electron.eta())); // iterator pointing to corresponding eta value
+    float ea = ea_values.at(std::distance(eta_lower.begin(), eta_bin)); // get EA at that index
+
+    const double sum_neutral = electron.neutralHadronIso()
+                             + electron.photonIso()
+                             - ea* rho;
+    const double abs_iso = electron.chargedHadronIso() + std::max(sum_neutral, 0.0);
+    return abs_iso / electron.pt();
 }
 
 } // namespace tau_analysis
