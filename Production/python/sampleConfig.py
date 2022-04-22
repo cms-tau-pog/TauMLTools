@@ -46,44 +46,44 @@ globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
 def IsEmbedded(sampleType):
     isEmbedded = sampleType in mcSampleTypes and 'Emb' in sampleType
     if not sampleType in mcSampleTypes and not sampleType in dataSampleTypes:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return isEmbedded
 
 def IsData(sampleType):
     isData = sampleType in dataSampleTypes
     if not isData and not sampleType in mcSampleTypes:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return isData
 
 def GetPeriod(sampleType):
     if sampleType not in periodDict:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return periodDict[sampleType]
 
 def GetGlobalTag(sampleType):
     if sampleType not in globalTagMap:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return globalTagMap[sampleType]
 
 def isRun2UL(sampleType):
     if sampleType not in periodDict:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return sampleType in ['MC_UL18', 'RunUL2018']
 
 def isPhase2(sampleType):
     if sampleType not in periodDict:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return sampleType in ['MC_Phase2_111X', 'MC_Phase2_110X']
 
 def isRun2PreUL(sampleType):
     if sampleType not in periodDict:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return sampleType in ['MC_18','Run2018ABC','Run2018D','Emb_18ABC','Emb_18D']
 

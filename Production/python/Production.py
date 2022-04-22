@@ -263,4 +263,4 @@ x = x if x >= 0 else 10000
 process.MessageLogger.cerr.FwkReport.reportEvery = max(1, min(1000, x // 10))
 
 if options.dumpPython:
-    print process.dumpPython()
+    print(process.dumpPython())

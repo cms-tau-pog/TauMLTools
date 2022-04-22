@@ -25,7 +25,7 @@ if not os.path.isdir(args.output):
 pt_hist = "4990, 10, 5000"
 eta_hist = "25, 0, 2.5"
 
-print "regex filter for dataset names: "+args.filter
+print ("regex filter for dataset names: "+args.filter)
 
 input_path = []
 for dir_name in glob(args.input+"/*"):
@@ -34,8 +34,8 @@ for dir_name in glob(args.input+"/*"):
     else:
         input_path.append(dir_name)
 
-print "list of input files: "
-print input_path
+print ("list of input files: ")
+print (input_path)
 
 for dir_path in input_path:
 
