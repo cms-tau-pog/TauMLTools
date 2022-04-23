@@ -18,10 +18,10 @@ parser = argparse.ArgumentParser('''The script splits the DeepTauv2p5 into a inn
 Inner: from inner grid input to before merging with flat and outer
 Outer: from outer grid input to before mergint with flat and inner
 Core: from flat features+inner slice output + outer slice output to final prediction''')
+parser.add_argument('--input'   , required=True, help='path to the input model')
 parser.add_argument('--output'  , required=True, help='output directory to store model files and summaries')
 parser.add_argument('--scaling' , required=True, help='path to the scaling yaml file')  # probably only needed to load the network setup
 parser.add_argument('--training', required=True, help='path to the training yaml file')
-parser.add_argument('--summary' , action='store_true', help='save the summary for each model in a txt file')
 
 args = parser.parse_args()
 
@@ -128,6 +128,7 @@ def CoreModel(inner, outer):
 
 def ConvDenseAlias(loc):
   ''' The 1x1 conv. model acting on the PFCand grid, as defined in the training file.
+  Replace the convolution with dense layers acting on the single cells (through the input features)
   '''
   comp_net_setup = NetSetup2D(**net_config.comp_net)
   comp_net_setup.activation_shared_axes = None # needed for conversion to dense
@@ -159,8 +160,7 @@ def ConvDenseAlias(loc):
 
   return keras.Model(input_layers, prev_layer, name=loc)
 
-model_path = '/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/mlruns/4/7041fb6941b64392b51bcacc648e4da7/artifacts/model_checkpoints/full_v2_e4_step1_e2.tf'
-full_model = LoadModel(model_path)
+full_model = LoadModel(args.input)
 
 inner_model = ConvDenseAlias('inner')
 outer_model = ConvDenseAlias('outer')
@@ -170,21 +170,18 @@ copy_weights(model=full_model, target=inner_model)
 copy_weights(model=full_model, target=outer_model)
 copy_weights(model=full_model, target=core_model )
 
-# test inner predictions
 assert test_prediction(model=inner_model, reference=full_model), "Error: '{}' model predictions differs from the full model ones".format(inner_model.name)
-assert test_prediction(model=outer_model, reference=full_model), "Error: '{}' model predictions differs from the full model ones".format(inner_model.name)
-assert test_prediction(model=core_model , reference=full_model), "Error: '{}' model predictions differs from the full model ones".format(inner_model.name)
-print("Consistency checks: OK")
+assert test_prediction(model=outer_model, reference=full_model), "Error: '{}' model predictions differs from the full model ones".format(outer_model.name)
+assert test_prediction(model=core_model , reference=full_model), "Error: '{}' model predictions differs from the full model ones".format(core_model.name)
 
-if args.summary:
-  with open(args.output+"/inner_summary.txt", "w") as smr:
-    inner_model.summary(print_fn=lambda x: smr.write(x+'\n'))
-  with open(args.output+"/outer_summary.txt", "w") as smr:
-    outer_model.summary(print_fn=lambda x: smr.write(x+'\n'))
-  with open(args.output+"/core_summary.txt", "w") as smr:
-    core_model.summary(print_fn=lambda x: smr.write(x+'\n'))
-  with open(args.output+"/full_summary.txt", "w") as smr:
-    full_model.summary(print_fn=lambda x: smr.write(x+'\n'))
+with open(args.output+"/inner_summary.txt", "w") as smr:
+  inner_model.summary(print_fn=lambda x: smr.write(x+'\n'))
+with open(args.output+"/outer_summary.txt", "w") as smr:
+  outer_model.summary(print_fn=lambda x: smr.write(x+'\n'))
+with open(args.output+"/core_summary.txt", "w") as smr:
+  core_model.summary(print_fn=lambda x: smr.write(x+'\n'))
+with open(args.output+"/full_summary.txt", "w") as smr:
+  full_model.summary(print_fn=lambda x: smr.write(x+'\n'))
 
 for layer in core_model.inputs:
   layer._name = 'input_inner' if 'inner' in layer.name else 'input_outer' if 'outer' in layer.name else layer.name 
@@ -193,3 +190,5 @@ assert 'input_inner' in [l.name for l in core_model.inputs] and 'input_outer' in
 save_to_graph(inner_model, args.output)
 save_to_graph(outer_model, args.output)
 save_to_graph(core_model , args.output)
+
+print("Consistency checks are OK. Frozen graphs saved in {}".format(args.input))
