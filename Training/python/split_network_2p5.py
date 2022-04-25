@@ -190,5 +190,6 @@ assert 'input_inner' in [l.name for l in core_model.inputs] and 'input_outer' in
 save_to_graph(inner_model, args.output)
 save_to_graph(outer_model, args.output)
 save_to_graph(core_model , args.output)
+save_to_graph(full_model , args.output)
 
 print("Consistency checks are OK. Frozen graphs saved in {}".format(args.input))
