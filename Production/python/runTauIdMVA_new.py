@@ -7,7 +7,7 @@ import re
 
 class TauIDEmbedder(object):
     """class to rerun the tau seq and acces trainings from the database"""
-    availableDiscriminators = [ "deepTau2017v2p1" ]
+    availableDiscriminators = [ "deepTau2017v2p5" ]
 
     def __init__(self, process, debug = False,
                  originalTauName = "slimmedTaus",
@@ -57,10 +57,10 @@ class TauIDEmbedder(object):
         _rerunMvaIsolationSequence = cms.Sequence()
         tauIDSources = cms.PSet()
 
-        if "deepTau2017v2p1" in self.toKeep:
+        if "deepTau2017v2p5" in self.toKeep:
             if self.debug: print ("Adding DeepTau IDs")
 
-            _deepTauName = "deepTau2017v2p1"
+            _deepTauName = "deepTau2017v2p5"
             workingPoints_ = {
                 "e": {
                     "VVVLoose": 0.0630386,

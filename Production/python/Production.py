@@ -72,7 +72,8 @@ if isPhase2:
 elif isRun3:
     process.load('Configuration.Geometry.GeometryRecoDB_cff')
     process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-    process.GlobalTag.globaltag = sampleConfig.GetGlobalTag(options.sampleType)  
+    from Configuration.AlCa.GlobalTag import GlobalTag
+    process.GlobalTag = GlobalTag(process.GlobalTag, sampleConfig.GetGlobalTag(options.sampleType), '')
 else:
     process.load('Configuration.Geometry.GeometryRecoDB_cff')
     process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
@@ -122,26 +123,14 @@ if isPhase2:
     tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 elif isRun3:
-
-    # from TauMLTools.Production.runTauIdMVA_new import TauIDEmbedder
-    # updatedTauName = "slimmedTausNewIDv2p5"
-    # tauIdEmbedder = TauIDEmbedder(
-    #     process, cms, updatedTauName = updatedTauName,
-    #     toKeep = [ "deepTau2017v2p1" ]
-    # )
-    # tauIdEmbedder.runTauID()
-    # boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
-
-    tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
-    updatedTauName = "slimmedTausNewID_new"
-    tauIdEmbedder = tauIdConfig.TauIDEmbedder(
+    from TauMLTools.Production.runTauIdMVA_new import TauIDEmbedder
+    updatedTauName = "slimmedTausNewIDv2p5"
+    tauIdEmbedder = TauIDEmbedder(
         process, cms, updatedTauName = updatedTauName,
-        toKeep = [ "deepTau2017v2p1"]
+        toKeep = [ "deepTau2017v2p5" ]
     )
-    tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
+    tauIdEmbedder.runTauID()
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
-
-
 elif isRun2UL:
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 else:
@@ -179,7 +168,7 @@ else:
 if isRun2UL:
     taus_InputTag = cms.InputTag('slimmedTaus')
 elif isRun3:
-    taus_InputTag = cms.InputTag('slimmedTaus')
+    taus_InputTag = cms.InputTag('slimmedTausNewIDv2p5')
 else:
     taus_InputTag = cms.InputTag('slimmedTausNewID')
 
@@ -258,8 +247,13 @@ if isPhase2:
         getattr(process, updatedTauName) +
         process.tupleProductionSequence
     )
-elif isRun2UL or isRun3:
+elif isRun2UL:
     process.p = cms.Path(
+        process.tupleProductionSequence
+    )
+elif isRun3:
+    process.p = cms.Path(
+        getattr(process, 'rerunMvaIsolationSequence') +
         getattr(process, updatedTauName) +
         process.tupleProductionSequence
     )

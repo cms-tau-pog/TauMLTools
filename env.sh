@@ -67,6 +67,7 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = 
         if (( $DO_GRID_COMPARE == 1 )); then
             git cms-addpkg RecoTauTag/RecoTau
             git apply ../../../print_DeepTauIdInput.patch
+            run_cmd scram b -j8
         fi
 
         run_cmd mkdir TauMLTools
