@@ -47,8 +47,8 @@ def test_prediction(model, reference):
     m_shape = tuple(model.inputs[i].shape.as_list()[1:])
     if p_shape==m_shape:
       i_pred.append(pred)
-    elif len(p_shape)==3 and len(m_shape)==1 and p_shape[2]==m_shape[0]:
-      i_pred.append(pred.reshape((p_shape[0]*p_shape[1], p_shape[2])))
+    elif len(p_shape)==len(m_shape)==3 and p_shape[2]==m_shape[2]:
+      i_pred.append(pred.reshape((p_shape[0]*p_shape[1], 1, 1, p_shape[2])))
     else:
       raise RuntimeError("Invalid input shape for {}".format(model.name))
   o_model = keras.Model(inputs=reference.inputs, outputs=[reference.get_layer(l.name.split('/')[0]).output for l in model.outputs])
@@ -142,11 +142,12 @@ def ConvDenseAlias(loc):
   for comp_id in range(len(net_config.comp_names)):
     comp_name = net_config.comp_names[comp_id]
     n_comp_features = net_config.n_comp_branches[comp_id]
-    input_layer_comp = Input(name="input_{}_{}".format(loc, comp_name), shape=n_comp_features)
+    input_layer_comp = Input(name="input_{}_{}".format(loc, comp_name), shape=(1,1,n_comp_features))
     input_layers.append(input_layer_comp)
+    input_layer_resh = keras.layers.Reshape(name='{}_reshape'.format(input_layer_comp.name), target_shape=(n_comp_features,))(input_layer_comp)
     comp_net_setup.ComputeLayerSizes(n_comp_features)
     # here we replace 2d with 1d (1x1 -> dense)
-    reduced_comp = reduce_n_features_1d(input_layer_comp, comp_net_setup, "{}_{}".format(loc, comp_name), net_config.first_layer_reg, basename='conv')
+    reduced_comp = reduce_n_features_1d(input_layer_resh, comp_net_setup, "{}_{}".format(loc, comp_name), net_config.first_layer_reg, basename='conv')
     reduced_inputs.append(reduced_comp)
 
   if len(net_config.comp_names) > 1:
