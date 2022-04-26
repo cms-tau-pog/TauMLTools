@@ -68,7 +68,6 @@ def copy_weights(model, target):
     for x in weights:
       assert not np.any(np.isnan(x)), "Layer '{}' has NaN weights".format(layer.name)
       assert not np.any(np.isinf(x)), "Layer '{}' has Inf weights".format(layer.name)
-    # need the following to adapt conv 1x1 weights shape to Dense weight shapes
     try:
       layer.set_weights(weights)
     except ValueError as _:
@@ -100,13 +99,12 @@ def CoreModel(inner, outer):
     processed_tau = reduce_n_features_1d(input_layer_tau, tau_net_setup, 'tau', net_config.first_layer_reg)
     high_level_features.append(processed_tau)
 
-  # here we need the original names still, so that the test_prediciton will not fail
   for loc in ['inner', 'outer']:
     current_grid_size = net_config.n_cells[loc]
-    n_inputs = inner.shape.as_list()[1] if loc == 'inner' else outer.shape.as_list()[1] #was 3 on conv 2d
+    n_inputs = inner.shape.as_list()[3] if loc == 'inner' else outer.shape.as_list()[3]
     n = 1
     lname = inner.name.split('/')[0] if loc=='inner' else outer.name.split('/')[0]
-    lshape = inner.shape.as_list()[1] if loc == 'inner' else outer.shape.as_list()[1]
+    lshape = inner.shape.as_list()[-1] if loc == 'inner' else outer.shape.as_list()[-1]
     prev_layer = Input(name=lname, shape=(net_config.n_cells[loc], net_config.n_cells[loc], lshape))
     input_layers.append(prev_layer)
     while current_grid_size > 1:
@@ -133,10 +131,7 @@ def ConvDenseAlias(loc):
   Replace the convolution with dense layers acting on the single cells (through the input features)
   '''
   comp_net_setup = NetSetup2D(**net_config.comp_net)
-  comp_net_setup.activation_shared_axes = None # needed for conversion to dense
-  
   comp_merge_net_setup = NetSetup2D(**net_config.comp_merge_net)
-  comp_merge_net_setup.activation_shared_axes = None # needed for conversion to dense
 
   conv_2d_net_setup = NetSetupConv2D(**net_config.conv_2d_net)
   reduced_inputs = []
@@ -146,16 +141,14 @@ def ConvDenseAlias(loc):
     n_comp_features = net_config.n_comp_branches[comp_id]
     input_layer_comp = Input(name="input_{}_{}".format(loc, comp_name), shape=(1,1,n_comp_features))
     input_layers.append(input_layer_comp)
-    input_layer_resh = keras.layers.Reshape(name='{}_reshape'.format(input_layer_comp.name), target_shape=(n_comp_features,))(input_layer_comp)
     comp_net_setup.ComputeLayerSizes(n_comp_features)
     # here we replace 2d with 1d (1x1 -> dense)
-    reduced_comp = reduce_n_features_1d(input_layer_resh, comp_net_setup, "{}_{}".format(loc, comp_name), net_config.first_layer_reg, basename='conv')
+    reduced_comp = reduce_n_features_1d(input_layer_comp, comp_net_setup, "{}_{}".format(loc, comp_name), net_config.first_layer_reg, basename='conv')
     reduced_inputs.append(reduced_comp)
 
   if len(net_config.comp_names) > 1:
-    # here we omit axis because now we have a dense layer -> shape is (None, N_feat_sum)
-    conv_all_start = Concatenate(name="{}_cell_concat".format(loc))(reduced_inputs)
-    comp_merge_net_setup.ComputeLayerSizes(conv_all_start.shape.as_list()[1]) # was 3 for conv, now is 1
+    conv_all_start = Concatenate(name="{}_cell_concat".format(loc), axis=3)(reduced_inputs)
+    comp_merge_net_setup.ComputeLayerSizes(conv_all_start.shape.as_list()[3])
     # here we replace 2d with 1d (1x1 -> dense)
     prev_layer = reduce_n_features_1d(conv_all_start, comp_merge_net_setup, "{}_all".format(loc), basename='conv')
   else:
