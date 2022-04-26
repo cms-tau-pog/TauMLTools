@@ -106,6 +106,7 @@ def CoreModel(inner, outer):
     lname = inner.name.split('/')[0] if loc=='inner' else outer.name.split('/')[0]
     lshape = inner.shape.as_list()[-1] if loc == 'inner' else outer.shape.as_list()[-1]
     prev_layer = Input(name=lname, shape=(net_config.n_cells[loc], net_config.n_cells[loc], lshape))
+    aliases[lname] = 'input_'+loc
     input_layers.append(prev_layer)
     while current_grid_size > 1:
       win_size = min(current_grid_size, conv_2d_net_setup.window_size)
@@ -156,6 +157,13 @@ def ConvDenseAlias(loc):
 
   return keras.Model(input_layers, prev_layer, name=loc)
 
+def parse_aliases(model):
+  for k, v in aliases.items():
+    if not k in [l.name for l in model.layers]:
+      continue
+    model.get_layer(k)._name = v
+    model.get_layer(v).output._name = model.get_layer(v).output.name.replace(k, v)
+
 full_model = LoadModel(args.input)
 
 inner_model = ConvDenseAlias('inner')
@@ -169,6 +177,10 @@ copy_weights(model=full_model, target=core_model )
 assert test_prediction(model=inner_model, reference=full_model), "Error: '{}' model predictions differs from the full model ones".format(inner_model.name)
 assert test_prediction(model=outer_model, reference=full_model), "Error: '{}' model predictions differs from the full model ones".format(outer_model.name)
 assert test_prediction(model=core_model , reference=full_model), "Error: '{}' model predictions differs from the full model ones".format(core_model.name)
+
+parse_aliases(inner_model)
+parse_aliases(outer_model)
+parse_aliases(core_model)
 
 with open(args.output+"/inner_summary.txt", "w") as smr:
   inner_model.summary(print_fn=lambda x: smr.write(x+'\n'))
