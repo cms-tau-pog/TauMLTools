@@ -193,4 +193,4 @@ save_to_graph(outer_model, args.output)
 save_to_graph(core_model , args.output)
 save_to_graph(full_model , args.output)
 
-print("Consistency checks are OK. Frozen graphs saved in {}".format(args.input))
+print("Consistency checks are OK. Frozen graphs saved in {}".format(args.output))
