@@ -101,7 +101,7 @@ def CoreModel(inner, outer):
   # here we need the original names still, so that the test_prediciton will not fail
   for loc in ['inner', 'outer']:
     current_grid_size = net_config.n_cells[loc]
-    n_inputs = inner.shape.as_list()[1] #was 3 on conv 2d
+    n_inputs = inner.shape.as_list()[1] if loc == 'inner' else outer.shape.as_list()[1] #was 3 on conv 2d
     n = 1
     lname = inner.name if loc=='inner' else outer.name
     lshape = inner.shape.as_list()[1] if loc == 'inner' else outer.shape.as_list()[1]
