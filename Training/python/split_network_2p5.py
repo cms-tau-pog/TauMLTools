@@ -105,10 +105,9 @@ def CoreModel(inner, outer):
     current_grid_size = net_config.n_cells[loc]
     n_inputs = inner.shape.as_list()[1] if loc == 'inner' else outer.shape.as_list()[1] #was 3 on conv 2d
     n = 1
-    lname = inner.name if loc=='inner' else outer.name
+    lname = inner.name.split('/')[0] if loc=='inner' else outer.name.split('/')[0]
     lshape = inner.shape.as_list()[1] if loc == 'inner' else outer.shape.as_list()[1]
-    prev_layer = Input(name=lname+'_split_input', shape=(net_config.n_cells[loc], net_config.n_cells[loc], lshape))
-    aliases[lname+'_split_input'] = ['input_'+loc]
+    prev_layer = Input(name=lname, shape=(net_config.n_cells[loc], net_config.n_cells[loc], lshape))
     input_layers.append(prev_layer)
     while current_grid_size > 1:
       win_size = min(current_grid_size, conv_2d_net_setup.window_size)
@@ -127,7 +126,6 @@ def CoreModel(inner, outer):
   final_dense = reduce_n_features_1d(features_concat, dense_net_setup, 'final')
   output_layer = Dense(net_config.n_outputs, name="final_dense_last", kernel_initializer=dense_net_setup.kernel_init)(final_dense)
   softmax_output = Activation("softmax", name="main_output")(output_layer)
-  aliases['main_output'] = 'main_output/Softmax'
   return keras.Model(input_layers, softmax_output, name='core')
 
 def ConvDenseAlias(loc):
@@ -165,13 +163,6 @@ def ConvDenseAlias(loc):
 
   return keras.Model(input_layers, prev_layer, name=loc)
 
-def apply_aliases(model):
-  global aliases
-  for k, v in aliases.items():
-    if not k in [l.name for l in model.layers]:
-      continue
-    model.get_layer(k)._name = v
-
 full_model = LoadModel(args.input)
 
 inner_model = ConvDenseAlias('inner')
@@ -194,10 +185,6 @@ with open(args.output+"/core_summary.txt", "w") as smr:
   core_model.summary(print_fn=lambda x: smr.write(x+'\n'))
 with open(args.output+"/full_summary.txt", "w") as smr:
   full_model.summary(print_fn=lambda x: smr.write(x+'\n'))
-
-apply_aliases(inner_model)
-apply_aliases(outer_model)
-apply_aliases(core_model)
 
 save_to_graph(inner_model, args.output)
 save_to_graph(outer_model, args.output)
