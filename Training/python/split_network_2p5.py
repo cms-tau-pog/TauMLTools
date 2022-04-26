@@ -191,6 +191,12 @@ with open(args.output+"/core_summary.txt", "w") as smr:
 with open(args.output+"/full_summary.txt", "w") as smr:
   full_model.summary(print_fn=lambda x: smr.write(x+'\n'))
 
+# workaround: conversion to tf graph implies that graph operations get the prefix <model_name> in their names
+inner_model._name = ''
+outer_model._name = ''
+core_model ._name = ''
+full_model ._name = ''
+
 save_to_graph(inner_model, args.output)
 save_to_graph(outer_model, args.output)
 save_to_graph(core_model , args.output)
