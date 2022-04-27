@@ -53,14 +53,11 @@ class DeepTauModel(keras.Model):
         else:
             sample_weight = None
             x, y = data
-        with tf.GradientTape() as class_tape, tf.GradientTape() as adv_tape:
+
+        with tf.GradientTape() as class_tape:
             y_pred = self(x, training=True)  # Forward pass
             reg_losses = self.losses # Regularisation loss
             pure_loss = self.model_loss(y, y_pred[0])
-
-            y_pred_adv = self(x, training=True)
-            adv_loss = self.adv_loss(y, y_pred_adv[1])
-
             # Compute the total loss value
             if reg_losses:
                 reg_loss = tf.add_n(reg_losses)
@@ -68,15 +65,36 @@ class DeepTauModel(keras.Model):
             else:
                 reg_loss = reg_losses # empty
                 loss = pure_loss
+        
+        with tf.GradientTape() as adv_tape:
+            y_pred_adv = self(x, training=True)
+            adv_loss = self.adv_loss(y, y_pred_adv[1])
+
+
         # Compute gradients
-        trainable_vars = [var for var in self.trainable_variables if '_adv' not in var.name]
-        adv_vars = [var for var in self.trainable_variables if '_adv' in var.name]
-        gradients = class_tape.gradient(loss, trainable_vars)
-        adv_gradients = adv_tape.gradient(adv_loss, adv_vars)
+
+        class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
+        adv_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" in var.name)] #final adv only
+        common_layers = [var for var in self.trainable_variables if "final" not in var.name] #gradients common to both
+        
+        print("LAYER VARIABLES DEFINED")
+
+        grad_class = class_tape.gradient(loss, common_layers + class_layers) 
+        grad_adv = adv_tape.gradient(adv_loss, common_layers + adv_layers)
+        
+        grad_class_excl = grad_class[len(common_layers):] # gradients of common part
+        grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
+
+        k = 0.5 #just example, will pass as arg
+        grad_common = [grad_class[i] - k * grad_adv[i] for i in range(len(common_layers))]
+
+        print("GRADIENTS COMPUTED")
+
         
         # Update weights
-        self.optimizer[0].apply_gradients(zip(gradients, trainable_vars))
-        self.optimizer[1].apply_gradients(zip(adv_gradients, trainable_vars))
+        self.optimizer.apply_gradients(zip(grad_class_excl + grad_adv_excl + grad_common, class_layers + adv_layers + common_layers))
+
+        print("WEIGHTS UPDATED")
 
         # Update metrics (including the ones that track losses)
         self.loss_tracker.update_state(loss, sample_weight=sample_weight)
@@ -138,7 +156,7 @@ class DeepTauModel(keras.Model):
         metrics.append(self.reg_loss_tracker)
         metrics.append(self.pure_loss_tracker)
 
-        # metrics.append(self.adv_loss_tracker)
+        metrics.append(self.adv_loss_tracker)
 
         if self._is_compiled:
             #  Track `LossesContainer` and `MetricsContainer` objects
@@ -403,7 +421,6 @@ def create_model(net_config, model_name, loss=None):
 def compile_model(model, opt_name, learning_rate):
     # opt = keras.optimizers.Adam(lr=learning_rate)
     opt = getattr(tf.keras.optimizers, opt_name)(learning_rate=learning_rate)
-    adv_opt = getattr(tf.keras.optimizers, opt_name)(learning_rate=learning_rate)
     #opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, schedule_decay=1e-4)
     # opt = Nadam(lr=learning_rate, beta_1=1e-4)
 
@@ -415,7 +432,7 @@ def compile_model(model, opt_name, learning_rate):
         TauLosses.Hcat_eInv, TauLosses.Hcat_muInv, TauLosses.Hcat_jetInv,
         TauLosses.Fe, TauLosses.Fmu, TauLosses.Fjet, TauLosses.Fcmb
     ]
-    model.compile(loss=None, optimizer=[opt, adv_opt], metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
+    model.compile(loss=None, optimizer=opt, metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
 
     # log metric names for passing them during model loading
     metric_names = {(m if isinstance(m, str) else m.__name__): '' for m in metrics}
