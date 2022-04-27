@@ -269,6 +269,13 @@ class TauLosses:
         shape = tf.shape(target)
         return tf.where(target < 0.5, tf.ones(shape), tf.zeros(shape))
 
+    @staticmethod
+    @tf.function
+    def adversarial_loss(target, adv_output):
+        tau_target = target[:, 0:1] # MC_tau->0, data_tau->1, this is done by setting y_onehot in main DataLoader 
+        tau_output = adv_output #  given output from adversarial
+        loss = tf.keras.losses.binary_crossentropy(tau_target, tau_output) # LR: Standard cross entropy loss function
+        return loss
 
 def LoadModel(model_file, compile=True):
     if compile:

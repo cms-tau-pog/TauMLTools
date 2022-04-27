@@ -108,12 +108,14 @@ class DataLoader (DataLoaderBase):
         self.tf_input_dir = self.config["Setup"]["tf_input_dir"]
         self.tf_dataset_x_order = self.config["Setup"]["tf_dataset_x_order"]
         
+        
+        data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root') 
         if self.input_type == "ROOT":
-            data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root') 
             self.train_files, self.val_files = \
                 np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
             print("Files for training:", len(self.train_files))
             print("Files for validation:", len(self.val_files))
+            
 
         self.compile_classes(config, file_scaling, self.dataloader_core, data_files)
 

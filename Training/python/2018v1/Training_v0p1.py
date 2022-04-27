@@ -43,6 +43,8 @@ class DeepTauModel(keras.Model):
             self.model_loss = TauLosses.tau_crossentropy_v2
         else:
             self.model_loss = getattr(TauLosses,loss)
+        self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
+        self.adv_loss = TauLosses.adversarial_loss
 
     def train_step(self, data):
         # Unpack the data
@@ -51,10 +53,14 @@ class DeepTauModel(keras.Model):
         else:
             sample_weight = None
             x, y = data
-        with tf.GradientTape() as tape:
+        with tf.GradientTape() as class_tape, tf.GradientTape() as adv_tape:
             y_pred = self(x, training=True)  # Forward pass
             reg_losses = self.losses # Regularisation loss
-            pure_loss = self.model_loss(y, y_pred)
+            pure_loss = self.model_loss(y, y_pred[0])
+
+            y_pred_adv = self(x, training=True)
+            adv_loss = self.adv_loss(y, y_pred_adv[1])
+
             # Compute the total loss value
             if reg_losses:
                 reg_loss = tf.add_n(reg_losses)
@@ -63,15 +69,23 @@ class DeepTauModel(keras.Model):
                 reg_loss = reg_losses # empty
                 loss = pure_loss
         # Compute gradients
-        trainable_vars = self.trainable_variables
-        gradients = tape.gradient(loss, trainable_vars)
+        trainable_vars = [var for var in self.trainable_variables if '_adv' not in var.name]
+        adv_vars = [var for var in self.trainable_variables if '_adv' in var.name]
+        gradients = class_tape.gradient(loss, trainable_vars)
+        adv_gradients = adv_tape.gradient(adv_loss, adv_vars)
+        
         # Update weights
-        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        self.optimizer[0].apply_gradients(zip(gradients, trainable_vars))
+        self.optimizer[1].apply_gradients(zip(adv_gradients, trainable_vars))
+
         # Update metrics (including the ones that track losses)
         self.loss_tracker.update_state(loss, sample_weight=sample_weight)
         self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
         self.reg_loss_tracker.update_state(reg_loss)
-        self.compiled_metrics.update_state(y, y_pred, sample_weight)
+        self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
+
+        self.adv_loss_tracker.update_state(adv_loss, sample_weight=sample_weight)
+
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
         return metrics_out
@@ -85,10 +99,16 @@ class DeepTauModel(keras.Model):
             x, y = data
         # Compute predictions
         y_pred = self(x, training=False)
+
+        # y_pred_adv = self(x, training=False)
+
         # Define the losses
         reg_losses = self.losses # Regularisation loss
-        tau_crossentropy_v2 = TauLosses.tau_crossentropy_v2(y, y_pred) # Compute loss function
+        tau_crossentropy_v2 = self.model_loss(y, y_pred[0]) # Compute loss function
         pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
+
+        # adv_loss = self.adv_loss(y, y_pred_adv[1])
+
         # Compute the total loss value
         if reg_losses:
             reg_loss = tf.add_n(reg_losses)
@@ -100,7 +120,10 @@ class DeepTauModel(keras.Model):
         self.loss_tracker.update_state(loss, sample_weight=sample_weight)
         self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
         self.reg_loss_tracker.update_state(reg_loss)
-        self.compiled_metrics.update_state(y, y_pred, sample_weight)
+        self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
+
+        # self.adv_loss_tracker.update_state(y, y_pred[1], sample_weight)
+
         # Return a dict mapping metric names to current value
         metrics_out = {m.name: m.result() for m in self.metrics}
         return metrics_out
@@ -114,6 +137,9 @@ class DeepTauModel(keras.Model):
         metrics.append(self.loss_tracker) 
         metrics.append(self.reg_loss_tracker)
         metrics.append(self.pure_loss_tracker)
+
+        # metrics.append(self.adv_loss_tracker)
+
         if self._is_compiled:
             #  Track `LossesContainer` and `MetricsContainer` objects
             # so that attr names are not load-bearing.
@@ -366,19 +392,18 @@ def create_model(net_config, model_name, loss=None):
                          kernel_initializer=dense_net_setup.kernel_init)(final_dense)
     softmax_output = Activation("softmax", name="main_output")(output_layer)
 
-    # final_dense_adv = reduce_n_features_1d(features_concat, dense_net_setup, 'final_adv')
-    # output_layer_adv = Dense(1, name="final_dense_adv",
-    #                      kernel_initializer=dense_net_setup.kernel_init)(final_dense_adv)
-    # sigmoid_output_adv = Activation("sigmoid", name="adv_output")(output_layer_adv)
+    final_dense_adv = reduce_n_features_1d(features_concat, dense_net_setup, 'final_adv')
+    output_layer_adv = Dense(1, name="final_dense_adv",
+                         kernel_initializer=dense_net_setup.kernel_init)(final_dense_adv)
+    sigmoid_output_adv = Activation("sigmoid", name="adv_output")(output_layer_adv)
 
-    # model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], name=model_name)
-
-    model = DeepTauModel(input_layers, softmax_output, loss=loss, name=model_name)
+    model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], name=model_name)
     return model
 
 def compile_model(model, opt_name, learning_rate):
     # opt = keras.optimizers.Adam(lr=learning_rate)
     opt = getattr(tf.keras.optimizers, opt_name)(learning_rate=learning_rate)
+    adv_opt = getattr(tf.keras.optimizers, opt_name)(learning_rate=learning_rate)
     #opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, schedule_decay=1e-4)
     # opt = Nadam(lr=learning_rate, beta_1=1e-4)
 
@@ -390,7 +415,7 @@ def compile_model(model, opt_name, learning_rate):
         TauLosses.Hcat_eInv, TauLosses.Hcat_muInv, TauLosses.Hcat_jetInv,
         TauLosses.Fe, TauLosses.Fmu, TauLosses.Fjet, TauLosses.Fcmb
     ]
-    model.compile(loss=None, optimizer=opt, metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
+    model.compile(loss=None, optimizer=[opt, adv_opt], metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
 
     # log metric names for passing them during model loading
     metric_names = {(m if isinstance(m, str) else m.__name__): '' for m in metrics}
