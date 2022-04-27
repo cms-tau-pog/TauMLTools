@@ -26,7 +26,7 @@ function run_cmd {
     fi
 }
 
-if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" ]]; then
+if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = "run3" ]]; then
     if [ $MODE = "prod2018" ] ; then
         CMSSW_VER=CMSSW_10_6_29
         APPLY_BOOSTED_FIX=1
@@ -39,6 +39,10 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" ]]; then
         CMSSW_VER=CMSSW_10_6_29
         APPLY_BOOSTED_FIX=0
         export SCRAM_ARCH=slc7_amd64_gcc700
+    elif [ $MODE = "run3" ] ; then
+        CMSSW_VER=CMSSW_12_4_0_pre3
+        APPLY_BOOSTED_FIX=0
+        export SCRAM_ARCH=slc7_amd64_gcc100
     fi
 
     if ! [ -f soft/$CMSSW_VER/.installed ]; then
@@ -55,6 +59,7 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" ]]; then
         if (( $APPLY_BOOSTED_FIX == 1 )); then
             run_cmd git cms-merge-topic -u cms-tau-pog:CMSSW_10_6_X_tau-pog_boostedTausMiniFix
         fi
+
         run_cmd mkdir TauMLTools
         run_cmd cd TauMLTools
         run_cmd ln -s ../../../../Analysis Analysis

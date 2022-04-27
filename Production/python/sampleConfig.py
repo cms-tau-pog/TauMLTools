@@ -1,12 +1,14 @@
 # Configurations dependent on the sample type.
 
 import sys
-from sets import Set
 import FWCore.ParameterSet.Config as cms
 import os
 
-mcSampleTypes = Set([ 'MC_16', 'MC_17', 'MC_18', 'MC_UL18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D', 'MC_Phase2_111X', 'MC_Phase2_110X'])
-dataSampleTypes = Set([ 'Run2016' , 'Run2017', 'Run2018ABC', 'Run2018D', 'RunUL2018' ])
+if sys.version_info.major < 3:
+    from sets import Set as set
+
+mcSampleTypes = set([ 'MC_16', 'MC_17', 'MC_18', 'MC_UL18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D', 'MC_Phase2_111X', 'MC_Phase2_110X', 'MC_RUN3_122X'])
+dataSampleTypes = set([ 'Run2016' , 'Run2017', 'Run2018ABC', 'Run2018D', 'RunUL2018' ])
 
 periodDict = { 'MC_16' : 'Run2016',
                'Run2016' : 'Run2016',
@@ -23,6 +25,7 @@ periodDict = { 'MC_16' : 'Run2016',
                'Emb_18D' : 'Run2018',
                'MC_Phase2_110X' : 'Phase2',
                'MC_Phase2_111X' : 'Phase2',
+               'MC_RUN3_122X': "Run3"
              }
 
 globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
@@ -41,51 +44,58 @@ globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
                  'Emb_18D' : '102X_dataRun2_Prompt_v15',
                  'MC_Phase2_110X' : '110X_mcRun4_realistic_v3',
                  'MC_Phase2_111X' : 'auto:phase2_realistic_T15',
+                 'MC_RUN3_122X' : '122X_mcRun3_2021_realistic_v9'
                }
 
 def IsEmbedded(sampleType):
     isEmbedded = sampleType in mcSampleTypes and 'Emb' in sampleType
     if not sampleType in mcSampleTypes and not sampleType in dataSampleTypes:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return isEmbedded
 
 def IsData(sampleType):
     isData = sampleType in dataSampleTypes
     if not isData and not sampleType in mcSampleTypes:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return isData
 
 def GetPeriod(sampleType):
     if sampleType not in periodDict:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return periodDict[sampleType]
 
 def GetGlobalTag(sampleType):
     if sampleType not in globalTagMap:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return globalTagMap[sampleType]
 
 def isRun2UL(sampleType):
     if sampleType not in periodDict:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return sampleType in ['MC_UL18', 'RunUL2018']
 
 def isPhase2(sampleType):
     if sampleType not in periodDict:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return sampleType in ['MC_Phase2_111X', 'MC_Phase2_110X']
 
 def isRun2PreUL(sampleType):
     if sampleType not in periodDict:
-        print "ERROR: unknown sample type = '{}'".format(sampleType)
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
     return sampleType in ['MC_18','Run2018ABC','Run2018D','Emb_18ABC','Emb_18D']
+
+def isRun3(sampleType):
+    if sampleType not in periodDict:
+        print ("ERROR: unknown sample type = '{}'".format(sampleType))
+        sys.exit(1)
+    return sampleType in ['MC_RUN3_122X']
 
 def GetPeriodCfg(sampleType):
     period = GetPeriod(sampleType)
@@ -101,5 +111,8 @@ def GetPeriodCfg(sampleType):
     elif period == 'Phase2':
         from Configuration.Eras.Era_Phase2C9_cff import Phase2C9
         return Phase2C9
+    elif period == 'Run3':
+        from Configuration.Eras.Era_Run3_cff import Run3
+        return Run3
     else:
         raise RuntimeError('Period = "{}" is not supported.'.format(period))
