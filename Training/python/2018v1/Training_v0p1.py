@@ -366,6 +366,13 @@ def create_model(net_config, model_name, loss=None):
                          kernel_initializer=dense_net_setup.kernel_init)(final_dense)
     softmax_output = Activation("softmax", name="main_output")(output_layer)
 
+    # final_dense_adv = reduce_n_features_1d(features_concat, dense_net_setup, 'final_adv')
+    # output_layer_adv = Dense(1, name="final_dense_adv",
+    #                      kernel_initializer=dense_net_setup.kernel_init)(final_dense_adv)
+    # sigmoid_output_adv = Activation("sigmoid", name="adv_output")(output_layer_adv)
+
+    # model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], name=model_name)
+
     model = DeepTauModel(input_layers, softmax_output, loss=loss, name=model_name)
     return model
 
