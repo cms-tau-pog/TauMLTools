@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Execute crab command for multiple tasks.
-
+from __future__ import print_function
 import argparse
 import os
 import subprocess
