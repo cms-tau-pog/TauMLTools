@@ -260,6 +260,7 @@ class DataLoader (DataLoaderBase):
         netConf.n_cells = self.n_cells
         netConf.n_outputs = self.tau_types
         netConf.first_layer_reg = self.config["SetupNN"]["first_layer_reg"]
+        netConf.adversarial_dataset = self.config["Setup"]["adversarial_dataset"]
 
         return netConf
 

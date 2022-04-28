@@ -34,7 +34,7 @@ import DataLoader
 
 class DeepTauModel(keras.Model):
 
-    def __init__(self, *args, loss=None, **kwargs):
+    def __init__(self, *args, loss=None, adv_dataset=None, adv_parameter=1, **kwargs):
         super().__init__(*args, **kwargs)
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.pure_loss_tracker = keras.metrics.Mean(name="pure_loss")
@@ -43,8 +43,12 @@ class DeepTauModel(keras.Model):
             self.model_loss = TauLosses.tau_crossentropy_v2
         else:
             self.model_loss = getattr(TauLosses,loss)
-        self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
-        self.adv_loss = TauLosses.adversarial_loss
+        self.adv_dataset = adv_dataset
+        self.k = adv_parameter
+        if self.adv_dataset:
+            self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
+            self.adv_loss = TauLosses.adversarial_loss
+            self.adv_accuracy = tf.keras.metrics.CategoricalAccuracy(name="adv_accuracy")
 
     def train_step(self, data):
         # Unpack the data
@@ -54,56 +58,66 @@ class DeepTauModel(keras.Model):
             sample_weight = None
             x, y = data
 
-        with tf.GradientTape() as class_tape:
-            y_pred = self(x, training=True)  # Forward pass
-            reg_losses = self.losses # Regularisation loss
-            pure_loss = self.model_loss(y, y_pred[0])
-            # Compute the total loss value
-            if reg_losses:
-                reg_loss = tf.add_n(reg_losses)
-                loss = pure_loss + reg_loss
-            else:
-                reg_loss = reg_losses # empty
-                loss = pure_loss
-        
-        with tf.GradientTape() as adv_tape:
-            y_pred_adv = self(x, training=True)
-            adv_loss = self.adv_loss(y, y_pred_adv[1])
-
-
-        # Compute gradients
-
-        class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
-        adv_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" in var.name)] #final adv only
-        common_layers = [var for var in self.trainable_variables if "final" not in var.name] #gradients common to both
-        
-        print("LAYER VARIABLES DEFINED")
-
-        grad_class = class_tape.gradient(loss, common_layers + class_layers) 
-        grad_adv = adv_tape.gradient(adv_loss, common_layers + adv_layers)
-        
-        grad_class_excl = grad_class[len(common_layers):] # gradients of common part
-        grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
-
-        k = 0.5 #just example, will pass as arg
-        grad_common = [grad_class[i] - k * grad_adv[i] for i in range(len(common_layers))]
-
-        print("GRADIENTS COMPUTED")
-
-        
-        # Update weights
-        self.optimizer.apply_gradients(zip(grad_class_excl + grad_adv_excl + grad_common, class_layers + adv_layers + common_layers))
-
-        print("WEIGHTS UPDATED")
-
-        # Update metrics (including the ones that track losses)
-        self.loss_tracker.update_state(loss, sample_weight=sample_weight)
-        self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
-        self.reg_loss_tracker.update_state(reg_loss)
-        self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
-
-        self.adv_loss_tracker.update_state(adv_loss, sample_weight=sample_weight)
-
+        if self.adv_dataset:
+            iterator = iter(self.adv_dataset[0])
+            x_adv, y_adv, sample_weight_adv = next(iterator)
+            print("Adversarial Control Dataset Loaded")
+            with tf.GradientTape() as class_tape:
+                y_pred = self(x, training=True)  # Forward pass
+                reg_losses = self.losses # Regularisation loss
+                pure_loss = self.model_loss(y, y_pred[0])
+                # Compute the total loss value
+                if reg_losses:
+                    reg_loss = tf.add_n(reg_losses)
+                    loss = pure_loss + reg_loss
+                else:
+                    reg_loss = reg_losses # empty
+                    loss = pure_loss
+            with tf.GradientTape() as adv_tape:
+                y_pred_adv = self(x_adv, training=True)
+                adv_loss = self.adv_loss(y_adv, y_pred_adv[1])
+            # Compute gradients
+            class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
+            adv_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" in var.name)] #final adv only
+            common_layers = [var for var in self.trainable_variables if "final" not in var.name] #gradients common to both
+            grad_class = class_tape.gradient(loss, common_layers + class_layers) 
+            grad_adv = adv_tape.gradient(adv_loss, common_layers + adv_layers)
+            grad_class_excl = grad_class[len(common_layers):] # gradients of common part
+            grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
+            grad_common = [grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))]
+            # Update Weights
+            self.optimizer.apply_gradients(zip(grad_class_excl + grad_adv_excl + grad_common, class_layers +  adv_layers + common_layers )) 
+            # Update metrics
+            self.loss_tracker.update_state(loss, sample_weight=sample_weight)
+            self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+            self.reg_loss_tracker.update_state(reg_loss)
+            self.adv_loss_tracker.update_state(adv_loss, sample_weight=sample_weight_adv)  
+            self.adv_accuracy.update_state(y_adv[:,0:1], y_pred_adv[1], sample_weight_adv)
+            self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
+        else:
+            print("No Adversarial Control Dataset Loaded")
+            with tf.GradientTape() as tape:
+                y_pred = self(x, training=True)  # Forward pass
+                reg_losses = self.losses # Regularisation loss
+                pure_loss = self.model_loss(y, y_pred)
+                # Compute the total loss value
+                if reg_losses:
+                    reg_loss = tf.add_n(reg_losses)
+                    loss = pure_loss + reg_loss
+                else:
+                    reg_loss = reg_losses # empty
+                    loss = pure_loss
+            # Compute gradients
+            layers = self.trainable_variables
+            grad = tape.gradient(loss, layers) 
+            # Update Weights
+            self.optimizer.apply_gradients(zip(grad, layers)) 
+            # Update metrics
+            self.loss_tracker.update_state(loss, sample_weight=sample_weight)
+            self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+            self.reg_loss_tracker.update_state(reg_loss)
+            self.compiled_metrics.update_state(y, y_pred, sample_weight)
+       
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
         return metrics_out
@@ -116,32 +130,48 @@ class DeepTauModel(keras.Model):
             sample_weight = None
             x, y = data
         # Compute predictions
-        y_pred = self(x, training=False)
-
-        # y_pred_adv = self(x, training=False)
-
-        # Define the losses
-        reg_losses = self.losses # Regularisation loss
-        tau_crossentropy_v2 = self.model_loss(y, y_pred[0]) # Compute loss function
-        pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
-
-        # adv_loss = self.adv_loss(y, y_pred_adv[1])
-
-        # Compute the total loss value
-        if reg_losses:
-            reg_loss = tf.add_n(reg_losses)
-            loss = pure_loss + reg_loss
+        if self.adv_dataset:
+            iterator = iter(self.adv_dataset[1])
+            x_adv, y_adv, sample_weight_adv = next(iterator)
+            # Compute predictions and calculate loss
+            y_pred = self(x, training=False)
+            y_pred_adv = self(x_adv, training=False)
+            reg_losses = self.losses # Regularisation loss
+            tau_crossentropy_v2 = self.model_loss(y, y_pred[0]) # Compute loss function
+            pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
+            if reg_losses: # Compute the total loss value
+                reg_loss = tf.add_n(reg_losses)
+                loss = pure_loss + reg_loss
+            else:
+                reg_loss = reg_losses # empty
+                loss = pure_loss
+            adv_loss = self.adv_loss(y_adv, y_pred_adv[1])
+            # Update the metrics 
+            self.adv_loss_tracker.update_state(adv_loss, sample_weight_adv)
+            self.adv_accuracy.update_state(y_adv[:, 0:1], y_pred_adv[1], sample_weight_adv) 
+            self.loss_tracker.update_state(loss, sample_weight=sample_weight)
+            self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+            self.reg_loss_tracker.update_state(reg_loss)
+            self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
         else:
-            reg_loss = reg_losses # empty
-            loss = pure_loss
-        # Update the metrics (including the ones that track losses)
-        self.loss_tracker.update_state(loss, sample_weight=sample_weight)
-        self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
-        self.reg_loss_tracker.update_state(reg_loss)
-        self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
-
-        # self.adv_loss_tracker.update_state(y, y_pred[1], sample_weight)
-
+            # Compute predictions and calculate loss
+            y_pred = self(x, training=False)
+            reg_losses = self.losses # Regularisation loss
+            tau_crossentropy_v2 = self.model_loss(y, y_pred) # Compute loss function
+            pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
+            if reg_losses: # Compute the total loss value
+                reg_loss = tf.add_n(reg_losses)
+                loss = pure_loss + reg_loss
+            else:
+                reg_loss = reg_losses # empty
+                loss = pure_loss
+            # Update the metrics 
+            self.loss_tracker.update_state(loss, sample_weight=sample_weight)
+            self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+            self.reg_loss_tracker.update_state(reg_loss)
+            self.compiled_metrics.update_state(y, y_pred, sample_weight)
+            
+        
         # Return a dict mapping metric names to current value
         metrics_out = {m.name: m.result() for m in self.metrics}
         return metrics_out
@@ -155,9 +185,9 @@ class DeepTauModel(keras.Model):
         metrics.append(self.loss_tracker) 
         metrics.append(self.reg_loss_tracker)
         metrics.append(self.pure_loss_tracker)
-
-        metrics.append(self.adv_loss_tracker)
-
+        if self.adv_dataset:
+            metrics.append(self.adv_loss_tracker)
+            metrics.append(self.adv_accuracy)
         if self._is_compiled:
             #  Track `LossesContainer` and `MetricsContainer` objects
             # so that attr names are not load-bearing.
@@ -165,10 +195,8 @@ class DeepTauModel(keras.Model):
                 metrics += self.compiled_loss.metrics
             if self.compiled_metrics is not None:
                 metrics += self.compiled_metrics.metrics
-
         for l in self._flatten_layers():
             metrics.extend(l._metrics)  # pylint: disable=protected-access
-
         return metrics
 
 def reshape_tensor(x, y, weights, active): 
@@ -410,12 +438,22 @@ def create_model(net_config, model_name, loss=None):
                          kernel_initializer=dense_net_setup.kernel_init)(final_dense)
     softmax_output = Activation("softmax", name="main_output")(output_layer)
 
-    final_dense_adv = reduce_n_features_1d(features_concat, dense_net_setup, 'final_adv')
-    output_layer_adv = Dense(1, name="final_dense_adv",
-                         kernel_initializer=dense_net_setup.kernel_init)(final_dense_adv)
-    sigmoid_output_adv = Activation("sigmoid", name="adv_output")(output_layer_adv)
+    
 
-    model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], name=model_name)
+    if net_config.adversarial_dataset:
+        final_dense_adv = reduce_n_features_1d(features_concat, dense_net_setup, 'final_adv')
+        output_layer_adv = Dense(1, name="final_dense_adv",
+                            kernel_initializer=dense_net_setup.kernel_init)(final_dense_adv)
+        sigmoid_output_adv = Activation("sigmoid", name="adv_output")(output_layer_adv)
+        ds = tf.data.experimental.load(net_config.adversarial_dataset, compression="GZIP")
+        data_train = ds.take(150) #take first values for training NEED PARAM
+        data_val = ds.skip(150).take(50) # take next values for validation NEED PARAM
+        adv_dataset = (data_train, data_val) 
+        print("Adversarial Dataset Loaded with TensorFlow")
+    
+        model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], name=model_name, adv_dataset = adv_dataset)
+    else:
+        model = DeepTauModel(input_layers, softmax_output, name=model_name)
     return model
 
 def compile_model(model, opt_name, learning_rate):
