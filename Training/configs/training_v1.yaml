@@ -1,5 +1,5 @@
 Setup:
-    n_tau                :  50 # number of candidates in one batch
+    n_tau                :  10 # number of candidates in one batch
     iso_cone             :  0.5
     n_inner_cells        :  11
     inner_cell_size      :  0.02
