@@ -102,11 +102,11 @@ def main(cfg: DictConfig) -> None:
                 
                 y_pred[indexes] = model.predict(X)
                 y_target[indexes] = y
-
+                
                 if cfg.save_input_names:
                     assert(len(X) == len(cfg.save_input_names))
                     for i, name in enumerate(cfg.save_input_names):
-                        X_save = np.full((size,) + X[i].shape[1:], -999)
+                        X_save = np.full((size,) + X[i].shape[1:], -999).astype(np.float32)
                         X_save[indexes] = X[i]
                         X_saveinput[i].append(X_save)
                 
@@ -135,6 +135,10 @@ def main(cfg: DictConfig) -> None:
         # store DeepTau IDs:
         if cfg.toKeepID:
             assert(deeptau_ids.shape[0] == predictions.shape[0])
+            assert(deeptau_ids.shape[0] == len(tau_indexes[0]))
+            assert(deeptau_ids.shape[0] == len(tau_indexes[1]))
+            deeptau_ids['event'] = tau_indexes[0]
+            deeptau_ids['tau_idx'] = tau_indexes[1]
             deeptau_ids.to_hdf(f'{output_filename}.h5', key='deeptauIDs', mode='r+', format='fixed', complevel=1, complib='zlib')
 
         if cfg.save_input_names:
