@@ -51,7 +51,7 @@ class AdversarialValidationCallback(Callback):
         self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
         self.adv_accuracy_tracker = tf.keras.metrics.BinaryAccuracy(name="adv_accuracy")
         
-    def on_test_end(self, epoch, logs=None):
+    def on_epoch_end(self, epoch, logs=None):
         self.adv_loss_tracker.reset_states()
         self.adv_accuracy_tracker.reset_states()
         for sm_data, adv_data in self.val_data:
