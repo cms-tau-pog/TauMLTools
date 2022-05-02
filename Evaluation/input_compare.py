@@ -18,6 +18,8 @@ from omegaconf import DictConfig, OmegaConf
 
 sys.path.insert(0, "../Training/python")
 
+epsilon = 0.001
+
 class FeatureDecoder:
     """A Class to compere the difference of an input tensor"""
 
@@ -47,8 +49,17 @@ class FeatureDecoder:
     def get(self, tensor_name, index):
         return self.feature_map[tensor_name][index]
 
+def grid(row, col, row_col_idx):
+    """version with string concatenation"""
+    string = '\n' + '+---'*col + '+\n'
+    for r in range(1, row+1):
+        for c in range(1, col+1):
+            string += '| + ' if [r,c] in row_col_idx else '|   '
+        string += '|'
+        string += '\n' + '+---'*col + '+\n'
+    return string
 
-def compare_ids(cfg, sort=False, print_n=10):
+def compare_ids(cfg, sort=False, print_n=None):
     path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.experiment_id}/{cfg.run_id}/artifacts/')
 
     prediction_path = f'{path_to_artifacts}/predictions/{cfg.sample_alias}/{cfg.input_filename}_pred.h5'
@@ -62,23 +73,21 @@ def compare_ids(cfg, sort=False, print_n=10):
     for dis_type in dis_types:
         df_dis[f'VS{dis_type}'] = df_dis.node_tau / (df_dis[f"node_{dis_type}"] + df_dis.node_tau)
         df_dis[f'delta_VS{dis_type}'] = (df_dis[f'VS{dis_type}'] - df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw']).abs()
+        # To make sure score is available for all taus:
+        assert( np.all(np.isnan(df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw']) == np.isnan(df_dis[f'delta_VS{dis_type}'])) )
     df_dis["max_delta"] = df_dis[[f'delta_VS{t}' for t in dis_types]].max(axis=1)
-
-    # check that for all taus there are non-nan output
 
     sort_df = df_dis.sort_values(['max_delta'], ascending=False)
     if print_n: sort_df = sort_df[:print_n]
-
+    
+    print("Top inconsistent DeepTauID scores are listed below:")
     print(sort_df[['event', 'tau_idx']+[f'delta_VS{t}' for t in dis_types]])
 
-def compare_input(cfg):
+def compare_input(cfg, print_grid=True):
     assert(cfg.compare_input)
     path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.experiment_id}/{cfg.run_id}/artifacts/')
     file_cmssw_path = to_absolute_path(f'{cfg.path_to_input_dir}/{cfg.compare_input.input_cmssw}')
     files_cmssw_python = f'{path_to_artifacts}/predictions/{cfg.sample_alias}/{cfg.input_filename}_pred_input'
-
-    # file_python_path = f'{output_filename}_input/tensor_{evnt}_{idx}.npy'
-    # file_python_path = f'{path_to_artifacts}/prediction/{cfg.sample_alias}/{cfg.}_pred_input{/_input/tensor_{evnt}_{idx}.npy'
 
     with open(file_cmssw_path) as file:
         json_input = json.load(file)
@@ -91,28 +100,34 @@ def compare_input(cfg):
     data_python = np.load(f'{files_cmssw_python}/tensor_{event}_{index}.npy',allow_pickle=True)[()]
 
     for key in data_cmssw.keys():
-        print(data_cmssw[key].shape, data_python[key].shape) 
+        print("Shape consistency check:",data_cmssw[key].shape, data_python[key].shape)
+        assert(data_cmssw[key].shape == data_python[key].shape)
 
-    print(data_cmssw["input_tau"], data_python["input_tau"])
-    # print(data_python)
-    
     map_f = FeatureDecoder(cfg)
-    
+    for key in list(json_input.keys()):
+        print("\n--------->",key,"<---------")
+        delta = np.abs(data_cmssw[key] - data_python[key])
+        row_idx, col_idx, f_idx = np.where(delta > epsilon)
+        grid_idx = np.stack([row_idx, col_idx],axis=1).tolist()
+        print(f"Inconsistent features:\n")
+        for f in np.unique(f_idx):
+            print(map_f.get(key,f))
+        if print_grid and key != list(json_input.keys())[0]: # if print & not first tensor (plane features)
+            print("\nInconsistent cells:")
+            print(
+                grid(data_cmssw[key].shape[0],
+                     data_cmssw[key].shape[1],
+                     grid_idx
+                    )
+                )
 
 @hydra.main(config_path='.', config_name='input_compare')
 def main(cfg: DictConfig) -> None:
     print(cfg)
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
     
-    # file = to_absolute_path(f'{cfg.path_to_input_dir}/{cfg.input_filename}.root')
-    # prediction_output = f'{path_to_artifacts}/{cfg.sample_alias}/{cfg.input_filename}_pred.h5'
-    # input_grids = f'{path_to_artifacts}/{cfg.sample_alias}/{cfg.input_filename}_pred.h5'
-
-    if 'compare_ids' in cfg.mode:
-        compare_ids(cfg)
-
-    if 'compare_input' in cfg.mode:
-        compare_input(cfg)
+    if 'compare_ids' in cfg.mode: compare_ids(cfg)
+    if 'compare_input' in cfg.mode: compare_input(cfg)
 
 if __name__ == '__main__':
     main()

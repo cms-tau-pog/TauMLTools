@@ -9,7 +9,7 @@ sample_alias: ???
 input_filename: ??? # without file extension
 
 mode:
-    # - compare_ids
+    - compare_ids
     - compare_input
 
 tensor_map:
@@ -21,6 +21,7 @@ tensor_map:
     input_outer_muon  :    [ GridGlobal, PfCand_muon, Muon ] # muons
     input_outer_hadrons :  [ GridGlobal, PfCand_chHad, PfCand_nHad ] # hadrons
 
+# ToDo -> tensors need to correspond for two interfaces 
 compare_input:
     input_cmssw : "DeepTauId_0.json"
     input_python :
