@@ -169,30 +169,11 @@ class DeepTauModel(keras.Model):
             metrics.extend(l._metrics)  # pylint: disable=protected-access
         return metrics
 
-# class AdversarialValidationCallback(keras.callbacks.Callback):
-
-#     def on_epoch_end(self, epoch, logs=None):
-#         y_pred_adv = self.model(x_adv, training=True)
-#         adv_loss = self.model.adv_loss(y_adv, y_pred_adv[1])
-#         print("End epoch {} of training; got log keys: {}".format(epoch, keys))
-
-
 def makeAdvGenerator(sm_dataset, adv_dataset):
         def gen():
             for (x,y,sample_weight), (x_adv,y_adv,sample_weight_adv) in zip(sm_dataset, itertools.cycle(adv_dataset)):
                 yield ((x, y, sample_weight), (x_adv, y_adv, sample_weight_adv))
         return gen
-
-
-def getNextAdv(adv_dataset):
-    while True: 
-        for x_adv, y_adv, sample_weight_adv in adv_dataset:
-            yield (x_adv, y_adv, sample_weight_adv)
-
-def getNextSM(sm_dataset):
-    while True:
-        for x, y, sample_weight in sm_dataset:
-            yield (x, y, sample_weight)
 
 def reshape_tensor(x, y, weights, active): 
     x_out = []
@@ -523,7 +504,7 @@ def run_training(model, data_loader, to_profile, log_suffix):
         data_train = tf.data.Dataset.from_generator(
             makeAdvGenerator(data_train.take(data_loader.n_batches), adv_data_train), output_types = (input_types, input_types), output_shapes = (input_shape, adv_shape)).prefetch(tf.data.AUTOTUNE)
         data_val = tf.data.Dataset.from_generator(
-            makeAdvGenerator(data_val.take(data_loader.n_batches), adv_data_val), output_types = (input_types, input_types), output_shapes = (input_shape, adv_shape)).prefetch(tf.data.AUTOTUNE)
+            makeAdvGenerator(data_val.take(data_loader.n_batches_val), adv_data_val), output_types = (input_types, input_types), output_shapes = (input_shape, adv_shape)).prefetch(tf.data.AUTOTUNE)
         
 
     else:
@@ -536,8 +517,9 @@ def run_training(model, data_loader, to_profile, log_suffix):
         close_file(csv_log_file)
         os.remove(csv_log_file)
     csv_log = CSVLogger(csv_log_file, append=True)
+    adv_validation = AdversarialValidationCallback(data_val)
     time_checkpoint = TimeCheckpoint(12*60*60, log_name)
-    callbacks = [time_checkpoint, csv_log]
+    callbacks = [adv_validation, time_checkpoint, csv_log]
 
     logs = log_name + '_' + datetime.now().strftime("%Y.%m.%d(%H:%M)")
     tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,

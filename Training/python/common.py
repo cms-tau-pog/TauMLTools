@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.models import load_model
-import copy
+from tensorflow import keras
 
 e, mu, tau, jet = 0, 1, 2, 3
 
@@ -20,13 +20,6 @@ def setup_gpu(gpu_cfg):
         except RuntimeError as e:
             print(e)
 
-# def save_model(model, file_name_prefix, epoch):
-#     model_save = copy.deepcopy(model)
-#     model_save.retrieval_task = tfrs.tasks.Retrieval() # Removes the metrics.
-#     model_save.compile()
-#     return model_save.save('{}_e{}.tf'.format(self.file_name_prefix, epoch),
-#                         save_format="tf")
-    
 
 class TimeCheckpoint(Callback):
     def __init__(self, time_interval, file_name_prefix):
@@ -48,9 +41,29 @@ class TimeCheckpoint(Callback):
     def on_epoch_end(self, epoch, logs=None):
         self.model.save('{}_e{}.tf'.format(self.file_name_prefix, epoch),
                         save_format="tf")
-        # save_model(self.model, self.file_name_prefix, epoch)
-        # self.model.save_weights('{}_e{}.tf'.format(self.file_name_prefix, epoch), save_format="tf")
         print("Epoch {} is ended.".format(epoch))
+
+
+class AdversarialValidationCallback(Callback):
+    def __init__(self, validation_data):
+        super(Callback, self).__init__()
+        self.val_data = validation_data
+        self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
+        self.adv_accuracy_tracker = tf.keras.metrics.BinaryAccuracy(name="adv_accuracy")
+        
+    def on_test_end(self, epoch, logs=None):
+        self.adv_loss_tracker.reset_states()
+        self.adv_accuracy_tracker.reset_states()
+        for sm_data, adv_data in self.val_data:
+            x_adv, y_adv, sample_weight_adv = adv_data
+            y_pred_adv = self.model(x_adv, training=False)
+            adv_loss = self.model.adv_loss(y_adv, y_pred_adv[1])
+            # self.model.val_adv_loss = np.average(adv_loss, weights = sample_weight_adv)
+            self.adv_loss_tracker.update_state(adv_loss, sample_weight=sample_weight_adv)
+            self.adv_accuracy_tracker.update_state(y_adv[:,0:1], y_pred_adv[1], sample_weight_adv)
+            self.model.val_adv_loss = self.adv_loss_tracker.result().numpy()
+            self.model.val_adv_accuracy = self.adv_accuracy_tracker.result().numpy()
+        print("Adversarial validation: val_adv_loss: {}, val_adv_accuracy: {}".format(self.model.val_adv_loss, self.model.val_adv_accuracy))
 
 def close_file(f_name):
     file_objs = [ obj for obj in gc.get_objects() if ("TextIOWrapper" in str(type(obj))) and (obj.name == f_name)]
