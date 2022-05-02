@@ -16,6 +16,10 @@ import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf
 
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
+
 sys.path.insert(0, "../Training/python")
 
 epsilon = 0.001
@@ -59,7 +63,7 @@ def grid(row, col, row_col_idx):
         string += '\n' + '+---'*col + '+\n'
     return string
 
-def compare_ids(cfg, sort=False, print_n=None):
+def compare_ids(cfg, sort=False, print_n=None, plot_deltas=True):
     path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.experiment_id}/{cfg.run_id}/artifacts/')
 
     prediction_path = f'{path_to_artifacts}/predictions/{cfg.sample_alias}/{cfg.input_filename}_pred.h5'
@@ -72,16 +76,30 @@ def compare_ids(cfg, sort=False, print_n=None):
     dis_types = ["e", "mu", "jet"]
     for dis_type in dis_types:
         df_dis[f'VS{dis_type}'] = df_dis.node_tau / (df_dis[f"node_{dis_type}"] + df_dis.node_tau)
-        df_dis[f'delta_VS{dis_type}'] = (df_dis[f'VS{dis_type}'] - df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw']).abs()
+        df_dis[f'delta_VS{dis_type}'] = (df_dis[f'VS{dis_type}'] - df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw'])
+        df_dis[f'abs_delta_VS{dis_type}'] = (df_dis[f'VS{dis_type}'] - df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw']).abs()
         # To make sure score is available for all taus:
         assert( np.all(np.isnan(df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw']) == np.isnan(df_dis[f'delta_VS{dis_type}'])) )
-    df_dis["max_delta"] = df_dis[[f'delta_VS{t}' for t in dis_types]].max(axis=1)
+    df_dis["max_delta"] = df_dis[[f'abs_delta_VS{t}' for t in dis_types]].max(axis=1)
 
     sort_df = df_dis.sort_values(['max_delta'], ascending=False)
     if print_n: sort_df = sort_df[:print_n]
     
     print("Top inconsistent DeepTauID scores are listed below:")
     print(sort_df[['event', 'tau_idx']+[f'delta_VS{t}' for t in dis_types]])
+
+    if plot_deltas:
+        img_path = 'deltaIDs'
+        if not os.path.exists(img_path): os.makedirs(img_path)
+        for dis_type in dis_types:
+            plt.hist(df_dis[f'delta_VS{dis_type}'], density=True, bins=100)  # density=False would make counts
+            plt.ylabel('arb. units')
+            plt.xlabel(f'updatedVS{dis_type} - tau_byDeepTau2017v2p5VS{dis_type}raw')
+            plt.savefig(f'{img_path}/delta_VS{dis_type}.pdf')
+            plt.cla()
+            plt.clf()
+            with mlflow.start_run(experiment_id=cfg.experiment_id, run_id=cfg.run_id) as active_run:
+                mlflow.log_artifact(img_path, f'predictions/{cfg.sample_alias}')
 
 def compare_input(cfg, print_grid=True):
     assert(cfg.compare_input)
