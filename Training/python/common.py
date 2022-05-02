@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.models import load_model
+import copy
 
 e, mu, tau, jet = 0, 1, 2, 3
 
@@ -18,6 +19,14 @@ def setup_gpu(gpu_cfg):
             print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
         except RuntimeError as e:
             print(e)
+
+# def save_model(model, file_name_prefix, epoch):
+#     model_save = copy.deepcopy(model)
+#     model_save.retrieval_task = tfrs.tasks.Retrieval() # Removes the metrics.
+#     model_save.compile()
+#     return model_save.save('{}_e{}.tf'.format(self.file_name_prefix, epoch),
+#                         save_format="tf")
+    
 
 class TimeCheckpoint(Callback):
     def __init__(self, time_interval, file_name_prefix):
@@ -39,6 +48,8 @@ class TimeCheckpoint(Callback):
     def on_epoch_end(self, epoch, logs=None):
         self.model.save('{}_e{}.tf'.format(self.file_name_prefix, epoch),
                         save_format="tf")
+        # save_model(self.model, self.file_name_prefix, epoch)
+        # self.model.save_weights('{}_e{}.tf'.format(self.file_name_prefix, epoch), save_format="tf")
         print("Epoch {} is ended.".format(epoch))
 
 def close_file(f_name):
@@ -274,6 +285,8 @@ class TauLosses:
     def adversarial_loss(target, adv_output):
         tau_target = target[:, 0:1] # MC_tau->0, data_tau->1, this is done by setting y_onehot in main DataLoader 
         tau_output = adv_output #  given output from adversarial
+        # tf.print("TARGET", tau_target)
+        # tf.print("OUTPUT", tau_output)
         loss = tf.keras.losses.binary_crossentropy(tau_target, tau_output) # LR: Standard cross entropy loss function
         return loss
 

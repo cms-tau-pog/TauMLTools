@@ -31,10 +31,14 @@ import json
 sys.path.insert(0, "..")
 from common import *
 import DataLoader
+import itertools
+
+# tf.config.run_functions_eagerly(True)
+# tf.data.experimental.enable_debug_mode()
 
 class DeepTauModel(keras.Model):
 
-    def __init__(self, *args, loss=None, adv_dataset=None, adv_dataset_val=None, adv_parameter=1, **kwargs):
+    def __init__(self, *args, loss=None, use_AdvDataset=False, adv_parameter=1, input_cfg=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.pure_loss_tracker = keras.metrics.Mean(name="pure_loss")
@@ -43,39 +47,46 @@ class DeepTauModel(keras.Model):
             self.model_loss = TauLosses.tau_crossentropy_v2
         else:
             self.model_loss = getattr(TauLosses,loss)
-        self.adv_dataset = adv_dataset
-        self.adv_dataset_val = adv_dataset_val
+        self.use_AdvDataset = use_AdvDataset
         self.k = adv_parameter
-        if self.adv_dataset:
+        if self.use_AdvDataset:
             self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
             self.adv_loss = TauLosses.adversarial_loss
-            self.adv_accuracy = tf.keras.metrics.CategoricalAccuracy(name="adv_accuracy")
+            self.adv_accuracy = tf.keras.metrics.BinaryAccuracy(name="adv_accuracy") 
 
     def train_step(self, data):
         # Unpack the data
-        if len(data) == 3:
+        if self.use_AdvDataset:
+            print("Adversarial Control Dataset Loaded")
+            x, y, sample_weight = data[0]
+            x_adv, y_adv, sample_weight_adv = data[1]
+        elif len(data) == 3:
+            print("No Adversarial Control Dataset Loaded")
             x, y, sample_weight = data
         else:
+            print("No Adversarial Control Dataset Loaded")
             sample_weight = None
             x, y = data
-        if self.adv_dataset:
-            iterator = iter(self.adv_dataset)
-            x_adv, y_adv, sample_weight_adv = next(iterator)
-            with tf.GradientTape() as class_tape:
-                y_pred = self(x, training=True)  # Forward pass
+        # Training Loop:
+        with tf.GradientTape() as class_tape:
+                y_predict = self(x, training=True)  # Forward pass
+                if self.use_AdvDataset:
+                    y_pred = y_predict[0]
+                else:
+                    y_pred = y_predict
                 reg_losses = self.losses # Regularisation loss
-                pure_loss = self.model_loss(y, y_pred[0])
-                # Compute the total loss value
+                pure_loss = self.model_loss(y, y_pred)
                 if reg_losses:
                     reg_loss = tf.add_n(reg_losses)
                     loss = pure_loss + reg_loss
                 else:
-                    reg_loss = reg_losses # empty
+                    reg_loss = reg_losses # Empty
                     loss = pure_loss
+        if self.use_AdvDataset:
             with tf.GradientTape() as adv_tape:
-                y_pred_adv = self(x_adv, training=True)
+                y_pred_adv = self(x_adv, training=True) # Forward Pass
                 adv_loss = self.adv_loss(y_adv, y_pred_adv[1])
-            # Compute gradients
+            # Compute gradients and update weights
             class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
             adv_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" in var.name)] #final adv only
             common_layers = [var for var in self.trainable_variables if "final" not in var.name] #gradients common to both
@@ -84,93 +95,53 @@ class DeepTauModel(keras.Model):
             grad_class_excl = grad_class[len(common_layers):] # gradients of common part
             grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
             grad_common = [grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))]
-            # Update Weights
             self.optimizer.apply_gradients(zip(grad_class_excl + grad_adv_excl + grad_common, class_layers +  adv_layers + common_layers )) 
-            # Update metrics
-            self.loss_tracker.update_state(loss, sample_weight=sample_weight)
-            self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
-            self.reg_loss_tracker.update_state(reg_loss)
-            self.adv_loss_tracker.update_state(adv_loss, sample_weight=sample_weight_adv)  
-            self.adv_accuracy.update_state(y_adv[:,0:1], y_pred_adv[1], sample_weight_adv)
-            self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
-        else:
-            print("No Adversarial Control Dataset Loaded")
-            with tf.GradientTape() as tape:
-                y_pred = self(x, training=True)  # Forward pass
-                reg_losses = self.losses # Regularisation loss
-                pure_loss = self.model_loss(y, y_pred)
-                # Compute the total loss value
-                if reg_losses:
-                    reg_loss = tf.add_n(reg_losses)
-                    loss = pure_loss + reg_loss
-                else:
-                    reg_loss = reg_losses # empty
-                    loss = pure_loss
-            # Compute gradients
+        else: 
+            # Compute gradients and update weights
             layers = self.trainable_variables
-            grad = tape.gradient(loss, layers) 
-            # Update Weights
-            self.optimizer.apply_gradients(zip(grad, layers)) 
-            # Update metrics
-            self.loss_tracker.update_state(loss, sample_weight=sample_weight)
-            self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
-            self.reg_loss_tracker.update_state(reg_loss)
-            self.compiled_metrics.update_state(y, y_pred, sample_weight)
-       
+            grad = class_tape.gradient(loss, layers) 
+            self.optimizer.apply_gradients(zip(grad, layers))
+        # Update metrics
+        self.loss_tracker.update_state(loss, sample_weight=sample_weight)
+        self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+        self.reg_loss_tracker.update_state(reg_loss) 
+        if self.use_AdvDataset:
+            self.adv_loss_tracker.update_state(adv_loss, sample_weight=sample_weight_adv)
+            self.adv_accuracy.update_state(y_adv[:,0:1], y_pred_adv[1], sample_weight_adv)
+        self.compiled_metrics.update_state(y, y_pred, sample_weight)
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
         return metrics_out
     
     def test_step(self, data):
         # Unpack the data
-        if len(data) == 3:
+        if self.use_AdvDataset:
+            x, y, sample_weight = data[0]
+        elif len(data) == 3:
             x, y, sample_weight = data
         else:
             sample_weight = None
-            x, y = data
-        # Compute predictions
-        if self.adv_dataset_val:
-            iterator = iter(self.adv_dataset_val)
-            x_adv, y_adv, sample_weight_adv = next(iterator)
-            # Compute predictions and calculate loss
-            y_pred = self(x, training=False)
-            y_pred_adv = self(x_adv, training=False)
-            reg_losses = self.losses # Regularisation loss
-            tau_crossentropy_v2 = self.model_loss(y, y_pred[0]) # Compute loss function
-            pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
-            if reg_losses: # Compute the total loss value
-                reg_loss = tf.add_n(reg_losses)
-                loss = pure_loss + reg_loss
-            else:
-                reg_loss = reg_losses # empty
-                loss = pure_loss
-            adv_loss = self.adv_loss(y_adv, y_pred_adv[1])
-            # Update the metrics 
-            self.adv_loss_tracker.update_state(adv_loss, sample_weight_adv)
-            self.adv_accuracy.update_state(y_adv[:, 0:1], y_pred_adv[1], sample_weight_adv) 
-            self.loss_tracker.update_state(loss, sample_weight=sample_weight)
-            self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
-            self.reg_loss_tracker.update_state(reg_loss)
-            self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
+            x, y = data_files
+        # Evaluate Model
+        y_predict = self(x, training=False)
+        if self.use_AdvDataset:
+            y_pred = y_predict[0]
         else:
-            # Compute predictions and calculate loss
-            y_pred = self(x, training=False)
-            reg_losses = self.losses # Regularisation loss
-            tau_crossentropy_v2 = self.model_loss(y, y_pred) # Compute loss function
-            pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
-            if reg_losses: # Compute the total loss value
-                reg_loss = tf.add_n(reg_losses)
-                loss = pure_loss + reg_loss
-            else:
-                reg_loss = reg_losses # empty
-                loss = pure_loss
-            # Update the metrics 
-            self.loss_tracker.update_state(loss, sample_weight=sample_weight)
-            self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
-            self.reg_loss_tracker.update_state(reg_loss)
-            self.compiled_metrics.update_state(y, y_pred, sample_weight)
-            
-        
+            y_pred = y_predict
+        reg_losses = self.losses # Regularisation loss
+        tau_crossentropy_v2 = self.model_loss(y, y_pred) # Compute loss function
+        pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
+        if reg_losses: 
+            reg_loss = tf.add_n(reg_losses)
+            loss = pure_loss + reg_loss
+        else:
+            reg_loss = reg_losses # Empty
+            loss = pure_loss
+        # Update the metrics 
+        self.loss_tracker.update_state(loss, sample_weight=sample_weight)
+        self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+        self.reg_loss_tracker.update_state(reg_loss)
+        self.compiled_metrics.update_state(y, y_pred, sample_weight)
         # Return a dict mapping metric names to current value
         metrics_out = {m.name: m.result() for m in self.metrics}
         return metrics_out
@@ -184,11 +155,11 @@ class DeepTauModel(keras.Model):
         metrics.append(self.loss_tracker) 
         metrics.append(self.reg_loss_tracker)
         metrics.append(self.pure_loss_tracker)
-        if self.adv_dataset:
+        if self.use_AdvDataset:
             metrics.append(self.adv_loss_tracker)
             metrics.append(self.adv_accuracy)
         if self._is_compiled:
-            #  Track `LossesContainer` and `MetricsContainer` objects
+            # Track `LossesContainer` and `MetricsContainer` objects
             # so that attr names are not load-bearing.
             if self.compiled_loss is not None:
                 metrics += self.compiled_loss.metrics
@@ -197,6 +168,31 @@ class DeepTauModel(keras.Model):
         for l in self._flatten_layers():
             metrics.extend(l._metrics)  # pylint: disable=protected-access
         return metrics
+
+# class AdversarialValidationCallback(keras.callbacks.Callback):
+
+#     def on_epoch_end(self, epoch, logs=None):
+#         y_pred_adv = self.model(x_adv, training=True)
+#         adv_loss = self.model.adv_loss(y_adv, y_pred_adv[1])
+#         print("End epoch {} of training; got log keys: {}".format(epoch, keys))
+
+
+def makeAdvGenerator(sm_dataset, adv_dataset):
+        def gen():
+            for (x,y,sample_weight), (x_adv,y_adv,sample_weight_adv) in zip(sm_dataset, itertools.cycle(adv_dataset)):
+                yield ((x, y, sample_weight), (x_adv, y_adv, sample_weight_adv))
+        return gen
+
+
+def getNextAdv(adv_dataset):
+    while True: 
+        for x_adv, y_adv, sample_weight_adv in adv_dataset:
+            yield (x_adv, y_adv, sample_weight_adv)
+
+def getNextSM(sm_dataset):
+    while True:
+        for x, y, sample_weight in sm_dataset:
+            yield (x, y, sample_weight)
 
 def reshape_tensor(x, y, weights, active): 
     x_out = []
@@ -376,7 +372,7 @@ def get_n_filters_conv2d(n_input, current_size, window_size, reduction_rate):
     n_filters = ((float(current_size) / float(current_size - window_size + 1)) ** 2) * n_input / reduction_rate
     return int(math.ceil(n_filters))
 
-def create_model(net_config, model_name, loss=None):
+def create_model(net_config, model_name, loss=None, input_cfg=None):
     tau_net_setup = NetSetup1D(**net_config.tau_net)
     comp_net_setup = NetSetup2D(**net_config.comp_net)
     comp_merge_net_setup = NetSetup2D(**net_config.comp_merge_net)
@@ -444,13 +440,7 @@ def create_model(net_config, model_name, loss=None):
         output_layer_adv = Dense(1, name="final_dense_adv",
                             kernel_initializer=dense_net_setup.kernel_init)(final_dense_adv)
         sigmoid_output_adv = Activation("sigmoid", name="adv_output")(output_layer_adv)
-        adv_dataset = tf.data.experimental.load(net_config.adversarial_dataset, compression="GZIP")
-        ds = adv_dataset.map(lambda x, y, weights: (x, y, weights))
-        adv_data_train = ds.take(150) #take first values for training NEED PARAM
-        adv_data_val = ds.skip(150).take(50) # take next values for validation NEED PARAM
-        print("Adversarial Dataset Loaded with TensorFlow")
-    
-        model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], loss=loss, name=model_name, adv_dataset = adv_data_train, adv_dataset_val = adv_data_val)
+        model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], loss=loss, name=model_name, use_AdvDataset=True)
     else:
         model = DeepTauModel(input_layers, softmax_output, loss = loss, name=model_name)
     return model
@@ -523,6 +513,19 @@ def run_training(model, data_loader, to_profile, log_suffix):
         data_val = tf.data.Dataset.from_generator(
             gen_val, output_types = input_types, output_shapes = input_shape
             ).prefetch(tf.data.AUTOTUNE)
+    adversarial_dataset = data_loader.adversarial_dataset
+    if adversarial_dataset:
+        adv_ds = tf.data.experimental.load(adversarial_dataset, compression="GZIP")
+        adv_data_train = adv_ds.take(150) #take first values for training NEED PARAM
+        adv_data_val = adv_ds.skip(150).take(50) # take next values for validation NEED PARAM
+        print("Adversarial Dataset Loaded with TensorFlow")
+        adv_shape = (((None, 43), (None, 11, 11, 86), (None, 11, 11, 64), (None, 11, 11, 38), (None, 21, 21, 86), (None, 21, 21, 64), (None, 21, 21, 38)), (None, 5), None)
+        data_train = tf.data.Dataset.from_generator(
+            makeAdvGenerator(data_train.take(data_loader.n_batches), adv_data_train), output_types = (input_types, input_types), output_shapes = (input_shape, adv_shape)).prefetch(tf.data.AUTOTUNE)
+        data_val = tf.data.Dataset.from_generator(
+            makeAdvGenerator(data_val.take(data_loader.n_batches), adv_data_val), output_types = (input_types, input_types), output_shapes = (input_shape, adv_shape)).prefetch(tf.data.AUTOTUNE)
+        
+
     else:
         raise RuntimeError("Input type not supported, please select 'ROOT' or 'tf'")
 

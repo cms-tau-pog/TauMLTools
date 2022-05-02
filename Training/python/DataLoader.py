@@ -107,7 +107,7 @@ class DataLoader (DataLoaderBase):
         self.input_type = self.config["Setup"]["input_type"]
         self.tf_input_dir = self.config["Setup"]["tf_input_dir"]
         self.tf_dataset_x_order = self.config["Setup"]["tf_dataset_x_order"]
-        
+        self.adversarial_dataset = self.config["Setup"]["adversarial_dataset"]
         
         data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root') 
         if self.input_type == "ROOT":
