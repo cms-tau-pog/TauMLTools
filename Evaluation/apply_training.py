@@ -74,7 +74,7 @@ def main(cfg: DictConfig) -> None:
 
         # open input file
         with uproot.open(input_file_name) as f:
-            n_taus = f['taus'].numentries
+            n_taus = f['taus'].num_entries
 
         # run predictions
         predictions = []
@@ -88,7 +88,8 @@ def main(cfg: DictConfig) -> None:
                 y_pred = np.zeros((size, y.shape[1]))
                 y_target = np.zeros((size, y.shape[1]))
 
-                y_pred[indexes] = model.predict(X)
+                # Modified to only take prediction element
+                y_pred[indexes] = model.predict(X)[0]
                 y_target[indexes] = y
 
                 predictions.append(y_pred)

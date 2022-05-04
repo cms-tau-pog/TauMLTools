@@ -63,6 +63,7 @@ class AdversarialValidationCallback(Callback):
             self.adv_accuracy_tracker.update_state(y_adv[:,0:1], y_pred_adv[1], sample_weight_adv)
             self.model.val_adv_loss = self.adv_loss_tracker.result().numpy()
             self.model.val_adv_accuracy = self.adv_accuracy_tracker.result().numpy()
+        np.savetxt("/home/russell/Logs/adv_val.txt", [self.model.val_adv_loss, self.model.val_adv_accuracy]) #temp while figure out
         print("Adversarial validation: val_adv_loss: {}, val_adv_accuracy: {}".format(self.model.val_adv_loss, self.model.val_adv_accuracy))
 
 def close_file(f_name):

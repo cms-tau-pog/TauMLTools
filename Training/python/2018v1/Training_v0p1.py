@@ -53,11 +53,13 @@ class DeepTauModel(keras.Model):
             self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
             self.adv_loss = TauLosses.adversarial_loss
             self.adv_accuracy = tf.keras.metrics.BinaryAccuracy(name="adv_accuracy") 
+            self.opt2 = tf.keras.optimizers.Nadam(learning_rate=1e-3)
 
     def train_step(self, data):
         # Unpack the data
         if self.use_AdvDataset:
             print("Adversarial Control Dataset Loaded")
+            print("Adversarial parameter: ", self.k)
             x, y, sample_weight = data[0]
             x_adv, y_adv, sample_weight_adv = data[1]
         elif len(data) == 3:
@@ -95,7 +97,8 @@ class DeepTauModel(keras.Model):
             grad_class_excl = grad_class[len(common_layers):] # gradients of common part
             grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
             grad_common = [grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))]
-            self.optimizer.apply_gradients(zip(grad_class_excl + grad_adv_excl + grad_common, class_layers +  adv_layers + common_layers )) 
+            self.optimizer.apply_gradients(zip(grad_class_excl + grad_common, class_layers  + common_layers )) 
+            self.opt2.apply_gradients(zip(grad_adv_excl, adv_layers))
         else: 
             # Compute gradients and update weights
             layers = self.trainable_variables
@@ -421,7 +424,7 @@ def create_model(net_config, model_name, loss=None, input_cfg=None):
         output_layer_adv = Dense(1, name="final_dense_adv",
                             kernel_initializer=dense_net_setup.kernel_init)(final_dense_adv)
         sigmoid_output_adv = Activation("sigmoid", name="adv_output")(output_layer_adv)
-        model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], loss=loss, name=model_name, use_AdvDataset=True)
+        model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], loss=loss, name=model_name, use_AdvDataset=True, adv_parameter=net_config.adv_parameter)
     else:
         model = DeepTauModel(input_layers, softmax_output, loss = loss, name=model_name)
     return model
@@ -497,8 +500,8 @@ def run_training(model, data_loader, to_profile, log_suffix):
     adversarial_dataset = data_loader.adversarial_dataset
     if adversarial_dataset:
         adv_ds = tf.data.experimental.load(adversarial_dataset, compression="GZIP")
-        adv_data_train = adv_ds.take(150) #take first values for training NEED PARAM
-        adv_data_val = adv_ds.skip(150).take(50) # take next values for validation NEED PARAM
+        adv_data_train = adv_ds.take(750) #take first values for training NEED PARAM
+        adv_data_val = adv_ds.skip(750).take(325) # take next values for validation NEED PARAM
         print("Adversarial Dataset Loaded with TensorFlow")
         adv_shape = (((None, 43), (None, 11, 11, 86), (None, 11, 11, 64), (None, 11, 11, 38), (None, 21, 21, 86), (None, 21, 21, 64), (None, 21, 21, 38)), (None, 5), None)
         data_train = tf.data.Dataset.from_generator(
