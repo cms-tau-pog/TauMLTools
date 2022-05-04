@@ -97,7 +97,13 @@ class DeepTauModel(keras.Model):
             grad_class_excl = grad_class[len(common_layers):] # gradients of common part
             grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
             grad_common = [grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))]
-            self.optimizer.apply_gradients(zip(grad_class_excl + grad_common, class_layers  + common_layers )) 
+            print(f"LENGTH CHECK: total = {len(self.trainable_variables)}, decomp = {len(adv_layers)+ len(class_layers)+ len(common_layers)}")
+            testlayers = common_layers + class_layers
+           
+            self.optimizer.apply_gradients(zip( grad_common + grad_class_excl, common_layers + class_layers)) 
+            with open("/home/russell/AdversarialTauML/TauMLTools/layer_weights.txt", "w") as f:
+                for w in self.optimizer.weights:
+                    print(f"Name: {w.name}, Shape: {np.shape(w)}", file=f)
             self.opt2.apply_gradients(zip(grad_adv_excl, adv_layers))
         else: 
             # Compute gradients and update weights
@@ -429,9 +435,10 @@ def create_model(net_config, model_name, loss=None, input_cfg=None):
         model = DeepTauModel(input_layers, softmax_output, loss = loss, name=model_name)
     return model
 
-def compile_model(model, opt_name, learning_rate):
+def compile_model(model, opt_name, learning_rate, old_opt=None):
     # opt = keras.optimizers.Adam(lr=learning_rate)
     opt = getattr(tf.keras.optimizers, opt_name)(learning_rate=learning_rate)
+        
     #opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, schedule_decay=1e-4)
     # opt = Nadam(lr=learning_rate, beta_1=1e-4)
 
@@ -450,7 +457,7 @@ def compile_model(model, opt_name, learning_rate):
     mlflow.log_dict(metric_names, 'input_cfg/metric_names.json')
 
 
-def run_training(model, data_loader, to_profile, log_suffix):
+def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
 
     if data_loader.input_type == "tf":
         total_batches = data_loader.n_batches + data_loader.n_batches_val
@@ -513,6 +520,17 @@ def run_training(model, data_loader, to_profile, log_suffix):
     else:
         raise RuntimeError("Input type not supported, please select 'ROOT' or 'tf'")
 
+    
+    
+
+    if old_opt:
+        for elem in data_train:
+            model.train_step(elem)
+            break
+        old_weights = [np.empty(()), np.empty(())] + old_opt.get_weights()
+        model.optimizer.set_weights(old_weights)
+        print("Optimizer weights restored")
+        
     model_name = data_loader.model_name
     log_name = '%s_%s' % (model_name, log_suffix)
     csv_log_file = "metrics.log"
@@ -581,6 +599,7 @@ def main(cfg: DictConfig) -> None:
 
         if cfg.pretrained is None:
             print("Warning: no pretrained NN -> training will be started from scratch")
+            old_opt = None
         else:
             print("Warning: training will be started from pretrained model.")
             print(f"Model: run_id={cfg.pretrained.run_id}, experiment_id={cfg.pretrained.experiment_id}, model={cfg.pretrained.starting_model}")
@@ -588,7 +607,6 @@ def main(cfg: DictConfig) -> None:
             path_to_pretrain = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.pretrained.experiment_id}/{cfg.pretrained.run_id}/artifacts/')
             old_model = load_model(path_to_pretrain+f"/model_checkpoints/{cfg.pretrained.starting_model}",
                 compile=False, custom_objects = None)
-
             for layer in model.layers:
                 weights_found = False
                 for old_layer in old_model.layers:
@@ -598,9 +616,18 @@ def main(cfg: DictConfig) -> None:
                         break
                 if not weights_found:
                     print(f"Weights for layer '{layer.name}' not found.")
+            old_opt = old_model.optimizer
+            old_vars = [var.name for var in old_model.trainable_variables]
+            # print("TRAINABLE PARAMS:", len(old_vars))
+            # # with open("/home/russell/AdversarialTauML/TauMLTools/old_layers.txt", "w") as f:
+            # #     print(old_vars, file = f) 
+            with open("/home/russell/AdversarialTauML/TauMLTools/old_weights.txt", "w") as f:
+                for w in old_opt.weights:
+                    print(f"Name: {w.name}, Shape: {np.shape(w)}", file =f)
+            # np.savetxt("/home/russell/AdversarialTauML/TauMLTools/old_layers.txt", old_vars, fmt="%s")
 
-        compile_model(model, setup["optimizer_name"], setup["learning_rate"])
-        fit_hist = run_training(model, dataloader, False, cfg.log_suffix)
+        compile_model(model, setup["optimizer_name"], setup["learning_rate"], old_opt=old_opt)
+        fit_hist = run_training(model, dataloader, False, cfg.log_suffix, old_opt=old_opt)
 
         # log NN params
         for net_type in ['tau_net', 'comp_net', 'comp_merge_net', 'conv_2d_net', 'dense_net']:
