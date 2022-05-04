@@ -6,7 +6,7 @@ Setup:
     n_outer_cells        :  21
     outer_cell_size      :  0.05
     n_threads            :  1
-    debug                :  True
+    debug                :  False
     use_weights          :  True
 
 
@@ -64,10 +64,10 @@ SetupNN:
     n_batches_val        : -1 # 80000 # -1 for all
     n_batches_log        : 1000 # monitor every n batches in tensorboard
     epoch                : 0
-    n_epochs             : 50
+    n_epochs             : 40
     validation_split     : 0.2
-    max_queue_size       : 2 # 10
-    n_load_workers       : 2 # 4
+    max_queue_size       : 10
+    n_load_workers       : 4
     input_grids          : [
                             [ GridGlobal, PfCand_electron, PfCand_gamma, Electron ], # e-gamma
                             [ GridGlobal, PfCand_muon, Muon ], # muons
@@ -76,6 +76,8 @@ SetupNN:
     TauLossesSFs         : [1, 2.5, 5, 1.5]
     optimizer_name       : "Nadam"
     learning_rate        : 0.001
+    schedule_decay       : 0.0 #0.0001 # Using step decay (hardcoded) instead of schedule decay
+    step_decay           : True
     tau_net              : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.4, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
     comp_net             : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
     comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "n", "last_layer_width": 64 }
@@ -84,6 +86,7 @@ SetupNN:
     first_layer_reg      : null # eg "L1, reg_fact"
     active_features      : ['TauFlat', 'GridGlobal', 'PfCand_electron', 'PfCand_muon', 'PfCand_chHad', 'PfCand_nHad', 'PfCand_gamma', 'Electron', 'Muon']
     cell_locations       : ['inner', 'outer']
+    loss                 : null # "tau_crossentropy_v2"
 
 CellObjectType : [
                  GridGlobal,

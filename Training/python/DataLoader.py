@@ -84,6 +84,7 @@ class DataLoader (DataLoaderBase):
         self.input_grids        = self.config["SetupNN"]["input_grids"]
         self.n_cells = { 'inner': self.n_inner_cells, 'outer': self.n_outer_cells }
         self.model_name       = self.config["SetupNN"]["model_name"]
+        self.step_decay       = self.config["SetupNN"]["step_decay"]
 
         data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root')
         self.train_files, self.val_files = \
