@@ -192,7 +192,7 @@ class UpdatedLossCallback(keras.callbacks.Callback):
                     lastSelected = nSelectedFakes
                     current = dnedge + (upedge-dnedge)/2
                     nSelectedFakes = float(tf.math.reduce_sum( tf.where( self.res[typ]>current, self.res["w"], 0) ))
-                    print (typ, iWP, "@", current, ":", nSelectedFakes, "vs", misIDs[iWP] * nFakes)
+                    #print (typ, iWP, "@", current, ":", nSelectedFakes, "vs", misIDs[iWP] * nFakes)
                     if nSelectedFakes < misIDs[iWP] * nFakes:
                         upedge = current
                     else:
@@ -206,6 +206,7 @@ class UpdatedLossCallback(keras.callbacks.Callback):
         for hist in self.res: del hist
         gc.collect()
 
+        # Printing status of WPs here instead of using metrics, because it's faster
         print("************************************")
         print("Loss function status after epoch {}:".format(epoch))
         for typ,typname in zip(["e", "mu", "jet"], ["Electrons", "Muons", "Jets"]):
@@ -470,7 +471,7 @@ def compile_model(model, loss, opt_name, learning_rate, schedule_decay=1e-4):
     metrics = [
         "accuracy", TauLosses.tau_crossentropy_v2,
         TauLosses.We, TauLosses.Wmu, TauLosses.Wjet,
-        TauLosses.WPloss2
+        TauLosses.WPloss, TauLosses.WPloss2
     ]
     model.compile(loss=loss, optimizer=opt, metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
 
