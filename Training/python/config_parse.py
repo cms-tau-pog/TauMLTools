@@ -30,7 +30,7 @@ def create_settings(data: dict, verbose=False) -> str:
     def create_namestruc(content: dict) -> str:
         types_map = {
                 bool  : "Bool_t",
-                int   : "size_t",
+                int   : "long int",
                 float : "Double_t",
                 str   : "std::string",
                 list  : "std::vector<std::string>",

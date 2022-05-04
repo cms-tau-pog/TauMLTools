@@ -13,51 +13,46 @@ from collections import defaultdict
 from scaling_utils import dR, dR_signal_cone, mask_inf, mask_nan, fill_aggregators, get_quantiles
 from scaling_utils import init_dictionaries, dump_to_json
 
-if __name__ == '__main__':
-    # parse command line parameters
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--cfg", type=str, help="Path to yaml configuration file", default="Training/configs/trainingReco_v1.yaml")
-    parser.add_argument('--var_types', nargs='+', help="Variable types from field 'Features_all' of the cfg file for which to derive scaling parameters. Defaults to -1 for running on all those specified in the cfg", default=['-1'])
-    args = parser.parse_args()
-    with open(args.cfg) as f:
-        scaling_dict = yaml.load(f, Loader=yaml.FullLoader)
+def run_scaling(cfg, var_types, file_list=None, output_folder=None):
+    with open(cfg) as f:
+        scaling_dict = yaml.load(f, Loader=(yaml.FullLoader))
+    
+    assert type(var_types) == list, "--var-types should be a list"
+    
+    setup_dict                  = scaling_dict['Scaling_setup']
+    features_dict               = scaling_dict['Features_all']
+    var_types                   = features_dict.keys() if (var_types[0] == '-1' and len(var_types) == 1) else var_types
+    file_path                   = setup_dict['file_path']
+    output_json_folder          = setup_dict['output_json_folder'] if output_folder is None else output_folder
+    file_range                  = setup_dict['file_range']
+    tree_name                   = setup_dict['tree_name']
+    log_step                    = setup_dict['log_step']
+    version                     = setup_dict['version']
+    selection_dict              = setup_dict['selection']
+    scaling_params_json_prefix  = f"{output_json_folder}/scaling_params_v{version}"
+    quantile_params_json_prefix = f"{output_json_folder}/quantile_params_v{version}"
+    cone_definition_dict        = setup_dict['cone_definition']
+    cone_selection_dict         = setup_dict['cone_selection']
 
-    # read cfg parameters
-    setup_dict = scaling_dict['Scaling_setup']
-    features_dict = scaling_dict['Features_all']
-    #
-    assert type(args.var_types) == list
-    if args.var_types[0] == "-1" and len(args.var_types) == 1:
-        var_types = features_dict.keys()
-    else:
-        var_types = args.var_types
-    file_path = setup_dict['file_path']
-    output_json_folder = setup_dict['output_json_folder']
     if not os.path.exists(output_json_folder):
         os.makedirs(output_json_folder)
-    file_range = setup_dict['file_range']
-    tree_name = setup_dict['tree_name']
-    log_step = setup_dict['log_step']
-    version = setup_dict['version']
-    scaling_params_json_prefix = f'{output_json_folder}/scaling_params_v{version}'
-    quantile_params_json_prefix = f'{output_json_folder}/quantile_params_v{version}'
 
-    #
-    selection_dict = setup_dict['selection']
-    cone_definition_dict = setup_dict['cone_definition']
-    cone_selection_dict = setup_dict['cone_selection']
-    #
     assert log_step > 0 and type(log_step) == int
-    if file_range==-1:
-        file_names = sorted(glob(file_path))
-        n_files = len(file_names)
-    elif type(file_range)==list and len(file_range)==2 and file_range[0]<=file_range[1]:
-        file_names = sorted(glob(file_path))[file_range[0]:file_range[1]]
-        n_files = file_range[1]-file_range[0]
+    
+    if file_list is None:
+        if file_range==-1:
+            file_names = sorted(glob(file_path))
+            n_files = len(file_names)
+        elif type(file_range)==list and len(file_range)==2 and file_range[0]<=file_range[1]:
+            file_names = sorted(glob(file_path))[file_range[0]:file_range[1]]
+            n_files = file_range[1]-file_range[0]
+        else:
+            raise ValueError('Specified file_range is not valid: should be either -1 (run on all files in file_path) or range [a, b] with a<=b')
     else:
-        raise ValueError('Specified file_range is not valid: should be either -1 (run on all files in file_path) or range [a, b] with a<=b')
+        assert type(file_list) == list
+        file_names = file_list
+        n_files = len(file_names)
     file_names_ix = [fname.split('_')[-1].split('.root')[0] for fname in file_names] # id as taken from the name: used as file identifier (key field) in the output json files with quantiles
-
     # initialise dictionaries to be filled
     sums, sums2, counts, scaling_params, quantile_params = init_dictionaries(features_dict, cone_selection_dict, n_files)
     #
@@ -70,7 +65,7 @@ if __name__ == '__main__':
     inf_counter = defaultdict(list) # counter of features with inf values and their fraction
     nan_counter = defaultdict(list) # counter of features with nan values and their fraction
     processed_last_file = time.time()
-
+    
     # loop over input files
     for file_i, (file_name_i, file_name) in enumerate(zip(file_names_ix, file_names)): # file_i used internally to count number of processed files
         print("Processing file:",file_i,",",file_name)
@@ -91,8 +86,8 @@ if __name__ == '__main__':
                             # dict with scaling params already fully filled after init_dictionaries() call, here compute only variable's quantiles
                             if len(lim_params) == 2 and lim_params[0] <= lim_params[1]:
                                 var_array = tree.arrays(var, cut=selection_cut, aliases=aliases)[var]
-                                var_array = mask_inf(var_array, var, inf_counter, raise_exception=True)
-                                var_array = mask_nan(var_array, var, nan_counter, raise_exception=True)
+                                var_array = mask_inf(var_array, var, inf_counter, raise_exception=False)
+                                var_array = mask_nan(var_array, var, nan_counter, raise_exception=False)
                                 quantile_params[var_type][var]['global'][file_name_i] = get_quantiles(var_array)
                                 # del(var_array)
                             elif len(lim_params) == 1 and type(lim_params[0]) == dict:
@@ -101,8 +96,8 @@ if __name__ == '__main__':
                                 tau_pt_array, tau_eta_array, tau_phi_array = tree.arrays([tau_pt_name, tau_eta_name, tau_phi_name], cut=None, aliases=None, how=tuple)
                                 constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
                                 var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
-                                var_array = mask_inf(var_array, var, inf_counter, raise_exception=True)
-                                var_array = mask_nan(var_array, var, nan_counter, raise_exception=True)
+                                var_array = mask_inf(var_array, var, inf_counter, raise_exception=False)
+                                var_array = mask_nan(var_array, var, nan_counter, raise_exception=False)
                                 dR_tau_signal_cone = dR_signal_cone(tau_pt_array,
                                                                     cone_definition_dict['inner']['min_pt'],
                                                                     cone_definition_dict['inner']['min_radius'],
@@ -153,3 +148,14 @@ if __name__ == '__main__':
     for nan_feature, nan_frac_counts in nan_counter.items():
         print(f"[WARNING] in {nan_feature} encountered nan values with average per file fraction: {format(np.mean(nan_frac_counts), '.2g')}")
     print('\nDone!')
+    if skip_counter < n_files:
+        return True
+    else:
+        return False
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cfg', type=str, help='Path to yaml configuration file', default='Training/configs/trainingReco_v1.yaml')
+    parser.add_argument('--var_types', nargs='+', help="Variable types from field 'Features_all' of the cfg file for which to derive scaling parameters. Defaults to -1 for running on all those specified in the cfg", default=['-1'])
+    args = parser.parse_args()
+    run_scaling(cfg=(args.cfg), var_types=(args.var_types))

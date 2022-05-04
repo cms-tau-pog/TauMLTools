@@ -18,10 +18,16 @@
 #include "DataFormats/TrackReco/interface/HitPattern.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
-#include "SimDataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
+
+#if __has_include ("DataFormats/JetMatching/interface/JetFlavourInfoMatching.h")
+    #include "DataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
+#else
+    #include "SimDataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
+#endif
 
 #include "AnalysisDataFormats/TopObjects/interface/TtGenEvent.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
+#include "CommonTools/Utils/interface/StringCutObjectSelector.h"
 #include "RecoTauTag/RecoTau/interface/PFRecoTauClusterVariables.h"
 
 #include "TauMLTools/Core/interface/Tools.h"
@@ -33,8 +39,63 @@
 #include "TauMLTools/Production/interface/TauAnalysis.h"
 #include "TauMLTools/Production/interface/MuonHitMatch.h"
 #include "TauMLTools/Production/interface/TauJet.h"
+#include "TauMLTools/Production/interface/Selectors.h"
+
+
+namespace {
+    template <typename T>
+    edm::Handle<T> getHandle(const edm::Event& event, const edm::EDGetTokenT<T>& token, bool get = true) {
+        edm::Handle<T> handle;
+        if(get)
+            event.getByToken(token, handle);
+        return handle;
+    }
+
+    template <typename T>
+    const T* getProduct(const edm::Event& event, const edm::EDGetTokenT<T>& token, bool get = true) {
+        auto handle = getHandle(event, token, get);
+        return handle.isValid() ? handle.product() : nullptr;
+    }
+
+} // anonymous namespace
 
 namespace tau_analysis {
+
+    inline constexpr int GetCMSSWVersion()
+    {
+        int d1 =  *(PROJECT_VERSION + 6) - '0';
+        int d2 =  *(PROJECT_VERSION + 7) - '0';
+        if(d2 >= 0 && d2 <= 9) return d1 * 10 + d2;
+        return d1;
+    }
+
+    template<typename Elec, int cmssw_version>
+    struct GetElecVer;
+
+    template<typename Elec>
+    struct GetElecVer<Elec, 12> {
+        static float hcalDepth1OverEcal(const Elec* ele) { return ele->hcalOverEcal(1); }
+        static float hcalDepth2OverEcal(const Elec* ele) { return ele->hcalOverEcal(2); }
+        static float hcalDepth1OverEcalBc(const Elec* ele) { return ele->hcalOverEcalBc(1); }
+        static float hcalDepth2OverEcalBc(const Elec* ele) { return ele->hcalOverEcalBc(2); }
+        static float full5x5_hcalDepth1OverEcal(const Elec* ele) { return ele->full5x5_hcalOverEcal(1); }
+        static float full5x5_hcalDepth2OverEcal(const Elec* ele) { return ele->full5x5_hcalOverEcal(2); }
+        static float full5x5_hcalDepth1OverEcalBc(const Elec* ele) { return ele->full5x5_hcalOverEcalBc(1); }
+        static float full5x5_hcalDepth2OverEcalBc(const Elec* ele) { return ele->full5x5_hcalOverEcalBc(2); }
+    };
+
+    template<typename Elec>
+    struct GetElecVer<Elec, 10> {
+        static float hcalDepth1OverEcal(const Elec* ele) { return ele->hcalDepth1OverEcal(); }
+        static float hcalDepth2OverEcal(const Elec* ele) { return ele->hcalDepth2OverEcal(); }
+        static float hcalDepth1OverEcalBc(const Elec* ele) { return ele->hcalDepth1OverEcalBc(); }
+        static float hcalDepth2OverEcalBc(const Elec* ele) { return ele->hcalDepth2OverEcalBc(); }
+        static float full5x5_hcalDepth1OverEcal(const Elec* ele) { return ele->full5x5_hcalDepth1OverEcal(); }
+        static float full5x5_hcalDepth2OverEcal(const Elec* ele) { return ele->full5x5_hcalDepth2OverEcal(); }
+        static float full5x5_hcalDepth1OverEcalBc(const Elec* ele) { return ele->full5x5_hcalDepth1OverEcalBc(); }
+        static float full5x5_hcalDepth2OverEcalBc(const Elec* ele) { return ele->full5x5_hcalDepth2OverEcalBc(); }
+    };
+
 
 struct TauTupleProducerData {
     using clock = std::chrono::system_clock;
@@ -144,9 +205,13 @@ public:
         cands_token(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("pfCandidates"))),
         isoTracks_token(consumes<pat::IsolatedTrackCollection>(cfg.getParameter<edm::InputTag>("isoTracks"))),
         lostTracks_token(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("lostTracks"))),
+        METs_token(consumes<edm::View<pat::MET>>(cfg.getParameter<edm::InputTag>("METs"))),
+        triggerResults_token(consumes<edm::TriggerResults>(cfg.getParameter<edm::InputTag>("triggerResults"))),
+        triggerObjects_token(consumes<pat::TriggerObjectStandAloneCollection>(cfg.getParameter<edm::InputTag>("triggerObjects"))),
         data(TauTupleProducerData::RequestGlobalData()),
         tauTuple(data->tauTuple),
-        summaryTuple(data->summaryTuple)
+        summaryTuple(data->summaryTuple),
+        selector(selectors::TauJetSelector::Make(cfg.getParameter<std::string>("selector")))
     {
         const std::map<std::string, double*> builderParamNames = {
             { "genLepton_genJet_dR", &builderSetup.genLepton_genJet_dR },
@@ -198,20 +263,16 @@ private:
         tauTuple().dataset_id = -1;
         tauTuple().dataset_group_id = -1;
 
-        edm::Handle<std::vector<reco::Vertex>> vertices;
-        event.getByToken(vertices_token, vertices);
+        auto vertices = getHandle(event, vertices_token);
         tauTuple().npv = static_cast<int>(vertices->size());
-        edm::Handle<double> rho;
-        event.getByToken(rho_token, rho);
+        auto rho = getHandle(event, rho_token);
         tauTuple().rho = static_cast<float>(*rho);
 
         if(isMC) {
-            edm::Handle<GenEventInfoProduct> genEvent;
-            event.getByToken(genEvent_token, genEvent);
+            auto genEvent = getHandle(event, genEvent_token);
             tauTuple().genEventWeight = static_cast<float>(genEvent->weight());
 
-            edm::Handle<std::vector<PileupSummaryInfo>> puInfo;
-            event.getByToken(puInfo_token, puInfo);
+            auto puInfo = getHandle(event, puInfo_token);
             tauTuple().npu = gen_truth::GetNumberOfPileUpInteractions(puInfo);
         }
 
@@ -227,53 +288,46 @@ private:
         tauTuple().pv_chi2 = static_cast<float>(PV.chi2());
         tauTuple().pv_ndof = static_cast<float>(PV.ndof());
 
-        edm::Handle<pat::ElectronCollection> electrons;
-        event.getByToken(electrons_token, electrons);
+        auto electrons = getHandle(event, electrons_token);
+        auto muons = getHandle(event, muons_token);
+        auto taus = getHandle(event, taus_token);
+        auto boostedTaus = getHandle(event, boostedTaus_token);
+        auto jets = getHandle(event, jets_token);
+        auto fatJets = getHandle(event, fatJets_token);
+        auto cands = getHandle(event, cands_token);
+        auto isoTracks = getHandle(event, isoTracks_token);
+        auto lostTracks = getHandle(event, lostTracks_token);
+        auto METs = getHandle(event, METs_token);
+        auto triggerResults = getHandle(event, triggerResults_token);
+        auto triggerObjects = getHandle(event, triggerObjects_token);
 
-        edm::Handle<pat::MuonCollection> muons;
-        event.getByToken(muons_token, muons);
+        auto genParticles = getProduct(event, genParticles_token, isMC);
+        auto genJets = getProduct(event, genJets_token, isMC);
+        auto genJetFlavourInfos = getProduct(event, genJetFlavourInfos_token, isMC);
 
-        edm::Handle<pat::TauCollection> taus;
-        event.getByToken(taus_token, taus);
-
-        edm::Handle<pat::TauCollection> boostedTaus;
-        event.getByToken(boostedTaus_token, boostedTaus);
-
-        edm::Handle<pat::JetCollection> jets;
-        event.getByToken(jets_token, jets);
-
-        edm::Handle<pat::JetCollection> fatJets;
-        event.getByToken(fatJets_token, fatJets);
-
-        edm::Handle<pat::PackedCandidateCollection> cands;
-        event.getByToken(cands_token, cands);
-
-        edm::Handle<pat::IsolatedTrackCollection> isoTracks;
-        event.getByToken(isoTracks_token, isoTracks);
-
-        edm::Handle<pat::PackedCandidateCollection> lostTracks;
-        event.getByToken(lostTracks_token, lostTracks);
-
-        edm::Handle<reco::GenParticleCollection> hGenParticles;
-        edm::Handle<reco::GenJetCollection> hGenJets;
-        edm::Handle<reco::JetFlavourInfoMatchingCollection> hGenJetFlavourInfos;
-        if(isMC) {
-            event.getByToken(genParticles_token, hGenParticles);
-            event.getByToken(genJets_token, hGenJets);
-            event.getByToken(genJetFlavourInfos_token, hGenJetFlavourInfos);
-        }
-
-        auto genParticles = hGenParticles.isValid() ? hGenParticles.product() : nullptr;
-        auto genJets = hGenJets.isValid() ? hGenJets.product() : nullptr;
-        auto genJetFlavourInfos = hGenJetFlavourInfos.isValid() ? hGenJetFlavourInfos.product() : nullptr;
+        tauTuple().met_pt = METs->at(0).pt();
+        tauTuple().met_phi = METs->at(0).phi();
 
         TauJetBuilder builder(builderSetup, *taus, *boostedTaus, *jets, *fatJets, *cands, *electrons, *muons,
                               *isoTracks, *lostTracks, genParticles, genJets, requireGenMatch,
                               requireGenORRecoTauMatch, applyRecoPtSieve);
-        const auto& tauJets = builder.GetTauJets();
+        const auto [tauJets, tagObj] = selector->Select(event, builder.GetTauJets(), *electrons, *muons,
+                                                           METs->at(0), PV, *triggerObjects, *triggerResults, *rho);
+        tauTuple().tagObj_valid = tagObj != nullptr;                                                    
+        tauTuple().tagObj_pt = tagObj ? tagObj->p4.pt() : default_value;
+        tauTuple().tagObj_eta = tagObj ? tagObj->p4.eta() : default_value;
+        tauTuple().tagObj_phi = tagObj ? tagObj->p4.phi() : default_value;
+        tauTuple().tagObj_mass = tagObj ? tagObj->p4.mass() : default_value;
+        tauTuple().tagObj_charge = tagObj ? tagObj->charge : default_int_value;
+        tauTuple().tagObj_id = tagObj ? tagObj->id : 0;
+        tauTuple().tagObj_iso = tagObj ? tagObj->isolation : default_value;
+        tauTuple().has_extramuon = tagObj ? tagObj->has_extramuon : default_value;
+        tauTuple().has_extraelectron = tagObj ? tagObj->has_extraelectron : default_value;
+        tauTuple().has_dimuon = tagObj ? tagObj->has_dimuon : default_value;
+
         tauTuple().total_entries = static_cast<int>(tauJets.size());
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {
-            const TauJet& tauJet = tauJets.at(tauJetIndex);
+            const TauJet& tauJet = *tauJets.at(tauJetIndex);
             tauTuple().entry_index = static_cast<int>(tauJetIndex);
 
             FillGenLepton(tauJet.genLepton);
@@ -287,7 +341,7 @@ private:
             FillPFCandidates(tauJet.cands, "pfCand_");
             FillPFCandidates(tauJet.lostTracks, "lostTrack_");
             FillElectrons(tauJet.electrons);
-            FillMuons(tauJet.muons);
+            FillMuons(tauJet.muons, PV);
             FillIsoTracks(tauJet.isoTracks);
 
             tauTuple.Fill();
@@ -663,10 +717,10 @@ private:
             tauTuple().ele_e2x5Max.push_back(hasShapeVars ? ele->e2x5Max() : default_value);
             tauTuple().ele_e5x5.push_back(hasShapeVars ? ele->e5x5() : default_value);
             tauTuple().ele_r9.push_back(hasShapeVars ? ele->r9() : default_value);
-            tauTuple().ele_hcalDepth1OverEcal.push_back(hasShapeVars ? ele->hcalDepth1OverEcal() : default_value);
-            tauTuple().ele_hcalDepth2OverEcal.push_back(hasShapeVars ? ele->hcalDepth2OverEcal() : default_value);
-            tauTuple().ele_hcalDepth1OverEcalBc.push_back(hasShapeVars ? ele->hcalDepth1OverEcalBc() : default_value);
-            tauTuple().ele_hcalDepth2OverEcalBc.push_back(hasShapeVars ? ele->hcalDepth2OverEcalBc() : default_value);
+            tauTuple().ele_hcalDepth1OverEcal.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::hcalDepth1OverEcal(ele) : default_value);
+            tauTuple().ele_hcalDepth2OverEcal.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::hcalDepth2OverEcal(ele) : default_value);
+            tauTuple().ele_hcalDepth1OverEcalBc.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::hcalDepth1OverEcalBc(ele) : default_value);
+            tauTuple().ele_hcalDepth2OverEcalBc.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::hcalDepth2OverEcalBc(ele) : default_value);
             tauTuple().ele_eLeft.push_back(hasShapeVars ? ele->eLeft() : default_value);
             tauTuple().ele_eRight.push_back(hasShapeVars ? ele->eRight() : default_value);
             tauTuple().ele_eTop.push_back(hasShapeVars ? ele->eTop() : default_value);
@@ -680,10 +734,10 @@ private:
             tauTuple().ele_full5x5_e2x5Max.push_back(hasShapeVars ? ele->full5x5_e2x5Max() : default_value);
             tauTuple().ele_full5x5_e5x5.push_back(hasShapeVars ? ele->full5x5_e5x5() : default_value);
             tauTuple().ele_full5x5_r9.push_back(hasShapeVars ? ele->full5x5_r9() : default_value);
-            tauTuple().ele_full5x5_hcalDepth1OverEcal.push_back(hasShapeVars ? ele->full5x5_hcalDepth1OverEcal() : default_value);
-            tauTuple().ele_full5x5_hcalDepth2OverEcal.push_back(hasShapeVars ? ele->full5x5_hcalDepth2OverEcal() : default_value);
-            tauTuple().ele_full5x5_hcalDepth1OverEcalBc.push_back(hasShapeVars ? ele->full5x5_hcalDepth1OverEcalBc() : default_value);
-            tauTuple().ele_full5x5_hcalDepth2OverEcalBc.push_back(hasShapeVars ? ele->full5x5_hcalDepth2OverEcalBc() : default_value);
+            tauTuple().ele_full5x5_hcalDepth1OverEcal.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::full5x5_hcalDepth1OverEcal(ele) : default_value);
+            tauTuple().ele_full5x5_hcalDepth2OverEcal.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::full5x5_hcalDepth2OverEcal(ele) : default_value);
+            tauTuple().ele_full5x5_hcalDepth1OverEcalBc.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::full5x5_hcalDepth1OverEcalBc(ele) : default_value);
+            tauTuple().ele_full5x5_hcalDepth2OverEcalBc.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::full5x5_hcalDepth2OverEcalBc(ele) : default_value);
             tauTuple().ele_full5x5_eLeft.push_back(hasShapeVars ? ele->full5x5_eLeft() : default_value);
             tauTuple().ele_full5x5_eRight.push_back(hasShapeVars ? ele->full5x5_eRight() : default_value);
             tauTuple().ele_full5x5_eTop.push_back(hasShapeVars ? ele->full5x5_eTop() : default_value);
@@ -759,7 +813,7 @@ private:
         }
     }
 
-    void FillMuons(const TauJet::MuonCollection& muons)
+    void FillMuons(const TauJet::MuonCollection& muons, const reco::Vertex& PV)
     {
         for(const auto& muon_ptr : muons) {
             const pat::Muon* muon = muon_ptr.obj;
@@ -778,6 +832,9 @@ private:
             tauTuple().muon_caloCompatibility.push_back(muon->caloCompatibility());
             tauTuple().muon_pfEcalEnergy.push_back(muon->pfEcalEnergy());
             tauTuple().muon_type.push_back(muon->type());
+            tauTuple().muon_id.push_back(unsigned(muon->isLooseMuon()) * 1 + unsigned(muon->isMediumMuon()) * 2
+                                         + unsigned(muon->isTightMuon(PV)) * 4);
+            tauTuple().muon_pfRelIso04.push_back(static_cast<float>(PFRelIsolation(*muon)));
 
             const MuonHitMatch hit_match(*muon);
             for(int subdet : MuonHitMatch::ConsideredSubdets()) {
@@ -914,11 +971,14 @@ private:
     edm::EDGetTokenT<pat::PackedCandidateCollection> cands_token;
     edm::EDGetTokenT<pat::IsolatedTrackCollection> isoTracks_token;
     edm::EDGetTokenT<pat::PackedCandidateCollection> lostTracks_token;
-
+    edm::EDGetTokenT<edm::View<pat::MET>> METs_token;
+    edm::EDGetTokenT<edm::TriggerResults> triggerResults_token;
+    edm::EDGetTokenT<pat::TriggerObjectStandAloneCollection> triggerObjects_token;
 
     TauTupleProducerData* data;
     tau_tuple::TauTuple& tauTuple;
     tau_tuple::SummaryTuple& summaryTuple;
+    std::shared_ptr<selectors::TauJetSelector> selector;
 };
 
 } // namespace tau_analysis

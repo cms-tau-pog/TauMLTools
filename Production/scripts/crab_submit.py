@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Submit jobs on CRAB.
 # This file is part of https://github.com/cms-tau-pog/TauTriggerTools.
-
+from __future__ import print_function
 import argparse
 import subprocess
 import sys
@@ -37,14 +37,15 @@ parser.add_argument('--vomsRole', required=False, type=str, default="", help="cu
 parser.add_argument('job_file', type=str, nargs='+', help="text file with jobs descriptions")
 args = parser.parse_args()
 
+interpreter='python' if sys.version==2 else 'python3'
 for job_file in args.job_file:
-    cmd = 'crab_submit_file.py --jobFile "{}"'.format(job_file)
-    for arg_name,arg_value in vars(args).iteritems():
+    cmd = '{} $(which crab_submit_file.py) --jobFile "{}"'.format(interpreter, job_file)
+    for arg_name,arg_value in getattr(vars(args), 'iteritems', vars(args).items)():
         if arg_name != 'job_file' and type(arg_value) != bool and (type(arg_value) != str or len(arg_value)):
             cmd += ' --{} {} '.format(arg_name, arg_value)
         elif type(arg_value) == bool and arg_value:
             cmd += ' --{} '.format(arg_name)
-    print '> {}'.format(cmd)
+    print ('> {}'.format(cmd))
     result = subprocess.call([cmd], shell=True)
     if result != 0:
         print('ERROR: failed to submit jobs from "{}"'.format(job_file))
