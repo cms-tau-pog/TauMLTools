@@ -233,13 +233,13 @@ def add_block_ending(net_setup, name_format, layer):
         return net_setup.DropoutType(net_setup.dropout_rate, name=name_format.format('dropout'))(activation_layer)
     return activation_layer
 
-def dense_block(prev_layer, kernel_size, net_setup, block_name, n):
+def dense_block(prev_layer, kernel_size, net_setup, block_name, n, basename='dense'):
     DenseType = MaskedDense if net_setup.time_distributed else Dense
-    dense = DenseType(kernel_size, name="{}_dense_{}".format(block_name, n),
+    dense = DenseType(kernel_size, name="{}_{}_{}".format(block_name, basename, n),
                       kernel_initializer=net_setup.kernel_init,
                       kernel_regularizer=net_setup.kernel_regularizer)
     if net_setup.time_distributed:
-        dense = TimeDistributed(dense, name="{}_dense_{}".format(block_name, n))
+        dense = TimeDistributed(dense, name="{}_{}_{}".format(block_name, basename, n))
     dense = dense(prev_layer)
     return add_block_ending(net_setup, '{}_{{}}_{}'.format(block_name, n), dense)
 
@@ -260,7 +260,7 @@ def get_layer_size_sequence(net_setup):
             break
     return layer_sizes
 
-def reduce_n_features_1d(input_layer, net_setup, block_name, first_layer_reg = None):
+def reduce_n_features_1d(input_layer, net_setup, block_name, first_layer_reg = None, basename='dense'):
     prev_layer = input_layer
     layer_sizes = get_layer_size_sequence(net_setup)
     for n, layer_size in enumerate(layer_sizes):
@@ -269,19 +269,19 @@ def reduce_n_features_1d(input_layer, net_setup, block_name, first_layer_reg = N
             reg_param = float(reg_param)
             setup = copy.deepcopy(net_setup)
             setup.kernel_regularizer = getattr(tf.keras.regularizers, reg_name)(reg_param)
-            print("Regularisation applied to ", "{}_dense_{}".format(block_name, n+1))
+            print("Regularisation applied to ", "{}_{}_{}".format(block_name, basename, n+1))
         else:
             setup = net_setup
-        prev_layer = dense_block(prev_layer, layer_size, setup, block_name, n+1)
+        prev_layer = dense_block(prev_layer, layer_size, setup, block_name, n+1, basename=basename)
     return prev_layer
 
-def conv_block(prev_layer, filters, kernel_size, net_setup, block_name, n):
-    conv = Conv2D(filters, kernel_size, name="{}_conv_{}".format(block_name, n),
+def conv_block(prev_layer, filters, kernel_size, net_setup, block_name, n, basename='conv'):
+    conv = Conv2D(filters, kernel_size, name="{}_{}_{}".format(block_name, basename, n),
                   kernel_initializer=net_setup.kernel_init,
                   kernel_regularizer=net_setup.kernel_regularizer)(prev_layer)
     return add_block_ending(net_setup, '{}_{{}}_{}'.format(block_name, n), conv)
 
-def reduce_n_features_2d(input_layer, net_setup, block_name, first_layer_reg = None):
+def reduce_n_features_2d(input_layer, net_setup, block_name, first_layer_reg = None, basename='conv'):
     conv_kernel=(1, 1)
     prev_layer = input_layer
     layer_sizes = get_layer_size_sequence(net_setup)
@@ -294,7 +294,7 @@ def reduce_n_features_2d(input_layer, net_setup, block_name, first_layer_reg = N
             print("Regularisation applied to", "{}_conv_{}".format(block_name, n+1))
         else: 
             setup = net_setup
-        prev_layer = conv_block(prev_layer, layer_size, conv_kernel, setup, block_name, n+1)
+        prev_layer = conv_block(prev_layer, layer_size, conv_kernel, setup, block_name, n+1, basename=basename)
     return prev_layer
 
 def get_n_filters_conv2d(n_input, current_size, window_size, reduction_rate):

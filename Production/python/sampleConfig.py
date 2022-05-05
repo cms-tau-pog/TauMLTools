@@ -4,6 +4,9 @@ import sys
 import FWCore.ParameterSet.Config as cms
 import os
 
+if sys.version_info.major < 3:
+    from sets import Set as set
+    
 mcSampleTypes = set([ 'MC_16', 'MC_17', 'MC_18', 'MC_UL18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D', 'MC_Phase2_111X', 'MC_Phase2_110X', 'MC_RUN3_122X'])
 dataSampleTypes = set([ 'Run2016' , 'Run2017', 'Run2018ABC', 'Run2018D', 'RunUL2018' ])
 

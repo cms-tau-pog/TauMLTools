@@ -15,6 +15,9 @@ struct TagObject {
     int charge;
     unsigned id;
     float isolation;
+    bool has_extramuon;
+    bool has_extraelectron;
+    bool has_dimuon;
 };
 
 struct TauJetSelector {
@@ -26,7 +29,7 @@ struct TauJetSelector {
                           const std::vector<pat::Muon>& muons, const pat::MET& met,
                           const reco::Vertex& primaryVertex,
                           const pat::TriggerObjectStandAloneCollection& triggerObjects,
-                          const edm::TriggerResults& triggerResults);
+                          const edm::TriggerResults& triggerResults, float rho);
 
     static std::shared_ptr<TauJetSelector> Make(const std::string& name);
 };
@@ -37,7 +40,7 @@ struct MuTau : TauJetSelector {
                           const std::vector<pat::Muon>& muons, const pat::MET& met,
                           const reco::Vertex& primaryVertex,
                           const pat::TriggerObjectStandAloneCollection& triggerObjects,
-                          const edm::TriggerResults& triggerResults) override;
+                          const edm::TriggerResults& triggerResults, float rho) override;
 };
 
 } // namespace selectors

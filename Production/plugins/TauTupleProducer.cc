@@ -18,7 +18,12 @@
 #include "DataFormats/TrackReco/interface/HitPattern.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
-#include "DataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
+
+#if __has_include ("DataFormats/JetMatching/interface/JetFlavourInfoMatching.h")
+    #include "DataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
+#else
+    #include "SimDataFormats/JetMatching/interface/JetFlavourInfoMatching.h"
+#endif
 
 #include "AnalysisDataFormats/TopObjects/interface/TtGenEvent.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
@@ -55,6 +60,42 @@ namespace {
 } // anonymous namespace
 
 namespace tau_analysis {
+
+    inline constexpr int GetCMSSWVersion()
+    {
+        int d1 =  *(PROJECT_VERSION + 6) - '0';
+        int d2 =  *(PROJECT_VERSION + 7) - '0';
+        if(d2 >= 0 && d2 <= 9) return d1 * 10 + d2;
+        return d1;
+    }
+
+    template<typename Elec, int cmssw_version>
+    struct GetElecVer;
+
+    template<typename Elec>
+    struct GetElecVer<Elec, 12> {
+        static float hcalDepth1OverEcal(const Elec* ele) { return ele->hcalOverEcal(1); }
+        static float hcalDepth2OverEcal(const Elec* ele) { return ele->hcalOverEcal(2); }
+        static float hcalDepth1OverEcalBc(const Elec* ele) { return ele->hcalOverEcalBc(1); }
+        static float hcalDepth2OverEcalBc(const Elec* ele) { return ele->hcalOverEcalBc(2); }
+        static float full5x5_hcalDepth1OverEcal(const Elec* ele) { return ele->full5x5_hcalOverEcal(1); }
+        static float full5x5_hcalDepth2OverEcal(const Elec* ele) { return ele->full5x5_hcalOverEcal(2); }
+        static float full5x5_hcalDepth1OverEcalBc(const Elec* ele) { return ele->full5x5_hcalOverEcalBc(1); }
+        static float full5x5_hcalDepth2OverEcalBc(const Elec* ele) { return ele->full5x5_hcalOverEcalBc(2); }
+    };
+
+    template<typename Elec>
+    struct GetElecVer<Elec, 10> {
+        static float hcalDepth1OverEcal(const Elec* ele) { return ele->hcalDepth1OverEcal(); }
+        static float hcalDepth2OverEcal(const Elec* ele) { return ele->hcalDepth2OverEcal(); }
+        static float hcalDepth1OverEcalBc(const Elec* ele) { return ele->hcalDepth1OverEcalBc(); }
+        static float hcalDepth2OverEcalBc(const Elec* ele) { return ele->hcalDepth2OverEcalBc(); }
+        static float full5x5_hcalDepth1OverEcal(const Elec* ele) { return ele->full5x5_hcalDepth1OverEcal(); }
+        static float full5x5_hcalDepth2OverEcal(const Elec* ele) { return ele->full5x5_hcalDepth2OverEcal(); }
+        static float full5x5_hcalDepth1OverEcalBc(const Elec* ele) { return ele->full5x5_hcalDepth1OverEcalBc(); }
+        static float full5x5_hcalDepth2OverEcalBc(const Elec* ele) { return ele->full5x5_hcalDepth2OverEcalBc(); }
+    };
+
 
 struct TauTupleProducerData {
     using clock = std::chrono::system_clock;
@@ -271,7 +312,7 @@ private:
                               *isoTracks, *lostTracks, genParticles, genJets, requireGenMatch,
                               requireGenORRecoTauMatch, applyRecoPtSieve);
         const auto [tauJets, tagObj] = selector->Select(event, builder.GetTauJets(), *electrons, *muons,
-                                                           METs->at(0), PV, *triggerObjects, *triggerResults);
+                                                           METs->at(0), PV, *triggerObjects, *triggerResults, *rho);
         tauTuple().tagObj_valid = tagObj != nullptr;                                                    
         tauTuple().tagObj_pt = tagObj ? tagObj->p4.pt() : default_value;
         tauTuple().tagObj_eta = tagObj ? tagObj->p4.eta() : default_value;
@@ -280,6 +321,9 @@ private:
         tauTuple().tagObj_charge = tagObj ? tagObj->charge : default_int_value;
         tauTuple().tagObj_id = tagObj ? tagObj->id : 0;
         tauTuple().tagObj_iso = tagObj ? tagObj->isolation : default_value;
+        tauTuple().has_extramuon = tagObj ? tagObj->has_extramuon : default_value;
+        tauTuple().has_extraelectron = tagObj ? tagObj->has_extraelectron : default_value;
+        tauTuple().has_dimuon = tagObj ? tagObj->has_dimuon : default_value;
 
         tauTuple().total_entries = static_cast<int>(tauJets.size());
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {
@@ -673,10 +717,10 @@ private:
             tauTuple().ele_e2x5Max.push_back(hasShapeVars ? ele->e2x5Max() : default_value);
             tauTuple().ele_e5x5.push_back(hasShapeVars ? ele->e5x5() : default_value);
             tauTuple().ele_r9.push_back(hasShapeVars ? ele->r9() : default_value);
-            tauTuple().ele_hcalDepth1OverEcal.push_back(hasShapeVars ? ele->hcalOverEcal(1) : default_value);
-            tauTuple().ele_hcalDepth2OverEcal.push_back(hasShapeVars ? ele->hcalOverEcal(2) : default_value);
-            tauTuple().ele_hcalDepth1OverEcalBc.push_back(hasShapeVars ? ele->hcalOverEcalBc(1) : default_value);
-            tauTuple().ele_hcalDepth2OverEcalBc.push_back(hasShapeVars ? ele->hcalOverEcalBc(2) : default_value);
+            tauTuple().ele_hcalDepth1OverEcal.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::hcalDepth1OverEcal(ele) : default_value);
+            tauTuple().ele_hcalDepth2OverEcal.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::hcalDepth2OverEcal(ele) : default_value);
+            tauTuple().ele_hcalDepth1OverEcalBc.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::hcalDepth1OverEcalBc(ele) : default_value);
+            tauTuple().ele_hcalDepth2OverEcalBc.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::hcalDepth2OverEcalBc(ele) : default_value);
             tauTuple().ele_eLeft.push_back(hasShapeVars ? ele->eLeft() : default_value);
             tauTuple().ele_eRight.push_back(hasShapeVars ? ele->eRight() : default_value);
             tauTuple().ele_eTop.push_back(hasShapeVars ? ele->eTop() : default_value);
@@ -690,10 +734,10 @@ private:
             tauTuple().ele_full5x5_e2x5Max.push_back(hasShapeVars ? ele->full5x5_e2x5Max() : default_value);
             tauTuple().ele_full5x5_e5x5.push_back(hasShapeVars ? ele->full5x5_e5x5() : default_value);
             tauTuple().ele_full5x5_r9.push_back(hasShapeVars ? ele->full5x5_r9() : default_value);
-            tauTuple().ele_full5x5_hcalDepth1OverEcal.push_back(hasShapeVars ? ele->full5x5_hcalOverEcal(1) : default_value);
-            tauTuple().ele_full5x5_hcalDepth2OverEcal.push_back(hasShapeVars ? ele->full5x5_hcalOverEcal(2) : default_value);
-            tauTuple().ele_full5x5_hcalDepth1OverEcalBc.push_back(hasShapeVars ? ele->full5x5_hcalOverEcalBc(1) : default_value);
-            tauTuple().ele_full5x5_hcalDepth2OverEcalBc.push_back(hasShapeVars ? ele->full5x5_hcalOverEcalBc(2) : default_value);
+            tauTuple().ele_full5x5_hcalDepth1OverEcal.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::full5x5_hcalDepth1OverEcal(ele) : default_value);
+            tauTuple().ele_full5x5_hcalDepth2OverEcal.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::full5x5_hcalDepth2OverEcal(ele) : default_value);
+            tauTuple().ele_full5x5_hcalDepth1OverEcalBc.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::full5x5_hcalDepth1OverEcalBc(ele) : default_value);
+            tauTuple().ele_full5x5_hcalDepth2OverEcalBc.push_back(hasShapeVars ? GetElecVer<pat::Electron, GetCMSSWVersion()>::full5x5_hcalDepth2OverEcalBc(ele) : default_value);
             tauTuple().ele_full5x5_eLeft.push_back(hasShapeVars ? ele->full5x5_eLeft() : default_value);
             tauTuple().ele_full5x5_eRight.push_back(hasShapeVars ? ele->full5x5_eRight() : default_value);
             tauTuple().ele_full5x5_eTop.push_back(hasShapeVars ? ele->full5x5_eTop() : default_value);
@@ -790,7 +834,7 @@ private:
             tauTuple().muon_type.push_back(muon->type());
             tauTuple().muon_id.push_back(unsigned(muon->isLooseMuon()) * 1 + unsigned(muon->isMediumMuon()) * 2
                                          + unsigned(muon->isTightMuon(PV)) * 4);
-            tauTuple().muon_pfRelIso04.push_back(static_cast<float>(PFIsolation(*muon)));
+            tauTuple().muon_pfRelIso04.push_back(static_cast<float>(PFRelIsolation(*muon)));
 
             const MuonHitMatch hit_match(*muon);
             for(int subdet : MuonHitMatch::ConsideredSubdets()) {

@@ -26,7 +26,7 @@ function run_cmd {
     fi
 }
 
-if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = "deploy_v2p5" ]]; then
+if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = "run3" ]]; then
     if [ $MODE = "prod2018" ] ; then
         CMSSW_VER=CMSSW_10_6_29
         APPLY_BOOSTED_FIX=1
@@ -39,8 +39,8 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = 
         CMSSW_VER=CMSSW_10_6_29
         APPLY_BOOSTED_FIX=0
         export SCRAM_ARCH=slc7_amd64_gcc700
-    elif [ $MODE = "deploy_v2p5" ] ; then
-        CMSSW_VER=CMSSW_12_4_0_pre2
+    elif [ $MODE = "run3" ] ; then
+        CMSSW_VER=CMSSW_12_4_0_pre3
         APPLY_BOOSTED_FIX=0
         export SCRAM_ARCH=slc7_amd64_gcc100
     fi
@@ -65,6 +65,7 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = 
         run_cmd git fetch oleg CMSSW_12_4_0_pre2_DeepTau_v2p5_dev
         run_cmd git checkout -b CMSSW_12_4_0_pre2_DeepTau_v2p5_dev oleg/CMSSW_12_4_0_pre2_DeepTau_v2p5_dev
         run_cmd scram b -j8
+
 
         run_cmd mkdir TauMLTools
         run_cmd cd TauMLTools
