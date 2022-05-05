@@ -23,7 +23,7 @@ Setup:
     input_type           : "ROOT" # supported 'ROOT' or 'tf'
     tf_input_dir         : "/home/russell/tfdata/old_blend_b100" # "/home/russell/tfdata/adv_blend" # path to saved tf dataset
     tf_dataset_x_order   : ["TauFlat", "inner_egamma", "inner_muon", "inner_hadron", "outer_egamma", "outer_muon", "outer_hadron"] # specify order of layers in tf dataset
-    adversarial_dataset  : False #"/home/russell/tfdata/AdvTraining" # False if not use, ds name if use
+    adversarial_dataset  : "/home/russell/tfdata/AdvTraining" # False if not use, ds name if use
     adv_parameter        : 0.0
     # here define variables for the Histogram_2D class
     yaxis                : [
@@ -65,8 +65,8 @@ Setup:
 
 SetupNN:
     model_name           : "DeepTau2018v0"
-    n_batches            : 10000
-    n_batches_val        : 2000
+    n_batches            : 1000
+    n_batches_val        : 200
     n_batches_log        : 1000 # monitor every n batches in tensorboard
     epoch                : 0
     n_epochs             : 1

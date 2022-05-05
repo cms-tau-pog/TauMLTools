@@ -26,7 +26,9 @@ cuts: ${apply_dm_cuts}
 input_samples: # "sample_alias": [list of strings with tau types to be selected]
   GluGluHToTauTau: ['tau']
   TTToSemiLeptonic: ["jet"]
-  DYJetsToLL: ["e", "mu"]
+  # DYJetsToLL: ["e"] #, "mu"]
+  # GluGluHToTauTau_M125: ['tau']
+  # DYJetsToLL_M-50-amcatnloFXFX_ext2: ["e"]
 path_to_input: null
 path_to_pred: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/{sample_alias}/*_pred.h5'
 path_to_target: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/{sample_alias}/*_pred.h5'

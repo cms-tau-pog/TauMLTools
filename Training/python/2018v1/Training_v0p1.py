@@ -61,6 +61,7 @@ class DeepTauModel(keras.Model):
             print("Adversarial Control Dataset Loaded")
             print("Adversarial parameter: ", self.k)
             x, y, sample_weight = data[0]
+            # tf.print(x[0])
             x_adv, y_adv, sample_weight_adv = data[1]
         elif len(data) == 3:
             print("No Adversarial Control Dataset Loaded")
@@ -85,31 +86,44 @@ class DeepTauModel(keras.Model):
                     reg_loss = reg_losses # Empty
                     loss = pure_loss
         if self.use_AdvDataset:
+            class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
+            common_layers = [var for var in self.trainable_variables if "final" not in var.name] #gradients common to both
+            grad_class = class_tape.gradient(loss, common_layers + class_layers) 
+            grad_class_excl = grad_class[len(common_layers):] # gradients of common part
+            grad_common = grad_class[:len(common_layers)] #[grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))]
+
             with tf.GradientTape() as adv_tape:
                 y_pred_adv = self(x_adv, training=True) # Forward Pass
                 adv_loss = self.adv_loss(y_adv, y_pred_adv[1])
             # Compute gradients and update weights
-            class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
-            adv_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" in var.name)] #final adv only
-            common_layers = [var for var in self.trainable_variables if "final" not in var.name] #gradients common to both
-            grad_class = class_tape.gradient(loss, common_layers + class_layers) 
-            grad_adv = adv_tape.gradient(adv_loss, common_layers + adv_layers)
-            grad_class_excl = grad_class[len(common_layers):] # gradients of common part
-            grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
-            grad_common = [grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))]
-            print(f"LENGTH CHECK: total = {len(self.trainable_variables)}, decomp = {len(adv_layers)+ len(class_layers)+ len(common_layers)}")
-            testlayers = common_layers + class_layers
+            # class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
+            # # adv_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" in var.name)] #final adv only
+            # common_layers = [var for var in self.trainable_variables if "final" not in var.name] #gradients common to both
+            # grad_class = class_tape.gradient(loss, common_layers + class_layers) 
+            # # grad_adv = adv_tape.gradient(adv_loss, common_layers + adv_layers)
+            # grad_class_excl = grad_class[len(common_layers):] # gradients of common part
+            # # grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
+            # grad_common = grad_class[:len(common_layers)] #[grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))]
            
             self.optimizer.apply_gradients(zip( grad_common + grad_class_excl, common_layers + class_layers)) 
             # with open("/home/russell/AdversarialTauML/TauMLTools/layer_weights.txt", "w") as f:
             #     for w in self.optimizer.weights:
             #         print(f"Name: {w.name}, Shape: {np.shape(w)}", file=f)
-            self.opt2.apply_gradients(zip(grad_adv_excl, adv_layers))
+            # self.opt2.apply_gradients(zip(grad_adv_excl, adv_layers))
         else: 
             # Compute gradients and update weights
-            layers = self.trainable_variables
-            grad = class_tape.gradient(loss, layers) 
-            self.optimizer.apply_gradients(zip(grad, layers))
+            class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
+            common_layers = [var for var in self.trainable_variables if "final" not in var.name] #gradients common to both
+            grad_class = class_tape.gradient(loss, common_layers + class_layers) 
+            grad_class_excl = grad_class[len(common_layers):] # gradients of common part
+            grad_common = grad_class[:len(common_layers)] #[grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))]
+            self.optimizer.apply_gradients(zip( grad_common + grad_class_excl, common_layers + class_layers)) 
+            # with open("/home/russell/AdversarialTauML/TauMLTools/trainable_vars.txt", "w") as f:
+            #     for w in self.trainable_variables:
+            #         print(f"Name: {w.name}, Shape: {np.shape(w)}", file=f)
+            # layers = self.trainable_variables
+            # grad = class_tape.gradient(loss, layers) 
+            # self.optimizer.apply_gradients(zip(grad, layers))
         # Update metrics
         self.loss_tracker.update_state(loss, sample_weight=sample_weight)
         self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
@@ -546,11 +560,11 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
     
 
     time_checkpoint = TimeCheckpoint(12*60*60, log_name)
-    if adversarial_dataset:
-        adv_validation = AdversarialValidationCallback(data_val)
-        callbacks = [adv_validation, time_checkpoint, csv_log]
-    else:  
-        callbacks = [time_checkpoint, csv_log]
+    # if adversarial_dataset:
+    #     adv_validation = AdversarialValidationCallback(data_val)
+    #     callbacks = [adv_validation, time_checkpoint, csv_log]
+    # else:  
+    callbacks = [time_checkpoint, csv_log]
 
     logs = log_name + '_' + datetime.now().strftime("%Y.%m.%d(%H:%M)")
     tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
