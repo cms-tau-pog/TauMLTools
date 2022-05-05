@@ -269,7 +269,7 @@ Features_all :
 
     GridGlobal:
                 - rho: [null, null, "linear", 0, 200]
-                - tau_pt: [null, null, "linear", 20, 5000]
+                - tau_pt: [null, null, "linear", 20, 1000]
                 - tau_eta: [null, null, "linear", -3.0, 3.0]
                 - tau_inside_ecal_crack: [null, null, "no_scaling"]
 
