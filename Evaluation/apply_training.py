@@ -18,6 +18,8 @@ from omegaconf import DictConfig, OmegaConf
 sys.path.insert(0, "../Training/python")
 from common import setup_gpu
 
+
+
 @hydra.main(config_path='.', config_name='apply_training')
 def main(cfg: DictConfig) -> None:
     # set up paths & gpu
@@ -81,6 +83,7 @@ def main(cfg: DictConfig) -> None:
         targets = []
         if cfg.verbose: print(f'\n\n--> Processing file {input_file_name}, number of taus: {n_taus}\n')
 
+        print("BATCH SIZE", dataloader.batch_size)
         with tqdm(total=n_taus) as pbar:
 
             for (X,y),indexes,size in gen_predict(input_file_name):
@@ -89,7 +92,13 @@ def main(cfg: DictConfig) -> None:
                 y_target = np.zeros((size, y.shape[1]))
 
                 # Modified to only take prediction element
-                y_pred[indexes] = model.predict(X)[0]
+                if dataloader.adversarial_dataset:
+                    # print("Adversarial Network Structure")
+                    y_pred[indexes] = model.predict(X)[0]
+                else:
+                    # print("Standard Network Structure")
+                    y_pred[indexes] = model.predict(X)
+
                 y_target[indexes] = y
 
                 predictions.append(y_pred)

@@ -104,7 +104,8 @@ class PlotSetup:
         if self.xlim is not None:
             ax.set_xlim(self.xlim)
         if self.ylim is not None:
-            ax.set_ylim(self.ylim)
+            # ax.set_ylim(self.ylim)
+            ax.set_ylim([1e-4, 1])
 
         ax.set_yscale(self.yscale)
         ax.set_ylabel(self.ylabel, fontsize=16)
@@ -120,7 +121,8 @@ class PlotSetup:
 
         if ax_ratio is not None:
             if self.ratio_ylim is not None:
-                ax_ratio.set_ylim(self.ratio_ylim)
+                # ax_ratio.set_ylim(self.ratio_ylim)
+                ax_ratio.set_ylim([0,5])
 
             ax_ratio.set_yscale(self.ratio_yscale)
             ax_ratio.set_xlabel('Tau ID efficiency', fontsize=16)
