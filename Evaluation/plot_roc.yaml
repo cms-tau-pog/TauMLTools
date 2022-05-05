@@ -2,10 +2,10 @@
 path_to_mlflow: /home/russell/AdversarialTauML/TauMLTools/Training/python/2018v1/mlruns
 experiment_id: 12
 discriminators: # in the format -> run_id: ['curve_type_1', 'curve_type_2', ...]
-  4074d0f5a19344ba82fcefee35aa8d98: ['roc_curve']
-  7041fb6941b64392b51bcacc648e4da7: ['roc_curve']
+  bd4664c6e447418d9b0af804a981ee1c: ['roc_curve']
+  5371f5d7080846c1a213f0e648471c11: ['roc_curve']
 reference: 
-  7041fb6941b64392b51bcacc648e4da7: 'roc_curve'
+  5371f5d7080846c1a213f0e648471c11: 'roc_curve'
 
 # region
 vs_type: ??? # jet/e/mu/tau

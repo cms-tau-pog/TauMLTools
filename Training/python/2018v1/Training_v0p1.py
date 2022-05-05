@@ -424,7 +424,7 @@ def create_model(net_config, model_name, loss=None, input_cfg=None):
     softmax_output = Activation("softmax", name="main_output")(output_layer)
 
     
-
+    print("DEBUG: Use adversarial data", net_config.adversarial_dataset)
     if net_config.adversarial_dataset:
         final_dense_adv = reduce_n_features_1d(features_concat, dense_net_setup, 'final_adv')
         output_layer_adv = Dense(1, name="final_dense_adv",
@@ -504,7 +504,12 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
         data_val = tf.data.Dataset.from_generator(
             gen_val, output_types = input_types, output_shapes = input_shape
             ).prefetch(tf.data.AUTOTUNE)
+    else:
+        raise RuntimeError("Input type not supported, please select 'ROOT' or 'tf'")
+
+    
     adversarial_dataset = data_loader.adversarial_dataset
+    print("DEBUG: dataloader adversarial dataset:", adversarial_dataset)
     if adversarial_dataset:
         adv_ds = tf.data.experimental.load(adversarial_dataset, compression="GZIP")
         adv_data_train = adv_ds.take(750) #take first values for training NEED PARAM
@@ -517,8 +522,6 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
             makeAdvGenerator(data_val.take(data_loader.n_batches_val), adv_data_val), output_types = (input_types, input_types), output_shapes = (input_shape, adv_shape)).prefetch(tf.data.AUTOTUNE)
         
 
-    else:
-        raise RuntimeError("Input type not supported, please select 'ROOT' or 'tf'")
 
     
     
@@ -529,8 +532,9 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
             break
         old_weights = [np.empty(()), np.empty(())] + old_opt.get_weights()
         model.optimizer.set_weights(old_weights)
+        model.optimizer.iterations.assign_add(1246720)
         print("Optimizer weights restored")
-        
+
     model_name = data_loader.model_name
     log_name = '%s_%s' % (model_name, log_suffix)
     csv_log_file = "metrics.log"
@@ -538,9 +542,15 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
         close_file(csv_log_file)
         os.remove(csv_log_file)
     csv_log = CSVLogger(csv_log_file, append=True)
-    adv_validation = AdversarialValidationCallback(data_val)
+
+    
+
     time_checkpoint = TimeCheckpoint(12*60*60, log_name)
-    callbacks = [adv_validation, time_checkpoint, csv_log]
+    if adversarial_dataset:
+        adv_validation = AdversarialValidationCallback(data_val)
+        callbacks = [adv_validation, time_checkpoint, csv_log]
+    else:  
+        callbacks = [time_checkpoint, csv_log]
 
     logs = log_name + '_' + datetime.now().strftime("%Y.%m.%d(%H:%M)")
     tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,

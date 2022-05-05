@@ -11,9 +11,9 @@ experiment_name: ???
 
 # pretrained: null
 pretrained:
-  run_id : 7041fb6941b64392b51bcacc648e4da7
-  experiment_id: 4
-  starting_model: full_v2_e4_step1_e2.tf
+  run_id : 5371f5d7080846c1a213f0e648471c11
+  experiment_id: 12
+  starting_model: full_v2_e4_NAdam_2_step1_e1.tf
 
 # setup
 scaling_cfg: ../../configs/ShuffleMergeSpectral_trainingSamples-2_files_0_498.json # for DataLoader initialisation
