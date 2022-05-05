@@ -12,6 +12,7 @@ training_cfg_upd:
     max_queue_size: 1
     n_load_workers: 1
 
+
 # mlflow info
 path_to_mlflow: ???
 experiment_id: ???
@@ -46,6 +47,12 @@ checkout_train_repo: False # whether to checkout git commit used for running the
 # "toKeep" - option to save the default DeepTauId information from initial BigTuples
 # toKeepID : null
 toKeepID : [
+            "byDeepTau2017v2p1VSeraw",
+            "byDeepTau2017v2p1VSmuraw",
+            "byDeepTau2017v2p1VSjetraw",
+            "byDeepTau2017v2p1ReRunVSeraw",
+            "byDeepTau2017v2p1ReRunVSmuraw",
+            "byDeepTau2017v2p1ReRunVSjetraw",
             "byDeepTau2017v2p5VSeraw",
             "byDeepTau2017v2p5VSmuraw",
             "byDeepTau2017v2p5VSjetraw",
