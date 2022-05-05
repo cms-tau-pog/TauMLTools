@@ -22,7 +22,8 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, "../Training/python")
 
-epsilon = 0.001
+epsilon = 0.0001
+# epsilon = 0.000001
 
 class FeatureDecoder:
     """A Class to compere the difference of an input tensor"""
@@ -63,7 +64,7 @@ def grid(row, col, row_col_idx):
         string += '\n' + '+---'*col + '+\n'
     return string
 
-def compare_ids(cfg, sort=False, print_n=None, plot_deltas=True):
+def compare_ids(cfg, sort=False, print_n=30, plot_deltas=True):
     path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.experiment_id}/{cfg.run_id}/artifacts/')
 
     prediction_path = f'{path_to_artifacts}/predictions/{cfg.sample_alias}/{cfg.input_filename}_pred.h5'
@@ -71,22 +72,44 @@ def compare_ids(cfg, sort=False, print_n=None, plot_deltas=True):
     df_default [df_default < 0] = None
     df_current = pd.read_hdf(prediction_path, key='predictions')
     assert(len(df_default)==len(df_current))
+    df_tar = pd.read_hdf(prediction_path, key='targets')
     df_dis = pd.concat([df_default, df_current], axis=1)
 
     dis_types = ["e", "mu", "jet"]
     for dis_type in dis_types:
         df_dis[f'VS{dis_type}'] = df_dis.node_tau / (df_dis[f"node_{dis_type}"] + df_dis.node_tau)
         df_dis[f'delta_VS{dis_type}'] = (df_dis[f'VS{dis_type}'] - df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw'])
-        df_dis[f'abs_delta_VS{dis_type}'] = (df_dis[f'VS{dis_type}'] - df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw']).abs()
+        df_dis[f'abs_delta_VS{dis_type}'] = (df_dis[f'delta_VS{dis_type}']).abs()
+
+        # to compare tau_byDeepTau2017v2p1VS with tau_byDeepTau2017v2p5VS
+        # df_dis[f'delta_VS{dis_type}'] = (df_dis[f'tau_byDeepTau2017v2p1VS{dis_type}raw'] - df_dis[f'tau_byDeepTau2017v2p1ReRunVS{dis_type}raw'])
+        # df_dis[f'abs_delta_VS{dis_type}'] = (df_dis[f'delta_VS{dis_type}']).abs()
+
         # To make sure score is available for all taus:
         assert( np.all(np.isnan(df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw']) == np.isnan(df_dis[f'delta_VS{dis_type}'])) )
+        n = np.isnan(df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw']).sum()
+        # print("Number of nans:", n, "not-nan:", df_dis.shape[0]-n)
+    
+    
     df_dis["max_delta"] = df_dis[[f'abs_delta_VS{t}' for t in dis_types]].max(axis=1)
 
-    sort_df = df_dis.sort_values(['max_delta'], ascending=False)
-    if print_n: sort_df = sort_df[:print_n]
+    # sort_df = df_dis.sort_values(['max_delta'], ascending=False)
+    # if print_n: sort_df = sort_df[:print_n]
     
     print("Top inconsistent DeepTauID scores are listed below:")
-    print(sort_df[['event', 'tau_idx']+[f'delta_VS{t}' for t in dis_types]])
+    # print(sort_df[['event', 'tau_idx']+[f'delta_VS{t}' for t in dis_types]])
+    # print(sort_df)
+    
+    # Display all events droping nans:
+    # When Droping Nan's, new index -> should coorespond to the index of json file
+    df_dis_noNan = df_dis
+    df_dis_noNan["old_indx"] = df_dis_noNan.index
+    df_dis_noNan = df_dis_noNan.dropna().reset_index(drop=True)
+    df_dis_noNan = df_dis_noNan.sort_values(['max_delta'], ascending=False)
+    if print_n: df_dis_noNan = df_dis_noNan[:print_n]
+
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+        print(df_dis_noNan[['old_indx','event', 'tau_idx']+[f'delta_VS{t}' for t in dis_types]])
 
     if plot_deltas:
         img_path = 'deltaIDs'
@@ -101,7 +124,7 @@ def compare_ids(cfg, sort=False, print_n=None, plot_deltas=True):
             with mlflow.start_run(experiment_id=cfg.experiment_id, run_id=cfg.run_id) as active_run:
                 mlflow.log_artifact(img_path, f'predictions/{cfg.sample_alias}')
 
-def compare_input(cfg, print_grid=True):
+def compare_input(cfg, print_grid=False):
     assert(cfg.compare_input)
     path_to_artifacts = to_absolute_path(f'{cfg.path_to_mlflow}/{cfg.experiment_id}/{cfg.run_id}/artifacts/')
     file_cmssw_path = to_absolute_path(f'{cfg.path_to_input_dir}/{cfg.compare_input.input_cmssw}')
@@ -125,12 +148,22 @@ def compare_input(cfg, print_grid=True):
     for key in list(json_input.keys()):
         print("\n--------->",key,"<---------")
         delta = np.abs(data_cmssw[key] - data_python[key])
-        row_idx, col_idx, f_idx = np.where(delta > epsilon)
-        grid_idx = np.stack([row_idx, col_idx],axis=1).tolist()
+        if key == list(json_input.keys())[0]:
+            print("cmssw tau:", data_cmssw[key])
+            print("python tau:", data_python[key])
+            f_idx = np.where(delta > epsilon)
+        else:
+            row_idx, col_idx, f_idx = np.where(delta > epsilon)
+            if row_idx.size != 0:
+                print("cmssw grid:", data_cmssw[key][row_idx[0]][col_idx[0]])
+                print("python grid:", data_python[key][row_idx[0]][col_idx[0]])
+
         print(f"Inconsistent features:\n")
         for f in np.unique(f_idx):
             print(map_f.get(key,f))
+
         if print_grid and key != list(json_input.keys())[0]: # if print & not first tensor (plane features)
+            grid_idx = np.stack([row_idx, col_idx],axis=1).tolist()
             print("\nInconsistent cells:")
             print(
                 grid(data_cmssw[key].shape[0],
@@ -141,7 +174,6 @@ def compare_input(cfg, print_grid=True):
 
 @hydra.main(config_path='.', config_name='input_compare')
 def main(cfg: DictConfig) -> None:
-    print(cfg)
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
     
     if 'compare_ids' in cfg.mode: compare_ids(cfg)

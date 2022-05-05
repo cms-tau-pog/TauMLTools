@@ -124,10 +124,10 @@ if isPhase2:
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 elif isRun3:
     from TauMLTools.Production.runTauIdMVA_new import TauIDEmbedder
-    updatedTauName = "slimmedTausNewIDv2p5"
+    updatedTauName = "slimmedTausIDrerun"
     tauIdEmbedder = TauIDEmbedder(
         process, cms, updatedTauName = updatedTauName,
-        toKeep = [ "deepTau2017v2p5" ]
+        toKeep = [ "deepTau2017v2p5", "deepTau2017v2p1ReRun" ]
     )
     tauIdEmbedder.runTauID()
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
@@ -168,7 +168,7 @@ else:
 if isRun2UL:
     taus_InputTag = cms.InputTag('slimmedTaus')
 elif isRun3:
-    taus_InputTag = cms.InputTag('slimmedTausNewIDv2p5')
+    taus_InputTag = cms.InputTag('slimmedTausIDrerun')
 else:
     taus_InputTag = cms.InputTag('slimmedTausNewID')
 
