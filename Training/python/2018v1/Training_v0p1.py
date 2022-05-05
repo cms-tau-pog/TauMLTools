@@ -101,9 +101,9 @@ class DeepTauModel(keras.Model):
             testlayers = common_layers + class_layers
            
             self.optimizer.apply_gradients(zip( grad_common + grad_class_excl, common_layers + class_layers)) 
-            with open("/home/russell/AdversarialTauML/TauMLTools/layer_weights.txt", "w") as f:
-                for w in self.optimizer.weights:
-                    print(f"Name: {w.name}, Shape: {np.shape(w)}", file=f)
+            # with open("/home/russell/AdversarialTauML/TauMLTools/layer_weights.txt", "w") as f:
+            #     for w in self.optimizer.weights:
+            #         print(f"Name: {w.name}, Shape: {np.shape(w)}", file=f)
             self.opt2.apply_gradients(zip(grad_adv_excl, adv_layers))
         else: 
             # Compute gradients and update weights
@@ -500,10 +500,10 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
         input_shape, input_types = data_loader.get_input_config()
         data_train = tf.data.Dataset.from_generator(
             gen_train, output_types = input_types, output_shapes = input_shape
-            ).prefetch(tf.data.AUTOTUNE)
+            ).prefetch(4)
         data_val = tf.data.Dataset.from_generator(
             gen_val, output_types = input_types, output_shapes = input_shape
-            ).prefetch(tf.data.AUTOTUNE)
+            ).prefetch(4)
     else:
         raise RuntimeError("Input type not supported, please select 'ROOT' or 'tf'")
 
@@ -517,9 +517,9 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
         print("Adversarial Dataset Loaded with TensorFlow")
         adv_shape = (((None, 43), (None, 11, 11, 86), (None, 11, 11, 64), (None, 11, 11, 38), (None, 21, 21, 86), (None, 21, 21, 64), (None, 21, 21, 38)), (None, 5), None)
         data_train = tf.data.Dataset.from_generator(
-            makeAdvGenerator(data_train.take(data_loader.n_batches), adv_data_train), output_types = (input_types, input_types), output_shapes = (input_shape, adv_shape)).prefetch(tf.data.AUTOTUNE)
+            makeAdvGenerator(data_train.take(data_loader.n_batches), adv_data_train), output_types = (input_types, input_types), output_shapes = (input_shape, adv_shape)).prefetch(4)
         data_val = tf.data.Dataset.from_generator(
-            makeAdvGenerator(data_val.take(data_loader.n_batches_val), adv_data_val), output_types = (input_types, input_types), output_shapes = (input_shape, adv_shape)).prefetch(tf.data.AUTOTUNE)
+            makeAdvGenerator(data_val.take(data_loader.n_batches_val), adv_data_val), output_types = (input_types, input_types), output_shapes = (input_shape, adv_shape)).prefetch(4)
         
 
 
@@ -630,10 +630,10 @@ def main(cfg: DictConfig) -> None:
             old_vars = [var.name for var in old_model.trainable_variables]
             # print("TRAINABLE PARAMS:", len(old_vars))
             # # with open("/home/russell/AdversarialTauML/TauMLTools/old_layers.txt", "w") as f:
-            # #     print(old_vars, file = f) 
-            with open("/home/russell/AdversarialTauML/TauMLTools/old_weights.txt", "w") as f:
-                for w in old_opt.weights:
-                    print(f"Name: {w.name}, Shape: {np.shape(w)}", file =f)
+            # # #     print(old_vars, file = f) 
+            # with open("/home/russell/AdversarialTauML/TauMLTools/old_weights.txt", "w") as f:
+            #     for w in old_opt.weights:
+            #         print(f"Name: {w.name}, Shape: {np.shape(w)}", file =f)
             # np.savetxt("/home/russell/AdversarialTauML/TauMLTools/old_layers.txt", old_vars, fmt="%s")
 
         compile_model(model, setup["optimizer_name"], setup["learning_rate"], old_opt=old_opt)
@@ -663,6 +663,7 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_param('git_commit', _get_git_commit(to_absolute_path('.')))
         print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {run_id}\n')
         mlflow.end_run()
+        print("bing bong")
        
 if __name__ == '__main__':
     main()
