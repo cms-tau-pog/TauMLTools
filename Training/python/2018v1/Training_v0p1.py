@@ -60,9 +60,7 @@ class DeepTauModel(keras.Model):
         if self.use_AdvDataset:
             print("Adversarial Control Dataset Loaded")
             print("Adversarial parameter: ", self.k)
-            x, y, sample_weight = data[0]
-            # tf.print(x[0])
-            x_adv, y_adv, sample_weight_adv = data[1]
+            x, y, sample_weight, w, w_adv = data
         elif len(data) == 3:
             print("No Adversarial Control Dataset Loaded")
             x, y, sample_weight = data
@@ -72,38 +70,32 @@ class DeepTauModel(keras.Model):
             x, y = data
         # Training Loop:
         with tf.GradientTape() as class_tape:
-                y_predict = self(x, training=True)  # Forward pass
+                # Forward pass
+                y_pred = self(x, training=True)
+                reg_losses = self.losses 
                 if self.use_AdvDataset:
-                    y_pred = y_predict[0]
+                    pure_loss = tf.reduce_sum(tf.multiply(self.model_loss(y, y_pred[0]), w))/100
+                    adv_loss = tf.reduce_sum(tf.multiply(self.adv_loss(y, y_pred[1]), w_adv))/100
                 else:
-                    y_pred = y_predict
-                reg_losses = self.losses # Regularisation loss
-                pure_loss = self.model_loss(y, y_pred)
+                    # Regularisation loss
+                    pure_loss = self.model_loss(y, y_pred)
                 if reg_losses:
                     reg_loss = tf.add_n(reg_losses)
                     loss = pure_loss + reg_loss
                 else:
                     reg_loss = reg_losses # Empty
                     loss = pure_loss
+
         if self.use_AdvDataset:
+            # Compute gradients and update weights
             class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
+            # adv_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" in var.name)] #final adv only
             common_layers = [var for var in self.trainable_variables if "final" not in var.name] #gradients common to both
             grad_class = class_tape.gradient(loss, common_layers + class_layers) 
+            # grad_adv = adv_tape.gradient(adv_loss, common_layers + adv_layers)
             grad_class_excl = grad_class[len(common_layers):] # gradients of common part
+            # grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
             grad_common = grad_class[:len(common_layers)] #[grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))]
-
-            with tf.GradientTape() as adv_tape:
-                y_pred_adv = self(x_adv, training=True) # Forward Pass
-                adv_loss = self.adv_loss(y_adv, y_pred_adv[1])
-            # Compute gradients and update weights
-            # class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
-            # # adv_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" in var.name)] #final adv only
-            # common_layers = [var for var in self.trainable_variables if "final" not in var.name] #gradients common to both
-            # grad_class = class_tape.gradient(loss, common_layers + class_layers) 
-            # # grad_adv = adv_tape.gradient(adv_loss, common_layers + adv_layers)
-            # grad_class_excl = grad_class[len(common_layers):] # gradients of common part
-            # # grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
-            # grad_common = grad_class[:len(common_layers)] #[grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))]
            
             self.optimizer.apply_gradients(zip( grad_common + grad_class_excl, common_layers + class_layers)) 
             # with open("/home/russell/AdversarialTauML/TauMLTools/layer_weights.txt", "w") as f:
@@ -125,13 +117,13 @@ class DeepTauModel(keras.Model):
             # grad = class_tape.gradient(loss, layers) 
             # self.optimizer.apply_gradients(zip(grad, layers))
         # Update metrics
-        self.loss_tracker.update_state(loss, sample_weight=sample_weight)
-        self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+        self.loss_tracker.update_state(loss)
+        self.pure_loss_tracker.update_state(pure_loss) 
         self.reg_loss_tracker.update_state(reg_loss) 
         if self.use_AdvDataset:
-            self.adv_loss_tracker.update_state(adv_loss, sample_weight=sample_weight_adv)
-            self.adv_accuracy.update_state(y_adv[:,0:1], y_pred_adv[1], sample_weight_adv)
-        self.compiled_metrics.update_state(y, y_pred, sample_weight)
+            self.adv_loss_tracker.update_state(adv_loss)
+            # self.adv_accuracy.update_state(y_adv, y_pred_adv[1], sample_weight_adv)
+        self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
         return metrics_out
@@ -194,8 +186,17 @@ class DeepTauModel(keras.Model):
 
 def makeAdvGenerator(sm_dataset, adv_dataset):
         def gen():
+            w_zero = tf.zeros(100)
+            y_zero = tf.zeros((100, 4))
             for (x,y,sample_weight), (x_adv,y_adv,sample_weight_adv) in zip(sm_dataset, itertools.cycle(adv_dataset)):
-                yield ((x, y, sample_weight), (x_adv, y_adv, sample_weight_adv))
+                x_out = ((tf.concat([x[0], x_adv[0]],0), tf.concat([x[1], x_adv[1]],0), tf.concat([x[2], x_adv[2]],0),
+                        tf.concat([x[3], x_adv[3]],0), tf.concat([x[4], x_adv[4]],0), tf.concat([x[5], x_adv[5]],0),
+                        tf.concat([x[6], x_adv[6]],0)))
+                y_out = tf.concat([y, y_zero],0)
+                y_adv_out = tf.concat([w_zero, y_adv[:,0]],0)
+                w_out = tf.concat([sample_weight, w_zero],0)
+                w_adv_out = tf.concat([sample_weight_adv, w_zero],0)
+                yield (x_out, y_out, y_adv_out, w_out, w_adv_out)
         return gen
 
 def reshape_tensor(x, y, weights, active): 
@@ -529,11 +530,12 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
         adv_data_train = adv_ds.take(750) #take first values for training NEED PARAM
         adv_data_val = adv_ds.skip(750).take(325) # take next values for validation NEED PARAM
         print("Adversarial Dataset Loaded with TensorFlow")
-        adv_shape = (((None, 43), (None, 11, 11, 86), (None, 11, 11, 64), (None, 11, 11, 38), (None, 21, 21, 86), (None, 21, 21, 64), (None, 21, 21, 38)), (None, 5), None)
+        adv_shape = (((None, 43), (None, 11, 11, 86), (None, 11, 11, 64), (None, 11, 11, 38), (None, 21, 21, 86), (None, 21, 21, 64), (None, 21, 21, 38)), (None, 4), None, None, None)
+        adv_type = ((tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32), tf.float32, tf.float32, tf.float32, tf.float32)
         data_train = tf.data.Dataset.from_generator(
-            makeAdvGenerator(data_train.take(data_loader.n_batches), adv_data_train), output_types = (input_types, input_types), output_shapes = (input_shape, adv_shape)).prefetch(4)
+            makeAdvGenerator(data_train.take(data_loader.n_batches), adv_data_train), output_types = adv_type, output_shapes = adv_shape).prefetch(4)
         data_val = tf.data.Dataset.from_generator(
-            makeAdvGenerator(data_val.take(data_loader.n_batches_val), adv_data_val), output_types = (input_types, input_types), output_shapes = (input_shape, adv_shape)).prefetch(4)
+            makeAdvGenerator(data_val.take(data_loader.n_batches_val), adv_data_val), output_types = adv_type, output_shapes = adv_shape).prefetch(4)
         
 
 
