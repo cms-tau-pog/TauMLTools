@@ -60,7 +60,7 @@ class DeepTauModel(keras.Model):
         if self.use_AdvDataset:
             print("Adversarial Control Dataset Loaded")
             print("Adversarial parameter: ", self.k)
-            x, y, sample_weight, w, w_adv = data
+            x, y, y_adv, w, w_adv = data
         elif len(data) == 3:
             print("No Adversarial Control Dataset Loaded")
             x, y, sample_weight = data
@@ -75,7 +75,7 @@ class DeepTauModel(keras.Model):
                 reg_losses = self.losses 
                 if self.use_AdvDataset:
                     pure_loss = tf.reduce_sum(tf.multiply(self.model_loss(y, y_pred[0]), w))/100
-                    adv_loss = tf.reduce_sum(tf.multiply(self.adv_loss(y, y_pred[1]), w_adv))/100
+                    adv_loss = tf.reduce_sum(tf.multiply(self.adv_loss(y_adv, y_pred[1]), w_adv))/100
                 else:
                     # Regularisation loss
                     pure_loss = self.model_loss(y, y_pred)
@@ -123,7 +123,7 @@ class DeepTauModel(keras.Model):
         if self.use_AdvDataset:
             self.adv_loss_tracker.update_state(adv_loss)
             # self.adv_accuracy.update_state(y_adv, y_pred_adv[1], sample_weight_adv)
-            self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
+            self.compiled_metrics.update_state(y, y_pred[0], w)
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
         return metrics_out
@@ -131,7 +131,7 @@ class DeepTauModel(keras.Model):
     def test_step(self, data):
         # Unpack the data
         if self.use_AdvDataset:
-            x, y, sample_weight, w, w_adv = data
+            x, y, y_adv, w, w_adv = data
         elif len(data) == 3:
             x, y, sample_weight = data
         else:
@@ -156,7 +156,7 @@ class DeepTauModel(keras.Model):
         self.pure_loss_tracker.update_state(pure_loss) 
         self.reg_loss_tracker.update_state(reg_loss)
         if self.use_AdvDataset:
-            self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
+            self.compiled_metrics.update_state(y, y_pred[0], w)
         else:
             self.compiled_metrics.update_state(y, y_pred, sample_weight)
         # Return a dict mapping metric names to current value
@@ -197,7 +197,7 @@ def makeAdvGenerator(sm_dataset, adv_dataset):
                 y_out = tf.concat([y, y_zero],0)
                 y_adv_out = tf.concat([w_zero, y_adv[:,0]],0)
                 w_out = tf.concat([sample_weight, w_zero],0)
-                w_adv_out = tf.concat([sample_weight_adv, w_zero],0)
+                w_adv_out = tf.concat([w_zero, sample_weight_adv],0)
                 yield (x_out, y_out, y_adv_out, w_out, w_adv_out)
         return gen
 
