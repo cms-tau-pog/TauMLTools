@@ -123,7 +123,7 @@ class DeepTauModel(keras.Model):
         if self.use_AdvDataset:
             self.adv_loss_tracker.update_state(adv_loss)
             # self.adv_accuracy.update_state(y_adv, y_pred_adv[1], sample_weight_adv)
-        self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
+            self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
         return metrics_out
@@ -131,21 +131,20 @@ class DeepTauModel(keras.Model):
     def test_step(self, data):
         # Unpack the data
         if self.use_AdvDataset:
-            x, y, sample_weight = data[0]
+            x, y, sample_weight, w, w_adv = data
         elif len(data) == 3:
             x, y, sample_weight = data
         else:
             sample_weight = None
             x, y = data_files
         # Evaluate Model
-        y_predict = self(x, training=False)
-        if self.use_AdvDataset:
-            y_pred = y_predict[0]
-        else:
-            y_pred = y_predict
+        y_pred = self(x, training=False)
         reg_losses = self.losses # Regularisation loss
-        tau_crossentropy_v2 = self.model_loss(y, y_pred) # Compute loss function
-        pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
+        if self.use_AdvDataset:
+            pure_loss = tf.reduce_sum(tf.multiply(self.model_loss(y, y_pred[0]), w))/100
+        else:
+            pure_loss = self.model_loss(y, y_pred)
+
         if reg_losses: 
             reg_loss = tf.add_n(reg_losses)
             loss = pure_loss + reg_loss
@@ -153,10 +152,13 @@ class DeepTauModel(keras.Model):
             reg_loss = reg_losses # Empty
             loss = pure_loss
         # Update the metrics 
-        self.loss_tracker.update_state(loss, sample_weight=sample_weight)
-        self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+        self.loss_tracker.update_state(loss)
+        self.pure_loss_tracker.update_state(pure_loss) 
         self.reg_loss_tracker.update_state(reg_loss)
-        self.compiled_metrics.update_state(y, y_pred, sample_weight)
+        if self.use_AdvDataset:
+            self.compiled_metrics.update_state(y, y_pred[0], sample_weight)
+        else:
+            self.compiled_metrics.update_state(y, y_pred, sample_weight)
         # Return a dict mapping metric names to current value
         metrics_out = {m.name: m.result() for m in self.metrics}
         return metrics_out
