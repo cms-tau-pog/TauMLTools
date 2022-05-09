@@ -20,7 +20,7 @@ Setup:
     weight_thr           : 100000.0
     dataloader_core      : "TauMLTools/Training/interface/DataLoader_main.h"
     rm_inner_from_outer  : False
-    input_type           : "ROOT" # supported 'ROOT' or 'tf'
+    input_type           : "Adversarial" # supported "Adversarial", 'ROOT' or 'tf'
     tf_input_dir         : "/home/russell/tfdata/ShuffleMerge2k" # "/home/russell/tfdata/adv_blend" # path to saved tf dataset
     tf_dataset_x_order   : ["TauFlat", "inner_egamma", "inner_muon", "inner_hadron", "outer_egamma", "outer_muon", "outer_hadron"] # specify order of layers in tf dataset
     adversarial_dataset  : "/home/russell/tfdata/AdvTraining" # False if not use, ds name if use
@@ -65,8 +65,8 @@ Setup:
 
 SetupNN:
     model_name           : "DeepTau2018v0"
-    n_batches            : 1000
-    n_batches_val        : 200
+    n_batches            : 10000
+    n_batches_val        : 1000
     n_batches_log        : 1000 # monitor every n batches in tensorboard
     epoch                : 0
     n_epochs             : 1

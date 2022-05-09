@@ -110,7 +110,7 @@ class DataLoader (DataLoaderBase):
         self.adversarial_dataset = self.config["Setup"]["adversarial_dataset"]
         
         data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root') 
-        if self.input_type == "ROOT":
+        if self.input_type == "ROOT" or self.input_type == "Adversarial":
             self.train_files, self.val_files = \
                 np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
             print("Files for training:", len(self.train_files))
@@ -121,7 +121,7 @@ class DataLoader (DataLoaderBase):
 
 
 
-    def get_generator(self, primary_set = True, return_truth = True, return_weights = True, show_progress = False):
+    def get_generator(self, primary_set = True, return_truth = True, return_weights = True, show_progress = False, adversarial = False):
 
         _files = self.train_files if primary_set else self.val_files
         if len(_files)==0:
@@ -153,6 +153,14 @@ class DataLoader (DataLoaderBase):
                                 self.tau_types, return_truth, return_weights, self.active_features, self.cell_locations)))
                 processes[-1].start()
 
+            if adversarial:
+                if primary_set:
+                    adv_ds = tf.data.experimental.load(self.adversarial_dataset, compression="GZIP").take(750)
+                else:
+                    adv_ds = tf.data.experimental.load(self.adversarial_dataset, compression="GZIP").skip(750).take(375)
+                adv_iter = iter(adv_ds)
+
+
             # First part to iterate through the main part
             finish_counter = 0
             while finish_counter < self.n_load_workers:
@@ -162,7 +170,25 @@ class DataLoader (DataLoaderBase):
                 else:
                     if show_progress and n_batches>0:
                         pbar.update(1)
-                    yield converter(item)
+                    if adversarial:
+                        x, y, sample_weight = converter(item)
+                        w_zero = tf.zeros(self.batch_size)
+                        y_zero = tf.zeros((self.batch_size, 4))
+                        try: # adv iterator not exhausted
+                            x_adv, y_adv, sample_weight_adv = next(adv_iter)
+                        except: #reset iterator
+                            adv_iter = iter(adv_ds)
+                            x_adv, y_adv, sample_weight_adv = next(adv_iter)
+                        x_out = ((tf.concat([x[0], x_adv[0]],0), tf.concat([x[1], x_adv[1]],0), tf.concat([x[2], x_adv[2]],0),
+                                tf.concat([x[3], x_adv[3]],0), tf.concat([x[4], x_adv[4]],0), tf.concat([x[5], x_adv[5]],0),
+                                tf.concat([x[6], x_adv[6]],0)))
+                        y_out = tf.concat([y, y_zero],0)
+                        y_adv_out = tf.concat([w_zero, y_adv[:,0]],0)
+                        w_out = tf.concat([sample_weight, w_zero],0)
+                        w_adv_out = tf.concat([w_zero, sample_weight_adv],0)
+                        yield (x_out, y_out, y_adv_out, w_out, w_adv_out)
+                    else:
+                        yield converter(item)
             for i in range(self.n_load_workers):
                 terminators[i][0].set()
 
@@ -187,6 +213,7 @@ class DataLoader (DataLoaderBase):
 
             for i, pr in enumerate(processes):
                 pr.join()
+                # pr.kill()
             gc.collect()
 
         return _generator
