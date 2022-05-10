@@ -37,7 +37,7 @@ parser.add_argument('--vomsRole', required=False, type=str, default="", help="cu
 parser.add_argument('job_file', type=str, nargs='+', help="text file with jobs descriptions")
 args = parser.parse_args()
 
-interpreter='python' if sys.version==2 else 'python3'
+interpreter='python' if sys.version_info.major==2 else 'python3'
 for job_file in args.job_file:
     cmd = '{} $(which crab_submit_file.py) --jobFile "{}"'.format(interpreter, job_file)
     for arg_name,arg_value in getattr(vars(args), 'iteritems', vars(args).items)():
