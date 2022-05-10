@@ -24,7 +24,7 @@ Setup:
     tf_input_dir         : "/home/russell/tfdata/ShuffleMerge2k" # "/home/russell/tfdata/adv_blend" # path to saved tf dataset
     tf_dataset_x_order   : ["TauFlat", "inner_egamma", "inner_muon", "inner_hadron", "outer_egamma", "outer_muon", "outer_hadron"] # specify order of layers in tf dataset
     adversarial_dataset  : "/home/russell/tfdata/AdvTraining" # False if not use, ds name if use
-    adv_parameter        : 0.0
+    adv_parameter        : [0, -1] # k1, k2 for gradients in common layers
     n_adv_tau            : 100 #number of candidates per adversarial batch
     adv_learning_rate    : 0.001
     use_previous_opt     : False

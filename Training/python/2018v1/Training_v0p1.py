@@ -39,7 +39,7 @@ import psutil
 
 class DeepTauModel(keras.Model):
 
-    def __init__(self, *args, loss=None, n_tau=None, use_AdvDataset=False, adv_parameter=1, n_adv_tau=None, adv_learning_rate=None, **kwargs):
+    def __init__(self, *args, loss=None, n_tau=None, use_AdvDataset=False, adv_parameter=[1,1], n_adv_tau=None, adv_learning_rate=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.pure_loss_tracker = keras.metrics.Mean(name="pure_loss")
@@ -49,7 +49,8 @@ class DeepTauModel(keras.Model):
         else:
             self.model_loss = getattr(TauLosses,loss)
         self.use_AdvDataset = use_AdvDataset
-        self.k = adv_parameter
+        self.k1 = adv_parameter[0]
+        self.k2 = adv_parameter[1]
         self.n_tau = n_tau
         if self.use_AdvDataset:
             self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
@@ -62,7 +63,7 @@ class DeepTauModel(keras.Model):
         # Unpack the data
         if self.use_AdvDataset:
             print("Adversarial Control Dataset Loaded")
-            print("Adversarial parameter: ", self.k)
+            print("k1, k2: ", self.k1, self.k2)
             x, y, y_adv, sample_weight, sample_weight_adv = data
         elif len(data) == 3:
             print("No Adversarial Control Dataset Loaded")
@@ -103,7 +104,7 @@ class DeepTauModel(keras.Model):
             del tape
             grad_class_excl = grad_class[len(common_layers):] # gradients of common part
             grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
-            grad_common = [grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))] #grad_class[:len(common_layers)]
+            grad_common = [self.k1*grad_class[i] - self.k2 * grad_adv[i] for i in range(len(common_layers))] #grad_class[:len(common_layers)]
            
             self.optimizer.apply_gradients(zip( grad_common + grad_class_excl, common_layers + class_layers)) 
             self.adv_optimizer.apply_gradients(zip(grad_adv_excl, adv_layers))
