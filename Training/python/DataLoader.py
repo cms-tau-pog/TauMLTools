@@ -108,6 +108,10 @@ class DataLoader (DataLoaderBase):
         self.tf_input_dir = self.config["Setup"]["tf_input_dir"]
         self.tf_dataset_x_order = self.config["Setup"]["tf_dataset_x_order"]
         self.adversarial_dataset = self.config["Setup"]["adversarial_dataset"]
+        self.adversarial_parameter = self.config["Setup"]["adv_parameter"]
+        self.adv_batch_size = self.config["Setup"]["n_adv_tau"]
+        self.adv_learning_rate = self.config["Setup"]["adv_learning_rate"]
+        self.use_previous_opt = self.config["Setup"]["use_previous_opt"]
         
         data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root') 
         if self.input_type == "ROOT" or self.input_type == "Adversarial":
@@ -287,8 +291,6 @@ class DataLoader (DataLoaderBase):
         netConf.n_cells = self.n_cells
         netConf.n_outputs = self.tau_types
         netConf.first_layer_reg = self.config["SetupNN"]["first_layer_reg"]
-        netConf.adversarial_dataset = self.config["Setup"]["adversarial_dataset"]
-        netConf.adv_parameter = self.config["Setup"]["adv_parameter"]
         return netConf
 
     def get_input_config(self, return_truth = True, return_weights = True):

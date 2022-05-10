@@ -43,29 +43,6 @@ class TimeCheckpoint(Callback):
                         save_format="tf")
         print("Epoch {} is ended.".format(epoch))
 
-
-class AdversarialValidationCallback(Callback):
-    def __init__(self, validation_data):
-        super(Callback, self).__init__()
-        self.val_data = validation_data
-        self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
-        self.adv_accuracy_tracker = tf.keras.metrics.BinaryAccuracy(name="adv_accuracy")
-        
-    def on_epoch_end(self, epoch, logs=None):
-        self.adv_loss_tracker.reset_states()
-        self.adv_accuracy_tracker.reset_states()
-        for sm_data, adv_data in self.val_data:
-            x_adv, y_adv, sample_weight_adv = adv_data
-            y_pred_adv = self.model(x_adv, training=False)
-            adv_loss = self.model.adv_loss(y_adv, y_pred_adv[1])
-            # self.model.val_adv_loss = np.average(adv_loss, weights = sample_weight_adv)
-            self.adv_loss_tracker.update_state(adv_loss, sample_weight=sample_weight_adv)
-            self.adv_accuracy_tracker.update_state(y_adv[:,0:1], y_pred_adv[1], sample_weight_adv)
-            self.model.val_adv_loss = self.adv_loss_tracker.result().numpy()
-            self.model.val_adv_accuracy = self.adv_accuracy_tracker.result().numpy()
-        np.savetxt("/home/russell/Logs/adv_val.txt", [self.model.val_adv_loss, self.model.val_adv_accuracy]) #temp while figure out
-        print("Adversarial validation: val_adv_loss: {}, val_adv_accuracy: {}".format(self.model.val_adv_loss, self.model.val_adv_accuracy))
-
 def close_file(f_name):
     file_objs = [ obj for obj in gc.get_objects() if ("TextIOWrapper" in str(type(obj))) and (obj.name == f_name)]
     for obj in file_objs:

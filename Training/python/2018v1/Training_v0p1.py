@@ -39,7 +39,7 @@ import psutil
 
 class DeepTauModel(keras.Model):
 
-    def __init__(self, *args, loss=None, use_AdvDataset=False, adv_parameter=1, input_cfg=None, **kwargs):
+    def __init__(self, *args, loss=None, n_tau=None, use_AdvDataset=False, adv_parameter=1, n_adv_tau=None, adv_learning_rate=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.pure_loss_tracker = keras.metrics.Mean(name="pure_loss")
@@ -50,18 +50,20 @@ class DeepTauModel(keras.Model):
             self.model_loss = getattr(TauLosses,loss)
         self.use_AdvDataset = use_AdvDataset
         self.k = adv_parameter
+        self.n_tau = n_tau
         if self.use_AdvDataset:
             self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
             self.adv_loss = TauLosses.adversarial_loss
             self.adv_accuracy = tf.keras.metrics.BinaryAccuracy(name="adv_accuracy") 
-            self.opt2 = tf.keras.optimizers.Nadam(learning_rate=1e-3)
+            self.adv_optimizer = tf.keras.optimizers.Nadam(learning_rate=adv_learning_rate)
+            self.n_adv_tau = n_adv_tau
 
     def train_step(self, data):
         # Unpack the data
         if self.use_AdvDataset:
             print("Adversarial Control Dataset Loaded")
             print("Adversarial parameter: ", self.k)
-            x, y, y_adv, w, w_adv = data
+            x, y, y_adv, sample_weight, sample_weight_adv = data
         elif len(data) == 3:
             print("No Adversarial Control Dataset Loaded")
             x, y, sample_weight = data
@@ -76,12 +78,12 @@ class DeepTauModel(keras.Model):
                 reg_losses = self.losses 
                 if self.use_AdvDataset:
                     pure_loss_vec = self.model_loss(y, y_pred[0])
-                    pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, w))/100
+                    pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
                     adv_loss_vec = self.adv_loss(y_adv, y_pred[1])
-                    adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, w_adv))/100
+                    adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, sample_weight_adv))/self.n_adv_tau
                 else:
-                    # Regularisation loss
-                    pure_loss = self.model_loss(y, y_pred)
+                    pure_loss_vec = self.model_loss(y, y_pred)
+                    pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
                 if reg_losses:
                     reg_loss = tf.add_n(reg_losses)
                     loss = pure_loss + reg_loss
@@ -104,29 +106,21 @@ class DeepTauModel(keras.Model):
             grad_common = [grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))] #grad_class[:len(common_layers)]
            
             self.optimizer.apply_gradients(zip( grad_common + grad_class_excl, common_layers + class_layers)) 
-            self.opt2.apply_gradients(zip(grad_adv_excl, adv_layers))
+            self.adv_optimizer.apply_gradients(zip(grad_adv_excl, adv_layers))
         else: 
             # Compute gradients and update weights
-            class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
-            common_layers = [var for var in self.trainable_variables if "final" not in var.name] #gradients common to both
-            grad_class = tape.gradient(loss, common_layers + class_layers) 
-            grad_class_excl = grad_class[len(common_layers):] # gradients of common part
-            grad_common = grad_class[:len(common_layers)] #[grad_class[i] - self.k * grad_adv[i] for i in range(len(common_layers))]
-            self.optimizer.apply_gradients(zip( grad_common + grad_class_excl, common_layers + class_layers)) 
-            # with open("/home/russell/AdversarialTauML/TauMLTools/trainable_vars.txt", "w") as f:
-            #     for w in self.trainable_variables:
-            #         print(f"Name: {w.name}, Shape: {np.shape(w)}", file=f)
-            # layers = self.trainable_variables
-            # grad = class_tape.gradient(loss, layers) 
-            # self.optimizer.apply_gradients(zip(grad, layers))
+            grad_class = tape.gradient(loss, self.trainable_variabless) 
+            self.optimizer.apply_gradients(zip(grad_class, self.trainable_variables)) 
         # Update metrics
-        self.loss_tracker.update_state(loss_vec, sample_weight=w)
-        self.pure_loss_tracker.update_state(pure_loss_vec, sample_weight=w) 
+        self.loss_tracker.update_state(loss_vec, sample_weight=sample_weight)
+        self.pure_loss_tracker.update_state(pure_loss_vec, sample_weight=sample_weight) 
         self.reg_loss_tracker.update_state(reg_loss) 
         if self.use_AdvDataset:
-            self.adv_loss_tracker.update_state(adv_loss_vec, sample_weight=w_adv)
-            self.adv_accuracy.update_state(tf.expand_dims(y_adv, axis=1), y_pred[1], sample_weight= tf.expand_dims(w_adv, axis=1))
-            self.compiled_metrics.update_state(y[:100], y_pred[0][:100, :], sample_weight = w[:100])
+            self.adv_loss_tracker.update_state(adv_loss_vec, sample_weight=sample_weight_adv)
+            self.adv_accuracy.update_state(tf.expand_dims(y_adv, axis=1), y_pred[1], sample_weight= tf.expand_dims(sample_weight_adv, axis=1))
+            self.compiled_metrics.update_state(y[:self.n_tau], y_pred[0][:self.n_tau, :], sample_weight = sample_weight[:self.n_tau])
+        else:
+            self.compiled_metrics.update_state(y, y_pred, sample_weight = sample_weight)
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
         return metrics_out
@@ -134,23 +128,23 @@ class DeepTauModel(keras.Model):
     def test_step(self, data):
         # Unpack the data
         if self.use_AdvDataset:
-            x, y, y_adv, w, w_adv = data
+            x, y, y_adv, sample_weight, sample_weight_adv = data
         elif len(data) == 3:
             x, y, sample_weight = data
         else:
             sample_weight = None
-            x, y = data_files
+            x, y = data
         # Evaluate Model
         y_pred = self(x, training=False)
         reg_losses = self.losses # Regularisation loss
         if self.use_AdvDataset:
             pure_loss_vec = self.model_loss(y, y_pred[0])
-            pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, w))/100
+            pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
             adv_loss_vec = self.adv_loss(y_adv, y_pred[1])
-            adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, w_adv))/100
+            adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, sample_weight_adv))/self.n_adv_tau
         else:
             pure_loss_vec = self.model_loss(y, y_pred)
-            pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, w))/100
+            pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
 
         if reg_losses: 
             reg_loss = tf.add_n(reg_losses)
@@ -161,13 +155,13 @@ class DeepTauModel(keras.Model):
             loss = pure_loss
             loss_vec = pure_loss_vec
         # Update the metrics 
-        self.loss_tracker.update_state(loss_vec, sample_weight=w)
-        self.pure_loss_tracker.update_state(pure_loss_vec, sample_weight=w) 
+        self.loss_tracker.update_state(loss_vec, sample_weight=sample_weight)
+        self.pure_loss_tracker.update_state(pure_loss_vec, sample_weight=sample_weight) 
         self.reg_loss_tracker.update_state(reg_loss)
         if self.use_AdvDataset:
-            self.adv_loss_tracker.update_state(adv_loss_vec, sample_weight=w_adv)
-            self.compiled_metrics.update_state(y[:100], y_pred[0][:100, :], sample_weight = w[:100])
-            self.adv_accuracy.update_state(tf.expand_dims(y_adv, axis=1), y_pred[1], sample_weight= tf.expand_dims(w_adv, axis=1))
+            self.adv_loss_tracker.update_state(adv_loss_vec, sample_weight=sample_weight_adv)
+            self.compiled_metrics.update_state(y[:self.n_tau], y_pred[0][:self.n_tau, :], sample_weight = sample_weight[:self.n_tau])
+            self.adv_accuracy.update_state(tf.expand_dims(y_adv, axis=1), y_pred[1], sample_weight= tf.expand_dims(sample_weight_adv, axis=1))
         else:
             self.compiled_metrics.update_state(y, y_pred, sample_weight)
         # Return a dict mapping metric names to current value
@@ -197,20 +191,6 @@ class DeepTauModel(keras.Model):
             metrics.extend(l._metrics)  # pylint: disable=protected-access
         return metrics
 
-# def makeAdvGenerator(sm_dataset, adv_dataset):
-#         def gen():
-#             w_zero = tf.zeros(50)
-#             y_zero = tf.zeros((50, 4))
-#             for (x,y,sample_weight), (x_adv,y_adv,sample_weight_adv) in zip(sm_dataset, itertools.cycle(adv_dataset)):
-#                 x_out = ((tf.concat([x[0], x_adv[0]],0), tf.concat([x[1], x_adv[1]],0), tf.concat([x[2], x_adv[2]],0),
-#                         tf.concat([x[3], x_adv[3]],0), tf.concat([x[4], x_adv[4]],0), tf.concat([x[5], x_adv[5]],0),
-#                         tf.concat([x[6], x_adv[6]],0)))
-#                 y_out = tf.concat([y, y_zero],0)
-#                 y_adv_out = tf.concat([w_zero, y_adv[:,0]],0)
-#                 w_out = tf.concat([sample_weight, w_zero],0)
-#                 w_adv_out = tf.concat([w_zero, sample_weight_adv],0)
-#                 yield (x_out, y_out, y_adv_out, w_out, w_adv_out)
-#         return gen
 
 def reshape_tensor(x, y, weights, active): 
     x_out = []
@@ -390,7 +370,7 @@ def get_n_filters_conv2d(n_input, current_size, window_size, reduction_rate):
     n_filters = ((float(current_size) / float(current_size - window_size + 1)) ** 2) * n_input / reduction_rate
     return int(math.ceil(n_filters))
 
-def create_model(net_config, model_name, loss=None, input_cfg=None):
+def create_model(net_config, model_name, loss=None, n_tau = None, use_AdvDataset = False, adv_param = None, n_adv_tau=None, adv_learning_rate=None):
     tau_net_setup = NetSetup1D(**net_config.tau_net)
     comp_net_setup = NetSetup2D(**net_config.comp_net)
     comp_merge_net_setup = NetSetup2D(**net_config.comp_merge_net)
@@ -452,15 +432,16 @@ def create_model(net_config, model_name, loss=None, input_cfg=None):
     softmax_output = Activation("softmax", name="main_output")(output_layer)
 
     
-    print("DEBUG: Use adversarial data", net_config.adversarial_dataset)
-    if net_config.adversarial_dataset:
+    
+    if use_AdvDataset:
         final_dense_adv = reduce_n_features_1d(features_concat, dense_net_setup, 'final_adv')
         output_layer_adv = Dense(1, name="final_dense_adv",
                             kernel_initializer=dense_net_setup.kernel_init)(final_dense_adv)
         sigmoid_output_adv = Activation("sigmoid", name="adv_output")(output_layer_adv)
-        model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], loss=loss, name=model_name, use_AdvDataset=True, adv_parameter=net_config.adv_parameter)
+        model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], loss=loss, name=model_name, use_AdvDataset=True,
+                             adv_parameter=adv_param, n_tau=n_tau, n_adv_tau=n_adv_tau, adv_learning_rate=adv_learning_rate)
     else:
-        model = DeepTauModel(input_layers, softmax_output, loss = loss, name=model_name)
+        model = DeepTauModel(input_layers, softmax_output, loss = loss, name=model_name, n_tau=n_tau)
     return model
 
 def compile_model(model, opt_name, learning_rate, old_opt=None):
@@ -533,10 +514,6 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
             gen_val, output_types = input_types, output_shapes = input_shape
             ).prefetch(4)
     elif data_loader.input_type == "Adversarial":
-        # adversarial_dataset = data_loader.adversarial_dataset
-        # adv_ds = tf.data.experimental.load(adversarial_dataset, compression="GZIP")
-        # data_train = adv_ds.take(data_loader.n_batches) #take first values for training NEED PARAM
-        # data_val = adv_ds.skip(data_loader.n_batches).take(data_loader.n_batches_val) # take next values for validation NEED PA
         gen_train = data_loader.get_generator(primary_set = True, return_weights = data_loader.use_weights, adversarial=True)
         gen_val = data_loader.get_generator(primary_set = False, return_weights = data_loader.use_weights, adversarial=True)
         adv_shape = (((None, 43), (None, 11, 11, 86), (None, 11, 11, 64), (None, 11, 11, 38), (None, 21, 21, 86), (None, 21, 21, 64), (None, 21, 21, 38)), (None, 4), None, None, None)
@@ -553,32 +530,15 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
 
     
     
-    # print("DEBUG: dataloader adversarial dataset:", adversarial_dataset)
-    # if adversarial_dataset:
-    #     adv_ds = tf.data.experimental.load(adversarial_dataset, compression="GZIP")
-    #     adv_data_train = adv_ds.take(750) #take first values for training NEED PARAM
-    #     adv_data_val = adv_ds.skip(750).take(325) # take next values for validation NEED PARAM
-    #     print("Adversarial Dataset Loaded with TensorFlow")
-        # adv_shape = (((None, 43), (None, 11, 11, 86), (None, 11, 11, 64), (None, 11, 11, 38), (None, 21, 21, 86), (None, 21, 21, 64), (None, 21, 21, 38)), (None, 4), None, None, None)
-        # adv_type = ((tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32, tf.float32), tf.float32, tf.float32, tf.float32, tf.float32)
-    #     data_train = tf.data.Dataset.from_generator(
-    #         makeAdvGenerator(data_train.take(data_loader.n_batches), adv_data_train), output_types = adv_type, output_shapes = adv_shape).prefetch(4)
-    #     data_val = tf.data.Dataset.from_generator(
-    #         makeAdvGenerator(data_val.take(data_loader.n_batches_val), adv_data_val), output_types = adv_type, output_shapes = adv_shape).prefetch(4)
-        
 
-
-    
-    
-
-    if old_opt:
+    if data_loader.use_previous_opt:
         for elem in data_train:
             model.train_step(elem)
             break
         old_weights = [np.empty(()), np.empty(())] + old_opt.get_weights()
         model.optimizer.set_weights(old_weights)
         model.optimizer.iterations.assign_add(1246720)
-        print("Optimizer weights restored")
+        print("Previous Optimizer weights restored")
 
     model_name = data_loader.model_name
     log_name = '%s_%s' % (model_name, log_suffix)
@@ -591,10 +551,6 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
     
 
     time_checkpoint = TimeCheckpoint(12*60*60, log_name)
-    # if adversarial_dataset:
-    #     adv_validation = AdversarialValidationCallback(data_val)
-    #     callbacks = [adv_validation, time_checkpoint, csv_log]
-    # else:  
     callbacks = [time_checkpoint, csv_log]
 
     logs = log_name + '_' + datetime.now().strftime("%Y.%m.%d(%H:%M)")
@@ -650,7 +606,12 @@ def main(cfg: DictConfig) -> None:
         print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
 
         netConf_full = dataloader.get_net_config()
-        model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"])
+
+        if dataloader.input_type == "Adversarial":
+            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"], n_tau = dataloader.batch_size, use_AdvDataset = True, 
+                                adv_param = dataloader.adversarial_parameter, n_adv_tau=dataloader.adv_batch_size, adv_learning_rate=dataloader.adv_learning_rate)
+        else:
+            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"], n_tau = dataloader.batch_size)
 
         if cfg.pretrained is None:
             print("Warning: no pretrained NN -> training will be started from scratch")
@@ -673,13 +634,6 @@ def main(cfg: DictConfig) -> None:
                     print(f"Weights for layer '{layer.name}' not found.")
             old_opt = old_model.optimizer
             old_vars = [var.name for var in old_model.trainable_variables]
-            # print("TRAINABLE PARAMS:", len(old_vars))
-            # # with open("/home/russell/AdversarialTauML/TauMLTools/old_layers.txt", "w") as f:
-            # # #     print(old_vars, file = f) 
-            # with open("/home/russell/AdversarialTauML/TauMLTools/old_weights.txt", "w") as f:
-            #     for w in old_opt.weights:
-            #         print(f"Name: {w.name}, Shape: {np.shape(w)}", file =f)
-            # np.savetxt("/home/russell/AdversarialTauML/TauMLTools/old_layers.txt", old_vars, fmt="%s")
 
         compile_model(model, setup["optimizer_name"], setup["learning_rate"], old_opt=old_opt)
         fit_hist = run_training(model, dataloader, False, cfg.log_suffix, old_opt=old_opt)
@@ -712,7 +666,6 @@ def main(cfg: DictConfig) -> None:
         current_process = psutil.Process()
         children = current_process.children(recursive=True)
         for child in children:
-            print('Killing children: {}'.format(child.pid))
             child.kill()
        
 if __name__ == '__main__':
