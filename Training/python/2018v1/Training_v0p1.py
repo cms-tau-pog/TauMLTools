@@ -58,6 +58,8 @@ class DeepTauModel(keras.Model):
             self.adv_accuracy = tf.keras.metrics.BinaryAccuracy(name="adv_accuracy") 
             self.adv_optimizer = tf.keras.optimizers.Nadam(learning_rate=adv_learning_rate)
             self.n_adv_tau = n_adv_tau
+            self.mean_class = keras.metrics.Mean(name="grad_class")
+            self.mean_adv = keras.metrics.Mean(name="grad_adv")
 
     def train_step(self, data):
         # Unpack the data
@@ -102,6 +104,15 @@ class DeepTauModel(keras.Model):
             grad_class = tape.gradient(loss, common_layers + class_layers) 
             grad_adv = tape.gradient(adv_loss, common_layers + adv_layers)
             del tape
+
+            #track mean gradients
+            class_mean = [tf.math.reduce_mean(tf.math.abs(grad_class[i])) for i in range(len(grad_class))]
+            adv_mean = [tf.math.reduce_mean(tf.math.abs(grad_adv[i])) for i in range(len(grad_adv))]
+            # with open("/home/russell/AdversarialTauML/TauMLTools/gradients_class.txt", "w") as f:
+            #     for grad in grad_class:
+            #         print(grad, file=f)
+
+
             grad_class_excl = grad_class[len(common_layers):] # gradients of common part
             grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
             grad_common = [self.k1*grad_class[i] - self.k2 * grad_adv[i] for i in range(len(common_layers))] #grad_class[:len(common_layers)]
@@ -119,6 +130,8 @@ class DeepTauModel(keras.Model):
         if self.use_AdvDataset:
             self.adv_loss_tracker.update_state(adv_loss_vec, sample_weight=sample_weight_adv)
             self.adv_accuracy.update_state(tf.expand_dims(y_adv, axis=1), y_pred[1], sample_weight= tf.expand_dims(sample_weight_adv, axis=1))
+            self.mean_class.update_state(class_mean)
+            self.mean_adv.update_state(adv_mean)
             self.compiled_metrics.update_state(y[:self.n_tau], y_pred[0][:self.n_tau, :], sample_weight = sample_weight[:self.n_tau])
         else:
             self.compiled_metrics.update_state(y, y_pred, sample_weight = sample_weight)
@@ -181,6 +194,8 @@ class DeepTauModel(keras.Model):
         if self.use_AdvDataset:
             metrics.append(self.adv_loss_tracker)
             metrics.append(self.adv_accuracy)
+            metrics.append(self.mean_class)
+            metrics.append(self.mean_adv)
         if self._is_compiled:
             # Track `LossesContainer` and `MetricsContainer` objects
             # so that attr names are not load-bearing.
