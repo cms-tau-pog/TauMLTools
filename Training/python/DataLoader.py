@@ -187,9 +187,9 @@ class DataLoader (DataLoaderBase):
                                 tf.concat([x[3], x_adv[3]],0), tf.concat([x[4], x_adv[4]],0), tf.concat([x[5], x_adv[5]],0),
                                 tf.concat([x[6], x_adv[6]],0)))
                         y_out = tf.concat([y, y_zero],0)
-                        y_adv_out = tf.concat([w_zero, y_adv[:,0]],0)
+                        y_adv_out = tf.expand_dims(tf.concat([w_zero, y_adv[:,0]],0), axis=1) 
                         w_out = tf.concat([sample_weight, w_zero],0)
-                        w_adv_out = tf.concat([w_zero, sample_weight_adv],0)
+                        w_adv_out = tf.expand_dims(tf.concat([w_zero, sample_weight_adv],0), axis=1) 
                         yield (x_out, y_out, y_adv_out, w_out, w_adv_out)
                     else:
                         yield converter(item)

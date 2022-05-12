@@ -68,25 +68,33 @@ class DeepTauModel(keras.Model):
             print("k1, k2: ", self.k1, self.k2)
             x, y, y_adv, sample_weight, sample_weight_adv = data
         elif len(data) == 3:
-            print("No Adversarial Control Dataset Loaded")
             x, y, sample_weight = data
         else:
-            print("No Adversarial Control Dataset Loaded")
             sample_weight = None
             x, y = data
-        # Training Loop:
-        with tf.GradientTape(persistent=True) as tape:
-                # Forward pass
-                y_pred = self(x, training=True)
-                reg_losses = self.losses 
-                if self.use_AdvDataset:
+        # Forward Pass:
+        if self.use_AdvDataset:
+            with tf.GradientTape() as class_tape, tf.GradientTape() as adv_tape:
+                    y_pred = self(x, training=True)
+                    reg_losses = self.losses 
                     pure_loss_vec = self.model_loss(y, y_pred[0])
                     pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
                     adv_loss_vec = self.adv_loss(y_adv, y_pred[1])
-                    adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, sample_weight_adv))/self.n_adv_tau
-                else:
-                    pure_loss_vec = self.model_loss(y, y_pred)
-                    pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
+                    adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, sample_weight_adv[:,0]))/self.n_tau
+                    if reg_losses:
+                        reg_loss = tf.add_n(reg_losses)
+                        loss = pure_loss + reg_loss
+                        loss_vec = pure_loss_vec + reg_loss
+                    else:
+                        reg_loss = reg_losses # Empty
+                        loss = pure_loss
+                        loss_vec = pure_loss_vec
+        else:
+            with tf.GradientTape() as class_tape:
+                y_pred = self(x, training=True)
+                reg_losses = self.losses
+                pure_loss_vec = self.model_loss(y, y_pred)
+                pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
                 if reg_losses:
                     reg_loss = tf.add_n(reg_losses)
                     loss = pure_loss + reg_loss
@@ -95,41 +103,30 @@ class DeepTauModel(keras.Model):
                     reg_loss = reg_losses # Empty
                     loss = pure_loss
                     loss_vec = pure_loss_vec
-
+        # Compute gradients and update weights
         if self.use_AdvDataset:
-            # Compute gradients and update weights
             class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
             adv_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" in var.name)] #final adv only
             common_layers = [var for var in self.trainable_variables if "final" not in var.name] #gradients common to both
-            grad_class = tape.gradient(loss, common_layers + class_layers) 
-            grad_adv = tape.gradient(adv_loss, common_layers + adv_layers)
-            del tape
-
-            #track mean gradients
-            class_mean = [tf.math.reduce_mean(tf.math.abs(grad_class[i])) for i in range(len(grad_class))]
-            adv_mean = [tf.math.reduce_mean(tf.math.abs(grad_adv[i])) for i in range(len(grad_adv))]
-            # with open("/home/russell/AdversarialTauML/TauMLTools/gradients_class.txt", "w") as f:
-            #     for grad in grad_class:
-            #         print(grad, file=f)
-
-
+            grad_class = class_tape.gradient(loss, common_layers + class_layers) 
+            grad_adv = adv_tape.gradient(adv_loss, common_layers + adv_layers)
+            class_mean = [tf.math.reduce_mean(tf.math.abs(grad_class[i])) for i in range(len(grad_class))] # mean class grad tracker
+            adv_mean = [tf.math.reduce_mean(tf.math.abs(grad_adv[i])) for i in range(len(grad_adv))] # mean adv grad tracker
             grad_class_excl = grad_class[len(common_layers):] # gradients of common part
             grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
-            grad_common = [self.k1*grad_class[i] - self.k2 * grad_adv[i] for i in range(len(common_layers))] #grad_class[:len(common_layers)]
-           
+            grad_common = [self.k1*grad_class[i] - self.k2 * grad_adv[i] for i in range(len(common_layers))] 
             self.optimizer.apply_gradients(zip( grad_common + grad_class_excl, common_layers + class_layers)) 
             self.adv_optimizer.apply_gradients(zip(grad_adv_excl, adv_layers))
         else: 
-            # Compute gradients and update weights
-            grad_class = tape.gradient(loss, self.trainable_variabless) 
+            grad_class = class_tape.gradient(loss, self.trainable_variables) 
             self.optimizer.apply_gradients(zip(grad_class, self.trainable_variables)) 
         # Update metrics
-        self.loss_tracker.update_state(loss_vec, sample_weight=sample_weight)
-        self.pure_loss_tracker.update_state(pure_loss_vec, sample_weight=sample_weight) 
+        self.loss_tracker.update_state(loss)
+        self.pure_loss_tracker.update_state(pure_loss) 
         self.reg_loss_tracker.update_state(reg_loss) 
         if self.use_AdvDataset:
-            self.adv_loss_tracker.update_state(adv_loss_vec, sample_weight=sample_weight_adv)
-            self.adv_accuracy.update_state(tf.expand_dims(y_adv, axis=1), y_pred[1], sample_weight= tf.expand_dims(sample_weight_adv, axis=1))
+            self.adv_loss_tracker.update_state(adv_loss)
+            self.adv_accuracy.update_state(y_adv, y_pred[1], sample_weight= sample_weight_adv)
             self.mean_class.update_state(class_mean)
             self.mean_adv.update_state(adv_mean)
             self.compiled_metrics.update_state(y[:self.n_tau], y_pred[0][:self.n_tau, :], sample_weight = sample_weight[:self.n_tau])
@@ -155,7 +152,7 @@ class DeepTauModel(keras.Model):
             pure_loss_vec = self.model_loss(y, y_pred[0])
             pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
             adv_loss_vec = self.adv_loss(y_adv, y_pred[1])
-            adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, sample_weight_adv))/self.n_adv_tau
+            adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, sample_weight_adv[:,0]))/self.n_adv_tau
         else:
             pure_loss_vec = self.model_loss(y, y_pred)
             pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
@@ -169,13 +166,13 @@ class DeepTauModel(keras.Model):
             loss = pure_loss
             loss_vec = pure_loss_vec
         # Update the metrics 
-        self.loss_tracker.update_state(loss_vec, sample_weight=sample_weight)
-        self.pure_loss_tracker.update_state(pure_loss_vec, sample_weight=sample_weight) 
+        self.loss_tracker.update_state(loss)
+        self.pure_loss_tracker.update_state(pure_loss) 
         self.reg_loss_tracker.update_state(reg_loss)
         if self.use_AdvDataset:
-            self.adv_loss_tracker.update_state(adv_loss_vec, sample_weight=sample_weight_adv)
+            self.adv_loss_tracker.update_state(adv_loss)
             self.compiled_metrics.update_state(y[:self.n_tau], y_pred[0][:self.n_tau, :], sample_weight = sample_weight[:self.n_tau])
-            self.adv_accuracy.update_state(tf.expand_dims(y_adv, axis=1), y_pred[1], sample_weight= tf.expand_dims(sample_weight_adv, axis=1))
+            self.adv_accuracy.update_state(y_adv, y_pred[1], sample_weight= sample_weight_adv)
         else:
             self.compiled_metrics.update_state(y, y_pred, sample_weight)
         # Return a dict mapping metric names to current value

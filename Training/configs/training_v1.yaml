@@ -24,9 +24,9 @@ Setup:
     tf_input_dir         : "/home/russell/tfdata/ShuffleMerge2k" # "/home/russell/tfdata/adv_blend" # path to saved tf dataset
     tf_dataset_x_order   : ["TauFlat", "inner_egamma", "inner_muon", "inner_hadron", "outer_egamma", "outer_muon", "outer_hadron"] # specify order of layers in tf dataset
     adversarial_dataset  : "/home/russell/tfdata/AdvTraining" # False if not use, ds name if use
-    adv_parameter        : [0, -1] # k1, k2 for gradients in common layers
+    adv_parameter        : [1, 10] # k1, k2 for gradients in common layers
     n_adv_tau            : 100 #number of candidates per adversarial batch
-    adv_learning_rate    : 0.001
+    adv_learning_rate    : 0.01
     use_previous_opt     : False
     # here define variables for the Histogram_2D class
     yaxis                : [
@@ -68,8 +68,8 @@ Setup:
 
 SetupNN:
     model_name           : "DeepTau2018v0"
-    n_batches            : 10000
-    n_batches_val        : 1000
+    n_batches            : 10
+    n_batches_val        : 10
     n_batches_log        : 1000 # monitor every n batches in tensorboard
     epoch                : 0
     n_epochs             : 1
@@ -83,7 +83,7 @@ SetupNN:
                            ]
     TauLossesSFs         : [1, 2.5, 5, 1.5]
     optimizer_name       : "Nadam"
-    learning_rate        : 0.001
+    learning_rate        : 0.001 # 0.001
     tau_net              : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.4, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
     comp_net             : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
     comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "n", "last_layer_width": 64 }

@@ -15,7 +15,7 @@ period: '2018 (13 TeV)'
 vs_type: ??? # jet/e/mu
 dataset_alias: ??? # alias to reference a mixture of input_samples below, e.g. tau_DY_jet_TT
 pt_bins: [[20, 100], [100, 1000]]
-eta_bins: [[0, 2.3], [2.3,2.5]]
+eta_bins: [[0, 2.3], [2.3,2.5], [0,1.7]]
 dm_bins: [[0, 1, 10, 11]]
 
 # selection
@@ -25,9 +25,9 @@ cuts: ${apply_dm_cuts}
 # inputs/paths
 input_samples: # "sample_alias": [list of strings with tau types to be selected]
   GluGluHToTauTau: ['tau']
-  TTToSemiLeptonic: ["jet"]
+  # TTToSemiLeptonic: ["jet"]
   # DYJetsToLL: ["e"] 
-  # DYJetsToLL: ["mu"] 
+  DYJetsToLL: ["mu"] 
   # GluGluHToTauTau_M125: ['tau']
   # DYJetsToLL_M-50-amcatnloFXFX_ext2: ["e"]
 path_to_input: null
