@@ -54,7 +54,8 @@ class DeepTauModel(keras.Model):
         self.n_tau = n_tau
         if self.use_AdvDataset:
             self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
-            self.adv_loss = TauLosses.adversarial_loss
+            # self.adv_loss = TauLosses.crossentropy_adversarial
+            self.adv_loss = TauLosses.F_adversarial
             self.adv_accuracy = tf.keras.metrics.BinaryAccuracy(name="adv_accuracy") 
             self.adv_optimizer = tf.keras.optimizers.Nadam(learning_rate=adv_learning_rate)
             self.n_adv_tau = n_adv_tau

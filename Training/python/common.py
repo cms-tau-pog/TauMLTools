@@ -273,12 +273,22 @@ class TauLosses:
 
     @staticmethod
     @tf.function
-    def adversarial_loss(target, adv_output):
+    def crossentropy_adversarial(target, adv_output):
         tau_target = target # MC_tau->0, data_tau->1, this is done by setting y_onehot in main DataLoader 
         tau_output = adv_output #  given output from adversarial
-        # tf.print("TARGET", tau_target)
-        # tf.print("OUTPUT", tau_output)
-        loss = tf.keras.losses.binary_crossentropy(tau_target, tau_output) # LR: Standard cross entropy loss function
+        loss = tf.keras.losses.binary_crossentropy(tau_target, tau_output) # Standard cross entropy loss function
+        return loss
+
+    @staticmethod
+    @tf.function
+    def F_adversarial(target, adv_output):
+        gamma = 2
+        if gamma <= 0:
+            raise RuntimeError("Focal Loss requires gamma > 0.")
+        epsilon = tf.constant(TauLosses.epsilon, adv_output.dtype.base_dtype)
+        gamma_t = tf.constant(gamma, adv_output.dtype.base_dtype)
+        x = tf.clip_by_value(adv_output, epsilon, 1 - epsilon)
+        loss = - target * tf.math.log(x) * tf.pow(x, gamma_t) - (1-target) * tf.math.log(1-x) * tf.pow(1-x, gamma_t)
         return loss
 
 def LoadModel(model_file, compile=True):
