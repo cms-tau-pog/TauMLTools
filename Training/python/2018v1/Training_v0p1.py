@@ -34,8 +34,6 @@ import DataLoader
 import itertools
 import psutil
 
-# tf.config.run_functions_eagerly(True)
-# tf.data.experimental.enable_debug_mode()
 
 class DeepTauModel(keras.Model):
 

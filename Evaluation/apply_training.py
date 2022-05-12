@@ -18,8 +18,6 @@ from omegaconf import DictConfig, OmegaConf
 sys.path.insert(0, "../Training/python")
 from common import setup_gpu
 
-
-
 @hydra.main(config_path='.', config_name='apply_training')
 def main(cfg: DictConfig) -> None:
     # set up paths & gpu

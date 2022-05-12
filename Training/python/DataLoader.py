@@ -217,7 +217,6 @@ class DataLoader (DataLoaderBase):
 
             for i, pr in enumerate(processes):
                 pr.join()
-                # pr.kill()
             gc.collect()
 
         return _generator
