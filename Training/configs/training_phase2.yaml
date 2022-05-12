@@ -76,8 +76,8 @@ SetupNN:
     TauLossesSFs         : [1, 2.5, 5, 1.5]
     optimizer_name       : "Nadam"
     learning_rate        : 0.001
-    schedule_decay       : 0.0 #0.0001 # Using step decay (hardcoded) instead of schedule decay
-    step_decay           : True
+    schedule_decay       : 0.0 #0.0001 # Using step decay instead of schedule decay
+    step_decay           : 5 # Halve lr every *this* epochs
     tau_net              : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.4, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
     comp_net             : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
     comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "n", "last_layer_width": 64 }

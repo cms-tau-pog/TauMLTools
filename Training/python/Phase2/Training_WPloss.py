@@ -36,11 +36,16 @@ tf.config.run_functions_eagerly(True)
 
 class DeepTauModel(keras.Model):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, loss=None, n_tau=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.pure_loss_tracker = keras.metrics.Mean(name="pure_loss")
         self.reg_loss_tracker = keras.metrics.Mean(name ="reg_loss")
+        if loss is None:
+            self.model_loss = TauLosses.WPloss2
+        else:
+            self.model_loss = getattr(TauLosses,loss)
+        self.n_tau = n_tau
 
     def train_step(self, data):
         # Unpack the data
@@ -52,25 +57,25 @@ class DeepTauModel(keras.Model):
         with tf.GradientTape() as tape:
             y_pred = self(x, training=True)  # Forward pass
             reg_losses = self.losses # Regularisation loss
-            tau_crossentropy_v2 = TauLosses.WPloss2(y, y_pred) #TauLosses.tau_crossentropy_v2(y, y_pred) # Compute loss function
-            pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
+            pure_loss_vec = self.model_loss(y, y_pred)
+            pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
             # Compute the total loss value
             if reg_losses:
                 reg_loss = tf.add_n(reg_losses)
                 loss = pure_loss + reg_loss
+                loss_vec = pure_loss_vec + reg_loss
             else:
                 reg_loss = reg_losses # empty
                 loss = pure_loss
-        # Compute gradients
-        trainable_vars = self.trainable_variables
-        gradients = tape.gradient(loss, trainable_vars)
-        # Update weights
-        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+                loss_vec = pure_loss_vec
+        # Compute gradients and update weights
+        grad_class = tape.gradient(loss, self.trainable_variables) 
+        self.optimizer.apply_gradients(zip(grad_class, self.trainable_variables)) 
         # Update metrics (including the ones that track losses)
-        self.loss_tracker.update_state(loss, sample_weight=sample_weight)
-        self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+        self.loss_tracker.update_state(loss_vec, sample_weight=sample_weight)
+        self.pure_loss_tracker.update_state(pure_loss_vec, sample_weight=sample_weight) 
         self.reg_loss_tracker.update_state(reg_loss)
-        self.compiled_metrics.update_state(y, y_pred, sample_weight)
+        self.compiled_metrics.update_state(y, y_pred, sample_weight=sample_weight)
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
         self.x = x
@@ -86,22 +91,23 @@ class DeepTauModel(keras.Model):
         else:
             sample_weight = None
             x, y = data
-        # Compute predictions
+        # Evaluate Model
         y_pred = self(x, training=False)
-        # Define the losses
         reg_losses = self.losses # Regularisation loss
-        tau_crossentropy_v2 = TauLosses.WPloss2(y, y_pred) #TauLosses.tau_crossentropy_v2(y, y_pred) # Compute loss function
-        pure_loss = tau_crossentropy_v2 # Pure loss (no reg)
+        pure_loss_vec = self.model_loss(y, y_pred)
+        pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
         # Compute the total loss value
         if reg_losses:
             reg_loss = tf.add_n(reg_losses)
             loss = pure_loss + reg_loss
+            loss_vec = pure_loss_vec + reg_loss
         else:
             reg_loss = reg_losses # empty
             loss = pure_loss
+            loss_vec = pure_loss_vec
         # Update the metrics (including the ones that track losses)
-        self.loss_tracker.update_state(loss, sample_weight=sample_weight)
-        self.pure_loss_tracker.update_state(pure_loss, sample_weight=sample_weight) 
+        self.loss_tracker.update_state(loss_vec, sample_weight=sample_weight)
+        self.pure_loss_tracker.update_state(pure_loss_vec, sample_weight=sample_weight) 
         self.reg_loss_tracker.update_state(reg_loss)
         self.compiled_metrics.update_state(y, y_pred, sample_weight)
         # Return a dict mapping metric names to current value
@@ -401,7 +407,7 @@ def get_n_filters_conv2d(n_input, current_size, window_size, reduction_rate):
     n_filters = ((float(current_size) / float(current_size - window_size + 1)) ** 2) * n_input / reduction_rate
     return int(math.ceil(n_filters))
 
-def create_model(net_config, model_name):
+def create_model(net_config, model_name, loss=None, n_tau = None):
     tau_net_setup = NetSetup1D(**net_config.tau_net)
     comp_net_setup = NetSetup2D(**net_config.comp_net)
     comp_merge_net_setup = NetSetup2D(**net_config.comp_merge_net)
@@ -462,10 +468,10 @@ def create_model(net_config, model_name):
                          kernel_initializer=dense_net_setup.kernel_init)(final_dense)
     softmax_output = Activation("softmax", name="main_output")(output_layer)
 
-    model = DeepTauModel(input_layers, softmax_output, name=model_name)
+    model = DeepTauModel(input_layers, softmax_output, loss=loss, n_tau=n_tau, name=model_name)
     return model
 
-def compile_model(model, loss, opt_name, learning_rate, schedule_decay=1e-4):
+def compile_model(model, opt_name, learning_rate, schedule_decay=1e-4):
     opt = getattr(tf.keras.optimizers, opt_name)(learning_rate=learning_rate, schedule_decay=schedule_decay)
 
     metrics = [
@@ -473,7 +479,7 @@ def compile_model(model, loss, opt_name, learning_rate, schedule_decay=1e-4):
         TauLosses.We, TauLosses.Wmu, TauLosses.Wjet,
         TauLosses.WPloss, TauLosses.WPloss2
     ]
-    model.compile(loss=loss, optimizer=opt, metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
+    model.compile(loss=None, optimizer=opt, metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
 
     # log metric names for passing them during model loading
     metric_names = {(m if isinstance(m, str) else m.__name__): '' for m in metrics}
@@ -483,12 +489,12 @@ def compile_model(model, loss, opt_name, learning_rate, schedule_decay=1e-4):
     metric_names_cus = {(m.__name__): '' for m in metrics if not isinstance(m, str)}
     mlflow.log_dict(metric_names_cus, 'input_cfg/metric_names_custom.json')
 
-def step_decay_function(epoch, lr):
-    epoch_step = 5
-    if epoch%epoch_step==0: return lr/2.0
-    return lr
-
 def run_training(model, data_loader, to_profile, log_suffix):
+
+    def step_decay_function(epoch, lr):
+        epoch_step = data_loader.step_decay
+        if epoch%epoch_step==0 and epoch > 0: return lr/2.0
+        return lr
 
     if data_loader.input_type == "tf":
         total_batches = data_loader.n_batches + data_loader.n_batches_val
@@ -559,7 +565,7 @@ def run_training(model, data_loader, to_profile, log_suffix):
     callbacks.append(tboard_callback)
     callbacks.append(UpdatedLossCallback(data_upd))
 
-    if data_loader.step_decay:
+    if data_loader.step_decay > 0:
         step_decay = LearningRateScheduler(step_decay_function)
         callbacks.append(step_decay)
 
@@ -603,11 +609,10 @@ def main(cfg: DictConfig) -> None:
         print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
 
         netConf_full = dataloader.get_net_config()
-        compile_loss = None if setup["loss"] is None else getattr(TauLosses,setup["loss"])
 
         if cfg.pretrained is None:
             print("Warning: no pretrained NN -> training will be started from scratch")
-            model = create_model(netConf_full, dataloader.model_name)
+            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"], n_tau = dataloader.batch_size)
         else:
             print("Warning: training will be started from pretrained model.")
             print(f"Model: run_id={cfg.pretrained.run_id}, experiment_id={cfg.pretrained.experiment_id}, model={cfg.pretrained.starting_model}")
@@ -622,7 +627,7 @@ def main(cfg: DictConfig) -> None:
             # model = create_model(netConf_full, dataloader.model_name)
             # model.load_weights(path_to_pretrain+f"/model_checkpoints/{cfg.pretrained.starting_model}", by_name=True)
 
-        compile_model(model, compile_loss, setup["optimizer_name"], setup["learning_rate"], setup["schedule_decay"])
+        compile_model(model, setup["optimizer_name"], setup["learning_rate"], setup["schedule_decay"])
         fit_hist = run_training(model, dataloader, False, cfg.log_suffix)
 
         # log NN params
