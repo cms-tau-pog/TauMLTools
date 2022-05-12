@@ -88,7 +88,6 @@ def main(cfg: DictConfig) -> None:
                 y_pred = np.zeros((size, y.shape[1]))
                 y_target = np.zeros((size, y.shape[1]))
 
-            
                 if dataloader.input_type=="Adversarial":
                     y_pred[indexes] = model.predict(X)[0]
                 else:

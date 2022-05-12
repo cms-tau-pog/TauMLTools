@@ -37,7 +37,7 @@ import psutil
 
 class DeepTauModel(keras.Model):
 
-    def __init__(self, *args, loss=None, n_tau=None, use_AdvDataset=False, adv_parameter=[1,1], n_adv_tau=None, adv_learning_rate=None, **kwargs):
+    def __init__(self, *args, loss=None, use_AdvDataset=False, adv_parameter=[1,1], n_adv_tau=None, adv_learning_rate=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.pure_loss_tracker = keras.metrics.Mean(name="pure_loss")
@@ -49,15 +49,16 @@ class DeepTauModel(keras.Model):
         self.use_AdvDataset = use_AdvDataset
         self.k1 = adv_parameter[0]
         self.k2 = adv_parameter[1]
-        self.n_tau = n_tau
         if self.use_AdvDataset:
             self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
             # self.adv_loss = TauLosses.crossentropy_adversarial
             self.adv_loss = TauLosses.F_adversarial
+            self.gamma = 2
             self.adv_accuracy = tf.keras.metrics.BinaryAccuracy(name="adv_accuracy") 
             self.adv_optimizer = tf.keras.optimizers.Nadam(learning_rate=adv_learning_rate)
             self.n_adv_tau = n_adv_tau
-            self.mean_common = keras.metrics.Mean(name="grad_common")
+            self.mean_grad_class= keras.metrics.Mean(name="mean_grad_class")
+            self.mean_grad_adv= keras.metrics.Mean(name="mean_grad_adv")
 
     def train_step(self, data):
         # Unpack the data
@@ -65,42 +66,46 @@ class DeepTauModel(keras.Model):
             print("Adversarial Control Dataset Loaded")
             print("k1, k2: ", self.k1, self.k2)
             x, y, y_adv, sample_weight, sample_weight_adv = data
+            n_tau =  tf.shape(x[0])[0] - self.n_adv_tau
         elif len(data) == 3:
             x, y, sample_weight = data
+            n_tau = tf.shape(x[0])[0]
         else:
             sample_weight = None
             x, y = data
+            n_tau = tf.shape(x[0])[0]
         # Forward Pass:
+        def run_pred():
+            y_pred = self(x, training=True)
+            if self.use_AdvDataset:
+                y_pred_class = y_pred[0]
+                y_pred_adv = y_pred[1]
+                adv_loss_vec = self.adv_loss(y_adv, y_pred_adv, self.gamma)
+                adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, sample_weight_adv[:,0]))/self.n_adv_tau
+            else:
+                y_pred_class = y_pred
+            reg_losses = self.losses 
+            pure_loss_vec = self.model_loss(y, y_pred_class)
+            pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/tf.cast(n_tau, dtype=tf.float32)
+            if reg_losses:
+                reg_loss = tf.add_n(reg_losses)
+                loss = pure_loss + reg_loss
+                loss_vec = pure_loss_vec + reg_loss
+            else:
+                reg_loss = reg_losses # Empty
+                loss = pure_loss
+                loss_vec = pure_loss_vec
+            if self.use_AdvDataset:
+                return y_pred_class, y_pred_adv, loss, reg_loss, pure_loss, adv_loss  
+            else:
+                return y_pred_class, loss, reg_loss, pure_loss
+
         if self.use_AdvDataset:
             with tf.GradientTape() as class_tape, tf.GradientTape() as adv_tape:
-                    y_pred = self(x, training=True)
-                    reg_losses = self.losses 
-                    pure_loss_vec = self.model_loss(y, y_pred[0])
-                    pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
-                    adv_loss_vec = self.adv_loss(y_adv, y_pred[1])
-                    adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, sample_weight_adv[:,0]))/self.n_tau
-                    if reg_losses:
-                        reg_loss = tf.add_n(reg_losses)
-                        loss = pure_loss + reg_loss
-                        loss_vec = pure_loss_vec + reg_loss
-                    else:
-                        reg_loss = reg_losses # Empty
-                        loss = pure_loss
-                        loss_vec = pure_loss_vec
+                y_pred_class, y_pred_adv, loss, reg_loss, pure_loss, adv_loss = run_pred()
         else:
             with tf.GradientTape() as class_tape:
-                y_pred = self(x, training=True)
-                reg_losses = self.losses
-                pure_loss_vec = self.model_loss(y, y_pred)
-                pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
-                if reg_losses:
-                    reg_loss = tf.add_n(reg_losses)
-                    loss = pure_loss + reg_loss
-                    loss_vec = pure_loss_vec + reg_loss
-                else:
-                    reg_loss = reg_losses # Empty
-                    loss = pure_loss
-                    loss_vec = pure_loss_vec
+                y_pred_class, loss, reg_loss, pure_loss = run_pred()
         # Compute gradients and update weights
         if self.use_AdvDataset:
             class_layers = [var for var in self.trainable_variables if ("final" in var.name and "_adv" not in var.name)] # final classification dense only
@@ -111,7 +116,8 @@ class DeepTauModel(keras.Model):
             grad_class_excl = grad_class[len(common_layers):] # gradients of common part
             grad_adv_excl = grad_adv[len(common_layers):] #gradients of adv part
             grad_common = [self.k1*grad_class[i] - self.k2 * grad_adv[i] for i in range(len(common_layers))] 
-            mean_common = [tf.math.reduce_mean(tf.math.abs(grad_common[i])) for i in range(len(grad_common))] 
+            mean_class = tf.add_n([tf.math.reduce_mean(tf.math.abs(grad_class[i])) for i in range(len(common_layers))])/len(common_layers) 
+            mean_adv = tf.add_n([tf.math.reduce_mean(tf.math.abs(grad_adv[i])) for i in range(len(common_layers))])/len(common_layers)
             self.optimizer.apply_gradients(zip( grad_common + grad_class_excl, common_layers + class_layers)) 
             self.adv_optimizer.apply_gradients(zip(grad_adv_excl, adv_layers))
         else: 
@@ -123,11 +129,12 @@ class DeepTauModel(keras.Model):
         self.reg_loss_tracker.update_state(reg_loss) 
         if self.use_AdvDataset:
             self.adv_loss_tracker.update_state(adv_loss)
-            self.adv_accuracy.update_state(y_adv, y_pred[1], sample_weight= sample_weight_adv)
-            self.mean_common.update_state(mean_common)
-            self.compiled_metrics.update_state(y[:self.n_tau], y_pred[0][:self.n_tau, :], sample_weight = sample_weight[:self.n_tau])
+            self.adv_accuracy.update_state(y_adv, y_pred_adv, sample_weight= sample_weight_adv)
+            self.mean_grad_class.update_state(mean_class)
+            self.mean_grad_adv.update_state(mean_adv)
+            self.compiled_metrics.update_state(y[:n_tau], y_pred_class[:n_tau, :], sample_weight = sample_weight[:n_tau])
         else:
-            self.compiled_metrics.update_state(y, y_pred, sample_weight = sample_weight)
+            self.compiled_metrics.update_state(y, y_pred_class, sample_weight = sample_weight)
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
         return metrics_out
@@ -136,23 +143,26 @@ class DeepTauModel(keras.Model):
         # Unpack the data
         if self.use_AdvDataset:
             x, y, y_adv, sample_weight, sample_weight_adv = data
+            n_tau = tf.shape(x[0])[0] - self.n_adv_tau
         elif len(data) == 3:
             x, y, sample_weight = data
+            n_tau = tf.shape(x[0])[0]
         else:
             sample_weight = None
             x, y = data
+            n_tau = tf.shape(x[0])[0]
         # Evaluate Model
         y_pred = self(x, training=False)
-        reg_losses = self.losses # Regularisation loss
         if self.use_AdvDataset:
-            pure_loss_vec = self.model_loss(y, y_pred[0])
-            pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
-            adv_loss_vec = self.adv_loss(y_adv, y_pred[1])
+            y_pred_class = y_pred[0]
+            y_pred_adv = y_pred[1]
+            adv_loss_vec = self.adv_loss(y_adv, y_pred_adv, self.gamma)
             adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, sample_weight_adv[:,0]))/self.n_adv_tau
         else:
-            pure_loss_vec = self.model_loss(y, y_pred)
-            pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/self.n_tau
-
+            y_pred_class = y_pred
+        reg_losses = self.losses # Regularisation loss
+        pure_loss_vec = self.model_loss(y, y_pred_class)
+        pure_loss = tf.reduce_sum(tf.multiply(pure_loss_vec, sample_weight))/tf.cast(n_tau, dtype=tf.float32)
         if reg_losses: 
             reg_loss = tf.add_n(reg_losses)
             loss = pure_loss + reg_loss
@@ -167,10 +177,10 @@ class DeepTauModel(keras.Model):
         self.reg_loss_tracker.update_state(reg_loss)
         if self.use_AdvDataset:
             self.adv_loss_tracker.update_state(adv_loss)
-            self.compiled_metrics.update_state(y[:self.n_tau], y_pred[0][:self.n_tau, :], sample_weight = sample_weight[:self.n_tau])
-            self.adv_accuracy.update_state(y_adv, y_pred[1], sample_weight= sample_weight_adv)
+            self.adv_accuracy.update_state(y_adv, y_pred_adv, sample_weight = sample_weight_adv)
+            self.compiled_metrics.update_state(y[:n_tau], y_pred_class[:n_tau, :], sample_weight = sample_weight[:n_tau])
         else:
-            self.compiled_metrics.update_state(y, y_pred, sample_weight)
+            self.compiled_metrics.update_state(y, y_pred_class, sample_weight)
         # Return a dict mapping metric names to current value
         metrics_out = {m.name: m.result() for m in self.metrics}
         return metrics_out
@@ -187,7 +197,8 @@ class DeepTauModel(keras.Model):
         if self.use_AdvDataset:
             metrics.append(self.adv_loss_tracker)
             metrics.append(self.adv_accuracy)
-            metrics.append(self.mean_common)
+            metrics.append(self.mean_grad_class)
+            metrics.append(self.mean_grad_adv)
         if self._is_compiled:
             # Track `LossesContainer` and `MetricsContainer` objects
             # so that attr names are not load-bearing.
@@ -378,7 +389,7 @@ def get_n_filters_conv2d(n_input, current_size, window_size, reduction_rate):
     n_filters = ((float(current_size) / float(current_size - window_size + 1)) ** 2) * n_input / reduction_rate
     return int(math.ceil(n_filters))
 
-def create_model(net_config, model_name, loss=None, n_tau = None, use_AdvDataset = False, adv_param = None, n_adv_tau=None, adv_learning_rate=None):
+def create_model(net_config, model_name, loss=None, use_AdvDataset = False, adv_param = None, n_adv_tau=None, adv_learning_rate=None):
     tau_net_setup = NetSetup1D(**net_config.tau_net)
     comp_net_setup = NetSetup2D(**net_config.comp_net)
     comp_merge_net_setup = NetSetup2D(**net_config.comp_merge_net)
@@ -447,9 +458,9 @@ def create_model(net_config, model_name, loss=None, n_tau = None, use_AdvDataset
                             kernel_initializer=dense_net_setup.kernel_init)(final_dense_adv)
         sigmoid_output_adv = Activation("sigmoid", name="adv_output")(output_layer_adv)
         model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], loss=loss, name=model_name, use_AdvDataset=True,
-                             adv_parameter=adv_param, n_tau=n_tau, n_adv_tau=n_adv_tau, adv_learning_rate=adv_learning_rate)
+                             adv_parameter=adv_param, n_adv_tau=n_adv_tau, adv_learning_rate=adv_learning_rate)
     else:
-        model = DeepTauModel(input_layers, softmax_output, loss = loss, name=model_name, n_tau=n_tau)
+        model = DeepTauModel(input_layers, softmax_output, loss = loss, name=model_name)
     return model
 
 def compile_model(model, opt_name, learning_rate, old_opt=None):
@@ -517,10 +528,10 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
         input_shape, input_types = data_loader.get_input_config()
         data_train = tf.data.Dataset.from_generator(
             gen_train, output_types = input_types, output_shapes = input_shape
-            ).prefetch(4)
+            ).prefetch(tf.data.AUTOTUNE)
         data_val = tf.data.Dataset.from_generator(
             gen_val, output_types = input_types, output_shapes = input_shape
-            ).prefetch(4)
+            ).prefetch(tf.data.AUTOTUNE)
     elif data_loader.input_type == "Adversarial":
         gen_train = data_loader.get_generator(primary_set = True, return_weights = data_loader.use_weights, adversarial=True)
         gen_val = data_loader.get_generator(primary_set = False, return_weights = data_loader.use_weights, adversarial=True)
@@ -555,9 +566,6 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
         close_file(csv_log_file)
         os.remove(csv_log_file)
     csv_log = CSVLogger(csv_log_file, append=True)
-
-    
-
     time_checkpoint = TimeCheckpoint(12*60*60, log_name)
     callbacks = [time_checkpoint, csv_log]
 
@@ -616,10 +624,10 @@ def main(cfg: DictConfig) -> None:
         netConf_full = dataloader.get_net_config()
 
         if dataloader.input_type == "Adversarial":
-            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"], n_tau = dataloader.batch_size, use_AdvDataset = True, 
+            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"], use_AdvDataset = True, 
                                 adv_param = dataloader.adversarial_parameter, n_adv_tau=dataloader.adv_batch_size, adv_learning_rate=dataloader.adv_learning_rate)
         else:
-            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"], n_tau = dataloader.batch_size)
+            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"])
 
         if cfg.pretrained is None:
             print("Warning: no pretrained NN -> training will be started from scratch")
@@ -671,6 +679,7 @@ def main(cfg: DictConfig) -> None:
         print(f'\nTraining has finished! Corresponding MLflow experiment name (ID): {cfg.experiment_name}({run_kwargs["experiment_id"]}), and run ID: {run_id}\n')
         mlflow.end_run()
 
+        # Temporary workaround to kill additional subprocesses that have not exited correctly
         current_process = psutil.Process()
         children = current_process.children(recursive=True)
         for child in children:

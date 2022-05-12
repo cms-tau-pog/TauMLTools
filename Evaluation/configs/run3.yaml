@@ -17,6 +17,7 @@ dataset_alias: ??? # alias to reference a mixture of input_samples below, e.g. t
 pt_bins: [[20, 100], [100, 1000]]
 eta_bins: [[0, 2.5]]
 dm_bins: [[0, 1, 2, 10, 11]]
+
 # selection
 input_branches: [ 'tau_pt', 'tau_eta', 'tau_decayMode' ] # add here branches with targets/prediction if necessary
 cuts: ${apply_dm_cuts}

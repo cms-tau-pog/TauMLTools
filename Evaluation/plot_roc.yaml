@@ -4,7 +4,6 @@ experiment_id: ???
 discriminators: # in the format -> run_id: ['curve_type_1', 'curve_type_2', ...]
   ???: ['roc_curve', 'roc_wp']
   ???: ['roc_wp']
-
 reference: 
   ???: 'roc_curve'
 

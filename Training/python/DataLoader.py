@@ -113,8 +113,8 @@ class DataLoader (DataLoaderBase):
         self.adv_learning_rate = self.config["Setup"]["adv_learning_rate"]
         self.use_previous_opt = self.config["Setup"]["use_previous_opt"]
         
-        data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root') 
         if self.input_type == "ROOT" or self.input_type == "Adversarial":
+            data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root') 
             self.train_files, self.val_files = \
                 np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
             print("Files for training:", len(self.train_files))
@@ -183,9 +183,7 @@ class DataLoader (DataLoaderBase):
                         except: #reset iterator
                             adv_iter = iter(adv_ds)
                             x_adv, y_adv, sample_weight_adv = next(adv_iter)
-                        x_out = ((tf.concat([x[0], x_adv[0]],0), tf.concat([x[1], x_adv[1]],0), tf.concat([x[2], x_adv[2]],0),
-                                tf.concat([x[3], x_adv[3]],0), tf.concat([x[4], x_adv[4]],0), tf.concat([x[5], x_adv[5]],0),
-                                tf.concat([x[6], x_adv[6]],0)))
+                        x_out = tuple(tf.concat([x[i], x_adv[i]], 0) for i in range(len(x)))
                         y_out = tf.concat([y, y_zero],0)
                         y_adv_out = tf.expand_dims(tf.concat([w_zero, y_adv[:,0]],0), axis=1) 
                         w_out = tf.concat([sample_weight, w_zero],0)
