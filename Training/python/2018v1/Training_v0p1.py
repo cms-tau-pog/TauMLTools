@@ -464,7 +464,7 @@ def create_model(net_config, model_name, loss=None, use_AdvDataset = False, adv_
         model = DeepTauModel(input_layers, softmax_output, loss = loss, name=model_name)
     return model
 
-def compile_model(model, opt_name, learning_rate, old_opt=None):
+def compile_model(model, opt_name, learning_rate):
     # opt = keras.optimizers.Adam(lr=learning_rate)
     opt = getattr(tf.keras.optimizers, opt_name)(learning_rate=learning_rate)
         
@@ -652,7 +652,7 @@ def main(cfg: DictConfig) -> None:
             old_opt = old_model.optimizer
             old_vars = [var.name for var in old_model.trainable_variables]
 
-        compile_model(model, setup["optimizer_name"], setup["learning_rate"], old_opt=old_opt)
+        compile_model(model, setup["optimizer_name"], setup["learning_rate"])
         fit_hist = run_training(model, dataloader, False, cfg.log_suffix, old_opt=old_opt)
 
         # log NN params
