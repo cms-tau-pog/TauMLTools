@@ -1,0 +1,16 @@
+bayesian-optimization
+boost
+conda-tree
+cudnn
+hydra-core
+law
+libllvm13
+matplotlib
+mlflow
+pipdeptree
+pytables
+pytorch
+root
+seaborn
+tensorflow
+uproot
