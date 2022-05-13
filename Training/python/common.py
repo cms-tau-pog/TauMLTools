@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.models import load_model
+from tensorflow import keras
 
 e, mu, tau, jet = 0, 1, 2, 3
 
@@ -18,6 +19,7 @@ def setup_gpu(gpu_cfg):
             print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
         except RuntimeError as e:
             print(e)
+
 
 class TimeCheckpoint(Callback):
     def __init__(self, time_interval, file_name_prefix):
@@ -269,6 +271,21 @@ class TauLosses:
         shape = tf.shape(target)
         return tf.where(target < 0.5, tf.ones(shape), tf.zeros(shape))
 
+    @staticmethod
+    @tf.function
+    def crossentropy_adversarial(target, adv_output):
+        tau_target = target # MC_tau->0, data_tau->1, this is done by setting y_onehot in main DataLoader 
+        tau_output = adv_output #  given output from adversarial
+        loss = tf.keras.losses.binary_crossentropy(tau_target, tau_output) # Standard cross entropy loss function
+        return loss
+
+    @staticmethod
+    @tf.function
+    def focal_adversarial(target, adv_output, gamma):
+        if gamma <= 0:
+            raise RuntimeError("Focal Loss requires gamma > 0.")
+        loss = tf.keras.losses.binary_focal_crossentropy(target, adv_output, gamma=gamma)
+        return loss
 
 def LoadModel(model_file, compile=True):
     if compile:
