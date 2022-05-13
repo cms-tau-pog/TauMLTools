@@ -281,13 +281,10 @@ class TauLosses:
 
     @staticmethod
     @tf.function
-    def F_adversarial(target, adv_output, gamma):
+    def focal_adversarial(target, adv_output, gamma):
         if gamma <= 0:
             raise RuntimeError("Focal Loss requires gamma > 0.")
-        epsilon = tf.constant(TauLosses.epsilon, adv_output.dtype.base_dtype)
-        gamma_t = tf.constant(gamma, adv_output.dtype.base_dtype)
-        x = tf.clip_by_value(adv_output, epsilon, 1 - epsilon)
-        loss = - target * tf.math.log(x) * tf.pow(1-x, gamma_t) - (1-target) * tf.math.log(1-x) * tf.pow(x, gamma_t)
+        loss = tf.keras.losses.binary_focal_crossentropy(target, adv_output, gamma=gamma)
         return loss
 
 def LoadModel(model_file, compile=True):

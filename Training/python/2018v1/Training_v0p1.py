@@ -51,9 +51,9 @@ class DeepTauModel(keras.Model):
         self.k2 = adv_parameter[1]
         if self.use_AdvDataset:
             self.adv_loss_tracker = keras.metrics.Mean(name="adv_loss")
-            # self.adv_loss = TauLosses.crossentropy_adversarial
-            self.adv_loss = TauLosses.F_adversarial
-            self.gamma = 0.5
+            self.adv_loss = TauLosses.crossentropy_adversarial
+            # self.adv_loss = TauLosses.focal_adversarial
+            # self.gamma = 0.5
             self.adv_accuracy = tf.keras.metrics.BinaryAccuracy(name="adv_accuracy") 
             self.adv_optimizer = tf.keras.optimizers.Nadam(learning_rate=adv_learning_rate)
             self.n_adv_tau = n_adv_tau
@@ -65,7 +65,7 @@ class DeepTauModel(keras.Model):
         if self.use_AdvDataset:
             print("Adversarial Control Dataset Loaded")
             print("k1, k2: ", self.k1, self.k2)
-            print("Gamma", self.gamma)
+            # print("Gamma", self.gamma)
             x, y, y_adv, sample_weight, sample_weight_adv = data
             n_tau =  tf.shape(x[0])[0] - self.n_adv_tau
         elif len(data) == 3:
@@ -81,7 +81,7 @@ class DeepTauModel(keras.Model):
             if self.use_AdvDataset:
                 y_pred_class = y_pred[0]
                 y_pred_adv = y_pred[1]
-                adv_loss_vec = self.adv_loss(y_adv, y_pred_adv, self.gamma)
+                adv_loss_vec = self.adv_loss(y_adv, y_pred_adv) #, self.gamma)
                 adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, sample_weight_adv[:,0]))/self.n_adv_tau
             else:
                 y_pred_class = y_pred
@@ -157,7 +157,7 @@ class DeepTauModel(keras.Model):
         if self.use_AdvDataset:
             y_pred_class = y_pred[0]
             y_pred_adv = y_pred[1]
-            adv_loss_vec = self.adv_loss(y_adv, y_pred_adv, self.gamma)
+            adv_loss_vec = self.adv_loss(y_adv, y_pred_adv) #, self.gamma)
             adv_loss = tf.reduce_sum(tf.multiply(adv_loss_vec, sample_weight_adv[:,0]))/self.n_adv_tau
         else:
             y_pred_class = y_pred
