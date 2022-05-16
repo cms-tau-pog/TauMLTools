@@ -4,6 +4,7 @@ conda-tree
 cudnn
 hydra-core
 law
+libacl
 libllvm13
 matplotlib
 mlflow

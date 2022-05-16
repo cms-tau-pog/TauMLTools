@@ -140,6 +140,7 @@ dependencies:
   - lcms2=2.12=hddcbb42_0
   - ld_impl_linux-64=2.36.1=hea4e1c9_2
   - lerc=3.0=h9c3ff4c_0
+  - libacl=2.3.1=ha37c62d_1
   - libblas=3.9.0=14_linux64_mkl
   - libbrotlicommon=1.0.9=h166bdaf_7
   - libbrotlidec=1.0.9=h166bdaf_7
@@ -389,4 +390,4 @@ dependencies:
     - termcolor==1.1.0
     - tf-estimator-nightly==2.8.0.dev2021122109
     - wrapt==1.14.1
-prefix: /usr/local/miniconda3/envs/tau-ml-v4
+prefix: /usr/local/miniconda3/envs/tau-ml

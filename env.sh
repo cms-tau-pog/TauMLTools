@@ -81,7 +81,6 @@ elif [[ $MODE = "conda" ]]; then
         if [ -f "$PRIVATE_CONDA_INSTALL_DEFAULT.ref" ]; then
             PRIVATE_CONDA_INSTALL=$(cat "$PRIVATE_CONDA_INSTALL.ref")
         fi
-        CONDA_DIR="$PRIVATE_CONDA_INSTALL"
         if ! [ -f "$PRIVATE_CONDA_INSTALL/.installed" ]; then
             echo "Please select path where conda environment and packages will be installed."
             if [[ $HOST = lxplus*  || $HOSTNAME = lxplus* ]]; then
@@ -129,8 +128,6 @@ elif [[ $MODE = "conda" ]]; then
             fi
         fi
         unset __conda_setup
-    else
-        CONDA_DIR="$(dirname "$CONDA")"
     fi
     tau_env_found=$(conda env list | grep -E '^tau-ml .*' | wc -l)
     if (( $tau_env_found != 1 )); then
@@ -147,7 +144,8 @@ elif [[ $MODE = "conda" ]]; then
         echo "Updating conda environment from '$ENV_YAML'..."
         run_cmd conda env update --file $ENV_YAML --prune
     fi
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_DIR/tau-ml/lib
+    TAU_ML_DIR=$(cd $(dirname $(which python))/..; pwd)
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TAU_ML_DIR/lib
 elif [[ $MODE = "lcg" ]]; then
     run_cmd source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_101cuda x86_64-centos7-gcc10-opt
 else
