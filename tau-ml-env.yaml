@@ -116,6 +116,7 @@ dependencies:
   - icu=70.1=h27087fc_0
   - idna=3.3=pyhd8ed1ab_0
   - importlib-metadata=4.11.3=py38h578d9bd_1
+  - importlib_resources=5.7.1=pyhd8ed1ab_1
   - ipykernel=6.13.0=py38h7f3c49e_0
   - ipyparallel=8.3.0=pyhd8ed1ab_0
   - ipython=8.3.0=py38h578d9bd_0
@@ -251,6 +252,7 @@ dependencies:
   - pip=22.1=pyhd8ed1ab_0
   - pipdeptree=2.2.0=pyhd8ed1ab_0
   - pixman=0.40.0=h36c2ea0_0
+  - popt=1.16=h0b475e3_2002
   - portalocker=2.4.0=py38h578d9bd_0
   - prometheus_client=0.5.0=py_0
   - prometheus_flask_exporter=0.20.1=pyhd8ed1ab_0
@@ -289,6 +291,7 @@ dependencies:
   - requests=2.27.1=pyhd8ed1ab_0
   - root=6.26.2=py38h47df419_2
   - root_base=6.26.2=py38h412b378_2
+  - rsync=3.2.3=hfa40b15_4
   - ruamel_yaml=0.15.80=py38h497a2fe_1006
   - scikit-learn=1.1.0=py38hf80bbf7_0
   - scipy=1.8.0=py38h56a6a73_1

@@ -12,6 +12,7 @@ pipdeptree
 pytables
 pytorch
 root
+rsync
 seaborn
 tensorflow
 uproot
