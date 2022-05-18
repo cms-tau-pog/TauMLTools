@@ -144,7 +144,8 @@ elif [[ $MODE = "conda" ]]; then
         echo "Updating conda environment from '$ENV_YAML'..."
         run_cmd conda env update --file $ENV_YAML --prune
     fi
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PRIVATE_CONDA_INSTALL/tau-ml/lib
+    TAU_ML_DIR=$(cd $(dirname $(which python))/..; pwd)
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TAU_ML_DIR/lib
 elif [[ $MODE = "lcg" ]]; then
     run_cmd source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_101cuda x86_64-centos7-gcc10-opt
 else
