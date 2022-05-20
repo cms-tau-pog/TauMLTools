@@ -59,8 +59,8 @@ public:
             const double absX = std::abs(x);
             if(absX > maxX) return false;
             if(evengridsize){
-                const double absIndex = std::floor(absX / size);
-                index = static_cast<int>(std::copysign(absIndex, x));
+                const double absIndex = std::floor(x / size);
+                index = static_cast<int>(absIndex);
             }else{
                 const double absIndex = std::floor(absX / size + 0.5);
                 index = static_cast<int>(std::copysign(absIndex, x));
