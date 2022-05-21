@@ -147,7 +147,7 @@ def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, sele
     return taus
 
 
-@hydra.main(config_path='.', config_name='derive_wp')
+@hydra.main(config_path='configs', config_name='derive_wp')
 def main(cfg: DictConfig) -> None:
     wp_maker = instantiate(cfg.wp_maker)
     wp_maker._taus = call(cfg.create_df)

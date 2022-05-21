@@ -18,7 +18,7 @@ from omegaconf import DictConfig, OmegaConf
 sys.path.insert(0, "../Training/python")
 from common import setup_gpu
 
-@hydra.main(config_path='.', config_name='apply_training')
+@hydra.main(config_path='configs', config_name='apply_training')
 def main(cfg: DictConfig) -> None:
     # set up paths & gpu
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
