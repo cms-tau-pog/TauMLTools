@@ -22,7 +22,7 @@ create_df:
   _path_to_mlflow: ???
   _experiment_id: ???
   _run_id: ???
-  path_to_preds: "${_path_to_mlflow}/${_experiment_id}/${_run_id}/artifacts/predictions/"
+  path_to_preds: "${create_df._path_to_mlflow}/${create_df._experiment_id}/${create_df._run_id}/artifacts/predictions/"
   pred_samples:
     GluGluHToTauTau_M125: 'eventTuple_1-7_pred.h5' # lists and * are supported 
   

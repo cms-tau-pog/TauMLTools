@@ -1,3 +1,4 @@
+import os
 import json
 from glob import glob
 from dataclasses import dataclass
@@ -95,9 +96,9 @@ class WPMaker:
                 print('\n-> Converged!')
                 break
 
-def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, selection, tau_types):
+def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, selection, tau_types, **kwargs):
     df = []
-    path_to_preds = to_absolute_path(path_to_preds)
+    path_to_preds = os.path.abspath(to_absolute_path(path_to_preds))
 
     # loop over input samples
     for sample_name, filename_pattern in pred_samples.items():
