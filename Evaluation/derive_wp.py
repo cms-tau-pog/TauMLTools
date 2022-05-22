@@ -23,6 +23,8 @@ class WPMaker:
         self._reset_thrs()
         self.tpr = np.arange(0, 1+self.tpr_step, self.tpr_step)
         self.vs_types = self.wp_definitions.keys()
+        for vs_type, wp_def in self.wp_definitions.items():
+            assert len(wp_def['wp_names']) == len(wp_def['wp_eff']), f"wp_names and wp_eff don't have the same length for tau_type={vs_type}"
 
     @staticmethod
     def tau_vs_other(prob_tau, prob_other):

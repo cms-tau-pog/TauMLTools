@@ -13,7 +13,7 @@ wp_maker:
       wp_eff: [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98]
     
   tpr_step: 0.0001 # will evenly sample grid of values from 0 to 1 with step=tpr_step
-  require_wp_vs_others: True # whether 
+  require_wp_vs_others: True # if in computation of WP thresholds for a given `vs_type` taus should pass the loosest WPs against remaining `vs_types` 
 
 create_df:
   _target_: derive_wp.create_df
@@ -23,8 +23,8 @@ create_df:
   _experiment_id: ???
   _run_id: ???
   path_to_preds: "${create_df._path_to_mlflow}/${create_df._experiment_id}/${create_df._run_id}/artifacts/predictions/"
-  pred_samples:
-    GluGluHToTauTau_M125: 'eventTuple_1-7_pred.h5' # lists and * are supported 
+  pred_samples: # samples in `path_to_preds` to take taus from 
+    GluGluHToTauTau_M125: 'eventTuple_1-7_pred.h5' # single files, list of files and "*" are supported 
   
   # paths to input ROOT files will be retrieved from corresponding pred_input_filemap.json
   input_branches: [ 'tau_pt', 'tau_eta', 'tau_decayMode' ]
