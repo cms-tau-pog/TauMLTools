@@ -42,10 +42,10 @@ create_df:
   _target_: derive_wp.create_df
 
   # path to prediction files
-  _path_to_mlflow: ???
-  _experiment_id: ???
-  _run_id: ???
-  path_to_preds: "${create_df._path_to_mlflow}/${create_df._experiment_id}/${create_df._run_id}/artifacts/predictions/"
+  path_to_mlflow: ???
+  experiment_id: ???
+  run_id: ???
+  path_to_preds: "${create_df.path_to_mlflow}/${create_df.experiment_id}/${create_df.run_id}/artifacts/predictions/"
   pred_samples: # samples in `path_to_preds` to take taus from 
     GluGluHToTauTau_M125: 'eventTuple_1-7_pred.h5' # single files, list of files and "*" are supported 
   
