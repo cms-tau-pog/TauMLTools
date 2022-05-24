@@ -12,7 +12,7 @@ from omegaconf import OmegaConf, DictConfig, ListConfig
 
 import eval_tools
 
-@hydra.main(config_path='configs', config_name='run3')
+@hydra.main(config_path='configs/eval', config_name='run3')
 def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
 

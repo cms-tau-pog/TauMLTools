@@ -1,0 +1,55 @@
+wp_maker:
+  _target_: derive_wp.WPMaker
+
+  wp_definitions:
+    e:
+      VVTight: 0.6
+      VTight: 0.7
+      Tight: 0.8
+      Medium: 0.9 
+      Loose: 0.95
+      VLoose: 0.98
+      VVLoose: 0.99
+      VVVLoose: 0.995
+    mu:
+      Tight: 0.995
+      Medium: 0.998
+      Loose: 0.999
+      VLoose: 0.9995
+    jet:
+      VVTight: 0.4
+      VTight: 0.5 
+      Tight: 0.6
+      Medium: 0.7
+      Loose: 0.8
+      VLoose: 0.9
+      VVLoose: 0.95
+      VVVLoose: 0.98
+    
+  tpr_step: 0.0001 # will evenly sample grid of values from 0 to 1 with step=tpr_step
+  require_wp_vs_others: True # if in computation of WP thresholds for a given `vs_type` taus should pass WPs from `WPs_to_require` against remaining `vs_types` 
+  WPs_to_require:
+    e: VVVLoose
+    mu: VLoose
+    jet: VVVLoose
+  
+  # convergence params
+  epsilon: 1e-7
+  n_iterations: 100
+  verbose: False
+
+create_df:
+  _target_: derive_wp.create_df
+
+  # path to prediction files
+  path_to_mlflow: ???
+  experiment_id: ???
+  run_id: ???
+  path_to_preds: "${create_df.path_to_mlflow}/${create_df.experiment_id}/${create_df.run_id}/artifacts/predictions/"
+  pred_samples: # samples in `path_to_preds` to take taus from 
+    GluGluHToTauTau_M125: 'eventTuple_1-7_pred.h5' # single files, list of files and "*" are supported 
+  
+  # paths to input ROOT files will be retrieved from corresponding pred_input_filemap.json
+  input_branches: [ 'tau_pt', 'tau_eta', 'tau_dz', 'tau_decayMode' ]
+  input_tree_name: taus
+  selection: '(tau_pt>=20) and (tau_pt<100) and (abs(tau_eta) < 2.3) and (abs(tau_dz) < 0.2) and not (tau_decayMode in [5,6])'
