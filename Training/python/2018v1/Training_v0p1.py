@@ -498,15 +498,13 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
         if data_loader.rm_inner_from_outer:
             n_inner = data_loader.n_inner_cells
             n_outer = data_loader.n_outer_cells
-            if n_inner % 2 == 0 or n_outer % 2 == 0:
-                raise Exception("Number of cells not supported")
             inner_size = data_loader.inner_cell_size
             outer_size = data_loader.outer_cell_size
-            n_inner_right = (n_inner - 1) / 2
-            n_outer_right = np.ceil(n_inner_right * inner_size /  outer_size)
-            i_middle = (n_outer-1)/2
-            i_start = int(i_middle - n_outer_right)
-            i_end = int(i_middle + n_outer_right + 1) # +1 as end index not included
+            inner_width = n_inner * inner_size
+            outer_cellstoexclude = np.ceil(inner_width / outer_size)
+            if outer_cellstoexclude % 2 != n_outer % 2: outer_cellstoexclude += 1
+            i_start = int((n_outer - outer_cellstoexclude) / 2)
+            i_end = int(n_outer - i_start)
             my_ds = ds.map(lambda x, y, weights: rm_inner(x, y, weights, outer_indices, i_start, i_end))
         else: 
             my_ds = ds
