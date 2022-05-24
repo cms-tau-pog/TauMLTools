@@ -32,6 +32,11 @@ wp_maker:
     e: VVVLoose
     mu: VLoose
     jet: VVVLoose
+  
+  # convergence params
+  epsilon: 1e-7
+  n_iterations: 100
+  verbose: False
 
 create_df:
   _target_: derive_wp.create_df
@@ -47,5 +52,4 @@ create_df:
   # paths to input ROOT files will be retrieved from corresponding pred_input_filemap.json
   input_branches: [ 'tau_pt', 'tau_eta', 'tau_decayMode' ]
   input_tree_name: taus
-  selection: '(tau_pt>=20) and (tau_pt<100)'
-  tau_types: ['e', 'mu', 'tau', 'jet']
+  selection: '(tau_pt>=20) and (tau_pt<100) and not (tau_decayMode in [5,6])'

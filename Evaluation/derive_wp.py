@@ -17,6 +17,9 @@ class WPMaker:
     tpr_step: int = 0.0001
     require_wp_vs_others: bool = True
     WPs_to_require: dict = None
+    epsilon: float = 1e-7
+    n_iterations: int = 100
+    verbose: bool = False
     _taus: pd.DataFrame = None
     __converged: bool = False
 
@@ -65,7 +68,7 @@ class WPMaker:
                 wp_cfg['thrs'].append(thrs[vs_type][idx])
 
     def print_wp(self):
-        print("working_points = {")
+        print("\nworking_points = {")
         for vs_type, WPs in self.wp_definitions.items():
             print('    "{}": {{'.format(vs_type))
             for wp_name, wp_cfg in reversed(WPs.items()):
@@ -73,14 +76,14 @@ class WPMaker:
             print('    },')
         print('}')
 
-    def run(self, n_iterations=100, verbose=False):
+    def run(self):
         if self.__converged:
             self._reset_thrs()
         
-        for i in range(n_iterations):
+        for i in range(self.n_iterations):
             print("\n-> Iteration", i)
             self.update_thrs()
-            if verbose:
+            if self.verbose:
                 self.print_wp()
 
             # check convergence condition
@@ -88,7 +91,7 @@ class WPMaker:
             for WPs in self.wp_definitions.values():
                 for wp_cfg in WPs.values():
                     if len(wp_cfg['thrs']) >= 2:
-                        all_converged = all_converged and abs(wp_cfg['thrs'][-1] - wp_cfg['thrs'][-2]) < 1e-7
+                        all_converged = all_converged and abs(wp_cfg['thrs'][-1] - wp_cfg['thrs'][-2]) < self.epsilon
                     else: 
                         all_converged = False
 
@@ -97,7 +100,7 @@ class WPMaker:
                 print('\n-> Converged!')
                 break
 
-def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, selection, tau_types, **kwargs):
+def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, selection, **kwargs):
     df = []
     path_to_preds = os.path.abspath(to_absolute_path(path_to_preds))
 
@@ -142,9 +145,9 @@ def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, sele
         taus = taus.query(selection)
 
     # compute vs_type discriminator scores
-    for t in tau_types:
-        if t != 'tau': 
-            taus['score_vs_' + t] = WPMaker.tau_vs_other(taus['predictions_node_tau'].values, taus['predictions_node_' + t].values)
+    vs_types = ['e', 'mu', 'jet']
+    for vs_type in vs_types:
+        taus['score_vs_' + vs_type] = WPMaker.tau_vs_other(taus['predictions_node_tau'].values, taus['predictions_node_' + vs_type].values)
    
     print(f'\n-> Selected {taus.shape[0]} taus\n')
     return taus
@@ -154,8 +157,7 @@ def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, sele
 def main(cfg: DictConfig) -> None:
     wp_maker = instantiate(cfg.wp_maker)
     wp_maker._taus = call(cfg.create_df)
-    wp_maker.run(verbose=False)
-    print()
+    wp_maker.run()
     wp_maker.print_wp()
 
 if __name__ == '__main__':
