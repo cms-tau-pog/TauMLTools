@@ -16,32 +16,35 @@ class WPMaker:
     wp_definitions: dict
     tpr_step: int = 0.0001
     require_wp_vs_others: bool = True
+    WPs_to_require: dict = None
     _taus: pd.DataFrame = None
     __converged: bool = False
 
     def __post_init__(self):
-        self._reset_thrs()
+        self.wp_definitions = {vs_type: {name: {'eff': eff, 'thrs': []} for name, eff in WPs.items()} for vs_type, WPs in self.wp_definitions.items()}
         self.tpr = np.arange(0, 1+self.tpr_step, self.tpr_step)
         self.vs_types = self.wp_definitions.keys()
-        for vs_type, wp_def in self.wp_definitions.items():
-            assert len(wp_def['wp_names']) == len(wp_def['wp_eff']), f"wp_names and wp_eff don't have the same length for tau_type={vs_type}"
+        self._reset_thrs()
 
     @staticmethod
     def tau_vs_other(prob_tau, prob_other):
         return np.where(prob_tau > 0, prob_tau / (prob_tau + prob_other), np.zeros(prob_tau.shape))
 
     def _reset_thrs(self):
-        for wp_def in self.wp_definitions.values():
-            wp_def['thrs'] = []
+        for vs_type in self.vs_types:
+            WPs = self.wp_definitions[vs_type]
+            for wp_cfg in WPs.values(): # for each WP per vs_type
+                wp_cfg['thrs'] = []
         self.__converged = False
 
     def apply_wp_vs_others(self, current_vs_type):
         df = self._taus
         for other_vs_type in self.vs_types:
             if other_vs_type == current_vs_type: continue
-            thrs = self.wp_definitions[other_vs_type]['thrs']
+            wp_to_require = self.WPs_to_require[other_vs_type]
+            thrs = self.wp_definitions[other_vs_type][wp_to_require]['thrs'] # select thresholds for specified WP
             if len(thrs) > 0:
-                sel_thr = thrs[-1][-1] # select the last computed threshold for the loosest WP 
+                sel_thr = thrs[-1] # select the last computed threshold
                 df = df.query(f'score_vs_{other_vs_type} > {sel_thr}', inplace=False) # require passing it
         return df
 
@@ -54,26 +57,19 @@ class WPMaker:
             else:
                 taus = self._taus 
             thrs[vs_type] = np.quantile(taus[f'score_vs_{vs_type}'], 1 - self.tpr)
-        
+
         # then update them in the class 
-        for vs_type in self.vs_types:
-            new_thrs = []
-            wp_def = self.wp_definitions[vs_type]
-            for eff in wp_def['wp_eff']:
-                idx = (self.tpr >= eff).argmax()
-                new_thrs.append(thrs[vs_type][idx])
-            wp_def['thrs'].append(new_thrs)
+        for vs_type, WPs in self.wp_definitions.items():
+            for wp_cfg in WPs.values():
+                idx = (self.tpr >= wp_cfg["eff"]).argmax()
+                wp_cfg['thrs'].append(thrs[vs_type][idx])
 
     def print_wp(self):
         print("working_points = {")
-        for vs_type in self.vs_types:
-            wp_names = self.wp_definitions[vs_type]['wp_names']
-            wp_thrs = self.wp_definitions[vs_type]['thrs'][-1]
+        for vs_type, WPs in self.wp_definitions.items():
             print('    "{}": {{'.format(vs_type))
-            for n in reversed(range(len(wp_names))):
-                name = wp_names[n]
-                thr = wp_thrs[n]
-                print( '        "{}": {:.7f},'.format(name, thr))
+            for wp_name, wp_cfg in reversed(WPs.items()):
+                print( '        "{}": {:.7f},'.format(wp_name, wp_cfg['thrs'][-1]))
             print('    },')
         print('}')
 
@@ -88,12 +84,15 @@ class WPMaker:
                 self.print_wp()
 
             # check convergence condition
-            all_converged_ = True
-            for wp_def in self.wp_definitions.values():
-                all_converged_ = all_converged_ and len(wp_def['thrs']) >= 2 \
-                    and abs(wp_def['thrs'][-1][-1] - wp_def['thrs'][-2][-1]) < 1e-7
-            
-            if all_converged_: 
+            all_converged = True
+            for WPs in self.wp_definitions.values():
+                for wp_cfg in WPs.values():
+                    if len(wp_cfg['thrs']) >= 2:
+                        all_converged = all_converged and abs(wp_cfg['thrs'][-1] - wp_cfg['thrs'][-2]) < 1e-7
+                    else: 
+                        all_converged = False
+
+            if all_converged: 
                 self.__converged = True
                 print('\n-> Converged!')
                 break
@@ -123,6 +122,7 @@ def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, sele
                 df_ = pd.read_hdf(pred_file, group)
                 df_ = df_.rename(columns={column: f'{group}_{column}' for column in df_.columns})
                 l_.append(df_)
+            assert l_[0].shape[0] == l_[1].shape[0], "Sizes of prediction and target dataframes don't match."
             df_pred = pd.concat(l_, axis=1)
 
             # read input_branches from the corresponding input file
