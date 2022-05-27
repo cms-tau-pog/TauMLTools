@@ -127,7 +127,7 @@ elif isRun3:
     updatedTauName = "slimmedTausIDrerun"
     tauIdEmbedder = TauIDEmbedder(
         process, cms, updatedTauName = updatedTauName,
-        toKeep = [ "deepTau2017v2p5", "deepTau2018v2p5" ]
+        toKeep = [ "deepTau2017v2p1", "deepTau2018v2p5" ]
     )
     tauIdEmbedder.runTauID()
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')

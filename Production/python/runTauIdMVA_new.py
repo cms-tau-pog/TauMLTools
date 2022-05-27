@@ -57,11 +57,11 @@ class TauIDEmbedder(object):
         _rerunMvaIsolationSequence = cms.Sequence()
         tauIDSources = cms.PSet()
 
-        if "deepTau2017v2p1ReRun" in self.toKeep:
+        if "deepTau2017v2p1" in self.toKeep:
 
             if self.debug: print ("Adding DeepTau IDs")
 
-            _deepTauName = "deepTau2017v2p1ReRun"
+            _deepTauName = "deepTau2017v2p1"
             workingPoints_ = {
                 "e": {
                     "VVVLoose": 0.0630386,
