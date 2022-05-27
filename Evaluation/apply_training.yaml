@@ -45,22 +45,22 @@ checkout_train_repo: False # whether to checkout git commit used for running the
 #
 
 # "toKeep" - option to save the default DeepTauId information from initial BigTuples
-# toKeepID : null
-toKeepID : [
-            "byDeepTau2018v2p5VSeraw",
-            "byDeepTau2018v2p5VSmuraw",
-            "byDeepTau2018v2p5VSjetraw",
-           ]
+toKeepID : null
+# toKeepID : [
+#             "byDeepTau2018v2p5VSeraw",
+#             "byDeepTau2018v2p5VSmuraw",
+#             "byDeepTau2018v2p5VSjetraw",
+#            ]
 
 # when save_input_names is specified - NN input tensors will be saved
 # save_input_names is the naming of the saved tensors:
-# save_input_names : null
-save_input_names : [
-                    "input_tau",
-                    "input_inner_egamma",
-                    "input_inner_muon",
-                    "input_inner_hadrons",
-                    "input_outer_egamma",
-                    "input_outer_muon",
-                    "input_outer_hadrons",
-                    ]
+save_input_names : null
+# save_input_names : [
+#                     "input_tau",
+#                     "input_inner_egamma",
+#                     "input_inner_muon",
+#                     "input_inner_hadrons",
+#                     "input_outer_egamma",
+#                     "input_outer_muon",
+#                     "input_outer_hadrons",
+#                     ]
