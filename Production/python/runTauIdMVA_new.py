@@ -118,10 +118,10 @@ class TauIDEmbedder(object):
             _rerunMvaIsolationTask.add(_deepTauProducer)
             _rerunMvaIsolationSequence += _deepTauProducer
 
-        if "deepTau2017v2p5" in self.toKeep:
+        if "deepTau2018v2p5" in self.toKeep:
             if self.debug: print ("Adding DeepTau IDs")
 
-            _deepTauName = "deepTau2017v2p5"
+            _deepTauName = "deepTau2018v2p5"
             workingPoints_ = {
                 "e": {
                     "VVVLoose": 0.0630386,
@@ -152,9 +152,9 @@ class TauIDEmbedder(object):
             }
 
             file_names = [
-                'core:/nfs/dust/cms/user/mykytaua/softDeepTau/DeepTau_FullTrain2022_cmssw12_4/models/base/deepTau_2022v2p5_base_core.pb',
-                'inner:/nfs/dust/cms/user/mykytaua/softDeepTau/DeepTau_FullTrain2022_cmssw12_4/models/base/deepTau_2022v2p5_base_inner.pb',
-                'outer:/nfs/dust/cms/user/mykytaua/softDeepTau/DeepTau_FullTrain2022_cmssw12_4/models/base/deepTau_2022v2p5_base_outer.pb',
+                'core:RecoTauTag/TrainingFiles/data/DeepTauId/deepTau_2018v2p5_base_core.pb',
+                'inner:RecoTauTag/TrainingFiles/data/DeepTauId/deepTau_2018v2p5_base_inner.pb',
+                'outer:RecoTauTag/TrainingFiles/data/DeepTauId/deepTau_2018v2p5_base_outer.pb',
             ]
 
             setattr(self.process,_deepTauName+self.postfix,cms.EDProducer("DeepTauId",
@@ -172,8 +172,7 @@ class TauIDEmbedder(object):
                 disable_dxy_pca                 = cms.bool(True),
                 disable_hcalFraction_workaround = cms.bool(True),
                 disable_CellIndex_workaround    = cms.bool(True),
-                is_online                       = cms.bool(False),
-                save_inputs                     = cms.bool(True)
+                is_online                       = cms.bool(False)
             ))
 
 

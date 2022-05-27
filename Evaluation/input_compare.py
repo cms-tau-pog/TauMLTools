@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, "../Training/python")
 
-epsilon = 0.0001
+epsilon = 0.00001
 # epsilon = 0.000001
 
 class FeatureDecoder:
@@ -78,7 +78,7 @@ def compare_ids(cfg, sort=False, print_n=30, plot_deltas=True):
     dis_types = ["e", "mu", "jet"]
     for dis_type in dis_types:
         df_dis[f'VS{dis_type}'] = df_dis.node_tau / (df_dis[f"node_{dis_type}"] + df_dis.node_tau)
-        df_dis[f'delta_VS{dis_type}'] = (df_dis[f'VS{dis_type}'] - df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw'])
+        df_dis[f'delta_VS{dis_type}'] = (df_dis[f'VS{dis_type}'] - df_dis[f'tau_byDeepTau2018v2p5VS{dis_type}raw'])
         df_dis[f'abs_delta_VS{dis_type}'] = (df_dis[f'delta_VS{dis_type}']).abs()
 
         # to compare tau_byDeepTau2017v2p1VS with tau_byDeepTau2017v2p5VS
@@ -86,30 +86,28 @@ def compare_ids(cfg, sort=False, print_n=30, plot_deltas=True):
         # df_dis[f'abs_delta_VS{dis_type}'] = (df_dis[f'delta_VS{dis_type}']).abs()
 
         # To make sure score is available for all taus:
-        assert( np.all(np.isnan(df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw']) == np.isnan(df_dis[f'delta_VS{dis_type}'])) )
-        n = np.isnan(df_dis[f'tau_byDeepTau2017v2p5VS{dis_type}raw']).sum()
-        # print("Number of nans:", n, "not-nan:", df_dis.shape[0]-n)
+        assert( np.all(np.isnan(df_dis[f'tau_byDeepTau2018v2p5VS{dis_type}raw']) == np.isnan(df_dis[f'delta_VS{dis_type}'])) )
+        s = df_dis.shape[0]
+        n = np.isnan(df_dis[f'tau_byDeepTau2018v2p5VS{dis_type}raw']).sum()
+        print("Number of not nans:", s - n)
     
     
     df_dis["max_delta"] = df_dis[[f'abs_delta_VS{t}' for t in dis_types]].max(axis=1)
 
-    # sort_df = df_dis.sort_values(['max_delta'], ascending=False)
-    # if print_n: sort_df = sort_df[:print_n]
-    
-    print("Top inconsistent DeepTauID scores are listed below:")
-    # print(sort_df[['event', 'tau_idx']+[f'delta_VS{t}' for t in dis_types]])
-    # print(sort_df)
-    
     # Display all events droping nans:
     # When Droping Nan's, new index -> should coorespond to the index of json file
+    print("Top inconsistent DeepTauID scores are listed below:")
     df_dis_noNan = df_dis
     df_dis_noNan["old_indx"] = df_dis_noNan.index
     df_dis_noNan = df_dis_noNan.dropna().reset_index(drop=True)
     df_dis_noNan = df_dis_noNan.sort_values(['max_delta'], ascending=False)
     if print_n: df_dis_noNan = df_dis_noNan[:print_n]
 
-    with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-        print(df_dis_noNan[['old_indx','event', 'tau_idx']+[f'delta_VS{t}' for t in dis_types]])
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None, 'display.width', 500):  # more options can be specified also
+        # print(df_dis_noNan[['old_indx','event', 'tau_idx']+[f'delta_VS{t}' for t in dis_types]])
+        print(df_dis_noNan[['old_indx','event', 'tau_idx'] + [f'delta_VS{t}' for t in dis_types]
+                                                           + [f'VS{t}' for t in dis_types]
+                                                           + [f'tau_byDeepTau2018v2p5VS{t}raw' for t in dis_types]])
 
     if plot_deltas:
         img_path = 'deltaIDs'
@@ -117,7 +115,7 @@ def compare_ids(cfg, sort=False, print_n=30, plot_deltas=True):
         for dis_type in dis_types:
             plt.hist(df_dis[f'delta_VS{dis_type}'], density=True, bins=100)  # density=False would make counts
             plt.ylabel('arb. units')
-            plt.xlabel(f'updatedVS{dis_type} - tau_byDeepTau2017v2p5VS{dis_type}raw')
+            plt.xlabel(f'updatedVS{dis_type} - tau_byDeepTau2018v2p5VS{dis_type}raw')
             plt.savefig(f'{img_path}/delta_VS{dis_type}.pdf')
             plt.cla()
             plt.clf()
@@ -152,15 +150,18 @@ def compare_input(cfg, print_grid=False):
             print("cmssw tau:", data_cmssw[key])
             print("python tau:", data_python[key])
             f_idx = np.where(delta > epsilon)
+            print(f"Inconsistent features:\n")
+            for f in np.unique(f_idx):
+                print(map_f.get(key,f))
         else:
             row_idx, col_idx, f_idx = np.where(delta > epsilon)
             if row_idx.size != 0:
-                print("cmssw grid:", data_cmssw[key][row_idx[0]][col_idx[0]])
-                print("python grid:", data_python[key][row_idx[0]][col_idx[0]])
+                print("cmssw grid:", data_cmssw[key][row_idx[0]][col_idx[0]][f_idx])
+                print("python grid:", data_python[key][row_idx[0]][col_idx[0]][f_idx])
+            print(f"Inconsistent features:\n")
+            for f in np.unique(f_idx):
+                print(map_f.get(key,f))
 
-        print(f"Inconsistent features:\n")
-        for f in np.unique(f_idx):
-            print(map_f.get(key,f))
 
         if print_grid and key != list(json_input.keys())[0]: # if print & not first tensor (plane features)
             grid_idx = np.stack([row_idx, col_idx],axis=1).tolist()

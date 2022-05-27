@@ -147,11 +147,14 @@ def main(cfg: DictConfig) -> None:
             assert(len(X_saveinput) == len(cfg.save_input_names))
             for i, X_tensors in enumerate(X_saveinput):
                 X_saveinput[i] = np.concatenate(X_tensors, axis=0)
-            for tau_i, (evnt, idx) in enumerate(zip(tau_indexes[0],tau_indexes[1])):
-                saved_arrays = {}
-                for i, name in enumerate(cfg.save_input_names):
-                    saved_arrays[name] = X_saveinput[i][tau_i]
-                np.save(f'{output_filename}_input/tensor_{evnt}_{idx}.npy',saved_arrays)
+            print("Saving tesnsors:")
+            with tqdm(total=n_taus) as pbar:
+                for tau_i, (evnt, idx) in enumerate(zip(tau_indexes[0],tau_indexes[1])):
+                    saved_arrays = {}
+                    for i, name in enumerate(cfg.save_input_names):
+                        saved_arrays[name] = X_saveinput[i][tau_i]
+                    np.save(f'{output_filename}_input/tensor_{evnt}_{idx}.npy',saved_arrays)
+                    pbar.update(1)
 
         # log to mlflow and delete intermediate file
         with mlflow.start_run(experiment_id=cfg.experiment_id, run_id=cfg.run_id) as active_run:

@@ -634,9 +634,10 @@ public:
                 fillGrid(Br::pfCand_chHad_dz, tau.pfCand_dz.at(pfCand_idx));
                 fillGrid(Br::pfCand_chHad_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
               }
-              if(tau.pfCand_track_ndof.at(pfCand_idx)!=0)
+              if(tau.pfCand_track_ndof.at(pfCand_idx)>0){
                 fillGrid(Br::pfCand_chHad_track_chi2_ndof, tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx));
-              fillGrid(Br::pfCand_chHad_track_ndof, tau.pfCand_track_ndof.at(pfCand_idx));
+                fillGrid(Br::pfCand_chHad_track_ndof, tau.pfCand_track_ndof.at(pfCand_idx));
+              }
             }
 
             fillGrid(Br::pfCand_chHad_hcalFraction, tau.pfCand_hcalFraction.at(pfCand_idx));

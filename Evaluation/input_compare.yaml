@@ -10,7 +10,7 @@ input_filename: ??? # without file extension
 
 mode:
     - compare_ids
-    - compare_input
+    # - compare_input
 
 tensor_map:
     input_tau : ["TauFlat"]
@@ -23,7 +23,7 @@ tensor_map:
 
 # ToDo -> tensors need to correspond for two interfaces 
 compare_input:
-    input_cmssw : "DeepTauId_0.json"
+    input_cmssw : "<cmssw_input_grid>.json"
     input_python :
-        event : 1874979
-        tau_index : 1
+        event : <event_number>
+        tau_index : <tau_number>
