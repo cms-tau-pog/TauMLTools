@@ -107,19 +107,25 @@ class DataLoader (DataLoaderBase):
         self.input_type = self.config["Setup"]["input_type"]
         self.tf_input_dir = self.config["Setup"]["tf_input_dir"]
         self.tf_dataset_x_order = self.config["Setup"]["tf_dataset_x_order"]
+        self.adversarial_dataset = self.config["Setup"]["adversarial_dataset"]
+        self.adversarial_parameter = self.config["Setup"]["adv_parameter"]
+        self.adv_batch_size = self.config["Setup"]["n_adv_tau"]
+        self.adv_learning_rate = self.config["Setup"]["adv_learning_rate"]
+        self.use_previous_opt = self.config["Setup"]["use_previous_opt"]
         
-        if self.input_type == "ROOT":
+        if self.input_type == "ROOT" or self.input_type == "Adversarial":
             data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root') 
             self.train_files, self.val_files = \
                 np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
             print("Files for training:", len(self.train_files))
             print("Files for validation:", len(self.val_files))
+            
 
         self.compile_classes(config, file_scaling, self.dataloader_core, data_files)
 
 
 
-    def get_generator(self, primary_set = True, return_truth = True, return_weights = True, show_progress = False):
+    def get_generator(self, primary_set = True, return_truth = True, return_weights = True, show_progress = False, adversarial = False):
 
         _files = self.train_files if primary_set else self.val_files
         if len(_files)==0:
@@ -151,6 +157,14 @@ class DataLoader (DataLoaderBase):
                                 self.tau_types, return_truth, return_weights, self.active_features, self.cell_locations)))
                 processes[-1].start()
 
+            if adversarial:
+                if primary_set:
+                    adv_ds = tf.data.experimental.load(self.adversarial_dataset, compression="GZIP").take(750)
+                else:
+                    adv_ds = tf.data.experimental.load(self.adversarial_dataset, compression="GZIP").skip(750).take(375)
+                adv_iter = iter(adv_ds)
+
+
             # First part to iterate through the main part
             finish_counter = 0
             while finish_counter < self.n_load_workers:
@@ -160,7 +174,23 @@ class DataLoader (DataLoaderBase):
                 else:
                     if show_progress and n_batches>0:
                         pbar.update(1)
-                    yield converter(item)
+                    if adversarial:
+                        x, y, sample_weight = converter(item)
+                        w_zero = tf.zeros(self.batch_size)
+                        y_zero = tf.zeros((self.batch_size, 4))
+                        try: # adv iterator not exhausted
+                            x_adv, y_adv, sample_weight_adv = next(adv_iter)
+                        except: #reset iterator
+                            adv_iter = iter(adv_ds)
+                            x_adv, y_adv, sample_weight_adv = next(adv_iter)
+                        x_out = tuple(tf.concat([x[i], x_adv[i]], 0) for i in range(len(x)))
+                        y_out = tf.concat([y, y_zero],0)
+                        y_adv_out = tf.expand_dims(tf.concat([w_zero, y_adv[:,0]],0), axis=1) 
+                        w_out = tf.concat([sample_weight, w_zero],0)
+                        w_adv_out = tf.expand_dims(tf.concat([w_zero, sample_weight_adv],0), axis=1) 
+                        yield (x_out, y_out, y_adv_out, w_out, w_adv_out)
+                    else:
+                        yield converter(item)
             for i in range(self.n_load_workers):
                 terminators[i][0].set()
 
@@ -258,7 +288,6 @@ class DataLoader (DataLoaderBase):
         netConf.n_cells = self.n_cells
         netConf.n_outputs = self.tau_types
         netConf.first_layer_reg = self.config["SetupNN"]["first_layer_reg"]
-
         return netConf
 
     def get_input_config(self, return_truth = True, return_weights = True):

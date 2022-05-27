@@ -20,10 +20,14 @@ Setup:
     weight_thr           : 100000.0
     dataloader_core      : "TauMLTools/Training/interface/DataLoader_main.h"
     rm_inner_from_outer  : False
-    input_type           : "ROOT" # supported 'ROOT' or 'tf'
-    tf_input_dir         : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/tf_datasets/emb_21k_99cut" # path to saved tf dataset
+    input_type           : "ROOT" # supported "Adversarial", 'ROOT' or 'tf'
+    tf_input_dir         : /eos/cms/store/group/phys_tau/TauML/prod_2018_v2/tf_datasets/emb_21k_99cut # path to saved tf dataset
     tf_dataset_x_order   : ["TauFlat", "inner_egamma", "inner_muon", "inner_hadron", "outer_egamma", "outer_muon", "outer_hadron"] # specify order of layers in tf dataset
-
+    adversarial_dataset  : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/adversarial_datasets/AdvTraining" # False if not use, ds name if use
+    adv_parameter        : [1, 10] # k1, k2 for gradients in common layers
+    n_adv_tau            : 100 # number of candidates per adversarial batch
+    adv_learning_rate    : 0.01
+    use_previous_opt     : False
     # here define variables for the Histogram_2D class
     yaxis                : [
       20. , 30. , 40. , 50. , 60. , 70. , 80. , 90. , 100., 110.,

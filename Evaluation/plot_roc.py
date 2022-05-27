@@ -133,7 +133,7 @@ import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import OmegaConf, DictConfig
 
-@hydra.main(config_path='.', config_name='plot_roc')
+@hydra.main(config_path='configs', config_name='plot_roc')
 def main(cfg: DictConfig) -> None:
     path_to_mlflow = to_absolute_path(cfg.path_to_mlflow)
     mlflow.set_tracking_uri(f"file://{path_to_mlflow}")
