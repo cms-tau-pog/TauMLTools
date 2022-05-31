@@ -533,11 +533,14 @@ public:
 
             if(hasTrackDetails) {
               fillGrid(Br::pfCand_ele_dxy, tau.pfCand_dxy.at(pfCand_idx));
-              fillGrid(Br::pfCand_ele_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) / tau.pfCand_dxy_error.at(pfCand_idx));
+              if(tau.pfCand_dxy_error.at(pfCand_idx)!=0)
+                fillGrid(Br::pfCand_ele_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) / tau.pfCand_dxy_error.at(pfCand_idx));
               fillGrid(Br::pfCand_ele_dz, tau.pfCand_dz.at(pfCand_idx));
-              fillGrid(Br::pfCand_ele_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
+              if(tau.pfCand_dz_error.at(pfCand_idx)!=0)
+                fillGrid(Br::pfCand_ele_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
               fillGrid(Br::pfCand_ele_time, tau.pfCand_time.at(pfCand_idx));
-              fillGrid(Br::pfCand_ele_time_sig, std::abs(tau.pfCand_time.at(pfCand_idx)) / tau.pfCand_timeError.at(pfCand_idx));
+              if(tau.pfCand_timeError.at(pfCand_idx)!=0)
+                fillGrid(Br::pfCand_ele_time_sig, std::abs(tau.pfCand_time.at(pfCand_idx)) / tau.pfCand_timeError.at(pfCand_idx));
 
               if(tau.pfCand_track_ndof.at(pfCand_idx) > 0) {
                 fillGrid(Br::pfCand_ele_track_chi2_ndof, tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx));
@@ -581,11 +584,14 @@ public:
               if(hasTrackDetails){
 
               fillGrid(Br::pfCand_muon_dxy, tau.pfCand_dxy.at(pfCand_idx));
-              fillGrid(Br::pfCand_muon_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) / tau.pfCand_dxy_error.at(pfCand_idx));
+              if(tau.pfCand_dxy_error.at(pfCand_idx)!=0)
+                fillGrid(Br::pfCand_muon_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) / tau.pfCand_dxy_error.at(pfCand_idx));
               fillGrid(Br::pfCand_muon_dz, tau.pfCand_dz.at(pfCand_idx));
-              fillGrid(Br::pfCand_muon_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
+              if(tau.pfCand_dz_error.at(pfCand_idx)!=0)
+                fillGrid(Br::pfCand_muon_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
               fillGrid(Br::pfCand_muon_time, tau.pfCand_time.at(pfCand_idx));
-              fillGrid(Br::pfCand_muon_time_sig, std::abs(tau.pfCand_time.at(pfCand_idx)) / tau.pfCand_timeError.at(pfCand_idx));
+              if(tau.pfCand_timeError.at(pfCand_idx)!=0)
+                fillGrid(Br::pfCand_muon_time_sig, std::abs(tau.pfCand_time.at(pfCand_idx)) / tau.pfCand_timeError.at(pfCand_idx));
 
               if(tau.pfCand_track_ndof.at(pfCand_idx) > 0) {
                 fillGrid(Br::pfCand_muon_track_chi2_ndof, tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx));
@@ -631,12 +637,15 @@ public:
             fillGrid(Br::pfCand_chHad_hasTrackDetails, static_cast<float>(hasTrackDetails));
             if(hasTrackDetails) {
               fillGrid(Br::pfCand_chHad_dxy, tau.pfCand_dxy.at(pfCand_idx));
-              fillGrid(Br::pfCand_chHad_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) / tau.pfCand_dxy_error.at(pfCand_idx));
+              if(tau.pfCand_dxy_error.at(pfCand_idx)!=0)
+                fillGrid(Br::pfCand_chHad_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) / tau.pfCand_dxy_error.at(pfCand_idx));
               if(std::isfinite(tau.pfCand_dz.at(pfCand_idx))){
                 fillGrid(Br::pfCand_chHad_dz, tau.pfCand_dz.at(pfCand_idx));
-                fillGrid(Br::pfCand_chHad_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
+                if(tau.pfCand_dz_error.at(pfCand_idx)!=0)
+                  fillGrid(Br::pfCand_chHad_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
                 fillGrid(Br::pfCand_chHad_time, tau.pfCand_time.at(pfCand_idx));
-                fillGrid(Br::pfCand_chHad_time_sig, std::abs(tau.pfCand_time.at(pfCand_idx)) / tau.pfCand_timeError.at(pfCand_idx));
+                if(tau.pfCand_timeError.at(pfCand_idx)!=0)
+                  fillGrid(Br::pfCand_chHad_time_sig, std::abs(tau.pfCand_time.at(pfCand_idx)) / tau.pfCand_timeError.at(pfCand_idx));
               }
               if(tau.pfCand_track_ndof.at(pfCand_idx)!=0)
                 fillGrid(Br::pfCand_chHad_track_chi2_ndof, tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx));
@@ -703,14 +712,14 @@ public:
 
             if(hasTrackDetails){
               fillGrid(Br::pfCand_gamma_dxy, tau.pfCand_dxy.at(pfCand_idx));
-              fillGrid(Br::pfCand_gamma_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) /
-                                                      tau.pfCand_dxy_error.at(pfCand_idx));
+              if(tau.pfCand_dxy_error.at(pfCand_idx)!=0)
+                fillGrid(Br::pfCand_gamma_dxy_sig, std::abs(tau.pfCand_dxy.at(pfCand_idx)) / tau.pfCand_dxy_error.at(pfCand_idx));
               fillGrid(Br::pfCand_gamma_dz, tau.pfCand_dz.at(pfCand_idx));
-              fillGrid(Br::pfCand_gamma_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) /
-                                                     tau.pfCand_dz_error.at(pfCand_idx));
+              if(tau.pfCand_dz_error.at(pfCand_idx)!=0)
+                fillGrid(Br::pfCand_gamma_dz_sig, std::abs(tau.pfCand_dz.at(pfCand_idx)) / tau.pfCand_dz_error.at(pfCand_idx));
               fillGrid(Br::pfCand_gamma_time, tau.pfCand_time.at(pfCand_idx));
-              fillGrid(Br::pfCand_gamma_time_sig, std::abs(tau.pfCand_time.at(pfCand_idx)) /
-                                                     tau.pfCand_timeError.at(pfCand_idx));
+              if(tau.pfCand_timeError.at(pfCand_idx)!=0)
+                fillGrid(Br::pfCand_gamma_time_sig, std::abs(tau.pfCand_time.at(pfCand_idx)) / tau.pfCand_timeError.at(pfCand_idx));
               if(tau.pfCand_track_ndof.at(pfCand_idx) > 0) {
                 fillGrid(Br::pfCand_gamma_track_chi2_ndof, tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx));
                 fillGrid(Br::pfCand_gamma_track_ndof, tau.pfCand_track_ndof.at(pfCand_idx));
