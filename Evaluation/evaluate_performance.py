@@ -68,8 +68,7 @@ def main(cfg: DictConfig) -> None:
         if json_exists: # read performance data to append additional info 
             performance_data = json.load(json_file)
         else: # create dictionary to fill with data
-            performance_data = {'name': discriminator.name, 'period': cfg.period, 'metrics': defaultdict(list), 
-                                'roc_curve': defaultdict(list), 'roc_wp': defaultdict(list)}
+            performance_data = {'name': discriminator.name, 'period': cfg.period, 'metrics': defaultdict(list)}
 
         # loop over pt bins
         print(f'\n{discriminator.name}')
@@ -171,6 +170,8 @@ def main(cfg: DictConfig) -> None:
                     curve_data['plot_setup']['dm_text'] = r'DM$ \in {}$'.format(dm_bin)
 
                 # append data for a given curve_type and pt bin
+                if curve_type not in performance_data['metrics']:
+                    performance_data['metrics'][curve_type] = []
                 performance_data['metrics'][curve_type].append(curve_data)
 
         json_file.seek(0) 
