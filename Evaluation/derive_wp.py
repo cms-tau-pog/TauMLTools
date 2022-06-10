@@ -104,7 +104,7 @@ class WPMaker:
                 print('\n-> Converged!')
                 break
 
-def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, selection, **kwargs):
+def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, tau_type_to_select, selection, **kwargs):
     df = []
     path_to_preds = os.path.abspath(to_absolute_path(path_to_preds))
 
@@ -142,32 +142,32 @@ def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, sele
             assert not any(df_.isna().any(axis=0)), 'found NaNs!'
             df.append(df_)
 
-    # select+combine taus across input samples and apply selection
+    # select+combine objects of specified tau_type across input samples and apply selection
     df = pd.concat(df, axis=0)
-    taus = df.query(f'targets_node_tau==1')
+    df_tau_type = df.query(f'targets_node_{tau_type_to_select}==1')
     if selection is not None:
-        taus = taus.query(selection)
+        df_tau_type = df_tau_type.query(selection)
 
     # compute vs_type discriminator scores
     vs_types = ['e', 'mu', 'jet']
     for vs_type in vs_types:
-        taus['score_vs_' + vs_type] = WPMaker.tau_vs_other(taus['predictions_node_tau'].values, taus['predictions_node_' + vs_type].values)
+        df_tau_type['score_vs_' + vs_type] = WPMaker.tau_vs_other(df_tau_type['predictions_node_tau'].values, df_tau_type['predictions_node_' + vs_type].values)
    
-    print(f'\n-> Selected {taus.shape[0]} taus\n')
-    return taus
+    print(f'\n-> Selected {df_tau_type.shape[0]} {tau_type_to_select}s')
+    return df_tau_type
 
 
 @hydra.main(config_path='configs', config_name='derive_wp')
 def main(cfg: DictConfig) -> None:
-    wp_maker = instantiate(cfg.wp_maker)
-    wp_maker._taus = call(cfg.create_df)
+    wp_maker = instantiate(cfg['wp_maker'])
+    wp_maker._taus = call(cfg['create_df'])
     wp_maker.run()
     wp_maker.print_wp()
 
     if wp_maker.is_converged():
-        if os.path.exists(path_to_mlflow:=to_absolute_path(cfg.create_df.path_to_mlflow)):
+        if os.path.exists(path_to_mlflow:=to_absolute_path(cfg['create_df']['path_to_mlflow'])):
             mlflow.set_tracking_uri(f"file://{path_to_mlflow}")
-            if mlflow.get_experiment(experiment_id:=str(cfg.create_df.experiment_id)) and mlflow.get_run(run_id:=cfg.create_df.run_id):
+            if mlflow.get_experiment(experiment_id:=str(cfg['create_df']['experiment_id'])) and mlflow.get_run(run_id:=cfg['create_df']['run_id']):
                 path_to_artifacts = f'{path_to_mlflow}/{experiment_id}/{run_id}/artifacts'
                 
                 # store threshold values for all iterations
