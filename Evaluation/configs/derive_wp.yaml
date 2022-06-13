@@ -39,7 +39,7 @@ wp_maker:
   verbose: False
 
 create_df:
-  _target_: derive_wp.create_df
+  _target_: __main__.create_df
 
   # path to prediction files
   path_to_mlflow: ???
