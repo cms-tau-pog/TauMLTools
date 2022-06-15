@@ -34,7 +34,7 @@ wp_maker:
     jet: VVVLoose
   
   # convergence params
-  epsilon: 1e-7
+  epsilon: 1e-5
   n_iterations: 100
   verbose: False
 

@@ -71,7 +71,7 @@ class WPMaker:
         for vs_type, WPs in self.wp_definitions.items():
             print('    "{}": {{'.format(vs_type))
             for wp_name, wp_cfg in reversed(WPs.items()):
-                print( '        "{}": {:.7f},'.format(wp_name, wp_cfg['thrs'][-1]))
+                print( '        "{}": {:.4f},'.format(wp_name, wp_cfg['thrs'][-1]))
             print('    },')
         print('}')
 
@@ -119,7 +119,7 @@ def main(cfg: DictConfig) -> None:
                 # store final thresholds
                 wp_definitions_final = {}
                 for vs_type, WPs in wp_maker.wp_definitions.items():
-                    wp_definitions_final[vs_type] = {wp_name: wp_cfg['thrs'][-1] for wp_name, wp_cfg in reversed(WPs.items())}
+                    wp_definitions_final[vs_type] = {wp_name: round(wp_cfg['thrs'][-1], 4) for wp_name, wp_cfg in reversed(WPs.items())}
 
                 with open(f'{path_to_artifacts}/working_points.json', 'w') as json_file:
                     json_file.write(json.dumps(wp_definitions_final, indent=4))
