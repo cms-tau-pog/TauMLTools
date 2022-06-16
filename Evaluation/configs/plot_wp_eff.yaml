@@ -16,6 +16,7 @@ WPs_to_require:
   mu: VLoose
   jet: VVVLoose
 
+from_skims: False # if False, will run create_df() and log the skims to mlflow artifacts, otherwise will read the skims  
 create_df: # dataframe composition
   _target_: functools.partial # to instantiate a partial create_df() object 
   _args_: ["${get_method:__main__.create_df}"]
