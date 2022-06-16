@@ -9,7 +9,8 @@ pred_samples: # factorised from create_df() args for partial calls per tau_type
   jet:
     TTToSemiLeptonic: 'eventTuple_1-*_pred.h5'
 
-require_wp_vs_others: True # whether to apply additional selection to pass `WPs_to_require` (all except the one for `vs_type`)
+require_WPs_in_numerator: True # whether to require passing of `WPs_to_require` (all except the one for `vs_type`) in the numerator of the efficiency formula
+require_WPs_in_denominator: False # whether to require passing of `WPs_to_require` (all except the one for `vs_type`) in the denominator of the efficiency formula
 WPs_to_require:
   e: VVVLoose
   mu: VLoose
@@ -30,4 +31,4 @@ create_df: # dataframe composition
   input_tree_name: taus
   selection: '(tau_pt>=20) and (tau_pt<1000) and (abs(tau_eta) < 2.3) and (abs(tau_dz) < 0.2) and not (tau_decayMode in [5,6])'
 
-output_filename: wp_eff/plots/test.png # as /path/within/mlflow/artifacts/filename.png
+output_filename: wp_eff/plots/vs_${vs_type}/${var_cfg.var_name}.png # as /path/within/mlflow/artifacts/filename.png

@@ -24,26 +24,21 @@ def main(cfg: DictConfig) -> None:
     partial_plot_efficiency = instantiate(cfg["var_cfg"])
     
     # make dataframes with specified input features and predictions for each tau_type
-    vs_types = ['e', 'mu', 'jet']
     vs_type = cfg['vs_type']
     df_sel = {}
     for tau_type in ['tau', vs_type]:
         df = partial_create_df(tau_type_to_select=tau_type, pred_samples=cfg['pred_samples'][tau_type])
-        if cfg['require_wp_vs_others']:
-            for other_vs_type in vs_types:
-                if other_vs_type == vs_type: continue
-                wp_to_require = cfg['WPs_to_require'][other_vs_type]
-                thr = wp_definitions[other_vs_type][wp_to_require] # select thresholds for specified WP
-                df = df.query(f'score_vs_{other_vs_type} > {thr}', inplace=False) # require passing it
-                print(f'   After passing required {wp_to_require} WP vs. {other_vs_type}: {df.shape[0]}')
         df_sel[tau_type] = df
-        print()
 
     # compute and plot efficiency curves
     wp_thrs, wp_names = list(wp_definitions[vs_type].values()), list(wp_definitions[vs_type].keys())
-    eff, eff_up, eff_down = differential_efficiency(df_sel['tau'], df_sel[vs_type], 
-                                                             cfg['var_cfg']['var_name'], cfg['var_cfg']['var_bins'],
-                                                            'score_vs_' + vs_type, wp_thrs)
+    WPs_to_require = OmegaConf.to_object(cfg['WPs_to_require'])
+    del WPs_to_require[vs_type] # remove vs_type key
+    eff, eff_up, eff_down = differential_efficiency(df_sel['tau'], df_sel[vs_type],
+                                                    cfg['var_cfg']['var_name'], cfg['var_cfg']['var_bins'], 
+                                                    vs_type, 'score_vs_', wp_thrs,
+                                                    cfg['require_WPs_in_numerator'], cfg['require_WPs_in_denominator'],
+                                                    WPs_to_require, wp_definitions)
     fig = partial_plot_efficiency(eff=eff, eff_up=eff_up, eff_down=eff_down, labels=wp_names)
 
     # log to mlflow
