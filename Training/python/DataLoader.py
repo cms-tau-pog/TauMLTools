@@ -116,7 +116,7 @@ class DataLoader (DataLoaderBase):
             print("Files for training:", len(self.train_files))
             print("Files for validation:", len(self.val_files))
 
-        self.compile_classes(config, file_scaling, self.dataloader_core, data_files)
+            self.compile_classes(config, file_scaling, self.dataloader_core, data_files)
 
 
 
