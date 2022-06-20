@@ -39,31 +39,37 @@ public:
         nCellsEta(_nCellsEta), nCellsPhi(_nCellsPhi), nTotal(nCellsEta * nCellsPhi),
         cellSizeEta(_cellSizeEta), cellSizePhi(_cellSizePhi), cells(nTotal)
     {
-        if(nCellsEta % 2 != 1 || nCellsEta < 1)
+        if(nCellsEta < 1) //(nCellsEta % 2 != 1 || nCellsEta < 1)
             throw std::invalid_argument("Invalid number of eta cells.");
-        if(nCellsPhi % 2 != 1 || nCellsPhi < 1)
+        if(nCellsPhi < 1) //(nCellsPhi % 2 != 1 || nCellsPhi < 1)
             throw std::invalid_argument("Invalid number of phi cells.");
         if(cellSizeEta <= 0 || cellSizePhi <= 0)
             throw std::invalid_argument("Invalid cell size.");
     }
 
-    int MaxEtaIndex() const { return static_cast<int>((nCellsEta - 1) / 2); }
-    int MaxPhiIndex() const { return static_cast<int>((nCellsPhi - 1) / 2); }
-    double MaxDeltaEta() const { return cellSizeEta * (0.5 + MaxEtaIndex()); }
-    double MaxDeltaPhi() const { return cellSizePhi * (0.5 + MaxPhiIndex()); }
+    int MaxEtaIndex() const { return static_cast<int>(nCellsEta / 2); } //{ return static_cast<int>((nCellsEta - 1) / 2); }
+    int MaxPhiIndex() const { return static_cast<int>(nCellsPhi / 2); } //{ return static_cast<int>((nCellsPhi - 1) / 2); }
+    double MaxDeltaEta() const { return cellSizeEta * (0.5 * nCellsEta); } //{ return cellSizeEta * (0.5 + MaxEtaIndex()); }
+    double MaxDeltaPhi() const { return cellSizePhi * (0.5 * nCellsPhi); } //{ return cellSizePhi * (0.5 + MaxPhiIndex()); }
+    bool evengridsize() const { return nCellsEta % 2 != 1 || nCellsPhi % 2 != 1; }
 
     bool TryGetCellIndex(double deltaEta, double deltaPhi, CellIndex& cellIndex) const
     {
-        static auto getCellIndex = [](double x, double maxX, double size, int& index) {
+        static auto getCellIndex = [](double x, double maxX, double size, int& index, bool evengridsize) {
             const double absX = std::abs(x);
             if(absX > maxX) return false;
-            const double absIndex = std::floor(absX / size + 0.5);
-            index = static_cast<int>(std::copysign(absIndex, x));
+            if(evengridsize){
+                const double absIndex = std::floor(x / size);
+                index = static_cast<int>(absIndex);
+            }else{
+                const double absIndex = std::floor(absX / size + 0.5);
+                index = static_cast<int>(std::copysign(absIndex, x));
+            }
             return true;
         };
 
-        return getCellIndex(deltaEta, MaxDeltaEta(), cellSizeEta, cellIndex.eta)
-               && getCellIndex(deltaPhi, MaxDeltaPhi(), cellSizePhi, cellIndex.phi);
+        return getCellIndex(deltaEta, MaxDeltaEta(), cellSizeEta, cellIndex.eta, evengridsize())
+               && getCellIndex(deltaPhi, MaxDeltaPhi(), cellSizePhi, cellIndex.phi, evengridsize());
     }
 
     Cell& at(const CellIndex& cellIndex) { return cells.at(GetFlatIndex(cellIndex)); }
@@ -426,11 +432,13 @@ public:
           for(int distance = 0; distance <= max_distance; ++distance) {
               const int max_eta_d = std::min(max_eta_index, distance);
               for(int eta_index = -max_eta_d; eta_index <= max_eta_d; ++eta_index) {
+                  if(cellGrid.evengridsize() && eta_index == cellGrid.MaxEtaIndex()) continue;
                   const int max_phi_d = distance - std::abs(eta_index);
                   if(max_phi_d > max_phi_index) continue;
                   const size_t n_max = max_phi_d ? 2 : 1;
                   for(size_t n = 0; n < n_max; ++n) {
                       int phi_index = n ? max_phi_d : -max_phi_d;
+                      if(cellGrid.evengridsize() && phi_index == cellGrid.MaxPhiIndex()) continue;
                       const CellIndex cellIndex{eta_index, phi_index};
                       if(processed_cells.count(cellIndex))
                           throw std::runtime_error("Duplicated cell index in FillCellGrid.");
@@ -440,7 +448,7 @@ public:
                   }
               }
           }
-          if(processed_cells.size() != static_cast<size_t>( (2 * max_eta_index + 1) * (2 * max_phi_index + 1) ))
+          if( (processed_cells.size() != static_cast<size_t>( (2 * max_eta_index + 1) * (2 * max_phi_index + 1) )) && (cellGrid.evengridsize() && processed_cells.size() != static_cast<size_t>( (2 * max_eta_index) * (2 * max_phi_index) )))
               throw std::runtime_error("Not all cell indices are processed in FillCellGrid.");
       }
 
