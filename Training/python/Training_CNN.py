@@ -781,7 +781,7 @@ def main(cfg: DictConfig) -> None:
         mlflow.log_dict(training_cfg, 'input_cfg/training_cfg.yaml')
         mlflow.log_artifact(scaling_cfg, 'input_cfg')
         mlflow.log_artifact(to_absolute_path("Training_CNN.py"), 'input_cfg')
-        mlflow.log_artifact(to_absolute_path("../common.py"), 'input_cfg')
+        mlflow.log_artifact(to_absolute_path("common.py"), 'input_cfg')
 
         # log hydra files
         mlflow.log_artifacts('.hydra', 'input_cfg/hydra')
