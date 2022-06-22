@@ -2,7 +2,7 @@ hydra:
   run:
     dir: outputs/${experiment_name}/${training_cfg.SetupNN.model_name}/${now:%Y-%m-%d_%H-%M-%S}
 defaults:
-  - ../../configs@_global_.training_cfg: training_v1
+  - ../configs@_global_.training_cfg: training_v1
   - _self_
 
 # mlflow
@@ -16,7 +16,7 @@ pretrained: null
 #   starting_model: ??? # e.g: DeepTau2018v0_step1_final.tf
 
 # setup
-scaling_cfg: ../../configs/ShuffleMergeSpectral_trainingSamples-2_files_0_498.json # for DataLoader initialisation
+scaling_cfg: ../configs/ShuffleMergeSpectral_trainingSamples-2_files_0_498.json # for DataLoader initialisation
 gpu_cfg:
   gpu_mem  : 7 # in Gb
   gpu_index: 0

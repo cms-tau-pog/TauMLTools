@@ -84,6 +84,8 @@ SetupNN:
     TauLossesSFs         : [1, 2.5, 5, 1.5]
     optimizer_name       : "Nadam"
     learning_rate        : 0.001
+    schedule_decay       : 0.0001
+    step_decay           : 0 # Halve lr every *this* epochs, if not 0
     tau_net              : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.4, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
     comp_net             : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
     comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "n", "last_layer_width": 64 }
@@ -290,6 +292,7 @@ Features_all :
                 - pfCand_ele_vertex_dx: [*is_pfElectron, {"pfCand_ele_vertex_dx": "pfCand_vertex_x-pv_x"}, "normal", -5, 5]
                 - pfCand_ele_vertex_dy: [*is_pfElectron, {"pfCand_ele_vertex_dy": "pfCand_vertex_y-pv_y"}, "normal", -5, 5]
                 - pfCand_ele_vertex_dz: [*is_pfElectron, {"pfCand_ele_vertex_dz": "pfCand_vertex_z-pv_z"}, "normal", -5, 5]
+                - pfCand_ele_vertex_dt: [*is_pfElectron, {"pfCand_ele_vertex_dt": "pfCand_vertex_t-pv_t"}, "normal", -5, 5]
                 - pfCand_ele_vertex_dx_tauFL: [*is_pfElectron, {"pfCand_ele_vertex_dx_tauFL": "pfCand_vertex_x-pv_x-tau_flightLength_x"}, "normal", -5, 5]
                 - pfCand_ele_vertex_dy_tauFL: [*is_pfElectron, {"pfCand_ele_vertex_dy_tauFL": "pfCand_vertex_y-pv_y-tau_flightLength_y"}, "normal", -5, 5]
                 - pfCand_ele_vertex_dz_tauFL: [*is_pfElectron, {"pfCand_ele_vertex_dz_tauFL": "pfCand_vertex_z-pv_z-tau_flightLength_z"}, "normal", -5, 5]
@@ -298,6 +301,8 @@ Features_all :
                 - pfCand_ele_dxy_sig: [*is_pfElectron_hasTrackDetails, {"pfCand_ele_dxy_sig": "abs(pfCand_dxy)/pfCand_dxy_error"}, "normal", -5, 5]
                 - pfCand_ele_dz: [*is_pfElectron_hasTrackDetails, {"pfCand_ele_dz": "pfCand_dz"}, "normal", -5, 5]
                 - pfCand_ele_dz_sig: [*is_pfElectron_hasTrackDetails, {"pfCand_ele_dz_sig": "abs(pfCand_dz)/pfCand_dz_error"}, "normal", -5, 5]
+                - pfCand_ele_time: [*is_pfElectron_hasTrackDetails, {"pfCand_ele_time": "pfCand_time"}, "normal", -5, 5]
+                - pfCand_ele_time_sig: [*is_pfElectron_hasTrackDetails, {"pfCand_ele_time_sig": "abs(pfCand_time)/pfCand_timeError"}, "normal", -5, 5]
                 - pfCand_ele_track_chi2_ndof: [*is_pfElectron_hasTrackDetails_track_ndof, {"pfCand_ele_track_chi2_ndof": "pfCand_track_chi2/pfCand_track_ndof"}, "normal", -5, 5]
                 - pfCand_ele_track_ndof: [*is_pfElectron_hasTrackDetails_track_ndof, {"pfCand_ele_track_ndof": "pfCand_track_ndof"}, "normal", -5, 5]
 
@@ -315,6 +320,7 @@ Features_all :
               - pfCand_muon_vertex_dx: [*is_pfMuon, {"pfCand_muon_vertex_dx": "pfCand_vertex_x-pv_x"}, "normal", -5, 5]
               - pfCand_muon_vertex_dy: [*is_pfMuon, {"pfCand_muon_vertex_dy": "pfCand_vertex_y-pv_y"}, "normal", -5, 5]
               - pfCand_muon_vertex_dz: [*is_pfMuon, {"pfCand_muon_vertex_dz": "pfCand_vertex_z-pv_z"}, "normal", -5, 5]
+              - pfCand_muon_vertex_dt: [*is_pfMuon, {"pfCand_muon_vertex_dt": "pfCand_vertex_t-pv_t"}, "normal", -5, 5]
               - pfCand_muon_vertex_dx_tauFL: [*is_pfMuon, {"pfCand_muon_vertex_dx_tauFL": "pfCand_vertex_x-pv_x-tau_flightLength_x"}, "normal", -5, 5]
               - pfCand_muon_vertex_dy_tauFL: [*is_pfMuon, {"pfCand_muon_vertex_dy_tauFL": "pfCand_vertex_y-pv_y-tau_flightLength_y"}, "normal", -5, 5]
               - pfCand_muon_vertex_dz_tauFL: [*is_pfMuon, {"pfCand_muon_vertex_dz_tauFL": "pfCand_vertex_z-pv_z-tau_flightLength_z"}, "normal", -5, 5]
@@ -323,6 +329,8 @@ Features_all :
               - pfCand_muon_dxy_sig: [*is_pfMuon_hasTrackDetails, {"pfCand_muon_dxy_sig": "abs(pfCand_dxy)/pfCand_dxy_error"}, "normal", -5, 5]
               - pfCand_muon_dz: [*is_pfMuon_hasTrackDetails, {"pfCand_muon_dz": "pfCand_dz"}, "normal", -5, 5]
               - pfCand_muon_dz_sig: [*is_pfMuon_hasTrackDetails, {"pfCand_muon_dz_sig": "abs(pfCand_dz)/pfCand_dz_error"}, "normal", -5, 5]
+              - pfCand_muon_time: [*is_pfMuon_hasTrackDetails, {"pfCand_muon_time": "pfCand_time"}, "normal", -5, 5]
+              - pfCand_muon_time_sig: [*is_pfMuon_hasTrackDetails, {"pfCand_muon_time_sig": "abs(pfCand_time)/pfCand_timeError"}, "normal", -5, 5]
               - pfCand_muon_track_chi2_ndof: [*is_pfMuon_hasTrackDetails_track_ndof, {"pfCand_muon_track_chi2_ndof": "pfCand_track_chi2/pfCand_track_ndof"}, "normal", -5, 5]
               - pfCand_muon_track_ndof: [*is_pfMuon_hasTrackDetails_track_ndof, {"pfCand_muon_track_ndof": "pfCand_track_ndof"}, "normal", -5, 5]
 
@@ -342,6 +350,7 @@ Features_all :
               - pfCand_chHad_vertex_dx: [*is_chargedHadron, {"pfCand_chHad_vertex_dx": "pfCand_vertex_x - pv_x"}, "normal", -5, 5]
               - pfCand_chHad_vertex_dy: [*is_chargedHadron, {"pfCand_chHad_vertex_dy": "pfCand_vertex_y - pv_y"}, "normal", -5, 5]
               - pfCand_chHad_vertex_dz: [*is_chargedHadron, {"pfCand_chHad_vertex_dz": "pfCand_vertex_z - pv_z"}, "normal", -5, 5]
+              - pfCand_chHad_vertex_dt: [*is_chargedHadron, {"pfCand_chHad_vertex_dt": "pfCand_vertex_t - pv_t"}, "normal", -5, 5]
               - pfCand_chHad_vertex_dx_tauFL: [*is_chargedHadron, {"pfCand_chHad_vertex_dx_tauFL": "pfCand_vertex_x - pv_x - tau_flightLength_x"}, "normal", -5, 5]
               - pfCand_chHad_vertex_dy_tauFL: [*is_chargedHadron, {"pfCand_chHad_vertex_dy_tauFL": "pfCand_vertex_y - pv_y - tau_flightLength_y"}, "normal", -5, 5]
               - pfCand_chHad_vertex_dz_tauFL: [*is_chargedHadron, {"pfCand_chHad_vertex_dz_tauFL": "pfCand_vertex_z - pv_z - tau_flightLength_z"}, "normal", -5, 5]
@@ -350,6 +359,8 @@ Features_all :
               - pfCand_chHad_dxy_sig: [*is_chargedHadron_hasTrackDetails, {"pfCand_chHad_dxy_sig": "abs(pfCand_dxy)/pfCand_dxy_error"}, "normal", -5, 5]
               - pfCand_chHad_dz: [*is_chargedHadron_hasTrackDetails, {"pfCand_chHad_dz": "pfCand_dz"}, "normal", -5, 5]
               - pfCand_chHad_dz_sig: [*is_chargedHadron_hasTrackDetails, {"pfCand_chHad_dz_sig": "abs(pfCand_dz)/pfCand_dz_error"}, "normal", -5, 5]
+              - pfCand_chHad_time: [*is_chargedHadron_hasTrackDetails, {"pfCand_chHad_time": "pfCand_time"}, "normal", -5, 5]
+              - pfCand_chHad_time_sig: [*is_chargedHadron_hasTrackDetails, {"pfCand_chHad_time_sig": "abs(pfCand_time)/pfCand_timeError"}, "normal", -5, 5]
               - pfCand_chHad_track_chi2_ndof: [*is_chargedHadron_hasTrackDetails_track_ndof, {"pfCand_chHad_track_chi2_ndof": "pfCand_track_chi2/pfCand_track_ndof"}, "normal", -5, 5]
               - pfCand_chHad_track_ndof: [*is_chargedHadron_hasTrackDetails_track_ndof, {"pfCand_chHad_track_ndof": "pfCand_track_ndof"}, "normal", -5, 5]
               - pfCand_chHad_hcalFraction: [*is_chargedHadron, {"pfCand_chHad_hcalFraction": "pfCand_hcalFraction"}, "no_scaling"]
@@ -378,6 +389,7 @@ Features_all :
               - pfCand_gamma_vertex_dx: [*is_pfGamma, {"pfCand_gamma_vertex_dx": "pfCand_vertex_x - pv_x"}, "normal", -5, 5]
               - pfCand_gamma_vertex_dy: [*is_pfGamma, {"pfCand_gamma_vertex_dy": "pfCand_vertex_y - pv_y"}, "normal", -5, 5]
               - pfCand_gamma_vertex_dz: [*is_pfGamma, {"pfCand_gamma_vertex_dz": "pfCand_vertex_z - pv_z"}, "normal", -5, 5]
+              - pfCand_gamma_vertex_dt: [*is_pfGamma, {"pfCand_gamma_vertex_dt": "pfCand_vertex_t - pv_t"}, "normal", -5, 5]
               - pfCand_gamma_vertex_dx_tauFL: [*is_pfGamma, {"pfCand_gamma_vertex_dx_tauFL": "pfCand_vertex_x - pv_x - tau_flightLength_x"}, "normal", -5, 5]
               - pfCand_gamma_vertex_dy_tauFL: [*is_pfGamma, {"pfCand_gamma_vertex_dy_tauFL": "pfCand_vertex_y - pv_y - tau_flightLength_y"}, "normal", -5, 5]
               - pfCand_gamma_vertex_dz_tauFL: [*is_pfGamma, {"pfCand_gamma_vertex_dz_tauFL": "pfCand_vertex_z - pv_z - tau_flightLength_z"}, "normal", -5, 5]
@@ -386,6 +398,8 @@ Features_all :
               - pfCand_gamma_dxy_sig: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_dxy_sig": "abs(pfCand_dxy)/pfCand_dxy_error"}, "normal", -5, 5]
               - pfCand_gamma_dz: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_dz": "pfCand_dz"}, "normal", -5, 5]
               - pfCand_gamma_dz_sig: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_dz_sig": "abs(pfCand_dz)/pfCand_dz_error"}, "normal", -5, 5]
+              - pfCand_gamma_time: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_time": "pfCand_time"}, "normal", -5, 5]
+              - pfCand_gamma_time_sig: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_time_sig": "abs(pfCand_time)/pfCand_timeError"}, "normal", -5, 5]
               - pfCand_gamma_track_chi2_ndof: [*is_pfGamma_hasTrackDetails_track_ndof, {"pfCand_gamma_track_chi2_ndof": "pfCand_track_chi2/pfCand_track_ndof"}, "normal", -5, 5]
               - pfCand_gamma_track_ndof: [*is_pfGamma_hasTrackDetails_track_ndof, {"pfCand_gamma_track_ndof": "pfCand_track_ndof"}, "normal", -5, 5]
 
@@ -470,10 +484,10 @@ Features_all :
 Features_disable :
     TauFlat : ["tau_phi"]
     GridGlobal : []
-    PfCand_electron : [ ]
-    PfCand_muon : [ ]
-    PfCand_chHad : [ ]
+    PfCand_electron : ["pfCand_ele_vertex_dt", "pfCand_ele_time", "pfCand_ele_time_sig"]
+    PfCand_muon : ["pfCand_muon_vertex_dt", "pfCand_muon_time", "pfCand_muon_time_sig"]
+    PfCand_chHad : ["pfCand_chHad_vertex_dt", "pfCand_chHad_time", "pfCand_chHad_time_sig"]
     PfCand_nHad : [ ]
-    PfCand_gamma : [ ]
+    PfCand_gamma : ["pfCand_gamma_vertex_dt", "pfCand_gamma_time", "pfCand_gamma_time_sig"]
     Electron : [ ]
     Muon : [ ]

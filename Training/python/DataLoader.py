@@ -99,6 +99,7 @@ class DataLoader (DataLoaderBase):
         self.input_grids        = self.config["SetupNN"]["input_grids"]
         self.n_cells = { 'inner': self.n_inner_cells, 'outer': self.n_outer_cells }
         self.model_name       = self.config["SetupNN"]["model_name"]
+        self.step_decay       = self.config["SetupNN"]["step_decay"]
         self.use_weights = self.config["Setup"]["use_weights"]
         self.DeepTauVSjet_cut  = self.config["Setup"]["DeepTauVSjet_cut"]
         self.cell_locations = self.config["SetupNN"]["cell_locations"]
@@ -121,7 +122,7 @@ class DataLoader (DataLoaderBase):
             print("Files for validation:", len(self.val_files))
             
 
-        self.compile_classes(config, file_scaling, self.dataloader_core, data_files)
+            self.compile_classes(config, file_scaling, self.dataloader_core, data_files)
 
 
 
