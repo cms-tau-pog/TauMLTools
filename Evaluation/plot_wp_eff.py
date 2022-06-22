@@ -34,11 +34,11 @@ def main(cfg: DictConfig) -> None:
             for tau_type in ['tau', vs_type]:
                 df = partial_create_df(tau_type_to_select=tau_type, pred_samples=cfg['pred_samples'][tau_type])
                 df.to_csv(f'{tau_type}.csv')
-                mlflow.log_artifact(f'{tau_type}.csv', f'wp_eff/data/{data_subfolder}')
+                mlflow.log_artifact(f'{tau_type}.csv', f"{cfg['output_skim_folder']}/{data_subfolder}")
                 df_sel[tau_type] = df
     else: # read already existing skimmed dataframes
         for tau_type in ['tau', vs_type]:
-            df = pd.read_csv(f"{path_to_mlflow}/{experiment_id}/{run_id}/artifacts/wp_eff/data/{data_subfolder}/{tau_type}.csv")
+            df = pd.read_csv(f"{path_to_mlflow}/{experiment_id}/{run_id}/artifacts/{cfg['output_skim_folder']}/{data_subfolder}/{tau_type}.csv")
             df_sel[tau_type] = df
 
     # compute and plot efficiency curves

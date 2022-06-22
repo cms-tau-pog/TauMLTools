@@ -53,4 +53,4 @@ create_df:
   # paths to input ROOT files will be retrieved from corresponding pred_input_filemap.json
   input_branches: [ 'tau_pt', 'tau_eta', 'tau_dz', 'tau_decayMode' ]
   input_tree_name: taus
-  selection: '(tau_pt>=20) and (tau_pt<1000) and (abs(tau_eta) < 2.3) and (abs(tau_dz) < 0.2) and not (tau_decayMode in [5,6])'
+  selection: '(tau_pt>=20) and (tau_pt<100) and (abs(tau_eta) < 2.3) and (abs(tau_dz) < 0.2) and not (tau_decayMode in [5,6])'
