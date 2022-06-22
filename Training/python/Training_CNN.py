@@ -37,7 +37,7 @@ import psutil
 
 class DeepTauModel(keras.Model):
 
-    def __init__(self, *args, loss=None, use_AdvDataset=False, adv_parameter=[1,1], n_adv_tau=None, adv_learning_rate=None, **kwargs):
+    def __init__(self, *args, loss=None, use_newloss=False, use_AdvDataset=False, adv_parameter=[1,1], n_adv_tau=None, adv_learning_rate=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.pure_loss_tracker = keras.metrics.Mean(name="pure_loss")
@@ -46,6 +46,7 @@ class DeepTauModel(keras.Model):
             self.model_loss = TauLosses.tau_crossentropy_v2
         else:
             self.model_loss = getattr(TauLosses,loss)
+        self.use_newloss = use_newloss
         self.use_AdvDataset = use_AdvDataset
         self.k1 = adv_parameter[0]
         self.k2 = adv_parameter[1]
@@ -96,7 +97,7 @@ class DeepTauModel(keras.Model):
                 reg_loss = reg_losses # Empty
                 loss = pure_loss
                 loss_vec = pure_loss_vec
-            self.y_pred = y_pred
+            if self.use_newloss: self.y_pred = y_pred
             if self.use_AdvDataset:
                 return y_pred_class, y_pred_adv, loss, reg_loss, pure_loss, adv_loss  
             else:
@@ -139,9 +140,9 @@ class DeepTauModel(keras.Model):
             self.compiled_metrics.update_state(y, y_pred_class, sample_weight = sample_weight)
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
-        self.x = x
-        self.y = y
-        self.sample_weight = sample_weight
+        if self.use_newloss:
+            self.y = y
+            self.sample_weight = sample_weight
         return metrics_out
     
     def test_step(self, data):
@@ -188,10 +189,6 @@ class DeepTauModel(keras.Model):
             self.compiled_metrics.update_state(y, y_pred_class, sample_weight)
         # Return a dict mapping metric names to current value
         metrics_out = {m.name: m.result() for m in self.metrics}
-        self.x = x
-        self.y = y
-        self.sample_weight = sample_weight
-        self.y_pred = y_pred
         return metrics_out
     
     @property
@@ -493,7 +490,7 @@ def get_n_filters_conv2d(n_input, current_size, window_size, reduction_rate):
     n_filters = ((float(current_size) / float(current_size - window_size + 1)) ** 2) * n_input / reduction_rate
     return int(math.ceil(n_filters))
 
-def create_model(net_config, model_name, loss=None, use_AdvDataset = False, adv_param = None, n_adv_tau=None, adv_learning_rate=None):
+def create_model(net_config, model_name, loss=None, use_newloss= False, use_AdvDataset = False, adv_param = None, n_adv_tau=None, adv_learning_rate=None):
     tau_net_setup = NetSetup1D(**net_config.tau_net)
     comp_net_setup = NetSetup2D(**net_config.comp_net)
     comp_merge_net_setup = NetSetup2D(**net_config.comp_merge_net)
@@ -566,10 +563,10 @@ def create_model(net_config, model_name, loss=None, use_AdvDataset = False, adv_
         output_layer_adv = Dense(1, name="final_dense_adv",
                             kernel_initializer=dense_net_setup.kernel_init)(final_dense_adv)
         sigmoid_output_adv = Activation("sigmoid", name="adv_output")(output_layer_adv)
-        model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], loss=loss, name=model_name, use_AdvDataset=True,
+        model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], loss=loss, name=model_name, use_newloss=use_newloss, use_AdvDataset=True,
                              adv_parameter=adv_param, n_adv_tau=n_adv_tau, adv_learning_rate=adv_learning_rate)
     else:
-        model = DeepTauModel(input_layers, softmax_output, loss = loss, name=model_name)
+        model = DeepTauModel(input_layers, softmax_output, loss = loss, name=model_name, use_newloss=use_newloss)
     return model
 
 def compile_model(model, opt_name, learning_rate, strmetrics, schedule_decay=1e-4):
@@ -738,10 +735,10 @@ def main(cfg: DictConfig) -> None:
         netConf_full = dataloader.get_net_config()
 
         if dataloader.input_type == "Adversarial":
-            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"], use_AdvDataset = True, 
+            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"], use_newloss=setup["using_new_loss"], use_AdvDataset = True, 
                                 adv_param = dataloader.adversarial_parameter, n_adv_tau=dataloader.adv_batch_size, adv_learning_rate=dataloader.adv_learning_rate)
         else:
-            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"])
+            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"], use_newloss=setup["using_new_loss"])
 
         if cfg.pretrained is None:
             print("Warning: no pretrained NN -> training will be started from scratch")
