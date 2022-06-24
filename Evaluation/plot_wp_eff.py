@@ -27,18 +27,17 @@ def main(cfg: DictConfig) -> None:
     
     # make dataframes with specified input features and predictions for each tau_type
     vs_type = cfg['vs_type']
-    data_subfolder = 'wp_in_denom' if cfg['require_WPs_in_denominator'] else 'no_wp_in_denom'
     df_sel = {}
     if not cfg['from_skims']: # create dataframes and log to mlflow 
         with mlflow.start_run(experiment_id=experiment_id, run_id=run_id) as active_run:
             for tau_type in ['tau', vs_type]:
                 df = partial_create_df(tau_type_to_select=tau_type, pred_samples=cfg['pred_samples'][tau_type])
                 df.to_csv(f'{tau_type}.csv')
-                mlflow.log_artifact(f'{tau_type}.csv', f"{cfg['output_skim_folder']}/{data_subfolder}")
+                mlflow.log_artifact(f'{tau_type}.csv', cfg['output_skim_folder'])
                 df_sel[tau_type] = df
     else: # read already existing skimmed dataframes
         for tau_type in ['tau', vs_type]:
-            df = pd.read_csv(f"{path_to_mlflow}/{experiment_id}/{run_id}/artifacts/{cfg['output_skim_folder']}/{data_subfolder}/{tau_type}.csv")
+            df = pd.read_csv(f"{path_to_mlflow}/{experiment_id}/{run_id}/artifacts/{cfg['output_skim_folder']}/{tau_type}.csv")
             df_sel[tau_type] = df
 
     # compute and plot efficiency curves
