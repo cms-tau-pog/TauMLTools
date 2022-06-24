@@ -16,7 +16,8 @@ def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, tau_
     path_to_preds = os.path.abspath(to_absolute_path(path_to_preds))
 
     # loop over input samples
-    for sample_name, filename_pattern in pred_samples.items():
+    for sample_name, sample_cfg in pred_samples.items():
+        filename_pattern = sample_cfg['filename_pattern']
         json_filemap_name = f'{path_to_preds}/{sample_name}/pred_input_filemap.json'
         with open(json_filemap_name, 'r') as json_file:
             target_input_map = json.load(json_file) 
@@ -29,6 +30,7 @@ def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, tau_
         else:
             raise Exception(f"unknown type of filename_pattern: {type(filename_pattern)}")
         
+        df_sample = []
         for pred_file in pred_files:
             # read predictions and labels
             l_ = []
@@ -45,20 +47,30 @@ def create_df(path_to_preds, pred_samples, input_branches, input_tree_name, tau_
             
             # concatenate input branches and predictions/labels
             assert df_pred.shape[0] == df_input.shape[0], "Sizes of prediction and input dataframes don't match."
-            df_ = pd.concat([df_pred, df_input], axis=1)
-            assert not any(df_.isna().any(axis=0)), 'found NaNs!'
-            df.append(df_)
+            df_sample_ = pd.concat([df_pred, df_input], axis=1)
+            assert not any(df_sample_.isna().any(axis=0)), 'found NaNs!'
+            df_sample.append(df_sample_)
+        
+        # concat together files for a given sample and apply tau_type matching & selection
+        df_sample = pd.concat(df_sample, axis=0)
+        df_sample = df_sample.query(f'targets_node_{tau_type_to_select}==1')
+        if selection is not None:
+            df_sample = df_sample.query(selection)
 
-    # select+combine objects of specified tau_type across input samples and apply selection
+        # compute weight variable
+        df_sample['weight'] = 1.
+        if sample_cfg['reweight_to_lumi'] is not None:
+            df_sample['weight'] *= sample_cfg['sample_lumi'] / (sample_cfg['reweight_to_lumi'] * df_sample.shape[0])
+        
+        df.append(df_sample)
+
+    # concat across samples
     df = pd.concat(df, axis=0)
-    df_tau_type = df.query(f'targets_node_{tau_type_to_select}==1')
-    if selection is not None:
-        df_tau_type = df_tau_type.query(selection)
 
     # compute vs_type discriminator scores
     vs_types = ['e', 'mu', 'jet']
     for vs_type in vs_types:
-        df_tau_type['score_vs_' + vs_type] = tau_vs_other(df_tau_type['predictions_node_tau'].values, df_tau_type['predictions_node_' + vs_type].values)
+        df['score_vs_' + vs_type] = tau_vs_other(df['predictions_node_tau'].values, df['predictions_node_' + vs_type].values)
    
-    print(f'\n-> Selected {df_tau_type.shape[0]} {tau_type_to_select}s')
-    return df_tau_type
+    print(f'\n-> Selected {df.shape[0]} {tau_type_to_select}s')
+    return df

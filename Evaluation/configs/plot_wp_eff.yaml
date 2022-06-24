@@ -5,9 +5,16 @@ defaults: # import plotting configuration
 vs_type: jet
 pred_samples: # factorised from create_df() args for partial calls per tau_type
   tau:
-    GluGluHToTauTau: 'eventTuple_1-*_pred.h5'
+    GluGluHToTauTau: 
+      filename_pattern: 'eventTuple_1-*_pred.h5' # single files, list of files and "*" are supported 
+      sample_lumi: null
+      reweight_to_lumi: null # null to not reweight
   jet:
-    TTToSemiLeptonic: 'eventTuple_1-*_pred.h5'
+    TTToSemiLeptonic:
+      filename_pattern: 'eventTuple_1-*_pred.h5'
+      sample_lumi: null
+      reweight_to_lumi: null
+
 
 require_WPs_in_numerator: True # whether to require passing of `WPs_to_require` (all except the one for `vs_type`) in the numerator of the efficiency formula
 require_WPs_in_denominator: False # whether to require passing of `WPs_to_require` (all except the one for `vs_type`) in the denominator of the efficiency formula

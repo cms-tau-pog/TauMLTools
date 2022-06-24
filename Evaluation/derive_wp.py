@@ -3,6 +3,7 @@ import json
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
+from statsmodels.stats.weightstats import DescrStatsW
 
 import mlflow
 import hydra
@@ -58,7 +59,8 @@ class WPMaker:
                 taus = self.apply_wp_vs_others(vs_type)
             else:
                 taus = self._taus 
-            thrs[vs_type] = np.quantile(taus[f'score_vs_{vs_type}'], 1 - self.tpr)
+            weighted_score = DescrStatsW(data=np.array(taus[f'score_vs_{vs_type}'], dtype=np.float32), weights=np.array(taus['weight'], dtype=np.float32))
+            thrs[vs_type] = weighted_score.quantile(probs=1-self.tpr, return_pandas=False)
 
         # then update them in the class 
         for vs_type, WPs in self.wp_definitions.items():
