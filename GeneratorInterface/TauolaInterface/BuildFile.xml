@@ -1,0 +1,13 @@
+<use name="FWCore/ParameterSet"/>
+<use name="FWCore/Framework"/>
+<use name="FWCore/PluginManager"/>
+<use name="GeneratorInterface/LHEInterface"/>
+<use name="hepmc"/>
+<use name="clhep"/>
+<use name="heppdt"/>
+<use name="tauolapp"/>
+<export>
+  <lib name="1"/>
+</export>
+
+

@@ -65,9 +65,19 @@
     VAR(Float_t, pv_chi2) /* chi^2 of the primary vertex (PV) */ \
     VAR(Float_t, pv_ndof) /* number of degrees of freedom of the primary vertex (PV) */ \
     VAR2(Float_t, met_pt, met_phi) /* MET momentum */ \
+    VAR3(Float_t, metcov_00, metcov_01, metcov_11) /* MET covariance */ \
+    VAR2(Float_t, puppimet_pt, puppimet_phi) /* PuppiMET momentum */ \
+    VAR3(Float_t, puppimetcov_00, puppimetcov_01, puppimetcov_11) /* MET covariance */ \
+    VAR2(Float_t, deepmet_pt, deepmet_phi) /* DeepMET momentum */ \
+    VAR3(Float_t, deepmetcov_00, deepmetcov_01, deepmetcov_11) /* MET covariance */ \
+    VAR2(Float_t, genmet_pt, genmet_phi) /* DeepMET momentum */ \
     VAR(Int_t, entry_index) /* Index of the entry in the event */ \
     VAR(Int_t, total_entries) /* The total number of entries in the event */ \
     /* Gen lepton with the full decay chain */ \
+    /* TauSpinner weights */ \
+    VAR(Double_t, tauSpinnerWTEven) \
+    VAR(Double_t, tauSpinnerWTOdd) \
+    VAR(Double_t, tauSpinnerWTMM) \
     VAR(Int_t, genLepton_index) /* index of the gen lepton */ \
     VAR(Int_t, genLepton_kind) /* kind of the gen lepton:
                                   Electron = 1, Muon = 2, TauElectron = 3, TauMuon = 4, Tau = 5, Other = 6 */\
