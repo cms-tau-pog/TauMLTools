@@ -173,7 +173,7 @@ def compare_input(cfg, print_grid=False):
                     )
                 )
 
-@hydra.main(config_path='.', config_name='input_compare')
+@hydra.main(config_path='configs', config_name='input_compare')
 def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
     
