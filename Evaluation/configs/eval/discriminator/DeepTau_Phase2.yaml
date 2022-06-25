@@ -1,6 +1,6 @@
 # general
-name: DeepTau vs. ${vs_type} (Phase 2)
-color: orange
+name: DeepTau (Phase 2)
+color: black
 dashed: False
 raw: True
 

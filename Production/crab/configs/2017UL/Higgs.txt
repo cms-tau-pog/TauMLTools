@@ -1,0 +1,2 @@
+sampleType=MC_UL17
+GluGluHToTauTau_M125 /GluGluHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL17MiniAODv2-106X_mc2017_realistic_v9-v3/MINIAODSIM

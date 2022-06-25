@@ -15,8 +15,8 @@ import tensorflow.keras.backend as K
 from tensorflow.keras import regularizers
 from tensorflow.keras.models import Sequential, Model, load_model
 from tensorflow.keras.layers import Input, Dense, Conv2D, Dropout, AlphaDropout, Activation, BatchNormalization, Flatten, \
-                                    Concatenate, PReLU, TimeDistributed, LSTM, Masking
-from tensorflow.keras.callbacks import Callback, ModelCheckpoint, CSVLogger
+                                    Concatenate, PReLU, TimeDistributed, LSTM, Masking, MaxPooling2D
+from tensorflow.keras.callbacks import Callback, ModelCheckpoint, CSVLogger, LearningRateScheduler
 from datetime import datetime
 
 import mlflow
@@ -37,7 +37,7 @@ import psutil
 
 class DeepTauModel(keras.Model):
 
-    def __init__(self, *args, loss=None, use_AdvDataset=False, adv_parameter=[1,1], n_adv_tau=None, adv_learning_rate=None, **kwargs):
+    def __init__(self, *args, loss=None, use_newloss=False, use_AdvDataset=False, adv_parameter=[1,1], n_adv_tau=None, adv_learning_rate=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.loss_tracker = keras.metrics.Mean(name="loss")
         self.pure_loss_tracker = keras.metrics.Mean(name="pure_loss")
@@ -46,6 +46,7 @@ class DeepTauModel(keras.Model):
             self.model_loss = TauLosses.tau_crossentropy_v2
         else:
             self.model_loss = getattr(TauLosses,loss)
+        self.use_newloss = use_newloss
         self.use_AdvDataset = use_AdvDataset
         self.k1 = adv_parameter[0]
         self.k2 = adv_parameter[1]
@@ -96,6 +97,7 @@ class DeepTauModel(keras.Model):
                 reg_loss = reg_losses # Empty
                 loss = pure_loss
                 loss_vec = pure_loss_vec
+            if self.use_newloss: self.y_pred = y_pred
             if self.use_AdvDataset:
                 return y_pred_class, y_pred_adv, loss, reg_loss, pure_loss, adv_loss  
             else:
@@ -138,6 +140,9 @@ class DeepTauModel(keras.Model):
             self.compiled_metrics.update_state(y, y_pred_class, sample_weight = sample_weight)
         # Return a dict mapping metric names to current value (printout)
         metrics_out =  {m.name: m.result() for m in self.metrics}
+        if self.use_newloss:
+            self.y = y
+            self.sample_weight = sample_weight
         return metrics_out
     
     def test_step(self, data):
@@ -210,6 +215,96 @@ class DeepTauModel(keras.Model):
         for l in self._flatten_layers():
             metrics.extend(l._metrics)  # pylint: disable=protected-access
         return metrics
+
+class UpdatedLossCallback(keras.callbacks.Callback):
+    def __init__(self, data_upd=None):
+        super().__init__()
+        self.nbins = 10000
+        self.MisIDWPs = {"e": [0.065, 0.03, 0.015, 0.005, 0.002, 0.0007, 0.0003, 0.0001], "mu": [0.002, 0.0006, 0.0004, 0.0002], "jet": [0.1, 0.08, 0.04, 0.02, 0.01, 0.006, 0.004, 0.002]}
+        self.data_upd = data_upd
+
+    def on_epoch_begin(self, epoch, logs=None):
+        self.res = {}
+        self.firstbatch = True
+
+    def on_train_batch_end(self, batch, logs=None):
+        if self.firstbatch:
+            for typ,ID in zip(["e", "mu", "jet"], [0,1,3]):
+                self.res[typ] = tf.where(self.model.y[:,ID]==1.0, self.model.y_pred[:,2]/(self.model.y_pred[:,2]+self.model.y_pred[:,ID]), -1)
+                self.res["tau"+typ] = tf.where(self.model.y[:,2]==1.0, self.model.y_pred[:,2]/(self.model.y_pred[:,2]+self.model.y_pred[:,ID]), -1)
+            self.res["w"] = self.model.sample_weight
+            self.firstbatch = False
+        else:
+            for typ,ID in zip(["e", "mu", "jet"], [0,1,3]):
+                self.res[typ] = tf.concat([self.res[typ], tf.where(self.model.y[:,ID]==1.0, self.model.y_pred[:,2]/(self.model.y_pred[:,2]+self.model.y_pred[:,ID]), -1)], axis=0)
+                self.res["tau"+typ] = tf.concat([self.res["tau"+typ], tf.where(self.model.y[:,2]==1.0, self.model.y_pred[:,2]/(self.model.y_pred[:,2]+self.model.y_pred[:,ID]), -1)], axis=0)
+            self.res["w"] = tf.concat([self.res["w"], self.model.sample_weight], axis=0)
+
+    # --- To Evaluate the WPs based on the dataset "data_upd" given to the callback function
+    #def eval_on_dataupd(self):
+    #    for i,ibatch in enumerate(self.data_upd.as_numpy_iterator()):
+    #        if i==0:
+    #            y_true = ibatch[1]
+    #            sampleweight = ibatch[2]
+    #            batchsize = len(ibatch[1])
+    #        else:
+    #            y_true = tf.concat([y_true, ibatch[1]], axis=0)
+    #            sampleweight = tf.concat([sampleweight, ibatch[2]], axis=0)
+    #    y_pred = self.model.predict(self.data_upd, batch_size=batchsize)
+    #    for typ,ID in zip(["e", "mu", "jet"], [0,1,3]):
+    #        self.res[typ] = tf.where(y_true[:,ID]==1.0, y_pred[:,2]/(y_pred[:,2]+y_pred[:,ID]), -1)
+    #        self.res["tau"+typ] = tf.where(y_true[:,2]==1.0, y_pred[:,2]/(y_pred[:,2]+y_pred[:,ID]), -1)
+    #    self.res["w"] = sampleweight
+
+    def on_epoch_end(self, epoch, logs=None):
+        #self.eval_on_dataupd()
+        WPs = {"e" : [], "mu": [], "jet" : []}
+        TauEfficiencies = {"e" : [], "mu": [], "jet" : []}
+        for typ in ["e", "mu", "jet"]:
+            nFakes = float(tf.math.reduce_sum( tf.where( self.res[typ]!=-1, self.res["w"], 0) ))
+            nTaus = float(tf.math.reduce_sum( tf.where( self.res["tau"+typ]!=-1, self.res["w"], 0) ))
+            misIDs = self.MisIDWPs[typ]
+            iWP = 0
+
+            current = 0.0
+            while iWP!=len(misIDs):
+                lastSelected = -2.0
+                nSelectedFakes = -1.0
+                upedge = 1.0
+                dnedge = current
+                while lastSelected!=nSelectedFakes:
+                    lastSelected = nSelectedFakes
+                    current = dnedge + (upedge-dnedge)/2
+                    nSelectedFakes = float(tf.math.reduce_sum( tf.where( self.res[typ]>current, self.res["w"], 0) ))
+                    #print (typ, iWP, "@", current, ":", nSelectedFakes, "vs", misIDs[iWP] * nFakes)
+                    if nSelectedFakes < misIDs[iWP] * nFakes:
+                        upedge = current
+                    else:
+                        dnedge = current
+                WPs[typ].append( current )
+                nSelectedTaus = float(tf.math.reduce_sum( tf.where( self.res["tau"+typ]>current, self.res["w"], 0) ))
+                TauEfficiencies[typ].append( nSelectedTaus / nTaus )
+                iWP += 1
+
+        TauLosses.SetWPs(WPs["e"], WPs["mu"], WPs["jet"])
+        for hist in self.res: del hist
+        gc.collect()
+
+        # Printing status of WPs here instead of using metrics, because it's faster
+        print("************************************")
+        print("Loss function status after epoch {}:".format(epoch))
+        for typ,typname in zip(["e", "mu", "jet"], ["Electrons", "Muons", "Jets"]):
+            print("- Vs {}:".format(typname))
+            thisWPid = 3 if typ=="mu" else 7
+            for thisWP in ["VVTight", "VTight", "Tight", "Medium", "Loose", "VLoose", "VVLoose", "VVVLoose"]:
+                if typ=="mu" and thisWP in ["VVTight", "VTight", "VVLoose", "VVVLoose"]: continue
+                print("--- At {}:".format(thisWP))
+                if thisWPid != -1:
+                    print("----- WP = {}".format(WPs[typ][thisWPid]))
+                    print("----- TauEff = {}".format(TauEfficiencies[typ][thisWPid]))
+                    print("----- MisID = {}".format(self.MisIDWPs[typ][thisWPid]))
+                thisWPid -= 1
+        print("************************************")
 
 
 def reshape_tensor(x, y, weights, active): 
@@ -295,11 +390,12 @@ class NetSetup2D(NetSetupFixed):
         self.time_distributed = False
 
 class NetSetupConv2D(NetSetup):
-    def __init__(self, window_size=3, **kwargs):
+    def __init__(self, window_size=3, pooling=0, **kwargs):
         super().__init__(**kwargs)
         self.activation_shared_axes = [1, 2]
         self.time_distributed = False
         self.window_size = window_size
+        self.pooling = pooling
 
 def add_block_ending(net_setup, name_format, layer):
     if net_setup.apply_batch_norm:
@@ -366,6 +462,10 @@ def conv_block(prev_layer, filters, kernel_size, net_setup, block_name, n, basen
                   kernel_regularizer=net_setup.kernel_regularizer)(prev_layer)
     return add_block_ending(net_setup, '{}_{{}}_{}'.format(block_name, n), conv)
 
+def pool_layer(prev_layer, poolgridsize, net_setup, block_name, n, basename='maxpooling'):
+    pool = MaxPooling2D(pool_size = poolgridsize, name="{}_{}_{}".format(block_name, basename, n))(prev_layer)
+    return add_block_ending(net_setup, '{}_{{}}_{}'.format(block_name, n), pool)
+
 def reduce_n_features_2d(input_layer, net_setup, block_name, first_layer_reg = None, basename='conv'):
     conv_kernel=(1, 1)
     prev_layer = input_layer
@@ -390,7 +490,7 @@ def get_n_filters_conv2d(n_input, current_size, window_size, reduction_rate):
     n_filters = ((float(current_size) / float(current_size - window_size + 1)) ** 2) * n_input / reduction_rate
     return int(math.ceil(n_filters))
 
-def create_model(net_config, model_name, loss=None, use_AdvDataset = False, adv_param = None, n_adv_tau=None, adv_learning_rate=None):
+def create_model(net_config, model_name, loss=None, use_newloss= False, use_AdvDataset = False, adv_param = None, n_adv_tau=None, adv_learning_rate=None):
     tau_net_setup = NetSetup1D(**net_config.tau_net)
     comp_net_setup = NetSetup2D(**net_config.comp_net)
     comp_merge_net_setup = NetSetup2D(**net_config.comp_merge_net)
@@ -429,6 +529,11 @@ def create_model(net_config, model_name, loss=None, use_AdvDataset = False, adv_
         n_inputs = prev_layer.shape.as_list()[3]
         n = 1
         while current_grid_size > 1:
+            if loc == "outer" and n == conv_2d_net_setup.pooling: # Currently works for input ncells 2, 3, 6, 9, 10, 14, 15, 18, 21, 22, 26, 27, 33, ...
+                poolgridsize = 2 if (current_grid_size%2==0 and (current_grid_size/2)%2==1) else 3 # Ensure that current_grid_size is odd after pooling
+                prev_layer = pool_layer(prev_layer, poolgridsize, conv_2d_net_setup, "{}_pooling".format(loc), n)
+                n += 1
+                current_grid_size = int(current_grid_size / poolgridsize)
             win_size = min(current_grid_size, conv_2d_net_setup.window_size)
             n_filters = get_n_filters_conv2d(n_inputs, current_grid_size, win_size, conv_2d_net_setup.reduction_rate)
             prev_layer = conv_block(prev_layer, n_filters, (win_size, win_size), conv_2d_net_setup,
@@ -458,27 +563,19 @@ def create_model(net_config, model_name, loss=None, use_AdvDataset = False, adv_
         output_layer_adv = Dense(1, name="final_dense_adv",
                             kernel_initializer=dense_net_setup.kernel_init)(final_dense_adv)
         sigmoid_output_adv = Activation("sigmoid", name="adv_output")(output_layer_adv)
-        model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], loss=loss, name=model_name, use_AdvDataset=True,
+        model = DeepTauModel(input_layers, [softmax_output, sigmoid_output_adv], loss=loss, name=model_name, use_newloss=use_newloss, use_AdvDataset=True,
                              adv_parameter=adv_param, n_adv_tau=n_adv_tau, adv_learning_rate=adv_learning_rate)
     else:
-        model = DeepTauModel(input_layers, softmax_output, loss = loss, name=model_name)
+        model = DeepTauModel(input_layers, softmax_output, loss = loss, name=model_name, use_newloss=use_newloss)
     return model
 
-def compile_model(model, opt_name, learning_rate):
-    # opt = keras.optimizers.Adam(lr=learning_rate)
-    opt = getattr(tf.keras.optimizers, opt_name)(learning_rate=learning_rate)
-        
-    #opt = tf.keras.optimizers.Nadam(learning_rate=learning_rate, schedule_decay=1e-4)
-    # opt = Nadam(lr=learning_rate, beta_1=1e-4)
+def compile_model(model, opt_name, learning_rate, strmetrics, schedule_decay=1e-4):
+    opt = getattr(tf.keras.optimizers, opt_name)(learning_rate=learning_rate, schedule_decay=schedule_decay)
 
-    metrics = [
-        "accuracy", TauLosses.tau_crossentropy, TauLosses.tau_crossentropy_v2,
-        TauLosses.Le, TauLosses.Lmu, TauLosses.Ljet,
-        TauLosses.He, TauLosses.Hmu, TauLosses.Htau, TauLosses.Hjet,
-        TauLosses.Hcat_e, TauLosses.Hcat_mu, TauLosses.Hcat_jet, TauLosses.Hbin,
-        TauLosses.Hcat_eInv, TauLosses.Hcat_muInv, TauLosses.Hcat_jetInv,
-        TauLosses.Fe, TauLosses.Fmu, TauLosses.Fjet, TauLosses.Fcmb
-    ]
+    metrics = []
+    for m in strmetrics:
+        if "TauLosses" in m: m = eval(m)
+        metrics.append(m)
     model.compile(loss=None, optimizer=opt, metrics=metrics, weighted_metrics=metrics) # loss is now defined in DeepTauModel
 
     # log metric names for passing them during model loading
@@ -486,7 +583,12 @@ def compile_model(model, opt_name, learning_rate):
     mlflow.log_dict(metric_names, 'input_cfg/metric_names.json')
 
 
-def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
+def run_training(model, data_loader, to_profile, log_suffix, newloss, old_opt=None):
+
+    def step_decay_function(epoch, lr):
+        epoch_step = data_loader.step_decay
+        if epoch%epoch_step==0 and epoch > 0: return lr/2.0
+        return lr
 
     if data_loader.input_type == "tf":
         total_batches = data_loader.n_batches + data_loader.n_batches_val
@@ -524,6 +626,7 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
     elif data_loader.input_type == "ROOT":
         gen_train = data_loader.get_generator(primary_set = True, return_weights = data_loader.use_weights)
         gen_val = data_loader.get_generator(primary_set = False, return_weights = data_loader.use_weights)
+        #gen_upd = data_loader.get_generator(primary_set = 3, return_weights = data_loader.use_weights)
         input_shape, input_types = data_loader.get_input_config()
         data_train = tf.data.Dataset.from_generator(
             gen_train, output_types = input_types, output_shapes = input_shape
@@ -531,6 +634,9 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
         data_val = tf.data.Dataset.from_generator(
             gen_val, output_types = input_types, output_shapes = input_shape
             ).prefetch(tf.data.AUTOTUNE)
+        #data_upd = tf.data.Dataset.from_generator(
+        #    gen_upd, output_types = input_types, output_shapes = input_shape
+        #    ).prefetch(tf.data.AUTOTUNE)
     elif data_loader.input_type == "Adversarial":
         gen_train = data_loader.get_generator(primary_set = True, return_weights = data_loader.use_weights, adversarial=True)
         gen_val = data_loader.get_generator(primary_set = False, return_weights = data_loader.use_weights, adversarial=True)
@@ -546,8 +652,8 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
     else:
         raise RuntimeError("Input type not supported, please select 'ROOT', 'tf' or 'Adversarial'")
 
-    
-    
+
+
 
     if data_loader.use_previous_opt:
         for elem in data_train:
@@ -573,6 +679,11 @@ def run_training(model, data_loader, to_profile, log_suffix, old_opt=None):
                                                      profile_batch = ('100, 300' if to_profile else 0),
                                                      update_freq = ( 0 if data_loader.n_batches_log<=0 else data_loader.n_batches_log ))
     callbacks.append(tboard_callback)
+    if newloss: callbacks.append(UpdatedLossCallback()) # UpdatedLossCallback(data_upd)
+
+    if data_loader.step_decay > 0:
+        step_decay = LearningRateScheduler(step_decay_function)
+        callbacks.append(step_decay)
 
     fit_hist = model.fit(data_train, validation_data = data_val,
                          epochs = data_loader.n_epochs, initial_epoch = data_loader.epoch,
@@ -620,13 +731,14 @@ def main(cfg: DictConfig) -> None:
         TauLosses.SetSFs(*setup["TauLossesSFs"])
         print("loss consts:",TauLosses.Le_sf, TauLosses.Lmu_sf, TauLosses.Ltau_sf, TauLosses.Ljet_sf)
 
+        if setup["using_new_loss"]: tf.config.run_functions_eagerly(True)
         netConf_full = dataloader.get_net_config()
 
         if dataloader.input_type == "Adversarial":
-            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"], use_AdvDataset = True, 
+            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"], use_newloss=setup["using_new_loss"], use_AdvDataset = True, 
                                 adv_param = dataloader.adversarial_parameter, n_adv_tau=dataloader.adv_batch_size, adv_learning_rate=dataloader.adv_learning_rate)
         else:
-            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"])
+            model = create_model(netConf_full, dataloader.model_name, loss=setup["loss"], use_newloss=setup["using_new_loss"])
 
         if cfg.pretrained is None:
             print("Warning: no pretrained NN -> training will be started from scratch")
@@ -650,8 +762,8 @@ def main(cfg: DictConfig) -> None:
             old_opt = old_model.optimizer
             old_vars = [var.name for var in old_model.trainable_variables]
 
-        compile_model(model, setup["optimizer_name"], setup["learning_rate"])
-        fit_hist = run_training(model, dataloader, False, cfg.log_suffix, old_opt=old_opt)
+        compile_model(model, setup["optimizer_name"], setup["learning_rate"], setup["metrics"], setup["schedule_decay"])
+        fit_hist = run_training(model, dataloader, False, cfg.log_suffix, setup["using_new_loss"], old_opt=old_opt)
 
         # log NN params
         for net_type in ['tau_net', 'comp_net', 'comp_merge_net', 'conv_2d_net', 'dense_net']:
@@ -665,12 +777,12 @@ def main(cfg: DictConfig) -> None:
         # log training related files
         mlflow.log_dict(training_cfg, 'input_cfg/training_cfg.yaml')
         mlflow.log_artifact(scaling_cfg, 'input_cfg')
-        mlflow.log_artifact(to_absolute_path("Training_v0p1.py"), 'input_cfg')
-        mlflow.log_artifact(to_absolute_path("../common.py"), 'input_cfg')
+        mlflow.log_artifact(to_absolute_path("Training_CNN.py"), 'input_cfg')
+        mlflow.log_artifact(to_absolute_path("common.py"), 'input_cfg')
 
         # log hydra files
         mlflow.log_artifacts('.hydra', 'input_cfg/hydra')
-        mlflow.log_artifact('Training_v0p1.log', 'input_cfg/hydra')
+        mlflow.log_artifact('Training_CNN.log', 'input_cfg/hydra')
 
         # log misc. info
         mlflow.log_param('run_id', run_id)
@@ -679,10 +791,13 @@ def main(cfg: DictConfig) -> None:
         mlflow.end_run()
 
         # Temporary workaround to kill additional subprocesses that have not exited correctly
-        current_process = psutil.Process()
-        children = current_process.children(recursive=True)
-        for child in children:
-            child.kill()
-       
+        try:
+            current_process = psutil.Process()
+            children = current_process.children(recursive=True)
+            for child in children:
+                child.kill()
+        except:
+            pass
+
 if __name__ == '__main__':
     main()

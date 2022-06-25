@@ -240,6 +240,82 @@ class TauLosses:
                + F_factor * (sf[e] * TauLosses.Fe(target, output) + sf[mu] * TauLosses.Fmu(target, output) \
                              + sf[jet] * TauLosses.Fjet(target, output))
 
+    WPs_e = [0.0630386, 0.1686942, 0.3628130, 0.681543, 0.8847544, 0.9675541, 0.9859251, 0.9928449]
+    WPs_mu = [0.1058354, 0.2158633, 0.5551894, 0.8754835]
+    WPs_jet = [0.2599605, 0.4249705, 0.5983682, 0.7848675, 0.8834768, 0.930868, 0.9573137, 0.9733927]
+
+    @staticmethod
+    @tf.function
+    def SetWPs(wps_e, wps_mu, wps_jet):
+        TauLosses.WPs_e = wps_e
+        TauLosses.WPs_mu = wps_mu
+        TauLosses.WPs_jet = wps_jet
+
+    @staticmethod
+    @tf.function
+    def discri(target, output, index):
+        epsilon = tf.constant(TauLosses.epsilon, output.dtype.base_dtype)
+        discriminator = output[:, tau] / (output[:, tau] + output[:, index] + epsilon)
+        discriminator = tf.clip_by_value(discriminator, epsilon, 1 - epsilon)
+        return discriminator
+
+    @staticmethod
+    @tf.function
+    def Wbase(target, output, index, WPs, gamma):
+        discriminator = TauLosses.discri(target, output, index)
+        gamma_t = tf.constant(gamma, output.dtype.base_dtype)
+        decay_factor = 1.0
+        decay_factor_inv = 1.0
+        for wp in WPs:
+          wp_t = tf.constant(wp, output.dtype.base_dtype)
+          decay_factor += ( ( -tf.math.tanh(40*(discriminator-wp_t)) + 1) / 2 ) / len(WPs)
+          decay_factor_inv += ( ( tf.math.tanh(40*(discriminator-wp_t)) + 1) / 2 ) / len(WPs)
+        return -decay_factor_inv * target[:, index] * tf.pow(discriminator, gamma_t) * tf.math.log(1 - discriminator) -decay_factor * target[:, tau] * tf.pow(1-discriminator, gamma_t) * tf.math.log(discriminator)
+
+    @staticmethod
+    @tf.function
+    def We(target, output):
+        return TauLosses.Wbase(target, output, e, TauLosses.WPs_e, 2)
+
+    @staticmethod
+    @tf.function
+    def Wmu(target, output):
+        return TauLosses.Wbase(target, output, mu, TauLosses.WPs_mu, 2)
+
+    @staticmethod
+    @tf.function
+    def Wjet(target, output):
+        return TauLosses.Wbase(target, output, jet, TauLosses.WPs_jet, 2)
+
+    @staticmethod
+    @tf.function
+    def sWe(target, output):
+        sf = tf.constant(TauLosses.Le_sf, output.dtype.base_dtype)
+        return sf * TauLosses.We(target, output)
+
+    @staticmethod
+    @tf.function
+    def sWmu(target, output):
+        sf = tf.constant(TauLosses.Lmu_sf, output.dtype.base_dtype)
+        return sf * TauLosses.Wmu(target, output)
+
+    @staticmethod
+    @tf.function
+    def sWjet(target, output):
+        sf = tf.constant(TauLosses.Ljet_sf, output.dtype.base_dtype)
+        return sf * TauLosses.Wjet(target, output)
+
+    @staticmethod
+    @tf.function
+    def WPloss(target, output):
+        return TauLosses.sWe(target, output) + TauLosses.sWmu(target, output) + TauLosses.sWjet(target, output)
+
+    @staticmethod
+    @tf.function
+    def WPloss2(target, output):
+        TC_factor = tf.constant(9, dtype=output.dtype.base_dtype)
+        return (TauLosses.sWe(target, output) + TauLosses.sWmu(target, output) + TauLosses.sWjet(target, output)) + TauLosses.tau_crossentropy_v2(target, output) / TC_factor
+
     @staticmethod
     @tf.function
     def tau_vs_other(prob_tau, prob_other):
@@ -297,7 +373,9 @@ def LoadModel(model_file, compile=True):
             'Hcat_e': TauLosses.Hcat_e, 'Hcat_mu': TauLosses.Hcat_mu, 'Hcat_jet': TauLosses.Hcat_jet,
             'Hcat_eInv': TauLosses.Hcat_eInv, 'Hcat_muInv': TauLosses.Hcat_muInv, 'Hcat_jetInv': TauLosses.Hcat_jetInv,
             'Hbin': TauLosses.Hbin, 'HbinInv': TauLosses.Hbin,
-            'Fe': TauLosses.Fe, 'Fmu': TauLosses.Fmu, 'Fjet': TauLosses.Fjet, 'Fcmb': TauLosses.Fcmb
+            'Fe': TauLosses.Fe, 'Fmu': TauLosses.Fmu, 'Fjet': TauLosses.Fjet, 'Fcmb': TauLosses.Fcmb,
+            'We': TauLosses.We, 'Wmu': TauLosses.Wmu, 'Wjet': TauLosses.Wjet,
+            'WPloss': TauLosses.WPloss, 'WPloss2': TauLosses.WPloss2
         })
     else:
         return load_model(model_file, compile = False)
