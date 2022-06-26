@@ -59,17 +59,11 @@ private:
         "VVLoose VLoose Loose Medium Tight VTight VVTight") \
     TAU_ID(byIsolationMVADBnewDMwLTPhase2, "by{wp}IsolationMVADBnewDMwLTPhase2{raw}", true, \
         "VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byDeepTau2017v2p5VSe, "by{wp}DeepTau2017v2p5VSe{raw}", true, \
+    TAU_ID(byDeepTau2018v2p5VSe, "by{wp}DeepTau2018v2p5VSe{raw}", true, \
        "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byDeepTau2017v2p5VSmu, "by{wp}DeepTau2017v2p5VSmu{raw}", true, \
+    TAU_ID(byDeepTau2018v2p5VSmu, "by{wp}DeepTau2018v2p5VSmu{raw}", true, \
        "VLoose Loose Medium Tight") \
-    TAU_ID(byDeepTau2017v2p5VSjet, "by{wp}DeepTau2017v2p5VSjet{raw}", true, \
-       "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byDeepTau2017v2p1ReRunVSe, "by{wp}DeepTau2017v2p1ReRunVSe{raw}", true, \
-       "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
-    TAU_ID(byDeepTau2017v2p1ReRunVSmu, "by{wp}DeepTau2017v2p1ReRunVSmu{raw}", true, \
-       "VLoose Loose Medium Tight") \
-    TAU_ID(byDeepTau2017v2p1ReRunVSjet, "by{wp}DeepTau2017v2p1ReRunVSjet{raw}", true, \
+    TAU_ID(byDeepTau2018v2p5VSjet, "by{wp}DeepTau2018v2p5VSjet{raw}", true, \
        "VVVLoose VVLoose VLoose Loose Medium Tight VTight VVTight") \
     /**/
 
