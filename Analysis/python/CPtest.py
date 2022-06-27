@@ -2,7 +2,7 @@ import ROOT
 import numpy as np
 from array import array
 
-myFile = ROOT.TFile('eventTuple.root')
+myFile = ROOT.TFile('../../soft/CMSSW_10_6_29/src/eventTuple.root')
 myTree = myFile.Get('taus')
 
 rdf = ROOT.RDataFrame(myTree)
@@ -28,8 +28,7 @@ rdf = rdf.Filter('genLepton_index >=0 && genLepton_kind == 5 && genLepton_vis_pt
 rdf = rdf.Define('genLepton_mothers','genLepton.mothers()')
 
 # tau->pi,rho,a1
-#rdf = rdf.Filter('(genLepton.nChargedHadrons() == 1 && genLepton.nNeutralHadrons() == 0) || (genLepton.nChargedHadrons() == 1 && genLepton.nNeutralHadrons() == 1) || (genLepton.nChargedHadrons() == 3 && genLepton.nNeutralHadrons() == 0)')\
-rdf = rdf.Filter('(genLepton.nChargedHadrons() == 3 && genLepton.nNeutralHadrons() == 0)')\
+rdf = rdf.Filter('(genLepton.nChargedHadrons() == 1 && genLepton.nNeutralHadrons() == 0) || (genLepton.nChargedHadrons() == 1 && genLepton.nNeutralHadrons() == 1) || (genLepton.nChargedHadrons() == 3 && genLepton.nNeutralHadrons() == 0)')\
          .Define('PhiCP','''CPfunctions::PhiCP(genLepton, evt)''')
 
 rdf = rdf.Filter('PhiCP > 0')

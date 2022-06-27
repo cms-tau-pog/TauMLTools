@@ -69,7 +69,6 @@
     VAR2(Float_t, puppimet_pt, puppimet_phi) /* PuppiMET momentum */ \
     VAR3(Float_t, puppimetcov_00, puppimetcov_01, puppimetcov_11) /* MET covariance */ \
     VAR2(Float_t, deepmet_pt, deepmet_phi) /* DeepMET momentum */ \
-    VAR3(Float_t, deepmetcov_00, deepmetcov_01, deepmetcov_11) /* MET covariance */ \
     VAR2(Float_t, genmet_pt, genmet_phi) /* DeepMET momentum */ \
     VAR(Int_t, entry_index) /* Index of the entry in the event */ \
     VAR(Int_t, total_entries) /* The total number of entries in the event */ \

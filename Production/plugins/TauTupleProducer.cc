@@ -330,9 +330,6 @@ private:
         tauTuple().puppimetcov_11 = puppiMETs->at(0).getSignificanceMatrix()[1][1];
 	tauTuple().deepmet_pt = deepMETs->at(0).pt();
 	tauTuple().deepmet_phi = deepMETs->at(0).phi();
-        tauTuple().deepmetcov_00 = deepMETs->at(0).getSignificanceMatrix()[0][0];
-        tauTuple().deepmetcov_01 = deepMETs->at(0).getSignificanceMatrix()[0][1];
-        tauTuple().deepmetcov_11 = deepMETs->at(0).getSignificanceMatrix()[1][1];
         tauTuple().genmet_pt = genMETs->at(0).pt();
         tauTuple().genmet_phi = genMETs->at(0).phi();
 	tauTuple().tauSpinnerWTEven = (*tauSpinnerWTEven);
