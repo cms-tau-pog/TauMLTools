@@ -65,9 +65,10 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = 
         run_cmd ln -s ../../../../Analysis Analysis
         run_cmd ln -s ../../../../Core Core
         run_cmd ln -s ../../../../Production Production
+	run_cmd cd ../
         run_cmd mkdir GeneratorInterface
         run_cmd cd GeneratorInterface
-        run_cmd ln -s ../../../../TauolaInterface TauolaInterface
+	run_cmd ln -s ../../../../GeneratorInterface/TauolaInterface TauolaInterface
         run_cmd touch ../../.installed
         run_cmd scram b -j8
         run_cmd cd ../../../..
