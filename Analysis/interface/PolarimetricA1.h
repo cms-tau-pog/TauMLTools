@@ -4,7 +4,7 @@
 /**\class PolarimetricA1.h PolarimetricA1.cc
  Description:
 */
-//
+// https://github.com/TauPolSoftware/TauDecaysInterface
 // Original Author:  Vladimir Cherepanov
 //         Created:  Mon May 1 13:49:02 CET 2017
 //

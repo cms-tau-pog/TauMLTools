@@ -4,7 +4,7 @@
 /**\class SCalculator.h SCalculator.cc
  Description:
 */
-//
+// https://github.com/TauPolSoftware/TauDecaysInterface
 // Original Author:  Vladimir Cherepanov
 //         Created:  Mon Sep 4 13:49:02 CET 2017
 //
