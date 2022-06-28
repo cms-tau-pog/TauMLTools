@@ -1,4 +1,4 @@
-#include "GeneratorInterface/TauolaInterface/interface/TauSpinnerCMS.h"
+#include "TauMLTools/Production/interface/TauPOGSpinner.h"
 
 //MC-TESTER header files
 #include "Tauola/Tauola.h"
@@ -16,11 +16,11 @@
 using namespace edm;
 using namespace TauSpinner;
 
-CLHEP::HepRandomEngine* TauSpinnerCMS::fRandomEngine= nullptr;
-bool TauSpinnerCMS::isTauSpinnerConfigure=false;
-bool TauSpinnerCMS::fInitialized=false;
+CLHEP::HepRandomEngine* TauPOGSpinner::fRandomEngine= nullptr;
+bool TauPOGSpinner::isTauSpinnerConfigure=false;
+bool TauPOGSpinner::fInitialized=false;
 
-TauSpinnerCMS::TauSpinnerCMS( const ParameterSet& pset ) :
+TauPOGSpinner::TauPOGSpinner( const ParameterSet& pset ) :
   EDProducer()
   ,isReco_(pset.getParameter<bool>("isReco"))
   ,isTauolaConfigured_(pset.getParameter<bool>("isTauolaConfigured" ))
@@ -53,12 +53,12 @@ TauSpinnerCMS::TauSpinnerCMS( const ParameterSet& pset ) :
   }
 }
 
-void TauSpinnerCMS::beginJob(){};
-void TauSpinnerCMS::endJob(){};
+void TauPOGSpinner::beginJob(){};
+void TauPOGSpinner::endJob(){};
 
-void TauSpinnerCMS::initialize(){
+void TauPOGSpinner::initialize(){
   // Now for Tauola and TauSpinner
-  Tauolapp::Tauola::setRandomGenerator(TauSpinnerCMS::flat);
+  Tauolapp::Tauola::setRandomGenerator(TauPOGSpinner::flat);
   if(!isTauolaConfigured_){
     Tauolapp::Tauola::initialize();
   }
@@ -80,11 +80,11 @@ void TauSpinnerCMS::initialize(){
 }
 
 
-void TauSpinnerCMS::produce( edm::Event& e, const edm::EventSetup& iSetup){
+void TauPOGSpinner::produce( edm::Event& e, const edm::EventSetup& iSetup){
 
-  RandomEngineSentry<TauSpinnerCMS> randomEngineSentry(this, e.streamID());
+  RandomEngineSentry<TauPOGSpinner> randomEngineSentry(this, e.streamID());
   if(!fInitialized) initialize();
-  Tauolapp::Tauola::setRandomGenerator(TauSpinnerCMS::flat); // rest tauola++ random number incase other modules use tauola++
+  Tauolapp::Tauola::setRandomGenerator(TauPOGSpinner::flat); // rest tauola++ random number incase other modules use tauola++
   Tauolapp::jaki_.ktom = 1; // rest for when you run after tauola
   double WT=1.0;
   double WTodd=1.0;
@@ -98,11 +98,7 @@ void TauSpinnerCMS::produce( edm::Event& e, const edm::EventSetup& iSetup){
     stat=readParticlesfromReco(e,X,tau,tau2,tau_daughters,tau_daughters2);
   }
   else{
-    edm::Handle<HepMCProduct> evt;
-    e.getByToken(hepmcCollectionToken_, evt);
-    //Get EVENT
-    HepMC::GenEvent *Evt = new HepMC::GenEvent(*(evt->GetEvent()));
-    stat=readParticlesFromHepMC(Evt,X,tau,tau2,tau_daughters,tau_daughters2);
+    return;
   }
   if(MotherPDGID_<0 || abs(X.pdgid())==MotherPDGID_){
     if(stat!=1){
@@ -197,7 +193,7 @@ void TauSpinnerCMS::produce( edm::Event& e, const edm::EventSetup& iSetup){
   return ;
 }
 
-int TauSpinnerCMS::readParticlesfromReco(edm::Event& e,SimpleParticle &X,SimpleParticle &tau,SimpleParticle &tau2,
+int TauPOGSpinner::readParticlesfromReco(edm::Event& e,SimpleParticle &X,SimpleParticle &tau,SimpleParticle &tau2,
 					 std::vector<SimpleParticle> &tau_daughters,std::vector<SimpleParticle> &tau2_daughters){
   edm::Handle<reco::GenParticleCollection> genParticles;
   e.getByToken(GenParticleCollectionToken_, genParticles);
@@ -252,7 +248,7 @@ int TauSpinnerCMS::readParticlesfromReco(edm::Event& e,SimpleParticle &X,SimpleP
   return 1;
 }
 
-const reco::GenParticle* TauSpinnerCMS::GetLastSelf(const reco::GenParticle *Particle){
+const reco::GenParticle* TauPOGSpinner::GetLastSelf(const reco::GenParticle *Particle){
   for (unsigned int i=0; i< Particle->numberOfDaughters(); i++){
     const reco::GenParticle *dau=static_cast<const reco::GenParticle*>(Particle->daughter(i));
     if(Particle->pdgId()==dau->pdgId()){
@@ -262,7 +258,7 @@ const reco::GenParticle* TauSpinnerCMS::GetLastSelf(const reco::GenParticle *Par
   return Particle;
 }
 
-bool TauSpinnerCMS::isFirst(const reco::GenParticle *Particle){
+bool TauPOGSpinner::isFirst(const reco::GenParticle *Particle){
   for (unsigned int i=0; i< Particle->numberOfMothers(); i++){
     const reco::GenParticle *moth=static_cast<const reco::GenParticle*>(Particle->mother(i));
     if(Particle->pdgId()==moth->pdgId()){
@@ -272,7 +268,7 @@ bool TauSpinnerCMS::isFirst(const reco::GenParticle *Particle){
   return true;
 }
 
-void TauSpinnerCMS::GetRecoDaughters(const reco::GenParticle *Particle,std::vector<SimpleParticle> &daughters, int parentpdgid){
+void TauPOGSpinner::GetRecoDaughters(const reco::GenParticle *Particle,std::vector<SimpleParticle> &daughters, int parentpdgid){
   if( Particle->numberOfDaughters()==0 || abs(Particle->pdgId())==111){
     SimpleParticle tp(Particle->p4().Px(), Particle->p4().Py(), Particle->p4().Pz(), Particle->p4().E(), Particle->pdgId());
     daughters.push_back(tp);
@@ -284,15 +280,15 @@ void TauSpinnerCMS::GetRecoDaughters(const reco::GenParticle *Particle,std::vect
   }
 }
 
-double TauSpinnerCMS::flat()
+double TauPOGSpinner::flat()
 {
   if ( !fRandomEngine ) {
     throw cms::Exception("LogicError")
-      << "TauSpinnerCMS::flat: Attempt to generate random number when engine pointer is null\n"
+      << "TauPOGSpinner::flat: Attempt to generate random number when engine pointer is null\n"
       << "This might mean that the code was modified to generate a random number outside the\n"
       << "event and beginLuminosityBlock methods, which is not allowed.\n";
   }
   return fRandomEngine->flat();
 }
 
-DEFINE_FWK_MODULE(TauSpinnerCMS);
+DEFINE_FWK_MODULE(TauPOGSpinner);

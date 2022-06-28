@@ -66,17 +66,22 @@ process.options.numberOfStreams = cms.untracked.uint32(0)
 process.load('Configuration.StandardSequences.MagneticField_cff')
 
 # TauSpinner
-process.load('GeneratorInterface.TauolaInterface.TauSpinner_cfi')
+process.TauSpinnerReco = cms.EDProducer( "TauPOGSpinner",
+                                 isReco = cms.bool(True),
+                                 isTauolaConfigured = cms.bool(False),
+                                 isLHPDFConfigured = cms.bool(False),
+                                 LHAPDFname = cms.untracked.string('NNPDF30_nlo_as_0118'),
+                                 CMSEnergy = cms.double(13000.0),
+                                 gensrc = cms.InputTag('prunedGenParticles')
+                               )
+
 
 process.RandomNumberGeneratorService = cms.Service('RandomNumberGeneratorService',
                                                    TauSpinnerReco = cms.PSet(
     initialSeed = cms.untracked.uint32(123456789),
     engineName = cms.untracked.string('HepJamesRandom')
     )
-					          )
-
-process.TauSpinnerReco.LHAPDFname = cms.untracked.string('NNPDF30_nlo_as_0118')					  
-process.TauSpinnerReco.CMSEnergy = cms.double(13000.0)
+)
 
 # DeepMET
 process.deepMETProducer = deepMETProducer.clone()
@@ -163,26 +168,26 @@ else:
         src = cms.InputTag("packedPFCandidates"),
         jetCollInstanceName = cms.string('subJetsForSeedingBoostedTausPAT')
     )
-    #process.cleanedSlimmedTausBoosted = cms.EDProducer("PATBoostedTauCleaner",
-    #    src = cms.InputTag('slimmedTausBoosted'),
-    #    pfcands = cms.InputTag('packedPFCandidates'),
-    #    vtxLabel= cms.InputTag('offlineSlimmedPrimaryVertices'),
-    #    ca8JetSrc = cms.InputTag('ca8PFJetsCHSprunedForBoostedTausPAT','subJetsForSeedingBoostedTausPAT'),
-    #    removeOverLap = cms.bool(True),
-    #)
+    process.cleanedSlimmedTausBoosted = cms.EDProducer("PATBoostedTauCleaner",
+        src = cms.InputTag('slimmedTausBoosted'),
+        pfcands = cms.InputTag('packedPFCandidates'),
+        vtxLabel= cms.InputTag('offlineSlimmedPrimaryVertices'),
+        ca8JetSrc = cms.InputTag('ca8PFJetsCHSprunedForBoostedTausPAT','subJetsForSeedingBoostedTausPAT'),
+        removeOverLap = cms.bool(True),
+    )
 
     updatedBoostedTauName = "slimmedBoostedTausNewID"
-    runTauID(process, outputTauCollection=updatedBoostedTauName, inputTauCollection="slimmedTausBoosted",
+    runTauID(process, outputTauCollection=updatedBoostedTauName, inputTauCollection="cleanedSlimmedTausBoosted",
              toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
 
     process.boostedSequence = cms.Sequence(
         process.ca8PFJetsCHSprunedForBoostedTausPAT *
-        #process.cleanedSlimmedTausBoosted *
+        process.cleanedSlimmedTausBoosted *
         getattr(process, updatedBoostedTauName + 'rerunMvaIsolationSequence') *
         getattr(process, updatedBoostedTauName))
     boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
 
-# boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
+ # boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 if isRun2UL:
     taus_InputTag = cms.InputTag('slimmedTaus')
 elif isRun3:

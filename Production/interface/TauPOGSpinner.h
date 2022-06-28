@@ -3,15 +3,15 @@
 // Package: TauSpinnerInterface
 // Class: TauSpinnerCMS
 //
-/**\class TauSpinnerCMS TauSpinnerCMS.cc
+/**\class TauPOGSpinner TauPOGSpinner.cc
 
  */
 //
 // Original Author: Ian Nugent
 // Created: Fri Feb 15 2013
 
-#ifndef TauSpinnerCMS_h
-#define TauSpinnerCMS_h
+#ifndef TauPOGSpinner_h
+#define TauPOGSpinner_h
 
 
 #include <iostream>
@@ -46,10 +46,10 @@
 
 #include "FWCore/Utilities/interface/RandomNumberGenerator.h"
 
-class TauSpinnerCMS : public edm::one::EDProducer<edm::one::SharedResources>{
+class TauPOGSpinner : public edm::one::EDProducer<edm::one::SharedResources>{
 public:
-  explicit TauSpinnerCMS( const edm::ParameterSet& ) ;
-  ~TauSpinnerCMS() override{}; // no need to delete ROOT stuff
+  explicit TauPOGSpinner( const edm::ParameterSet& ) ;
+  ~TauPOGSpinner() override{}; // no need to delete ROOT stuff
 
   void produce( edm::Event&, const edm::EventSetup&) final;
   void beginJob() final;

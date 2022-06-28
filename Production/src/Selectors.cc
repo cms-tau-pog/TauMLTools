@@ -145,17 +145,14 @@ TauJetSelector::Result genTauTau::Select(const edm::Event& event, const std::deq
                                      const edm::TriggerResults& triggerResults, float rho)
 {
     std::vector<const TauJet*> selected;
-    int lep_kind;
-    float lep_pt;
-    float lep_eta;
     for(const TauJet& tauJet :tauJets) {
       const ObjPtr<reco_tau::gen_truth::GenLepton>& genLepton = tauJet.genLepton;
       if(!genLepton) continue;
       else {
-	lep_kind = static_cast<int>(genLepton->kind());
-	lep_pt   = static_cast<float>(genLepton->visibleP4().pt());
-        lep_eta  = static_cast<float>(genLepton->visibleP4().eta());
-        if(!(lep_kind == 5 && lep_pt > 10 && std::abs(lep_eta) < 2.5)) continue;
+        if(!(genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToHadrons
+             && genLepton->visibleP4().pt() > 10                           
+             && std::abs(genLepton->visibleP4().eta()) < 2.5)
+          ) continue;
         selected.push_back(&tauJet);
       }
     }
