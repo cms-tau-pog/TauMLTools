@@ -25,6 +25,14 @@ def main(cfg: DictConfig) -> None:
     # init Discriminator() class from filtered input configuration
     field_names = set(f_.name for f_ in fields(eval_tools.Discriminator))
     init_params = {k:v for k,v in cfg.discriminator.items() if k in field_names}
+    wp_definitions = None
+    if not (isinstance(init_params['working_points'], DictConfig) or isinstance(init_params['working_points'], dict)):
+        if isinstance(init_params['working_points'], str): # assume that it's the filename to read WPs from
+            with open(f"{path_to_artifacts}/{init_params['working_points']}", 'r') as f:
+                wp_definitions = json.load(f)
+            init_params['working_points'] = wp_definitions[cfg['vs_type']] # pass laoded dict with thresholds to Discriminator() class
+        else:
+            raise RuntimeError(f"Expect `working_points` argument to be either dict-like or str, but got the type: {type(init_params['working_points'])}")
     discriminator = eval_tools.Discriminator(**init_params)
     
     # init PlotSetup() class from filtered input configuration
@@ -56,7 +64,20 @@ def main(cfg: DictConfig) -> None:
     df_all = pd.concat(df_list)
 
     # apply selection
-    if cfg.cuts is not None: df_all = df_all.query(cfg.cuts)
+    if cfg['cuts'] is not None:
+        df_all = df_all.query(cfg.cuts)
+    if cfg['WPs_to_require'] is not None:
+        for wp_vs_type, wp_name in cfg['WPs_to_require'].items():
+            if wp_definitions is not None:
+                wp_thr = wp_definitions[wp_vs_type][wp_name]
+            else:
+                if cfg['discriminator']['working_points_map'] is not None:
+                    wp_thr = cfg['discriminator']['working_points_map'][wp_vs_type][wp_name]
+                else:
+                    raise RuntimeError('WP thresholds either via working_points_map or via input json file are not provided.')
+            wp_cut = f"{cfg['discriminator']['pred_column_prefix']}{wp_vs_type} > {wp_thr}"
+            df_all = df_all.query(wp_cut)
+        
 
     # # inverse scaling
     # df_all['tau_pt'] = df_all.tau_pt*(1000 - 20) + 20
