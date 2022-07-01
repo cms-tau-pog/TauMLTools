@@ -1,5 +1,5 @@
 # general
-name: DeepTau vs. ${vs_type} (Run 3)
+name: DeepTau (v2.5)
 color: orange
 dashed: False
 raw: True
@@ -11,12 +11,12 @@ target_column_prefix: node_
 
 # WPs
 wp_from: pred_column
-working_points: 'working_points.json' # will read thresholds from this file in mlflow run artifacts folder 
-working_points_map: null
+wp_thresholds: 'working_points.json' # will read thresholds from this file in mlflow run artifacts folder 
+wp_thresholds_map: null
 
 ### alternative way to explicitly define WP thresholds here
-# working_points: ${.working_points_map.${vs_type}}
-# working_points_map: 
+# wp_thresholds: ${.wp_thresholds_map.${vs_type}}
+# wp_thresholds_map: 
 #   e:
 #     VVVLoose: 0.099
 #     VVLoose: 0.2384

@@ -25,14 +25,16 @@ def main(cfg: DictConfig) -> None:
     # init Discriminator() class from filtered input configuration
     field_names = set(f_.name for f_ in fields(eval_tools.Discriminator))
     init_params = {k:v for k,v in cfg.discriminator.items() if k in field_names}
-    wp_definitions = None
-    if not (isinstance(init_params['working_points'], DictConfig) or isinstance(init_params['working_points'], dict)):
-        if isinstance(init_params['working_points'], str): # assume that it's the filename to read WPs from
-            with open(f"{path_to_artifacts}/{init_params['working_points']}", 'r') as f:
-                wp_definitions = json.load(f)
-            init_params['working_points'] = wp_definitions[cfg['vs_type']] # pass laoded dict with thresholds to Discriminator() class
-        else:
-            raise RuntimeError(f"Expect `working_points` argument to be either dict-like or str, but got the type: {type(init_params['working_points'])}")
+    if 'wp_thresholds' in init_params:
+        if not (isinstance(init_params['wp_thresholds'], DictConfig) or isinstance(init_params['wp_thresholds'], dict)):
+            if isinstance(init_params['wp_thresholds'], str): # assume that it's the filename to read WPs from
+                with open(f"{path_to_artifacts}/{init_params['wp_thresholds']}", 'r') as f:
+                    wp_thresholds = json.load(f)
+                init_params['wp_thresholds'] = wp_thresholds[cfg['vs_type']] # pass laoded dict with thresholds to Discriminator() class
+            else:
+                raise RuntimeError(f"Expect `wp_thresholds` argument to be either dict-like or str, but got the type: {type(init_params['wp_thresholds'])}")
+    else:
+        wp_thresholds = None
     discriminator = eval_tools.Discriminator(**init_params)
     
     # init PlotSetup() class from filtered input configuration
@@ -68,13 +70,13 @@ def main(cfg: DictConfig) -> None:
         df_all = df_all.query(cfg.cuts)
     if cfg['WPs_to_require'] is not None:
         for wp_vs_type, wp_name in cfg['WPs_to_require'].items():
-            if wp_definitions is not None:
-                wp_thr = wp_definitions[wp_vs_type][wp_name]
+            if wp_thresholds is not None:
+                wp_thr = wp_thresholds[wp_vs_type][wp_name]
             else:
-                if cfg['discriminator']['working_points_map'] is not None:
-                    wp_thr = cfg['discriminator']['working_points_map'][wp_vs_type][wp_name]
+                if cfg['discriminator']['wp_thresholds_map'] is not None:
+                    wp_thr = cfg['discriminator']['wp_thresholds_map'][wp_vs_type][wp_name]
                 else:
-                    raise RuntimeError('WP thresholds either via working_points_map or via input json file are not provided.')
+                    raise RuntimeError('WP thresholds either via wp_thresholds_map or via input json file are not provided.')
             wp_cut = f"{cfg['discriminator']['pred_column_prefix']}{wp_vs_type} > {wp_thr}"
             df_all = df_all.query(wp_cut)
         
@@ -112,7 +114,7 @@ def main(cfg: DictConfig) -> None:
                 x_range = lim[1] - lim[0] if lim is not None else 1
                 roc = roc.Prune(tpr_decimals=max(0, round(math.log10(1000 / x_range))))
                 if roc.auc_score is not None:
-                    print(f'[INFO] ROC curve done, AUC = {roc.auc_score}')
+                    print(f'[INFO] ROC curve done, AUC = {roc.auc_score:.6f}')
 
             # loop over [ROC curve, ROC curve WP] for a given discriminator and store its info into dict
             for curve_type, curve in zip(['roc_curve', 'roc_wp'], [roc, wp_roc]):
