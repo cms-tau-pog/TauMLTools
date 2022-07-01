@@ -27,10 +27,10 @@ wp_name_to_index_map:
     VVTight: 7
     VVVTight: 8
   mu:
-    VLoose: 0
-    Loose: 1
-    Medium: 2
-    Tight: 3
+    VLoose: 2
+    Loose: 3
+    Medium: 4
+    Tight: 5
   jet:
     VVVLoose: 0
     VVLoose: 1
