@@ -472,7 +472,7 @@ public:
                                     std::make_index_sequence<nFeaturesTypes>{});
 
         auto fillGrid = [&](auto _feature_idx, float value) {
-          if(static_cast<int>(_feature_idx) < 0) return;
+          if((static_cast<int>(_feature_idx) < 0) || !(std::isfinite(value))) return;
           const CellObjectType obj_type = FeaturesHelper<decltype(_feature_idx)>::object_type;
           const size_t start = start_indices.at(ElementIndex<decltype(_feature_idx), FeatureTuple>::value);
           data->x_grid.at(obj_type).at(inner).at(start + static_cast<int>(_feature_idx))
