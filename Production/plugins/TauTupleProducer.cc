@@ -96,6 +96,9 @@ namespace tau_analysis {
         static float full5x5_hcalDepth2OverEcalBc(const Elec* ele) { return ele->full5x5_hcalDepth2OverEcalBc(); }
     };
 
+    template<typename Elec>
+    struct GetElecVer<Elec, 11> : GetElecVer<Elec, 10>  { };
+
 
 struct TauTupleProducerData {
     using clock = std::chrono::system_clock;
