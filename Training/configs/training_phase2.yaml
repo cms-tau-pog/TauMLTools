@@ -68,7 +68,7 @@ SetupNN:
     n_batches_val        : -1 # -1 for all
     n_batches_log        : 1000 # monitor every n batches in tensorboard
     epoch                : 0
-    n_epochs             : 15
+    n_epochs             : 10
     validation_split     : 0.2
     max_queue_size       : 1
     n_load_workers       : 1
@@ -77,7 +77,7 @@ SetupNN:
                             [ GridGlobal, PfCand_muon, Muon ], # muons
                             [ GridGlobal, PfCand_chHad, PfCand_nHad ] # hadrons
                            ]
-    TauLossesSFs         : [0.4, 1.0, 2.0, 0.6]
+    TauLossesSFs         : [0.8, 1.5, 4.0, 1.7]
     optimizer_name       : "Nadam"
     learning_rate        : 0.001
     schedule_decay       : 0.0 #0.0001 # Using step decay instead of schedule decay
