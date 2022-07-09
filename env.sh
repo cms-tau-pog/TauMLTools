@@ -40,9 +40,9 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = 
         APPLY_BOOSTED_FIX=0
         export SCRAM_ARCH=slc7_amd64_gcc700
     elif [ $MODE = "run3" ] ; then
-        CMSSW_VER=CMSSW_12_4_0_pre3
+        CMSSW_VER=CMSSW_12_4_0
         APPLY_BOOSTED_FIX=0
-        export SCRAM_ARCH=slc7_amd64_gcc100
+        export SCRAM_ARCH=slc7_amd64_gcc10
     fi
 
     if ! [ -f soft/$CMSSW_VER/.installed ]; then

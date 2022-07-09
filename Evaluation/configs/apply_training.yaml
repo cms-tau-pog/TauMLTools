@@ -4,12 +4,14 @@ training_cfg_upd:
     n_tau: 250
     dataloader_core: "TauMLTools/Training/interface/DataLoader_main.h"
     debug: False
+    include_mismatched: True
   SetupNN:
     n_batches: -1
     n_batches_val: -1
     validation_split: 0.
     max_queue_size: 1
     n_load_workers: 1
+
 
 # mlflow info
 path_to_mlflow: ???
@@ -23,6 +25,7 @@ scaling_cfg: ${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/input_cfg/Sh
 # input path and file name
 path_to_input_dir: ???
 input_filename: null # without file extension
+prediction_overwrite: True
 
 # output path and file name // will store prediction file in -> artifacts/predictions/{sample_alias}/{output_filename}.h5 
 sample_alias: ??? 
@@ -36,3 +39,28 @@ gpu_cfg: # for running on CPU specify "gpu_cfg: null"
 # misc.
 verbose: True
 checkout_train_repo: False # whether to checkout git commit used for running the training (fetched from artifacts)
+
+#
+# Options below are needed to DeepTauId input/output for CMSSW vs. local python interface
+#
+
+# "toKeep" - option to save the default DeepTauId information from initial BigTuples
+toKeepID : null
+# toKeepID : [
+#             "byDeepTau2018v2p5VSeraw",
+#             "byDeepTau2018v2p5VSmuraw",
+#             "byDeepTau2018v2p5VSjetraw",
+#            ]
+
+# when save_input_names is specified - NN input tensors will be saved
+# save_input_names is the naming of the saved tensors:
+save_input_names : null
+# save_input_names : [
+#                     "input_tau",
+#                     "input_inner_egamma",
+#                     "input_inner_muon",
+#                     "input_inner_hadrons",
+#                     "input_outer_egamma",
+#                     "input_outer_muon",
+#                     "input_outer_hadrons",
+#                     ]

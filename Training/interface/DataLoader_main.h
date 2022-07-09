@@ -253,11 +253,10 @@ public:
                                                             tau.genLepton_vis_mass, tau.genJet_index);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
 
-          if (gen_match &&tau.tau_byDeepTau2017v2p1VSjetraw >DeepTauVSjet_cut){
+          if (gen_match && tau.tau_byDeepTau2017v2p1VSjetraw > DeepTauVSjet_cut) {
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
             }
-
             // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
             if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
               data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
@@ -268,6 +267,12 @@ public:
               data->uncompress_index[data->tau_i] = data->uncompress_size;
               ++(data->tau_i);
             }
+          } else if (!gen_match && include_mismatched && tau.tau_index >= 0) {
+              FillTauBranches(tau, data->tau_i);
+              FillCellGrid(tau, data->tau_i, innerCellGridRef, true);
+              FillCellGrid(tau, data->tau_i, outerCellGridRef, false);
+              data->uncompress_index[data->tau_i] = data->uncompress_size;
+              ++(data->tau_i);
           }
           ++(data->uncompress_size);
           ++current_entry;
@@ -655,9 +660,10 @@ public:
                 if(tau.pfCand_timeError.at(pfCand_idx)!=0)
                   fillGrid(Br::pfCand_chHad_time_sig, std::abs(tau.pfCand_time.at(pfCand_idx)) / tau.pfCand_timeError.at(pfCand_idx));
               }
-              if(tau.pfCand_track_ndof.at(pfCand_idx)!=0)
+              if(tau.pfCand_track_ndof.at(pfCand_idx)>0){
                 fillGrid(Br::pfCand_chHad_track_chi2_ndof, tau.pfCand_track_chi2.at(pfCand_idx) / tau.pfCand_track_ndof.at(pfCand_idx));
-              fillGrid(Br::pfCand_chHad_track_ndof, tau.pfCand_track_ndof.at(pfCand_idx));
+                fillGrid(Br::pfCand_chHad_track_ndof, tau.pfCand_track_ndof.at(pfCand_idx));
+              }
             }
 
             fillGrid(Br::pfCand_chHad_hcalFraction, tau.pfCand_hcalFraction.at(pfCand_idx));
