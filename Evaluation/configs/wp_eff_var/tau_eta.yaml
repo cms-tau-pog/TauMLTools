@@ -1,0 +1,22 @@
+var_cfg:
+  _target_: functools.partial
+  _args_: ["${get_method:__main__.plot_efficiency}"]
+
+  var_name: tau_eta
+  var_bins: [-2.3, -1.78888889, -1.27777778, -0.76666667, -0.25555556,
+            0.25555556, 0.76666667, 1.27777778, 1.78888889, 2.3]
+
+  xlabels: null 
+  xerr: null
+
+  xscale: linear
+  yscale_1: linear
+  yscale_2: log
+
+  ylim_1: [0, 1]
+  ylim_2: [5e-5, 2e-1]
+
+  xtitle: '$\eta$'
+  ytitle_1: Tau ID efficiency
+  ytitle_2: "${vs_type} mis-id probability"
+  legend_loc: "lower right"

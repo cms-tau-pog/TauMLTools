@@ -154,12 +154,20 @@ class Discriminator:
     wp_from: str = None
     wp_column: str = None
     wp_name_to_index: dict = None
-    working_points: list = field(default_factory=list)
-    working_points_thrs: dict = None 
+    wp_thresholds: dict = None 
 
     def __post_init__(self):
         if self.wp_from is None:
-            self.working_points = []
+            self.wp_thresholds = {}
+        else: # create list of WP names from either of provided WP dictionaries
+            if self.wp_name_to_index is not None and self.wp_thresholds is not None:
+                assert set(self.wp_name_to_index.keys()) == set(self.wp_thresholds.keys())
+            if self.wp_name_to_index is not None:
+                self.wp_names = list(self.wp_name_to_index.keys())
+            elif self.wp_thresholds is not None:
+                self.wp_names = list(self.wp_thresholds.keys())
+            else:
+                raise RuntimeError(f"For wp_from={self.wp_from} either wp_name_to_index or wp_thresholds should be specified, but both are None.")
 
     def count_passed(self, df, wp_name):
         if self.wp_from == 'wp_column':
@@ -169,9 +177,9 @@ class Discriminator:
             passed = (np.bitwise_and(df[self.wp_column], flag) != 0).astype(int)
             return np.sum(passed * df.weight.values)
         elif self.wp_from == 'pred_column':
-            if self.working_points_thrs is not None:
+            if len(self.wp_thresholds) > 0:
                 assert self.pred_column in df.columns
-                wp_thr = self.working_points_thrs[wp_name]
+                wp_thr = self.wp_thresholds[wp_name]
                 return np.sum(df[df[self.pred_column] > wp_thr].weight.values)
             else:
                 raise RuntimeError('Working points thresholds are not specified for discriminator "{}"'.format(self.name))
@@ -196,9 +204,9 @@ class Discriminator:
         
         # construct WPs
         if self.wp_from in ['wp_column', 'pred_column']:  
-            if (n_wp:=len(self.working_points)) > 0:
+            if (n_wp:=len(self.wp_names)) > 0:
                 wp_roc = RocCurve(n_wp, self.color, not self.raw, self.raw)
-                for wp_i, wp_name in enumerate(self.working_points):
+                for wp_i, wp_name in enumerate(self.wp_names):
                     for kind in [0, 1]:
                         df_x = df[df['gen_tau'] == kind]
                         n_passed = self.count_passed(df_x, wp_name)

@@ -1,0 +1,21 @@
+var_cfg:
+  _target_: functools.partial
+  _args_: ["${get_method:__main__.plot_efficiency}"]
+
+  var_name: tau_decayMode
+  var_bins: [-0.5, 0.5, 1.5, 5.5, 6.5, 10.5, 11.5]
+
+  xlabels: ["0", "1", "5", "6", "10", "11"]
+  xerr: 0.5
+
+  xscale: linear
+  yscale_1: linear
+  yscale_2: log
+
+  ylim_1: [-0.4, 1]
+  ylim_2: [5e-7, 1]
+
+  xtitle: Decay mode
+  ytitle_1: Tau ID efficiency
+  ytitle_2: "${vs_type} mis-id probability"
+  legend_loc: "lower right"

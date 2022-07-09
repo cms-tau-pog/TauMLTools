@@ -34,22 +34,38 @@ wp_maker:
     jet: VVVLoose
   
   # convergence params
-  epsilon: 1e-7
+  epsilon: 1e-5
   n_iterations: 100
   verbose: False
 
 create_df:
-  _target_: derive_wp.create_df
+  _target_: __main__.create_df
 
   # path to prediction files
   path_to_mlflow: ???
   experiment_id: ???
   run_id: ???
   path_to_preds: "${create_df.path_to_mlflow}/${create_df.experiment_id}/${create_df.run_id}/artifacts/predictions/"
+  tau_type_to_select: tau
   pred_samples: # samples in `path_to_preds` to take taus from 
-    GluGluHToTauTau_M125: 'eventTuple_1-7_pred.h5' # single files, list of files and "*" are supported 
-  
+    2016APVUL_GluGluHToTauTau_M125: 
+      filename_pattern: 'eventTuple_*.h5' # single files, list of files and "*" are supported 
+      sample_lumi: 19.52
+      reweight_to_lumi: 137.64 # total luminosity or `null` to skip reweighting
+    2016UL_GluGluHToTauTau_M125: 
+      filename_pattern: 'eventTuple_*.h5'
+      sample_lumi: 16.81
+      reweight_to_lumi: 137.64
+    2017UL_GluGluHToTauTau_M125: 
+      filename_pattern: 'eventTuple_*.h5'
+      sample_lumi: 41.48
+      reweight_to_lumi: 137.64
+    2018UL_GluGluHToTauTau_M125: 
+      filename_pattern: 'eventTuple_*.h5'
+      sample_lumi: 59.83
+      reweight_to_lumi: 137.64
+
   # paths to input ROOT files will be retrieved from corresponding pred_input_filemap.json
   input_branches: [ 'tau_pt', 'tau_eta', 'tau_dz', 'tau_decayMode' ]
   input_tree_name: taus
-  selection: '(tau_pt>=20) and (tau_pt<100) and (abs(tau_eta) < 2.3) and (abs(tau_dz) < 0.2) and not (tau_decayMode in [5,6])'
+  selection: '(tau_pt>=30) and (tau_pt<80) and (abs(tau_eta) < 2.3) and (abs(tau_dz) < 0.2) and not (tau_decayMode in [5,6])'
