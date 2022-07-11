@@ -68,8 +68,6 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = 
         run_cmd touch ../../.installed
         run_cmd scram b -j8
         run_cmd cd ../../../..
-
-
     else
         run_cmd cd soft/$CMSSW_VER/src
         run_cmd eval `scramv1 runtime -sh`

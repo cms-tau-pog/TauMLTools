@@ -236,7 +236,7 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     requireGenORRecoTauMatch = cms.bool(options.requireGenORRecoTauMatch),
     applyRecoPtSieve         = cms.bool(options.applyRecoPtSieve),
     tauJetBuilderSetup       = tauJetBuilderSetup,
-    selector                 = cms.string(options.selector),
+    selector		     = cms.string(options.selector),
 
     lheEventProduct    = cms.InputTag('externalLHEProducer'),
     genEvent           = cms.InputTag('generator'),

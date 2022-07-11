@@ -2,7 +2,7 @@ import ROOT
 import numpy as np
 from array import array
 
-myFile = ROOT.TFile('../../soft/CMSSW_10_6_29/src/eventTuple.root')
+myFile = ROOT.TFile('file:eventTuple.root')
 myTree = myFile.Get('taus')
 
 rdf = ROOT.RDataFrame(myTree)
@@ -12,8 +12,8 @@ rdf = ROOT.RDataFrame(myTree)
 
 ROOT.gInterpreter.ProcessLine('''
 
-#include </opt/sbg/cms/safe1/cms/msessini/TauMLProd/Analysis/interface/GenLepton.h>
-#include </opt/sbg/cms/safe1/cms/msessini/TauMLProd/Analysis/interface/CPfunctions.h>
+#include "../interface/GenLepton.h"
+#include "../interface/CPfunctions.h"
 
 ''')
 
@@ -29,7 +29,7 @@ rdf = rdf.Define('genLepton_mothers','genLepton.mothers()')
 
 # tau->pi,rho,a1
 rdf = rdf.Filter('(genLepton.nChargedHadrons() == 1 && genLepton.nNeutralHadrons() == 0) || (genLepton.nChargedHadrons() == 1 && genLepton.nNeutralHadrons() == 1) || (genLepton.nChargedHadrons() == 3 && genLepton.nNeutralHadrons() == 0)')\
-         .Define('PhiCP','''CPfunctions::PhiCP(genLepton, evt)''')
+         .Define('PhiCP','''tau_cp::CPfunctions::PhiCP(genLepton, evt)''')
 
 rdf = rdf.Filter('PhiCP > 0')
 
