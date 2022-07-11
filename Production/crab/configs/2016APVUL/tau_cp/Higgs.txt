@@ -1,4 +1,4 @@
-sampleType=MC_UL16APV selector selector=genTauTau
+sampleType=MC_UL16APV selector=genTauTau
 
 GluGluHToTauTau_M125   /GluGluHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16MiniAODAPV-106X_mcRun2_asymptotic_preVFP_v8-v4/MINIAODSIM
 VBFHToTauTau_M125      /VBFHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL16MiniAODAPV-106X_mcRun2_asymptotic_preVFP_v8-v2/MINIAODSIM
