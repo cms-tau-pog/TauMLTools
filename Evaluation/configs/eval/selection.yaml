@@ -9,11 +9,5 @@
 #   jet: "(againstElectronMVA6 & (1 << ${discriminator.wp_name_to_index.VLoose})) \
 #               and (againstMuon3 & (1 << ${discriminator.wp_name_to_index.Loose})) \
 #               and (tau_decayMode != 5) & (tau_decayMode != 6)"
-apply_deep_cuts:
-  e: "(${discriminator.pred_column_prefix}jet > ${discriminator.working_points_thrs_map.jet.VVVLoose}}) \
-        and (${discriminator.pred_column_prefix}mu > ${discriminator.working_points_thrs_map.mu.VLoose}})"
-  mu: "(${discriminator.pred_column_prefix}e > ${discriminator.working_points_thrs_map.e.VVVLoose}}) \
-        and (${discriminator.pred_column_prefix}jet > ${discriminator.working_points_thrs_map.jet.VVVLoose}})"
-  jet: "(${discriminator.pred_column_prefix}e > ${discriminator.working_points_thrs_map.e.VVVLoose}}) \
-        and (${discriminator.pred_column_prefix}mu > ${discriminator.working_points_thrs_map.mu.VLoose}})"
+
 apply_dm_cuts: "(tau_decayMode != 5) & (tau_decayMode != 6)"

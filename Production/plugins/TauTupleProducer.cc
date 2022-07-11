@@ -97,7 +97,7 @@ namespace tau_analysis {
     };
 
     template<typename Elec>
-    struct GetElecVer<Elec, 11> : GetElecVer<Elec, 10>  { };
+    struct GetElecVer<Elec, 11> : GetElecVer<Elec, 10> {};
 
 
 struct TauTupleProducerData {

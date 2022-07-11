@@ -1,5 +1,5 @@
 # general
-name: DeepTau vs. ${vs_type} (v2p1)
+name: DeepTau (v2.1)
 color: blue
 dashed: False
 raw: True
@@ -11,68 +11,60 @@ target_column_prefix: node_
 
 # WPs
 wp_from: wp_column
+
+# for the case "wp_column: wp_column"
 wp_column: tau_byDeepTau2017v2p1VS${vs_type}
-working_points: ${.working_points_map.${vs_type}} 
-working_points_thrs: ${.working_points_thrs_map.${vs_type}} 
-
-# WP maps
-wp_name_to_index:
-  VVVLoose: 0
-  VVLoose: 1
-  VLoose: 2
-  Loose: 3
-  Medium: 4
-  Tight: 5
-  VTight: 6
-  VVTight: 7
-  VVVTight: 8
-
-working_points_map: 
+wp_name_to_index: ${.wp_name_to_index_map.${vs_type}}
+wp_name_to_index_map:
   e:
-    - VVVLoose
-    - VVLoose
-    - VLoose
-    - Loose
-    - Medium
-    - Tight
-    - VTight
-    - VVTight
+    VVVLoose: 0
+    VVLoose: 1
+    VLoose: 2
+    Loose: 3
+    Medium: 4
+    Tight: 5
+    VTight: 6
+    VVTight: 7
+    VVVTight: 8
   mu:
-    - VLoose
-    - Loose
-    - Medium
-    - Tight
+    VLoose: 2
+    Loose: 3
+    Medium: 4
+    Tight: 5
   jet:
-    - VVVLoose
-    - VVLoose
-    - VLoose
-    - Loose
-    - Medium
-    - Tight
-    - VTight
-    - VVTight
+    VVVLoose: 0
+    VVLoose: 1
+    VLoose: 2
+    Loose: 3
+    Medium: 4
+    Tight: 5
+    VTight: 6
+    VVTight: 7
+    VVVTight: 8
 
-working_points_thrs_map: 
-  e:
-    VVVLoose: 0.0630386
-    VVLoose: 0.1686942
-    VLoose: 0.3628130
-    Loose: 0.681543
-    Medium: 0.8847544
-    Tight: 0.9675541
-    VTight: 0.9859251
-    VVTight: 0.9928449
-  mu:
-    VLoose: 0.1058354
-    Loose: 0.2158633
-    Medium: 0.5551894
-    Tight: 0.8754835
-  jet:
-    VVVLoose: 0.2599605
-    VVLoose: 0.4249705
-    VLoose: 0.5983682
-    Loose: 0.7848675
-    Medium: 0.8834768
-    Tight: 0.930868
-    VTight: 0.9573137
-    VVTight: 0.9733927
+# # for the case "wp_column: pred_column"
+# wp_thresholds: ${.wp_thresholds_map.${vs_type}}
+# wp_thresholds_map: 
+#   e:
+#     VVVLoose: 0.0630386
+#     VVLoose: 0.1686942
+#     VLoose: 0.3628130
+#     Loose: 0.681543
+#     Medium: 0.8847544
+#     Tight: 0.9675541
+#     VTight: 0.9859251
+#     VVTight: 0.9928449
+#   mu:
+#     VLoose: 0.1058354
+#     Loose: 0.2158633
+#     Medium: 0.5551894
+#     Tight: 0.8754835
+#   jet:
+#     VVVLoose: 0.2599605
+#     VVLoose: 0.4249705
+#     VLoose: 0.5983682
+#     Loose: 0.7848675
+#     Medium: 0.8834768
+#     Tight: 0.930868
+#     VTight: 0.9573137
+#     VVTight: 0.9733927

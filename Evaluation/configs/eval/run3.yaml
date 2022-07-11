@@ -21,6 +21,10 @@ dm_bins: [[0, 1, 2, 10, 11]]
 # selection
 input_branches: [ 'tau_pt', 'tau_eta', 'tau_decayMode' ] # add here branches with targets/prediction if necessary
 cuts: ${apply_dm_cuts}
+WPs_to_require: null # null to not apply WP as selection
+# WPs_to_require: ### example for vs. jet
+#   e: VVVLoose
+#   mu: VLoose
 
 # inputs/paths
 input_samples: # "sample_alias": [list of strings with tau types to be selected]

@@ -509,7 +509,7 @@ In order to check the final training/validation loss function and corresponding 
 
 ### Producing predictions
 
-The first step in the performance evaluation pipeline is producing predictions for a given model and a given data sample. This can be achieved with [Evaluation/apply_training.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/apply_training.py) script, where its input arguments are configured in [Evaluation/apply_training.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/apply_training.yaml). It is important to mention that at this step `DataLoader` class is also used to yield batches for the model, therefore there are few parameters which configure its behaviour: 
+The first step in the performance evaluation pipeline is producing predictions for a given model and a given data sample. This can be achieved with [Evaluation/apply_training.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/apply_training.py) script, where its input arguments are configured in [Evaluation/configs/apply_training.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/apply_training.yaml). It is important to mention that at this step `DataLoader` class is also used to yield batches for the model, therefore there are few parameters which configure its behaviour: 
 
 * `training_cfg_upd` describes parameters which will be overriden in the `DataLoader` class initialisation. For example, for evaluation all taus should be included in batches, hence `include_mismatched=True`. Or, train/val split is not needed comparing to the train step, so `validation_split=0.`. Note that the base configuration by default is taken from mlflow logs and therefore is the one which was used for the training (`path_to_training_cfg` key).  
 
@@ -529,7 +529,7 @@ python apply_training.py path_to_mlflow=../Training/python/2018v1/mlruns experim
 ```
 
 ### Evaluating metrics
-The second step in the evaluation pipeline is [Evaluation/evaluate_performance.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/evaluate_performance.py) with the corresponding main hydra cfg file being [Evaluation/configs/run3.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/run3.yaml). This step involves complex configuration setting in order to cover the variety of use cases in a generalised way. For a history of its developments and more details please refer to these presentations [[1]](https://indico.cern.ch/event/1066000/contributions/4482034/attachments/2293019/3898990/DeepTau_eval.pdf), [[2]](https://indico.cern.ch/event/1067541/contributions/4489002/attachments/2295081/3903198/DeepTau_eval_1.pdf), [[3]](https://indico.cern.ch/event/1068999/contributions/4495448/attachments/2297277/3907278/DeepTau_eval_2.pdf). 
+The second step in the evaluation pipeline is [Evaluation/evaluate_performance.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/evaluate_performance.py) with the corresponding main hydra cfg file being [Evaluation/configs/eval/run3.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/eval/run3.yaml). This step involves complex configuration setting in order to cover the variety of use cases in a generalised way. For a history of its developments and more details please refer to these presentations [[1]](https://indico.cern.ch/event/1066000/contributions/4482034/attachments/2293019/3898990/DeepTau_eval.pdf), [[2]](https://indico.cern.ch/event/1067541/contributions/4489002/attachments/2295081/3903198/DeepTau_eval_1.pdf), [[3]](https://indico.cern.ch/event/1068999/contributions/4495448/attachments/2297277/3907278/DeepTau_eval_2.pdf). 
 
 #### Configuration description
 
@@ -592,7 +592,7 @@ python evaluate_performance.py path_to_mlflow=../Training/python/2018v1/mlruns e
 Now one can inspect `performance.json` files in corresponding mlflow run artifacts to get the intuition of how the skimmed performance info looks like. For example, since internally WP and ROC curve are defined and treated as instances of the same `RocCurve` class, output in `performance.json` for MVA model looks structurally the same as for DeepTau_run3, although for the former we just plot a set of working points, and for the latter the whole ROC curve.
 
 ### Plotting ROC curves
-The third step in the evaluation pipeline is [Evaluation/plot_roc.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/plot_roc.py) with the corresponding [Evaluation/plot_roc.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/plot_roc.yaml) cfg file. In the latter one need to specify:
+The third step in the evaluation pipeline is [Evaluation/plot_roc.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/plot_roc.py) with the corresponding [Evaluation/configs/plot_roc.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/plot_roc.yaml) cfg file. In the latter one need to specify:
 
 * mlflow `experiment_id`, which assumes that all run IDs below belong to this experiment ID
 * `discriminators`: a dictionary mapping `run_id` -> `[curve_type_1, 'curve_type_2']`, where `curve_type_*` is either `roc_curve` or `roc_wp` and describes which types of ROC curves should be plotted.
@@ -618,3 +618,41 @@ python plot_roc.py vs_type=jet dataset_alias=ggH_TT 'pt_bin=[20,100]'
 ```
 
 will produce the plot with specified models plotted side-by-side and will store it in `mlruns/2/06f9305d6e0b478a88af8ea234bcec20/artifacts/plots/`, which then can be viewed directly or through mlflow UI.
+
+### Computing working points
+
+For a given model, one usually has to define working points (WPs): that is, to derive thresholds on the model output scores yielding classification with predefined genuine tau efficiency, in the specified region of the phase space. This can be done with the script [Evaluation/derive_wp.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/derive_wp.py) and the corresponding cfg file [Evaluation/configs/derive_wp.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/derive_wp.yaml). The script contains the definition of a `WPMaker` class which takes care of the computation procedure + the code to run it, while the yaml file specifies the arguments to the class and to `create_df()` function defined in [Evaluation/utils/data_processing.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/utils/data_processing.py). The computation follows the logic:
+
+* Take genuine taus (`create_df.tau_type_to_select=tau`) from all the samples in the dictionary `create_df.pred_samples` (will read files based on `create_df.pred_samples.{sample_name}.filename_pattern`) within `create_df.path_to_preds` (by default assumed to be within mlflow artifacts, but can be specified differently) which pass `create_df.selection`. Feature values for selection (e.g. `tau_pt`) will be taken from the input file corresponding to every prediction file, where the mapping is obtained from `pred_input_filemap.json` (assumed to be present in `pred_path/{sample_name}`).
+
+* `score_vs_{type}` is computed for each tau as usual `score_tau / (score_tau + score_vs_type)`. If `reweight_to_lumi` isn't set to `null`, will also assign a weight to taus from the sample according to the fraction of luminosity `sample_lumi` assigned to it (i.e. `lumi_weight = sample_lumi / (reweight_to_lumi * N_taus_in_sample)`).
+
+* Function `WPMaker.update_thrs()` for each `score_vs_{type}` computes thresholds corresponding to its weighted quantiles given by `tpr` values. `tpr` is defined as a grid of evenly-spaced values with `step=wp_maker.tpr_step`. Thresholds which yield efficiencies closest to the values specified in `wp_maker.wp_definitions.{type}.wp_eff` are selected.
+
+* The procedure is repeated until convergence of threshold values within `wp_maker.epsilon` for all `vs_types`. If `wp_maker.require_wp_vs_others=False`, it should take only 2 iterations (no self-dependancy). Otherwise, the dependancy on passing the loosest WPs vs remaining tau types is introduced in the definition of WP vs current_type, so convergence will require >2 iterations (usually, it takes 5-8 iterations). 
+
+* Resulting json file with thresholds is logged to mlflow artifacts of the specified `run_id`.
+
+An example of running the script - assuming `pred_samples` are already specified as needed in `derive_wp.yaml` - would be:
+
+```bash
+python derive_wp.py 'create_df.path_to_mlflow=../Training/python/2018v1/mlruns/' create_df.experiment_id=4 create_df.run_id=e1f3ddb3c4c94128a34a7635c56322eb
+```
+
+### Plotting working point efficiencies
+
+Once working points are derived, it is important to understand how tau/fake efficiency look like as a function of tau-related variables for each of the working points. Such plots can be produced with a script [Evaluation/plot_wp_eff.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/plot_wp_eff.py) + config [Evaluation/configs/plot_wp_eff.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/plot_wp_eff.yaml). 
+
+What it does is firstly composes two datasets, one with genuine taus and the other with `vs_type` fakes. This uses the same `create_df()` function from `Evaluation/utils/data_processing.py`, which in this case however is called in a [partial manner](https://docs.python.org/3/library/functools.html#functools.partial). For that, the core arguments `create_df.*` in the config, specifying general paths/selection, are shared for each `tau_type`, while `pred_samples` argument (dictionary of dictionaries, `tau_type -> samples -> sample_cfg`) is factorised from it, allowing for a flexible separate calls per `tau_type`. If `from_skims=False`, those datasets will be logged to mlflow artifacts for the specified run, in order to remove the need in producing the datasets each time (hence, for `from_skims=True` it will instead search for such datasets in `output_skim_folder` within the mlflow artifacts).
+
+Then, WP thresholds are retrieved from the json file from mlflow artifacts and `differential_efficiency()` function from `Evaluation/utils/wp_eff.py` is called. It computes separately for both genuine taus and fakes the efficiency of passing WPs in `var_bins` of `wp_eff_var`. Note that this parameter in the main `plot_wp_eff.yaml` is itself the name of another yaml config to be imported into the final hydra configuration from `Evaluation/configs/wp_eff_var` folder. This folder contains a template set of yaml files where each describes binning & plotting parameters for a corresponding variable.  
+
+It is `efficiency()` function which counts tau/fake objects passing WPs and returns the corresponding efficiency with a confidence interval (`eff, eff_down, eff_up`). It should be mentioned that this computation can be done both with and without assumption of passing some user-defined WPs. So it is the arguments `require_WPs_in_numerator`/ `require_WPs_in_denominator` which set if objects entering numerator/denominator of the efficiency formula should be required to pass `WPs_to_require`.
+
+Once differential efficiencies are calculated, `plot_efficiency()` is called partially, with the core arguments taken from `wp_eff_var` config and the other (efficiencies) passed as partial arguments. This creates a corresponding plot and stores it within mlflow artifacts as `output_filename`.
+
+An example of running the script (assuming `pred_samples` are already specified as needed in `plot_wp_eff.yaml`) would be:
+
+```bash
+python plot_wp_eff.py vs_type=jet from_skims=True output_skim_folder=wp_eff/data/Run3 wp_eff_var=tau_eta 'create_df.path_to_mlflow=../Training/python/2018v1/mlruns/' create_df.experiment_id=4 create_df.run_id=e1f3ddb3c4c94128a34a7635c56322eb
+```
