@@ -26,13 +26,17 @@ function run_cmd {
     fi
 }
 
-if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = "run3" ]]; then
+if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "phase2_113X" || $MODE = "prod2018UL" || $MODE = "run3" ]]; then
     if [ $MODE = "prod2018" ] ; then
         CMSSW_VER=CMSSW_10_6_29
         APPLY_BOOSTED_FIX=1
         export SCRAM_ARCH=slc7_amd64_gcc700
     elif [[ $MODE = "phase2" ]]; then
         CMSSW_VER=CMSSW_11_2_5
+        APPLY_BOOSTED_FIX=0
+        export SCRAM_ARCH=slc7_amd64_gcc900
+    elif [[ $MODE = "phase2_113X" ]]; then
+        CMSSW_VER=CMSSW_11_3_0
         APPLY_BOOSTED_FIX=0
         export SCRAM_ARCH=slc7_amd64_gcc900
     elif [ $MODE = "prod2018UL" ] ; then
