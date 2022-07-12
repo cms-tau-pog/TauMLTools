@@ -51,6 +51,8 @@ std::shared_ptr<TauJetSelector> TauJetSelector::Make(const std::string& name)
         return std::make_shared<TauJetSelector>();
     if(name == "MuTau")
         return std::make_shared<MuTau>();
+    if(name == "genTauTau")
+        return std::make_shared<genTauTau>();
     throw analysis::exception("Unknown selector name = '%1%'") % name;
 }
 
@@ -134,6 +136,30 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
     tagObject->has_dimuon = hasExtraDimuon(muons, primaryVertex);
     return Result(selectedTauJets, tagObject);
 }
+
+TauJetSelector::Result genTauTau::Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
+                                     const std::vector<pat::Electron>& electrons,
+                                     const std::vector<pat::Muon>& muons, const pat::MET& met,
+                                     const reco::Vertex& primaryVertex,
+                                     const pat::TriggerObjectStandAloneCollection& triggerObjects,
+                                     const edm::TriggerResults& triggerResults, float rho)
+{
+    std::vector<const TauJet*> selected;
+    for(const TauJet& tauJet :tauJets) {
+      const ObjPtr<reco_tau::gen_truth::GenLepton>& genLepton = tauJet.genLepton;
+      if(!genLepton) continue;
+      else {
+        if(!(genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToHadrons
+             && genLepton->visibleP4().pt() > 10                           
+             && std::abs(genLepton->visibleP4().eta()) < 2.5)
+          ) continue;
+        selected.push_back(&tauJet);
+      }
+    }
+    if(!(selected.size()==2)) return {};
+    return Result(selected, nullptr);
+}
+
 
 } // namespace selectors
 } // namespace tau_analysis

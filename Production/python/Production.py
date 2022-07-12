@@ -5,6 +5,7 @@ import importlib
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 import RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD as tauAtMiniTools
+from RecoMET.METPUSubtraction.deepMETProducer_cfi import deepMETProducer
 import os
 
 
@@ -63,6 +64,28 @@ process.options.numberOfThreads = cms.untracked.uint32(options.numberOfThreads)
 process.options.numberOfStreams = cms.untracked.uint32(0)
 
 process.load('Configuration.StandardSequences.MagneticField_cff')
+
+# TauSpinner
+process.TauSpinnerReco = cms.EDProducer( "TauPOGSpinner",
+                                 isReco = cms.bool(True),
+                                 isTauolaConfigured = cms.bool(False),
+                                 isLHPDFConfigured = cms.bool(False),
+                                 LHAPDFname = cms.untracked.string('NNPDF30_nlo_as_0118'),
+                                 CMSEnergy = cms.double(13000.0),
+                                 gensrc = cms.InputTag('prunedGenParticles')
+                               )
+
+
+process.RandomNumberGeneratorService = cms.Service('RandomNumberGeneratorService',
+                                                   TauSpinnerReco = cms.PSet(
+    initialSeed = cms.untracked.uint32(123456789),
+    engineName = cms.untracked.string('HepJamesRandom')
+    )
+)
+
+# DeepMET
+process.deepMETProducer = deepMETProducer.clone()
+
 # include Phase2 specific configuration only after 11_0_X
 if isPhase2:
     process.load('Configuration.Geometry.GeometryExtended2026D49Reco_cff')
@@ -164,7 +187,7 @@ else:
         getattr(process, updatedBoostedTauName))
     boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
 
-# boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
+ # boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 if isRun2UL:
     taus_InputTag = cms.InputTag('slimmedTaus')
 elif isRun3:
@@ -181,7 +204,6 @@ if isPhase2:
 else:
     electrons_InputTag = cms.InputTag('slimmedElectrons')
     vtx_InputTag = cms.InputTag('offlineSlimmedPrimaryVertices')
-
 
 tauJetBuilderSetup = cms.PSet(
     genLepton_genJet_dR     = cms.double(0.4),
@@ -214,7 +236,7 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     requireGenORRecoTauMatch = cms.bool(options.requireGenORRecoTauMatch),
     applyRecoPtSieve         = cms.bool(options.applyRecoPtSieve),
     tauJetBuilderSetup       = tauJetBuilderSetup,
-    selector                 = cms.string(options.selector),
+    selector		     = cms.string(options.selector),
 
     lheEventProduct    = cms.InputTag('externalLHEProducer'),
     genEvent           = cms.InputTag('generator'),
@@ -234,8 +256,15 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     genJets            = cms.InputTag('slimmedGenJets'),
     genJetFlavourInfos = cms.InputTag('slimmedGenJetsFlavourInfos'),
     METs               = cms.InputTag('slimmedMETs'),
+    puppiMETs	       = cms.InputTag('slimmedMETsPuppi'),
+    deepMETs           = cms.InputTag('deepMETProducer', ''),
+    genMETs	       = cms.InputTag('genMetTrue'),
     triggerResults     = cms.InputTag('TriggerResults', '', 'HLT'),
     triggerObjects     = cms.InputTag('slimmedPatTrigger'),
+    tauSpinnerWTEven   = cms.InputTag('TauSpinnerReco','TauSpinnerWTEven'),
+    tauSpinnerWTOdd    = cms.InputTag('TauSpinnerReco','TauSpinnerWTOdd'),
+    tauSpinnerWTMM     = cms.InputTag('TauSpinnerReco','TauSpinnerWTMM'),
+
 )
 
 process.tupleProductionSequence = cms.Sequence(process.tauTupleProducer)
@@ -247,10 +276,14 @@ if isPhase2:
         getattr(process, updatedTauName) +
         process.tupleProductionSequence
     )
+
 elif isRun2UL:
     process.p = cms.Path(
+	process.deepMETProducer +
+        process.TauSpinnerReco +
         process.tupleProductionSequence
     )
+
 elif isRun3:
     process.p = cms.Path(
         getattr(process, 'rerunMvaIsolationSequence') +
@@ -259,6 +292,8 @@ elif isRun3:
     )
 else:
     process.p = cms.Path(
+        process.deepMETProducer +
+        process.TauSpinnerReco +
         getattr(process, updatedTauName + 'rerunMvaIsolationSequence') +
         getattr(process, updatedTauName) +
         process.boostedSequence +

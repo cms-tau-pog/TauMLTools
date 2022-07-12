@@ -16,6 +16,7 @@
 #include "DataFormats/PatCandidates/interface/PackedCandidate.h"
 #include "DataFormats/PatCandidates/interface/IsolatedTrack.h"
 #include "DataFormats/TrackReco/interface/HitPattern.h"
+#include "DataFormats/METReco/interface/PFMETCollection.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 
@@ -40,7 +41,6 @@
 #include "TauMLTools/Production/interface/MuonHitMatch.h"
 #include "TauMLTools/Production/interface/TauJet.h"
 #include "TauMLTools/Production/interface/Selectors.h"
-
 
 namespace {
     template <typename T>
@@ -209,8 +209,15 @@ public:
         isoTracks_token(consumes<pat::IsolatedTrackCollection>(cfg.getParameter<edm::InputTag>("isoTracks"))),
         lostTracks_token(consumes<pat::PackedCandidateCollection>(cfg.getParameter<edm::InputTag>("lostTracks"))),
         METs_token(consumes<edm::View<pat::MET>>(cfg.getParameter<edm::InputTag>("METs"))),
+        puppiMETs_token(consumes<edm::View<pat::MET>>(cfg.getParameter<edm::InputTag>("puppiMETs"))),
+        deepMETs_token(consumes<edm::View<pat::MET>>(cfg.getParameter<edm::InputTag>("deepMETs"))),
+        genMETs_token(consumes<edm::View<reco::GenMET>>(cfg.getParameter<edm::InputTag>("genMETs"))),
         triggerResults_token(consumes<edm::TriggerResults>(cfg.getParameter<edm::InputTag>("triggerResults"))),
         triggerObjects_token(consumes<pat::TriggerObjectStandAloneCollection>(cfg.getParameter<edm::InputTag>("triggerObjects"))),
+        tauSpinnerWTEven_token(consumes<double>(cfg.getParameter<edm::InputTag>("tauSpinnerWTEven"))),
+        tauSpinnerWTOdd_token(consumes<double>(cfg.getParameter<edm::InputTag>("tauSpinnerWTOdd"))),
+        tauSpinnerWTMM_token(consumes<double>(cfg.getParameter<edm::InputTag>("tauSpinnerWTMM"))),
+
         data(TauTupleProducerData::RequestGlobalData()),
         tauTuple(data->tauTuple),
         summaryTuple(data->summaryTuple),
@@ -301,8 +308,14 @@ private:
         auto isoTracks = getHandle(event, isoTracks_token);
         auto lostTracks = getHandle(event, lostTracks_token);
         auto METs = getHandle(event, METs_token);
+	auto puppiMETs = getHandle(event, puppiMETs_token);
+	auto deepMETs = getHandle(event, deepMETs_token);
+	auto genMETs = getHandle(event, genMETs_token);
         auto triggerResults = getHandle(event, triggerResults_token);
         auto triggerObjects = getHandle(event, triggerObjects_token);
+        auto tauSpinnerWTEven = getHandle(event, tauSpinnerWTEven_token);
+        auto tauSpinnerWTOdd = getHandle(event, tauSpinnerWTOdd_token);
+        auto tauSpinnerWTMM = getHandle(event, tauSpinnerWTMM_token);
 
         auto genParticles = getProduct(event, genParticles_token, isMC);
         auto genJets = getProduct(event, genJets_token, isMC);
@@ -310,6 +323,21 @@ private:
 
         tauTuple().met_pt = METs->at(0).pt();
         tauTuple().met_phi = METs->at(0).phi();
+	tauTuple().metcov_00 = METs->at(0).getSignificanceMatrix()[0][0];
+        tauTuple().metcov_01 = METs->at(0).getSignificanceMatrix()[0][1];
+        tauTuple().metcov_11 = METs->at(0).getSignificanceMatrix()[1][1];
+	tauTuple().puppimet_pt = puppiMETs->at(0).pt();
+        tauTuple().puppimet_phi = puppiMETs->at(0).phi();
+        tauTuple().puppimetcov_00 = puppiMETs->at(0).getSignificanceMatrix()[0][0];
+        tauTuple().puppimetcov_01 = puppiMETs->at(0).getSignificanceMatrix()[0][1];
+        tauTuple().puppimetcov_11 = puppiMETs->at(0).getSignificanceMatrix()[1][1];
+	tauTuple().deepmet_pt = deepMETs->at(0).pt();
+	tauTuple().deepmet_phi = deepMETs->at(0).phi();
+        tauTuple().genmet_pt = genMETs->at(0).pt();
+        tauTuple().genmet_phi = genMETs->at(0).phi();
+	tauTuple().tauSpinnerWTEven = (*tauSpinnerWTEven);
+        tauTuple().tauSpinnerWTOdd = (*tauSpinnerWTOdd);
+        tauTuple().tauSpinnerWTMM = (*tauSpinnerWTMM);
 
         TauJetBuilder builder(builderSetup, *taus, *boostedTaus, *jets, *fatJets, *cands, *electrons, *muons,
                               *isoTracks, *lostTracks, genParticles, genJets, requireGenMatch,
@@ -332,7 +360,7 @@ private:
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {
             const TauJet& tauJet = *tauJets.at(tauJetIndex);
             tauTuple().entry_index = static_cast<int>(tauJetIndex);
-
+	    
             FillGenLepton(tauJet.genLepton);
             FillGenJet(tauJet.genJet, genJetFlavourInfos);
 
@@ -975,8 +1003,14 @@ private:
     edm::EDGetTokenT<pat::IsolatedTrackCollection> isoTracks_token;
     edm::EDGetTokenT<pat::PackedCandidateCollection> lostTracks_token;
     edm::EDGetTokenT<edm::View<pat::MET>> METs_token;
+    edm::EDGetTokenT<edm::View<pat::MET>> puppiMETs_token;
+    edm::EDGetTokenT<edm::View<pat::MET>> deepMETs_token;
+    edm::EDGetTokenT<edm::View<reco::GenMET>> genMETs_token;
     edm::EDGetTokenT<edm::TriggerResults> triggerResults_token;
     edm::EDGetTokenT<pat::TriggerObjectStandAloneCollection> triggerObjects_token;
+    edm::EDGetTokenT<double> tauSpinnerWTEven_token;
+    edm::EDGetTokenT<double> tauSpinnerWTOdd_token;
+    edm::EDGetTokenT<double> tauSpinnerWTMM_token;
 
     TauTupleProducerData* data;
     tau_tuple::TauTuple& tauTuple;
