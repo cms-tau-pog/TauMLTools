@@ -16,7 +16,7 @@ pretrained:
   starting_model: adv_decay_1e3_Adam_100k_step1_final.tf # e.g: DeepTau2018v0_step1_final.tf
 
 # setup
-scaling_cfg: ../configs/ScalingParameters_Phase2_contv2p5.json # for DataLoader initialisation
+scaling_cfg: ../configs/ScalingParameters_Phase2.json # for DataLoader initialisation
 gpu_cfg:
   gpu_mem  : 7 # in Gb
   gpu_index: 0
