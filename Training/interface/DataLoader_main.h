@@ -704,16 +704,22 @@ public:
             fillGrid(Br::pfCand_gamma_lostInnerHits, tau.pfCand_lostInnerHits.at(pfCand_idx));
             fillGrid(Br::pfCand_gamma_nPixelHits, tau.pfCand_nPixelHits.at(pfCand_idx));
 
-            fillGrid(Br::pfCand_gamma_vertex_dx, tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x);
-            fillGrid(Br::pfCand_gamma_vertex_dy, tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y);
-            fillGrid(Br::pfCand_gamma_vertex_dz, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z);
-            fillGrid(Br::pfCand_gamma_vertex_dt, tau.pfCand_vertex_t.at(pfCand_idx) - tau.pv_t);
-            fillGrid(Br::pfCand_gamma_vertex_dx_tauFL, tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x -
+            if(std::isfinite(tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z)) {
+              fillGrid(Br::pfCand_gamma_vertex_dx, tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x);
+              fillGrid(Br::pfCand_gamma_vertex_dy, tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y);
+              fillGrid(Br::pfCand_gamma_vertex_dz, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z);
+              fillGrid(Br::pfCand_gamma_vertex_dt, tau.pfCand_vertex_t.at(pfCand_idx) - tau.pv_t);
+              fillGrid(Br::pfCand_gamma_vertex_dx_tauFL, tau.pfCand_vertex_x.at(pfCand_idx) - tau.pv_x -
                                                             tau.tau_flightLength_x);
-            fillGrid(Br::pfCand_gamma_vertex_dy_tauFL, tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y -
+              fillGrid(Br::pfCand_gamma_vertex_dy_tauFL, tau.pfCand_vertex_y.at(pfCand_idx) - tau.pv_y -
                                                             tau.tau_flightLength_y);
-            fillGrid(Br::pfCand_gamma_vertex_dz_tauFL, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z -
+              fillGrid(Br::pfCand_gamma_vertex_dz_tauFL, tau.pfCand_vertex_z.at(pfCand_idx) - tau.pv_z -
                                                             tau.tau_flightLength_z);
+            }else{
+              fillGrid(Br::pfCand_gamma_vertex_dx_tauFL, -tau.tau_flightLength_x);
+              fillGrid(Br::pfCand_gamma_vertex_dy_tauFL, -tau.tau_flightLength_y);
+              fillGrid(Br::pfCand_gamma_vertex_dz_tauFL, -tau.tau_flightLength_z);
+            }
 
             const bool hasTrackDetails = tau.pfCand_hasTrackDetails.at(pfCand_idx) == 1;
             fillGrid(Br::pfCand_gamma_hasTrackDetails, static_cast<float>(hasTrackDetails));
