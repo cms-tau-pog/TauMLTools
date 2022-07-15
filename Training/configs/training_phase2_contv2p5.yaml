@@ -3,8 +3,8 @@ Setup:
     iso_cone             :  0.5
     n_inner_cells        :  11
     inner_cell_size      :  0.02
-    n_outer_cells        :  25
-    outer_cell_size      :  0.042
+    n_outer_cells        :  21
+    outer_cell_size      :  0.05
     n_threads            :  1
     debug                :  False
     use_weights          :  True
@@ -27,7 +27,7 @@ Setup:
     adv_parameter        : [1, 10] # k1, k2 for gradients in common layers
     n_adv_tau            : 100 # number of candidates per adversarial batch
     adv_learning_rate    : 0.01
-    use_previous_opt     : False
+    use_previous_opt     : True
 
     # here define variables for the Histogram_2D class
     yaxis                : [
@@ -63,9 +63,9 @@ Setup:
     xmax                 : 3.0
 
 SetupNN:
-    model_name           : "DeepTauPhase2v1"
-    n_batches            : -1 # -1 for all
-    n_batches_val        : -1 # -1 for all
+    model_name           : "DeepTau2018v0"
+    n_batches            : -1
+    n_batches_val        : -1
     n_batches_log        : 1000 # monitor every n batches in tensorboard
     epoch                : 0
     n_epochs             : 10
@@ -80,17 +80,17 @@ SetupNN:
     TauLossesSFs         : [0.8, 1.5, 4.0, 1.7]
     optimizer_name       : "Nadam"
     learning_rate        : 0.001
-    schedule_decay       : 0.0 #0.0001 # Using step decay instead of schedule decay
+    schedule_decay       : 0.0 # 0.0001 # Using step decay instead of schedule decay
     step_decay           : 2 # Halve lr every *this* epochs
     tau_net              : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.4, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
     comp_net             : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
-    comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.65, "first_layer_width": "0.6*n", "last_layer_width": 32 }
-    conv_2d_net          : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": null, "window_size": 3, "pooling": 3 }
-    dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 135, "last_layer_width": 135, "min_n_layers": 4 }
+    comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "n", "last_layer_width": 64 }
+    conv_2d_net          : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": null, "window_size": 3, "pooling": 0 }
+    dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 200, "last_layer_width": 200, "min_n_layers": 4 }
     first_layer_reg      : null # eg "L1, reg_fact"
     active_features      : ['TauFlat', 'GridGlobal', 'PfCand_electron', 'PfCand_muon', 'PfCand_chHad', 'PfCand_nHad', 'PfCand_gamma', 'Electron', 'Muon']
     cell_locations       : ['inner', 'outer']
-    loss                 : "WPloss2" # "tau_crossentropy_v2"
+    loss                 : "WPloss2" # should not be specified when using DeepTauModel() class
     using_new_loss       : True
     metrics              : ['accuracy', 'TauLosses.tau_crossentropy_v2', 'TauLosses.We', 'TauLosses.Wmu', 'TauLosses.Wjet', 'TauLosses.WPloss', 'TauLosses.WPloss2']
 
@@ -484,10 +484,10 @@ Features_all :
 Features_disable :
     TauFlat : ["tau_phi"]
     GridGlobal : []
-    PfCand_electron : [ ]
-    PfCand_muon : [ ]
-    PfCand_chHad : [ ]
+    PfCand_electron : ["pfCand_ele_vertex_dt", "pfCand_ele_time", "pfCand_ele_time_sig"]
+    PfCand_muon : ["pfCand_muon_vertex_dt", "pfCand_muon_time", "pfCand_muon_time_sig"]
+    PfCand_chHad : ["pfCand_chHad_vertex_dt", "pfCand_chHad_time", "pfCand_chHad_time_sig"]
     PfCand_nHad : [ ]
-    PfCand_gamma : ["pfCand_gamma_hasTrackDetails", "pfCand_gamma_dxy", "pfCand_gamma_dxy_sig", "pfCand_gamma_dz", "pfCand_gamma_dz_sig", "pfCand_gamma_track_chi2_ndof", "pfCand_gamma_track_ndof", "pfCand_gamma_vertex_dz", "pfCand_gamma_vertex_dz_tauFL", "pfCand_gamma_time", "pfCand_gamma_time_sig", "pfCand_gamma_vertex_dt"]
+    PfCand_gamma : ["pfCand_gamma_vertex_dt", "pfCand_gamma_time", "pfCand_gamma_time_sig"]
     Electron : [ ]
     Muon : [ ]
