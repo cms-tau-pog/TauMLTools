@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This file contains instructions for reproducing the adversarial domain adaptation techniques implemented in DeepTau v2p5 to reduce data/MC discrepancies in the DeepTau VSjet discriminator score distribution.
+This file contains instructions for reproducing the adversarial domain adaptation techniques implemented in DeepTau v2p5 to reduce data/MC discrepancies in the DeepTau VSjet discriminator score distribution. The steps necessary for adversarial dataset production, training and evaluation of the DeepTau VSjet score distributions are outlined.
 
 
 
