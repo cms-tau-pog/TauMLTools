@@ -47,3 +47,19 @@ Mixer and proportions
 
 
 ### Evaluation
+
+Similarly to default training, the adversarial model is evaluated in two steps, predictions are computed with `apply_adversarial_training.py` found in `TauMLTools\Evaluation`, these predictions are then plotted using the jupyter notebook script `evaluate_adversarial.ipnyb`. Two plot types can be produced, discriminator score distributions (DeepTau VSjet) and y$_{adv}$ the output of the adversarial subnetwork.
+
+An example of running `apple_adversarial_training.py` for a model trained with the adversarial techniques enabled is shown below:
+
+```sh
+python apply_adversarial_training.py --expID="e1f3ddb3c4c94128a34a7635c56322eb" --mlpath="/home/russe
+ll/AdversarialTauML/TauMLTools/Training/python/2018v1/mlruns/12" --eval_ds="/home/russell/tfdata/AdvEval"
+```
+The experiment ID, path to the mlflow experiment, and a dataset to evaluate on must be specified. The predictions are stored in the model `artifacts/predictions/adversarial_evaluation.csv` and contain the DeepTau VSjet scores, truth (data/MC), weights, and adversarial output.
+
+It is useful to compare the discriminator score distributions before and after adversarial training, however, since these models were not trained with the adversarial subnetwork, only the classification predictions are available. The discriminator scores can be calculated and stored (along with data/MC truth and weights) for taus from the adversarial dataset by specifyin `--not_adversarial` when calling `apply_adversarial_training.py`:
+
+```sh
+python apply_adversarial_training.py --expID="5371f5d7080846c1a213f0e648471c11" --mlpath="/home/russell/AdversarialTauML/TauMLTools/Training/python/2018v1/mlruns/12" --eval_ds="/home/russell/tfdata/AdvEval" --not_adversarial
+```
