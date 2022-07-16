@@ -75,12 +75,14 @@ An example of running `apply_adversarial_training.py` for a model trained with t
 python apply_adversarial_training.py --expID="e1f3ddb3c4c94128a34a7635c56322eb" --mlpath="/home/russe
 ll/AdversarialTauML/TauMLTools/Training/python/2018v1/mlruns/12" --eval_ds="/home/russell/tfdata/AdvEval"
 ```
-The experiment ID, path to the mlflow experiment, and a dataset to evaluate on must be specified. The predictions are stored in the model artifacts (`artifacts/predictions/adversarial_evaluation.csv`) and contain the DeepTau VSjet scores, truth (data/MC), weights, and adversarial output.
+The experiment ID, path to the mlflow experiment, and a dataset to evaluate on must be specified. The predictions are stored in the model artifacts (`artifacts/predictions/adversarial_predictions.csv`) and contain the DeepTau VSjet scores, truth (data/MC), weights, and adversarial output.
 
 It is useful to compare the discriminator score distributions before and after adversarial training, however, since default models (before adversarial training) are not trained with the adversarial subnetwork, so only the classification predictions are available. The discriminator scores can still be calculated and stored (along with data/MC truth and weights) for taus from the adversarial evaluation dataset by specifying `--not_adversarial` when calling `apply_adversarial_training.py`:
 
 ```sh
 python apply_adversarial_training.py --expID="5371f5d7080846c1a213f0e648471c11" --mlpath="/home/russell/AdversarialTauML/TauMLTools/Training/python/2018v1/mlruns/12" --eval_ds="/home/russell/tfdata/AdvEval" --not_adversarial
 ```
+
+The script `evaluate_adversarial.ipnyb` plots the DeepTau VSjet distributions of the MC contributions and data and saves them in the model artifacts `/artifacts/plots/adversarial_Djet.pdf`. Similarly $y_{adv}$ distributions for adversarial models are saved as "/artifacts/plots/adversarial_yadv.pdf". The notebook contains examples for an adversarial trained model as well as the default model that it started from.
 
 The classification performance (ROC curves) should be evaluated using the methods described in the main README file for this repository.
