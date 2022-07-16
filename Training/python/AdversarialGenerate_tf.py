@@ -29,6 +29,9 @@ with open(training_cfg_path) as file:
     print("Training Config Loaded")
 
 training_cfg["Setup"]["input_dir"] = args.input_dir
+training_cfg["Setup"]["n_tau"] = 100 #100 taus/batch
+training_cfg["Setup"]["tau_types_names"] = { "0":"e", "1":"mu", "2":"tau", "3":"jet" , "8":"data"}
+training_cfg["Setup"]["recompute_tautype"] = False # tau type already computed earlier 
 training_cfg["SetupNN"]["n_batches"] = args.n_batches
 training_cfg["SetupNN"]["n_batches_val"] = 0 # only generate training data as train/val split done later in training
 training_cfg["SetupNN"]["validation_split"] = 0

@@ -146,11 +146,8 @@ class DataLoaderBase:
 
         _rootpath = os.path.abspath(os.path.dirname(__file__)+"/../../..")
         R.gROOT.ProcessLine(".include "+_rootpath)
-        print("DEBUG: Tuple creation from: ", data_files[0])
         class_def = MakeTupleClass('taus', data_files[0], 'tau_tuple', 'Tau', 'TauTuple')
-        # print(class_def)
         R.gInterpreter.ProcessLine(class_def)
-        print("DEBUG: Class definition processed")
 
         if not os.path.isfile(file_scaling):
             raise RuntimeError("file_scaling do not exist")

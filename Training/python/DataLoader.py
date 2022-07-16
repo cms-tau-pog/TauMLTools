@@ -113,7 +113,7 @@ class DataLoader (DataLoaderBase):
         self.adv_batch_size = self.config["Setup"]["n_adv_tau"]
         self.adv_learning_rate = self.config["Setup"]["adv_learning_rate"]
         self.use_previous_opt = self.config["Setup"]["use_previous_opt"]
-        self.adv_weights = self.config["Setup"]["adversarial_weights"]
+        self.adversarial_weights = self.config["Setup"]["adversarial_weights"]
         
         if self.input_type == "ROOT" or self.input_type == "Adversarial":
             data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root') 
@@ -127,8 +127,6 @@ class DataLoader (DataLoaderBase):
         elif self.input_type == "AdversarialGenerate":
             data_files = glob.glob(f'{self.config["Setup"]["input_dir"]}/*.root') 
             # Do not generate a separate validation set, split done during training
-            # self.train_files = data_files
-            # self.val_files = None
             self.train_files, self.val_files = \
                 np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
             print(f"Adversarial dataset generation from file: {self.train_files}")

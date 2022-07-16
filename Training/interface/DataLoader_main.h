@@ -178,6 +178,19 @@ public:
 
       // histogram to calculate weights
 
+      if(input_type=="AdversarialGenerate"){
+        std::cout << "Loading adversarial weights" << std::endl;
+        std::shared_ptr<TFile> adv_weight_histo = root_ext::OpenRootFile(adversarial_weights);
+        // Pair each pT weight histogram with the corresponding event type, below is for discrimination VSjet in v2p5
+        adv_weights.insert(std::make_pair(0, root_ext::ReadCloneObject<TH1D>(*adv_weight_histo, "data", "data_w", true)));
+        adv_weights.insert(std::make_pair(1, root_ext::ReadCloneObject<TH1D>(*adv_weight_histo, "DYT", "DYT_w", true)));
+        adv_weights.insert(std::make_pair(2, root_ext::ReadCloneObject<TH1D>(*adv_weight_histo, "TTT", "TTT_w", true)));
+        adv_weights.insert(std::make_pair(3, root_ext::ReadCloneObject<TH1D>(*adv_weight_histo, "DYM", "DYM_w", true)));
+        adv_weights.insert(std::make_pair(4, root_ext::ReadCloneObject<TH1D>(*adv_weight_histo, "TTJ", "TTJ_w", true)));
+        adv_weights.insert(std::make_pair(5, root_ext::ReadCloneObject<TH1D>(*adv_weight_histo, "WJ", "WJ_w", true)));
+        adv_weights.insert(std::make_pair(6, root_ext::ReadCloneObject<TH1D>(*adv_weight_histo, "QCD", "QCD_w", true)));
+      }
+
       auto file_input = std::make_shared<TFile>(input_spectrum.c_str());
       auto file_target = std::make_shared<TFile>(target_spectrum.c_str());
 
@@ -192,7 +205,7 @@ public:
       if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
 
       for( auto const& [tau_type, tau_name] : tau_types_names)
-      {
+      { if (tau_type != 8){ // No histogram for data samples
         std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
         if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+tau_name);
         target_histogram.th2d_add(*(target_th2d.get()));
@@ -207,6 +220,7 @@ public:
 
         target_histogram.reset();
         input_histogram .reset();
+      } 
       }
       MaxDisbCheck(hist_weights, weight_thr);
     }
@@ -253,14 +267,23 @@ public:
                                                             tau.genLepton_vis_mass, tau.genJet_index);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
 
-          if (gen_match && tau.tau_byDeepTau2017v2p1VSjetraw > DeepTauVSjet_cut) {
+          if ((gen_match || tau.tauType == 8) && tau.tau_byDeepTau2017v2p1VSjetraw > DeepTauVSjet_cut) {
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
             }
             // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
             if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
-              data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
-              data->weight.at(data->tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
+              if (input_type=="AdversarialGenerate"){
+                if (tau.tauType==8){
+                  data->y_onehot[ data->tau_i * tau_types_names.size()] = 1.0; // label 1 for data (MC will have 0)
+                }
+                data->weight.at(data->tau_i) = GetAdversarialWeight(tau.dataset_id, tau.tau_pt); // filling weights
+              }
+              else {
+                data->y_onehot[ data->tau_i * tau_types_names.size() + tau.tauType ] = 1.0; // filling labels
+                data->weight.at(data->tau_i) = GetWeight(tau.tauType, tau.tau_pt, std::abs(tau.tau_eta)); // filling weights
+              }
+              
               FillTauBranches(tau, data->tau_i);
               FillCellGrid(tau, data->tau_i, innerCellGridRef, true);
               FillCellGrid(tau, data->tau_i, outerCellGridRef, false);
@@ -318,6 +341,13 @@ public:
                hist_weights.at(type_id)->GetXaxis()->FindFixBin(eta),
                hist_weights.at(type_id)->GetYaxis()->FindFixBin(pt));
 
+      }
+
+      const double GetAdversarialWeight(const ULong64_t dataset_id, const double pt) const
+      {
+        // Return a pT weight from histogram for an adversarial tau corresponding to the relevant
+        // event type (stored in dataset_id, numbers/order chosen when mixing dataset)
+        return adv_weights.at(dataset_id)->GetBinContent(adv_weights.at(dataset_id)->FindBin(pt));
       }
 
       template<typename Scalar>
@@ -945,5 +975,6 @@ private:
   std::unique_ptr<TauTuple> tauTuple;
   std::unique_ptr<Data> data;
   std::unordered_map<int ,std::shared_ptr<TH2D>> hist_weights;
+  std::map<Long64_t, std::shared_ptr<TH1D>> adv_weights;
 
 };

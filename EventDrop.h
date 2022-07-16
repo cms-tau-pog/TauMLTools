@@ -24,13 +24,9 @@ struct Dataset {
         for(; n < desc_.n_per_batch && entryIndex_ < tuple_->GetEntries(); ++entryIndex_) {
             tuple_->GetEntry(entryIndex_);
             double v = myrndm->Rndm();
-            //std::cout << v << std::endl;
             outputTuple() = tuple_->data();
-            // std::cout<< "tau_pt" << outputTuple().tau_pt << std::endl;
-            // std::cout << "in bin" <<desc_.threshold.FindBin(outputTuple().tau_pt) << std::endl;
             if (v <= desc_.threshold.GetBinContent(desc_.threshold.FindBin(outputTuple().tau_pt))){ 
                 outputTuple.Fill();
-                //std::cout << "passed" << std::endl;
             }
             ++n;
         }
@@ -41,10 +37,6 @@ struct Dataset {
     std::unique_ptr<input_tuple::TauTuple> tuple_;
     Long64_t entryIndex_;
     TRandom3 *myrndm = new TRandom3();
-
-    // TFile* ICLFile = TFile::Open("/home/russell/histograms/datacard_pt_2_inclusive_mt_2018.root"," READ ");
-    // TH1D* target = (TH1D*)ICLFile->Get("mt_inclusive/QCD");
-
 
 };
 
