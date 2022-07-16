@@ -32,7 +32,7 @@ For MC events where the $p_T$ spectrum is very poorly balanced, to avoid inordin
 python EventDrop.py --input_file="/home/russell/skimmed_tuples/MuTau_prod2018/DY_taus_skimmed_R6p26.root" --target_file="/home/russell/histograms/datacard_pt_2_inclusive_mt_2018_0p9VSjet.root" --target_histo="mt_inclusive/EMB" --n_tau=20000 --save_path="/home/russell/testingPR/testdrop.root"
 ```
 
-Straightforward $p_T$ reweighting for each MC event type should then be done, by assigning weights to events in each bin to match the counts in target histograms. Weights for each bin should be stored as histograms in a ROOT file for generating tensorflow datasets in later steps.
+Straightforward $p_T$ reweighting for each MC event type should then be done separately, by assigning weights to events in each bin to match the counts in target histograms. Weights for each bin should be stored as histograms in a ROOT file for generating tensorflow datasets in later steps.
 
 ### Mixing
 
@@ -67,7 +67,7 @@ use_previous_opt     : False
 
 ### Evaluation
 
-Similarly to default training, the adversarial model is evaluated in two steps, predictions are computed with `apply_adversarial_training.py` found in `TauMLTools\Evaluation`, these predictions are then plotted using the jupyter notebook script `evaluate_adversarial.ipnyb`. Two plot types can be produced, discriminator score distributions (DeepTau VSjet) and the output of the adversarial subnetwork (y$_{adv}$).
+The adversarial model is evaluated in two steps, predictions are computed on the adversarial tensorflow testing dataset with `TauMLTools/Evaluation/apply_adversarial_training.py`, these predictions are then plotted using the jupyter notebook script `evaluate_adversarial.ipnyb`. Two plot types can be produced, discriminator score distributions (DeepTau VSjet) and the output of the adversarial subnetwork (y$_{adv}$).
 
 An example of running `apply_adversarial_training.py` for a model trained with the adversarial techniques enabled is shown below:
 
@@ -82,3 +82,5 @@ It is useful to compare the discriminator score distributions before and after a
 ```sh
 python apply_adversarial_training.py --expID="5371f5d7080846c1a213f0e648471c11" --mlpath="/home/russell/AdversarialTauML/TauMLTools/Training/python/2018v1/mlruns/12" --eval_ds="/home/russell/tfdata/AdvEval" --not_adversarial
 ```
+
+The classification performance (ROC curves) should be evaluated using the methods described in the main README file for this repository.
