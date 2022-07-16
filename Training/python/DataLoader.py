@@ -121,7 +121,6 @@ class DataLoader (DataLoaderBase):
                 np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
             print("Files for training:", len(self.train_files))
             print("Files for validation:", len(self.val_files))
-            print(file_scaling)
             self.compile_classes(config, file_scaling, self.dataloader_core, data_files)
 
         elif self.input_type == "AdversarialGenerate":
@@ -130,7 +129,6 @@ class DataLoader (DataLoaderBase):
             self.train_files, self.val_files = \
                 np.split(data_files, [int(len(data_files)*(1-self.validation_split))])
             print(f"Adversarial dataset generation from file: {self.train_files}")
-            print(file_scaling)
             self.compile_classes(config, file_scaling, self.dataloader_core, data_files)
 
     def get_generator(self, primary_set = True, return_truth = True, return_weights = True, show_progress = False, adversarial = False):
