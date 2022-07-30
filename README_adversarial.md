@@ -83,6 +83,6 @@ It is useful to compare the discriminator score distributions before and after a
 python apply_adversarial_training.py --expID="5371f5d7080846c1a213f0e648471c11" --mlpath="/home/russell/AdversarialTauML/TauMLTools/Training/python/2018v1/mlruns/12" --eval_ds="/home/russell/tfdata/AdvEval" --not_adversarial
 ```
 
-The script `evaluate_adversarial.ipnyb` plots the DeepTau VSjet distributions of the MC contributions and data and saves them in the model artifacts `/artifacts/plots/adversarial_Djet.pdf`. Similarly $y_{adv}$ distributions for adversarial models are saved as "/artifacts/plots/adversarial_yadv.pdf". The notebook contains examples for an adversarial trained model as well as the default model that it started from.
+The script `evaluate_adversarial.ipynb` plots the DeepTau VSjet distributions of the MC contributions and data and saves them in the model artifacts `/artifacts/plots/adversarial_Djet.pdf`. Similarly $y_{adv}$ distributions for adversarial models are saved as "/artifacts/plots/adversarial_yadv.pdf". The notebook contains examples for an adversarial trained model as well as the default model that it started from.
 
 The classification performance (ROC curves) should be evaluated using the methods described in the main README file for this repository.

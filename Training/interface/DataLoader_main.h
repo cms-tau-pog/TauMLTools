@@ -204,23 +204,23 @@ public:
       std::shared_ptr<TH2D> target_th2d = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_target->Get("eta_pt_hist_tau")));
       if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
 
-      for( auto const& [tau_type, tau_name] : tau_types_names)
-      { if (tau_type != 8){ // No histogram for data samples
-        std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
-        if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+tau_name);
-        target_histogram.th2d_add(*(target_th2d.get()));
-        input_histogram .th2d_add(*(input_th2d .get()));
+      for( auto const& [tau_type, tau_name] : tau_types_names){
+          if (tau_name != "data"){ // No histogram for data samples
+              std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
+              if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+tau_name);
+              target_histogram.th2d_add(*(target_th2d.get()));
+              input_histogram .th2d_add(*(input_th2d .get()));
 
-        target_histogram.divide(input_histogram);
-        hist_weights[tau_type] = target_histogram.get_weights_th2d(
-            ("w_1_"+tau_name).c_str(),
-            ("w_1_"+tau_name).c_str()
-        );
-        if (debug) hist_weights[tau_type]->SaveAs(("Temp_"+tau_name+".root").c_str()); // It's required that all bins are filled in these histograms; save them to check incase binning is too fine and some bins are empty
+              target_histogram.divide(input_histogram);
+              hist_weights[tau_type] = target_histogram.get_weights_th2d(
+                  ("w_1_"+tau_name).c_str(),
+                  ("w_1_"+tau_name).c_str()
+              );
+              if (debug) hist_weights[tau_type]->SaveAs(("Temp_"+tau_name+".root").c_str()); // It's required that all bins are filled in these histograms; save them to check incase binning is too fine and some bins are empty
 
-        target_histogram.reset();
-        input_histogram .reset();
-      } 
+              target_histogram.reset();
+              input_histogram .reset();
+          } 
       }
       MaxDisbCheck(hist_weights, weight_thr);
     }
@@ -274,7 +274,7 @@ public:
             // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
             if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
               if (input_type=="AdversarialGenerate"){
-                if (tau.tauType==8){
+                if (tau_types_names.find(tau.tauType)->second == "data"){
                   data->y_onehot[ data->tau_i * tau_types_names.size()] = 1.0; // label 1 for data (MC will have 0)
                 }
                 data->weight.at(data->tau_i) = GetAdversarialWeight(tau.dataset_id, tau.tau_pt); // filling weights
@@ -343,7 +343,7 @@ public:
 
       }
 
-      const double GetAdversarialWeight(const ULong64_t dataset_id, const double pt) const
+      double GetAdversarialWeight(ULong64_t dataset_id, double pt) const
       {
         // Return a pT weight from histogram for an adversarial tau corresponding to the relevant
         // event type (stored in dataset_id, numbers/order chosen when mixing dataset)

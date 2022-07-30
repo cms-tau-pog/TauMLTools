@@ -28,7 +28,7 @@ Setup:
     n_adv_tau            : 100 # number of candidates per adversarial batch
     adv_learning_rate    : 0.01
     use_previous_opt     : False
-    adversarial_weights  : "/home/russell/AdversarialTauML/TauMLTools/adv_weights.root" # weights for adversarial dataset generation
+    adversarial_weights  : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/adversarial_datasets/adversarial_weights/adv_weights.root" # weights for adversarial dataset generation
 
     # here define variables for the Histogram_2D class
     yaxis                : [

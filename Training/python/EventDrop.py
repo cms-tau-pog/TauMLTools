@@ -17,13 +17,6 @@ ROOT.gROOT.SetBatch(True) # Don't show window
 ROOT.ROOT.EnableImplicitMT(4) # multi thread (use 4 threads)
 
 
-
-# # Input file:
-# input_file =  "/home/russell/skimmed_tuples/MuTau_prod2018/DY_taus_skimmed_R6p26.root"
-# # Target histogram:
-# target_file = "/home/russell/histograms/datacard_pt_2_inclusive_mt_2018_0p9VSjet.root"
-# target_histo = "mt_inclusive/EMB"
-
 # Define tau tuple class from input files
 _rootpath = os.path.abspath(os.path.dirname(__file__)+"../../..")
 ROOT.gROOT.ProcessLine(".include "+_rootpath)
@@ -31,7 +24,7 @@ class_def = MakeTupleClass('taus', args.input_file, 'input_tuple',
                'Tau', 'TauTuple')
 ROOT.gInterpreter.ProcessLine(class_def)
 
-ROOT.gInterpreter.Declare(' # include "TauMLTools/Training/interface/EventDrop.h" ')
+ROOT.gInterpreter.Declare(' # include "TauMLTools/Training/interface/DataMixer.h" ')
 
 
 # pT binning:
@@ -75,7 +68,7 @@ output_train.nBatches_ = 1
 
 outputVect.push_back(output_train)
 
-dataMixer = ROOT.DataMixer(allDescs, outputVect)
+dataMixer = ROOT.DataMixer(allDescs, outputVect, "Drop")
 print("Event dropping initiated")
 dataMixer.Run()
 print(f"Event dropping finished, file saved at {args.save_path}")
