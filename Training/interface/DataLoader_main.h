@@ -267,7 +267,7 @@ public:
                                                             tau.genLepton_vis_mass, tau.genJet_index);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
 
-          if ((gen_match || tau.tauType == 8) && tau.tau_byDeepTau2017v2p1VSjetraw > DeepTauVSjet_cut) {
+          if ((gen_match || tau_types_names.find(tau.tauType)->second == "data") && tau.tau_byDeepTau2017v2p1VSjetraw > DeepTauVSjet_cut) {
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
             }
