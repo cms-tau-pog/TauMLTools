@@ -26,17 +26,17 @@ python skim_tree.py --input="/eos/cms/store/group/phys_tau/lrussell/Prod2018_MuT
 
 ### Reweighting 
 
-For MC events where the $p_T$ spectrum is very poorly balanced, to avoid inordinately large sample weights, `TauMLTools/Training/python/EventDrop.py` was written to randomly drop events in overpopulated bins to match a target spectrum more closely. This script takes a target histogram from a datacard, and calculates the probability that events in each bin should be kept or dropped. The input file, target file and histogram, number of taus to be processed and save path must be specified. For example:
+For MC events where the $p_T$ spectrum is very poorly balanced, to avoid inordinately large sample weights, `TauMLTools/Training/python/EventDrop.py` was written to randomly drop events in overpopulated bins to match a target spectrum more closely. This script which uses the `DatasetDrop` structure in `TauMLTools/Training/interface/DataMixer.h`, takes a target histogram from a datacard, and calculates the probability that events in each bin should be kept or dropped. The input file, target file and histogram, number of taus to be processed and save path must be specified. For example:
 
 ```sh
-python EventDrop.py --input_file="/home/russell/skimmed_tuples/MuTau_prod2018/DY_taus_skimmed_R6p26.root" --target_file="/home/russell/histograms/datacard_pt_2_inclusive_mt_2018_0p9VSjet.root" --target_histo="mt_inclusive/EMB" --n_tau=20000 --save_path="/home/russell/testingPR/testdrop.root"
+python EventDrop.py --input_file="/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/adversarial_datasets/SkimmedTuples/MuTau_2018/DY_taus_skimmed_R6p26.root" --target_file="/home/russell/histograms/datacard_pt_2_inclusive_mt_2018_0p9VSjet.root" --target_histo="mt_inclusive/EMB" --n_tau=20000 --save_path="/home/russell/reweighted/testdrop.root"
 ```
 
 Straightforward $p_T$ reweighting for each MC event type should then be done separately, by assigning weights to events in each bin to match the counts in target histograms. Weights for each bin should be stored as histograms in a ROOT file for generating tensorflow datasets in later steps.
 
 ### Mixing
 
-Once proportions of different MC events are chosen, `TauMLTools/Training/python/EventMix.py` can be used to mix the different event types to form the adversarial control region dataset. Proportions should be specified in `EventMix.py`, and labelling of different contributions (for dataloading and evaluation) can be done in the data mixer `TauMLTools/Training/interface/DataMixer.h` by modifying dataset IDs. The files are currently set up for the dataset used to reduce discrepancies in the DeepTauVSjet distribution.
+Once proportions of different MC events are chosen, `TauMLTools/Training/python/EventMix.py` can be used to mix the different event types to form the adversarial control region dataset. Proportions should be specified in `EventMix.py`, and labelling of different contributions (for dataloading and evaluation) can be modified in the `DatasetMix` structure within the data mixer `TauMLTools/Training/interface/DataMixer.h` by modifying dataset IDs. The files are currently set up for the dataset used to reduce discrepancies in the DeepTauVSjet distribution.
 
 Two ROOT files should be generated, one for training/validation and one for evaluation.
 
