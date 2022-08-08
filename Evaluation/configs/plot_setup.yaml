@@ -8,7 +8,7 @@ plot_setup_map:
     xlim: [0.5, 1]
     ratio_yscale: 'log'
     ylim: [2e-5, 1]
-    ratio_ylim: [0.5, 40]
+    ratio_ylim: [0.5, 100]
   mu:
     public_plots: True 
     inequality_in_title: False 

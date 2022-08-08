@@ -5,7 +5,7 @@ discriminators: # in the format -> run_id: ['curve_type_1', 'curve_type_2', ...]
   #???: ['roc_curve', 'roc_wp']
   #???: ['roc_wp']
   04fedb1b3f8748c781c2ab91bb045516: ['roc_curve']
-  c3a37dd417fc4dd8bc87267972633192: ['roc_wp']
+  48c753ec976f4454b24dac27f38bb3ed: ['roc_wp']
 reference: 
   04fedb1b3f8748c781c2ab91bb045516: 'roc_curve'
 

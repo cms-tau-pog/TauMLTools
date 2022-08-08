@@ -307,8 +307,8 @@ def fill_aggregators(tree, var, var_type, file_i, file_name_i, cone_type, cone_d
     """
     constituent_eta_name, constituent_phi_name = cone_selection_dict[var_type]['var_names']['eta'], cone_selection_dict[var_type]['var_names']['phi']
     var_array, constituent_eta_array, constituent_phi_array = tree.arrays([var, constituent_eta_name, constituent_phi_name], cut=selection_cut, aliases=aliases, how=tuple)
-    #var_array = mask_inf(var_array, var, inf_counter, raise_exception=True)
-    #var_array = mask_nan(var_array, var, nan_counter, raise_exception=True)
+    var_array = mask_inf(var_array, var, inf_counter, raise_exception=False)
+    var_array = mask_nan(var_array, var, nan_counter, raise_exception=False)
 
     if cone_type == None:
         sums[var_type][var][file_i] += ak.sum(var_array)
