@@ -205,7 +205,7 @@ public:
       if (!target_th2d) throw std::runtime_error("Target histogram could not be loaded");
 
       for( auto const& [tau_type, tau_name] : tau_types_names){
-          if (tau_name != "data"){ // No histogram for data samples
+          if (static_cast<analysis::TauType>(tau_type) != analysis::TauType::data){ // No histogram for data samples
               std::shared_ptr<TH2D> input_th2d  = std::shared_ptr<TH2D>(dynamic_cast<TH2D*>(file_input ->Get(("eta_pt_hist_"+tau_name).c_str())));
               if (!input_th2d) throw std::runtime_error("Input histogram could not be loaded for tau type "+tau_name);
               target_histogram.th2d_add(*(target_th2d.get()));
@@ -267,14 +267,14 @@ public:
                                                             tau.genLepton_vis_mass, tau.genJet_index);
           const auto sample_type = static_cast<analysis::SampleType>(tau.sampleType);
 
-          if ((gen_match || tau_types_names.find(tau.tauType)->second == "data") && tau.tau_byDeepTau2017v2p1VSjetraw > DeepTauVSjet_cut) {
+          if ((gen_match || static_cast<analysis::TauType>(tau.tauType) == analysis::TauType::data) && tau.tau_byDeepTau2017v2p1VSjetraw > DeepTauVSjet_cut) {
             if (recompute_tautype){
               tau.tauType = static_cast<Int_t> (GenMatchToTauType(*gen_match, sample_type));
             }
             // skip event if it is not tau_e, tau_mu, tau_jet or tau_h
             if ( tau_types_names.find(tau.tauType) != tau_types_names.end() ) {
               if (input_type=="AdversarialGenerate"){
-                if (tau_types_names.find(tau.tauType)->second == "data"){
+                if (static_cast<analysis::TauType>(tau.tauType) == analysis::TauType::data){
                   data->y_onehot[ data->tau_i * tau_types_names.size()] = 1.0; // label 1 for data (MC will have 0)
                 }
                 data->weight.at(data->tau_i) = GetAdversarialWeight(tau.dataset_id, tau.tau_pt); // filling weights
