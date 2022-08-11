@@ -7,7 +7,12 @@ struct DatasetDesc {
     std::vector<std::string> fileNames;
 };
 
-struct DatasetMix {
+struct Dataset {
+  virtual ~Dataset() {}
+  virtual bool FillNext(input_tuple::TauTuple& outputTuple) = 0;
+};
+
+struct DatasetMix : Dataset {
     DatasetMix(const DatasetDesc& desc)  : desc_(desc) {
         entryIndex_ = 0;
         if(desc.fileNames.empty())
@@ -15,7 +20,7 @@ struct DatasetMix {
         tuple_= std::make_unique<input_tuple::TauTuple>("taus", desc.fileNames); //input tuple
     }
 
-    bool FillNext(input_tuple::TauTuple& outputTuple)
+    virtual bool FillNext(input_tuple::TauTuple& outputTuple) override
     {   
         size_t n = 0;
         for(; n < desc_.n_per_batch && entryIndex_ < tuple_->GetEntries(); ++entryIndex_) {
@@ -58,7 +63,7 @@ struct DatasetMix {
     Long64_t entryIndex_;
 };
 
-struct DatasetDrop {
+struct DatasetDrop : Dataset {
     DatasetDrop(const DatasetDesc& desc)  : desc_(desc) {
         entryIndex_ = 0;
         if(desc.fileNames.empty())
@@ -66,7 +71,7 @@ struct DatasetDrop {
         tuple_= std::make_unique<input_tuple::TauTuple>("taus", desc.fileNames); //input tuple
     }
 
-    bool FillNext(input_tuple::TauTuple& outputTuple)
+    virtual bool FillNext(input_tuple::TauTuple& outputTuple) override
     {   
         size_t n = 0;
         for(; n < desc_.n_per_batch && entryIndex_ < tuple_->GetEntries(); ++entryIndex_) {
@@ -96,21 +101,16 @@ struct OutputDesc{
 
 class DataMixer {
 public:
-    DataMixer(const std::vector<DatasetDesc>& datasets_desc, const std::vector<OutputDesc>& outputDescs, const std::string action)
+    DataMixer(const std::vector<DatasetDesc>& datasets_desc, const std::vector<OutputDesc>& outputDescs,
+                const std::string& action)
         : outputDescs_(outputDescs)
-          
-    {   
-        action_ = action; // action specifies "Mix" or "Drop"
+    {
         if (action == "Mix"){
-            std::cout<< "Mixing Events" << std::endl;
-            for(const auto& desc : datasets_desc) { // Creating input descriptor
-                datasetsMix_.emplace_back(desc);
-            }
-        } else if (action == "Drop"){
-            std::cout<< "Dropping Events" << std::endl;
-            for(const auto& desc : datasets_desc) { // Creating input descriptor
-                datasetsDrop_.emplace_back(desc);
-            }
+        CreateDatasets<DatasetMix>(datasets_desc);
+        } else if(action == "Drop") {
+        CreateDatasets<DatasetDrop>(datasets_desc);
+        } else {
+        throw std::runtime_error("Unsupported action");
         }
     }
 
@@ -126,27 +126,27 @@ public:
                 if (i%10 == 0){
                     cout<<"Batch "<<i<<endl;
                 }
-                if (action_ == "Mix"){
-                    for(auto& dataset:datasetsMix_) {
-                        if(!dataset.FillNext(*outputTuple)) {
-                            throw std::runtime_error("Run out of events!");
-                        }
-                    }
-                } else if (action_ == "Drop"){
-                    for(auto& dataset:datasetsDrop_) {
-                        if(!dataset.FillNext(*outputTuple)) {
-                            throw std::runtime_error("Run out of events!");
-                        }
+                for(auto& dataset:datasets_) {
+                    if(!dataset->FillNext(*outputTuple)) {
+                        throw std::runtime_error("Run out of events!");
                     }
                 }
+                
             }
             outputTuple->Write();
         }
 
     }
 private:
+  template<typename DS>
+  void CreateDatasets(const std::vector<DatasetDesc>& datasets_desc)
+  {
+    for(const auto& desc : datasets_desc) {
+      std::shared_ptr<Dataset> ds = std::make_shared<DS>(desc);
+      datasets_.push_back(ds);
+    }
+  }
+private:
     std::vector<OutputDesc> outputDescs_;
-    std::vector<DatasetMix> datasetsMix_;
-    std::vector<DatasetDrop> datasetsDrop_;
-    std::string action_;
+    std::vector<std::shared_ptr<Dataset>> datasets_;
 };
