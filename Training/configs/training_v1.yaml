@@ -20,7 +20,7 @@ Setup:
     weight_thr           : 100000.0
     dataloader_core      : "TauMLTools/Training/interface/DataLoader_main.h"
     rm_inner_from_outer  : False
-    input_type           : "ROOT" # supported "Adversarial", 'ROOT' or 'tf'
+    input_type           : "ROOT" # supported: 'ROOT', 'tf', 'Adversarial', 'AdversarialGenerate'
     tf_input_dir         : /eos/cms/store/group/phys_tau/TauML/prod_2018_v2/tf_datasets/emb_21k_99cut # path to saved tf dataset
     tf_dataset_x_order   : ["TauFlat", "inner_egamma", "inner_muon", "inner_hadron", "outer_egamma", "outer_muon", "outer_hadron"] # specify order of layers in tf dataset
     adversarial_dataset  : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/adversarial_datasets/AdvTraining" # False if not use, ds name if use
@@ -28,6 +28,8 @@ Setup:
     n_adv_tau            : 100 # number of candidates per adversarial batch
     adv_learning_rate    : 0.01
     use_previous_opt     : False
+    adversarial_weights  : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/adversarial_datasets/adversarial_weights/adv_weights.root" # weights for adversarial dataset generation
+
     # here define variables for the Histogram_2D class
     yaxis                : [
       20. , 30. , 40. , 50. , 60. , 70. , 80. , 90. , 100., 110.,
@@ -95,6 +97,8 @@ SetupNN:
     active_features      : ['TauFlat', 'GridGlobal', 'PfCand_electron', 'PfCand_muon', 'PfCand_chHad', 'PfCand_nHad', 'PfCand_gamma', 'Electron', 'Muon']
     cell_locations       : ['inner', 'outer']
     loss                 : "tau_crossentropy_v2" # should not be specified when using DeepTauModel() class
+    using_new_loss       : False
+    metrics              : ["accuracy", "TauLosses.tau_crossentropy", "TauLosses.tau_crossentropy_v2", "TauLosses.Le", "TauLosses.Lmu", "TauLosses.Ljet", "TauLosses.He", "TauLosses.Hmu", "TauLosses.Htau", "TauLosses.Hjet", "TauLosses.Hcat_e", "TauLosses.Hcat_mu", "TauLosses.Hcat_jet", "TauLosses.Hbin", "TauLosses.Hcat_eInv", "TauLosses.Hcat_muInv", "TauLosses.Hcat_jetInv", "TauLosses.Fe", "TauLosses.Fmu", "TauLosses.Fjet", "TauLosses.Fcmb"]
 
 CellObjectType : [
                  GridGlobal,
