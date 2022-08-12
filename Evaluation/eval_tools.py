@@ -77,7 +77,7 @@ class RocCurve:
                 ax_ratio.plot(x, y, color=self.color, linewidth=1, linestyle=linestyle)
         return entry
 
-    def Prune(self, tpr_decimals=3):
+    def prune(self, tpr_decimals=3):
         pruned = copy.deepcopy(self)
         rounded_tpr = np.round(self.pr[1, :], decimals=tpr_decimals)
         unique_tpr, idx = np.unique(rounded_tpr, return_index=True)

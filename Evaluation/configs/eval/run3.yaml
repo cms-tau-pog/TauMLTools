@@ -1,7 +1,6 @@
 # basic imports
 defaults:
   - discriminator: ???
-  - plot_setup
   - selection
   - _self_
 
@@ -35,3 +34,9 @@ path_to_pred: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/prediction
 path_to_target: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/{sample_alias}/*_pred.h5'
 path_to_weights_taus: null
 path_to_weights_vs_type: null
+
+# misc.
+roc_prune_decimal: # precision on TPR rounding 
+  e: 3
+  mu: 4
+  jet: 3
