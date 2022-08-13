@@ -85,7 +85,7 @@ def main(cfg: DictConfig) -> None:
         if json_exists: # read performance data to append additional info 
             performance_data = json.load(json_file)
         else: # create dictionary to fill with data
-            performance_data = {'name': discriminator.name, 'period': cfg.period, 'metrics': defaultdict(list)}
+            performance_data = {'name': discriminator.name, 'metrics': defaultdict(list)}
 
         # loop over pt bins
         print(f'\n{discriminator.name}')

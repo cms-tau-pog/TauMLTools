@@ -20,9 +20,8 @@ if sys.version_info.major > 2:
     from statsmodels.stats.proportion import proportion_confint
 
 class RocCurve:
-    def __init__(self, n_points, color, has_errors, dots_only = False, dashed = False):
+    def __init__(self, n_points, has_errors):
         self.pr = np.zeros((2, n_points))
-        self.color = color
         if has_errors:
             self.pr_err = np.zeros((2, 2, n_points))
         else:
@@ -30,52 +29,6 @@ class RocCurve:
         self.ratio = None
         self.thresholds = None
         self.auc_score = None
-        self.dots_only = dots_only
-        self.dashed = dashed
-        self.marker_size = '5'
-
-    def Draw(self, ax, ax_ratio = None):
-        main_plot_adjusted = False
-        if self.pr_err is not None:
-            x = self.pr[1]
-            y = self.pr[0]
-            entry = ax.errorbar(x, y, xerr=self.pr_err[1], yerr=self.pr_err[0], color=self.color,
-                        fmt='o', markersize=self.marker_size, linewidth=1)
-
-        else:
-            if self.dots_only:
-                entry = ax.errorbar(self.pr[1], self.pr[0], color=self.color, fmt='o', markersize=self.marker_size)
-            else:
-                fmt = '--' if self.dashed else ''
-                x = self.pr[1]
-                y = self.pr[0]
-                if x[-1] - x[-2] > 0.01:
-                    x = x[:-1]
-                    y = y[:-1]
-                    x_max_main = x[-1]
-                    main_plot_adjusted = True
-                entry = ax.errorbar(x, y, color=self.color, fmt=fmt)
-        if self.ratio is not None and ax_ratio is not None:
-            if self.pr_err is not None:
-                x = self.ratio[1]
-                y = self.ratio[0]
-                ax_ratio.errorbar(x, y, color=self.color, fmt='o', markersize='5', linewidth=1)
-                # sp = interpolate.interp1d(x, y, kind='cubic', fill_value="extrapolate")
-                # x_fine = np.arange(x[0], x[-1], step=(x[-1] - x[0]) / 1000)
-                # y_fine = sp(x_fine)
-                # ax_ratio.errorbar(x_fine, y_fine, color=self.color, linewidth=1, fmt='--')
-            else:
-                linestyle = 'dashed' if self.dashed else None
-                x = self.ratio[1]
-                y = self.ratio[0]
-                if main_plot_adjusted:
-                    n = 0
-                    while x[n] < x_max_main and n < len(x):
-                        n += 1
-                    x = x[:n]
-                    y = y[:n]
-                ax_ratio.plot(x, y, color=self.color, linewidth=1, linestyle=linestyle)
-        return entry
 
     def prune(self, tpr_decimals=3):
         pruned = copy.deepcopy(self)
@@ -149,8 +102,6 @@ class Discriminator:
     name: str
     pred_column: str
     raw: bool
-    color: str
-    dashed: bool = False 
     wp_from: str = None
     wp_column: str = None
     wp_name_to_index: dict = None
@@ -190,7 +141,7 @@ class Discriminator:
         roc, wp_roc = None, None
         if self.raw: # construct ROC curve
             fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
-            roc = RocCurve(len(fpr), self.color, False, dashed=self.dashed)
+            roc = RocCurve(len(fpr), False)
             roc.pr[0, :] = fpr
             roc.pr[1, :] = tpr
             roc.thresholds = thresholds
@@ -205,7 +156,7 @@ class Discriminator:
         # construct WPs
         if self.wp_from in ['wp_column', 'pred_column']:  
             if (n_wp:=len(self.wp_names)) > 0:
-                wp_roc = RocCurve(n_wp, self.color, not self.raw, self.raw)
+                wp_roc = RocCurve(n_wp, not self.raw)
                 for wp_i, wp_name in enumerate(self.wp_names):
                     for kind in [0, 1]:
                         df_x = df[df['gen_tau'] == kind]
