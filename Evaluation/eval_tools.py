@@ -48,54 +48,93 @@ class RocCurve:
 
 @dataclass
 class PlotSetup:
-    xlim: list = None
-    ylim: list = None
-    ratio_ylim: list = None
-    ylabel: str = None
+    
+    # general
+    tick_size: int = 14
+    xlim: list = None 
+
+    # y-axis params
+    ylabel: str = "Mis-id probability"
+    ylabel_size: int = 16
     yscale: str = 'log'
+    ylim: list = None
+
+    # ratio params
+    ratio_xlabel_size: int = 16
     ratio_yscale: str = 'linear'
+    ratio_ylim: list = None
+    ratio_ylabel: str = 'Ratio'
+    ratio_ylabel_size: int = 16
+    ratio_ylabel_pad: int = 15
+    ratio_tick_size: int = 12
+
+    # legend params
     legend_loc: str = 'upper left'
-    ratio_ylabel_pad: int = 20
+    legend_fontsize: int = 14
 
-    def Apply(self, names, entries, range_index, ratio_title, ax, ax_ratio = None):
+    def apply(self, names, entries, ax, ax_ratio = None):
         if self.xlim is not None:
-            xlim = self.xlim[range_index] if type(self.xlim[0]) == list else self.xlim
-            ax.set_xlim(xlim)
-
+            ax.set_xlim(self.xlim)
         if self.ylim is not None:
-            ylim = self.ylim[range_index] if type(self.ylim[0]) == list else self.ylim
-            ax.set_ylim(ylim)
+            ax.set_ylim(self.ylim)
 
         ax.set_yscale(self.yscale)
-        ax.set_ylabel(self.ylabel, fontsize=16)
-        ax.tick_params(labelsize=14)
+        ax.set_ylabel(self.ylabel, fontsize=self.ylabel_size)
+        ax.tick_params(labelsize=self.tick_size)
         ax.grid(True)
-        ax.legend(entries, names, fontsize=14, loc=self.legend_loc)
-        #ax.legend(names, fontsize=14, loc='lower right')
+        lentries = []
+        lnames = []
+        for e,n in zip(entries, names):
+          if n not in lnames:
+            lentries.append(e)
+            lnames.append(n)
+        ax.legend(lentries, lnames, fontsize=self.legend_fontsize, loc=self.legend_loc)
 
         if ax_ratio is not None:
             if self.ratio_ylim is not None:
-                ylim = self.ratio_ylim[range_index] if type(self.ratio_ylim[0]) == list else self.ratio_ylim
-                ax_ratio.set_ylim(ylim)
+                ax_ratio.set_ylim(self.ratio_ylim)
 
             ax_ratio.set_yscale(self.ratio_yscale)
-            ax_ratio.set_xlabel('Tau ID efficiency', fontsize=16)
-            #ratio_title = 'MVA/DeepTau' if args.other_type != 'mu' else 'cut based/DeepTau'
-            ax_ratio.set_ylabel(ratio_title, fontsize=14, labelpad=self.ratio_ylabel_pad)
-            ax_ratio.tick_params(labelsize=10)
+            ax_ratio.set_xlabel('Tau ID efficiency', fontsize=self.ratio_xlabel_size)
+            ax_ratio.set_ylabel(self.ratio_ylabel, fontsize=self.ratio_ylabel_size, labelpad=self.ratio_ylabel_pad)
+            ax_ratio.tick_params(labelsize=self.ratio_tick_size)
             ax_ratio.grid(True, which='both')
+    
+    @staticmethod
+    def get_pt_text(pt_min, pt_max):
+        if pt_max == 1000:
+            pt_text = r'$p_T > {}$ GeV'.format(pt_min)
+        elif pt_min == 20:
+            pt_text = r'$p_T < {}$ GeV'.format(pt_max)
+        else:
+            pt_text = r'$p_T\in ({}, {})$ GeV'.format(pt_min, pt_max)
+        
+        return pt_text
 
-def find_threshold(pr, thresholds, target_pr):
-    min_delta_index = 0
-    min_delta = abs(pr[0] - target_pr)
-    for n in range(len(pr)):
-        delta = abs(pr[n] - target_pr)
-        if delta < min_delta:
-            min_delta = delta
-            min_delta_index = n
-    if min_delta > 0.01:
-        return None
-    return thresholds[min_delta_index]
+    @staticmethod
+    def get_eta_text(eta_min, eta_max):
+        eta_text = r'${} < |\eta| < {}$'.format(eta_min, eta_max)
+        return eta_text
+    
+    @staticmethod
+    def get_dm_text(dm_bin):
+        if len(dm_bin)==1:
+            dm_text = r'DM$ = {}$'.format(dm_bin[0])
+        else:
+            dm_text = r'DM$ \in {}$'.format(dm_bin)
+        return dm_text
+
+    def add_text(self, ax, n_entries, pt_min, pt_max, eta_min, eta_max, dm_bin, period):
+        header_y = 1.02
+        ax.text(0.03, 0.89 - n_entries*0.07, self.get_pt_text(pt_min, pt_max), fontsize=14, transform=ax.transAxes)
+        ax.text(0.03, 0.82 - n_entries*0.07, self.get_eta_text(eta_min, eta_max), fontsize=14, transform=ax.transAxes)
+        ax.text(0.03, 0.75 - n_entries*0.07, self.get_dm_text(dm_bin), fontsize=14, transform=ax.transAxes)
+        ax.text(0.01, header_y, 'CMS', fontsize=14, transform=ax.transAxes, fontweight='bold', fontfamily='sans-serif')
+        ax.text(0.12, header_y, 'Simulation Preliminary', fontsize=14, transform=ax.transAxes, fontstyle='italic',
+                fontfamily='sans-serif')
+        ax.text(0.73, header_y, period, fontsize=13, transform=ax.transAxes, fontweight='bold',
+                fontfamily='sans-serif')
+
 
 @dataclass
 class Discriminator:

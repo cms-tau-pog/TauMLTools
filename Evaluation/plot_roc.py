@@ -3,12 +3,18 @@
 import os
 import json
 import numpy as np
-from scipy import interpolate
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from eval_tools import select_curve, create_roc_ratio
+
+import mlflow
+import hydra
+from hydra.utils import to_absolute_path, instantiate
+from omegaconf import OmegaConf, DictConfig
+
+from eval_tools import select_curve, create_roc_ratio, PlotSetup
 
 class RocCurve:
     def __init__(self, data, ref_roc=None, WPcurve=False):
@@ -34,10 +40,11 @@ class RocCurve:
         else:
             self.thresholds = None
 
-        self.color = data['plot_setup']['color']
-        self.dots_only = data['plot_setup']['dots_only']
-        self.dashed = data['plot_setup']['dashed']
-        self.marker_size = data['plot_setup'].get('marker_size', 5)
+        self.color = data['plot_cfg']['color']
+        self.alpha = data['plot_cfg'].get('alpha', 1.)
+        self.dots_only = data['plot_cfg']['dots_only']
+        self.dashed = data['plot_cfg']['dashed']
+        self.marker_size = data['plot_cfg'].get('marker_size', 5)
 
         if ref_roc is None:
             ref_roc = self
@@ -47,16 +54,16 @@ class RocCurve:
         else:
             self.ratio = create_roc_ratio(self.pr[1], self.pr[0], ref_roc.pr[1], ref_roc.pr[0], True)
 
-    def Draw(self, ax, ax_ratio = None):
+    def draw(self, ax, ax_ratio = None):
         main_plot_adjusted = False
         if self.pr_err is not None:
             x = self.pr[1]
             y = self.pr[0]
-            entry = ax.errorbar(x, y, xerr=self.pr_err[1], yerr=self.pr_err[0], color=self.color,
+            entry = ax.errorbar(x, y, xerr=self.pr_err[1], yerr=self.pr_err[0], color=self.color, alpha=self.alpha,
                         fmt='o', markersize=self.marker_size, linewidth=1)
         else:
             if self.dots_only:
-                entry = ax.errorbar(self.pr[1], self.pr[0], color=self.color, fmt='o', markersize=self.marker_size)
+                entry = ax.errorbar(self.pr[1], self.pr[0], color=self.color, alpha=self.alpha, fmt='o', markersize=self.marker_size)
             else:
                 fmt = '--' if self.dashed else ''
                 x = self.pr[1]
@@ -66,12 +73,12 @@ class RocCurve:
                     y = y[:-1]
                     x_max_main = x[-1]
                     main_plot_adjusted = True
-                entry = ax.errorbar(x, y, color=self.color, fmt=fmt)
+                entry = ax.errorbar(x, y, color=self.color, alpha=self.alpha, fmt=fmt)
         if self.ratio is not None and ax_ratio is not None:
             if self.pr_err is not None:
                 x = self.ratio[1]
                 y = self.ratio[0]
-                ax_ratio.errorbar(x, y, color=self.color, fmt='o', markersize='5', linewidth=1)
+                ax_ratio.errorbar(x, y, color=self.color, alpha=self.alpha, fmt='o', markersize='5', linewidth=1)
             else:
                 linestyle = 'dashed' if self.dashed else None
                 x = self.ratio[1]
@@ -82,56 +89,8 @@ class RocCurve:
                         n += 1
                     x = x[:n]
                     y = y[:n]
-                ax_ratio.plot(x, y, color=self.color, linewidth=1, linestyle=linestyle)
+                ax_ratio.plot(x, y, color=self.color, alpha=self.alpha, linewidth=1, linestyle=linestyle)
         return entry
-
-class PlotSetup:
-    def __init__(self, data):
-        for lim_name in [ 'x', 'y', 'ratio_y' ]:
-            if lim_name + '_min' in data and lim_name + '_max' in data:
-                lim_value = (data[lim_name + '_min'], data[lim_name + '_max'])
-            else:
-                lim_value = None
-            setattr(self, lim_name + 'lim', lim_value)
-        self.ylabel = data.get('ylabel')
-        self.yscale = data.get('yscale', 'log')
-        self.ratio_yscale = data.get('ratio_yscale', 'linear')
-        self.legend_loc = data.get('legend_loc', 'upper left')
-        self.ratio_title = data.get('ratio_title', 'ratio')
-        self.ratio_ylabel_pad = data.get('ratio_ylabel_pad', 20)
-
-    def Apply(self, names, entries, ax, ax_ratio = None):
-        if self.xlim is not None:
-            ax.set_xlim(self.xlim)
-        if self.ylim is not None:
-            ax.set_ylim(self.ylim)
-
-        ax.set_yscale(self.yscale)
-        ax.set_ylabel(self.ylabel, fontsize=16)
-        ax.tick_params(labelsize=14)
-        ax.grid(True)
-        lentries = []
-        lnames = []
-        for e,n in zip(entries, names):
-          if n not in lnames:
-            lentries.append(e)
-            lnames.append(n)
-        ax.legend(lentries, lnames, fontsize=14, loc=self.legend_loc)
-
-        if ax_ratio is not None:
-            if self.ratio_ylim is not None:
-                ax_ratio.set_ylim(self.ratio_ylim)
-
-            ax_ratio.set_yscale(self.ratio_yscale)
-            ax_ratio.set_xlabel('Tau ID efficiency', fontsize=16)
-            ax_ratio.set_ylabel(self.ratio_title, fontsize=14, labelpad=self.ratio_ylabel_pad)
-            ax_ratio.tick_params(labelsize=10)
-            ax_ratio.grid(True, which='both')
-
-import mlflow
-import hydra
-from hydra.utils import to_absolute_path
-from omegaconf import OmegaConf, DictConfig
 
 @hydra.main(config_path='configs', config_name='plot_roc')
 def main(cfg: DictConfig) -> None:
@@ -153,8 +112,11 @@ def main(cfg: DictConfig) -> None:
     if len(cfg.reference)>1:
         raise RuntimeError(f'Expect to have only one reference discriminator, got: {cfg.reference.keys()}')
     reference_cfg = OmegaConf.to_object(cfg.reference) # convert to python dict to enable popitem()
-    ref_discr_name, ref_curve_type = reference_cfg.popitem()
-    reference_json = f'{path_to_mlflow}/{cfg.experiment_id}/{ref_discr_name}/artifacts/performance.json'
+    ref_discr_run_id, ref_curve_type = reference_cfg.popitem()
+    ref_discr_cfg = cfg["discriminators"][ref_discr_run_id]
+    assert isinstance(ref_curve_type, str)
+
+    reference_json = f'{path_to_mlflow}/{cfg.experiment_id}/{ref_discr_run_id}/artifacts/performance.json'
     with open(reference_json, 'r') as f:
         ref_discr_data = json.load(f)
     ref_curve = select_curve(ref_discr_data['metrics'][ref_curve_type], 
@@ -162,49 +124,50 @@ def main(cfg: DictConfig) -> None:
                                 dataset_alias=cfg.dataset_alias)
     if ref_curve is None:
         raise RuntimeError('[INFO] didn\'t manage to retrieve a reference curve from performance.json')
+
+    # import plotting parameters from plot_roc.yaml to class init kwargs
+    ref_curve['plot_cfg'] = ref_discr_cfg['plot_cfg']
+
     ref_roc = RocCurve(ref_curve, None)
 
     curves_to_plot = []
     curve_names = []
     with PdfPages(path_to_pdf) as pdf:
-        for discr_name, curve_types in cfg.discriminators.items():
+        for discr_run_id, discr_cfg in cfg.discriminators.items():
             # retrieve discriminator data from corresponding json 
-            json_file = f'{path_to_mlflow}/{cfg.experiment_id}/{discr_name}/artifacts/performance.json'
+            json_file = f'{path_to_mlflow}/{cfg.experiment_id}/{discr_run_id}/artifacts/performance.json'
             with open(json_file, 'r') as f:
                 discr_data = json.load(f)
 
-            for curve_type in curve_types: 
+            for curve_type in discr_cfg["curve_types"]: 
                 discr_curve = select_curve(discr_data['metrics'][curve_type], 
                                             pt_min=pt_min, pt_max=pt_max, eta_min=eta_min, eta_max=eta_max, dm_bin=dm_bin, vs_type=cfg.vs_type,
                                             dataset_alias=cfg.dataset_alias)
                 if discr_curve is None:
-                    print(f'[INFO] Didn\'t manage to retrieve a curve ({curve_type}) for discriminator ({discr_name}) from performance.json. Will proceed without plotting it.')
+                    print(f'[INFO] Didn\'t manage to retrieve a curve ({curve_type}) for discriminator ({discr_run_id}) from performance.json. Will proceed without plotting it.')
                     continue
-                # elif (discr_name==ref_discr_name and curve_type==ref_curve_type) or ('wp' in curve_type and any('curve' in ctype for ctype in curve_types)): # Temporary: Don't make ratio for 'roc_wp' if there's a ratio for 'roc_curve' already
-                elif (discr_name==ref_discr_name and curve_type==ref_curve_type):
-                    curves_to_plot.append(RocCurve(discr_curve, ref_roc=None))
                 else:
-                    curves_to_plot.append(RocCurve(discr_curve, ref_roc=ref_roc, WPcurve='wp' in curve_type))
-                curve_names.append(discr_data['name'])
+                    discr_curve['plot_cfg'] = discr_cfg['plot_cfg']
+                    if 'wp' in curve_type:
+                        discr_curve['plot_cfg']['dots_only'] = True
+                    # elif (discr_run_id==ref_discr_run_id and curve_type==ref_curve_type) or ('wp' in curve_type and any('curve' in ctype for ctype in discr_cfg["curve_types"])): # Temporary: Don't make ratio for 'roc_wp' if there's a ratio for 'roc_curve' already
+                    if (discr_run_id==ref_discr_run_id and curve_type==ref_curve_type):
+                        roc = RocCurve(discr_curve, ref_roc=None)
+                    else:
+                        roc = RocCurve(discr_curve, ref_roc=ref_roc, WPcurve='wp' in curve_type)
+                    curves_to_plot.append(roc)
+                    curve_names.append(discr_cfg['name'])
 
         fig, (ax, ax_ratio) = plt.subplots(2, 1, figsize=(7, 7), sharex=True, gridspec_kw = {'height_ratios':[3, 1]})
         plot_entries = []
         for curve_to_plot in curves_to_plot:
-            plot_entry = curve_to_plot.Draw(ax, ax_ratio)
+            plot_entry = curve_to_plot.draw(ax, ax_ratio)
             plot_entries.append(plot_entry)
 
-        plot_setup = PlotSetup(ref_curve['plot_setup'])
-        plot_setup.Apply(curve_names, plot_entries, ax, ax_ratio)
-
-        header_y = 1.02
-        ax.text(0.03, 0.89 - len(set(curve_names)) * 0.07, ref_curve['plot_setup']['pt_text'], fontsize=14, transform=ax.transAxes)
-        ax.text(0.03, 0.82 - len(set(curve_names)) * 0.07, ref_curve['plot_setup']['eta_text'], fontsize=14, transform=ax.transAxes)
-        ax.text(0.03, 0.75 - len(set(curve_names)) * 0.07, ref_curve['plot_setup']['dm_text'], fontsize=14, transform=ax.transAxes)
-        ax.text(0.01, header_y, 'CMS', fontsize=14, transform=ax.transAxes, fontweight='bold', fontfamily='sans-serif')
-        ax.text(0.12, header_y, 'Simulation Preliminary', fontsize=14, transform=ax.transAxes, fontstyle='italic',
-                fontfamily='sans-serif')
-        ax.text(0.73, header_y, ref_discr_data['period'], fontsize=13, transform=ax.transAxes, fontweight='bold',
-                fontfamily='sans-serif')
+        # apply plotting style & save
+        plot_setup = instantiate(cfg['plot_setup'])
+        plot_setup.apply(curve_names, plot_entries, ax, ax_ratio)
+        plot_setup.add_text(ax, len(set(curve_names)), pt_min, pt_max, eta_min, eta_max, dm_bin, cfg['period'])
         plt.subplots_adjust(hspace=0)
         pdf.savefig(fig, bbox_inches='tight')
 
