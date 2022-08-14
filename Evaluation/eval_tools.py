@@ -12,23 +12,57 @@ import json
 import re
 import sys
 from glob import glob
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from hydra.utils import to_absolute_path
 from functools import partial
 
 if sys.version_info.major > 2:
     from statsmodels.stats.proportion import proportion_confint
 
+@dataclass
 class RocCurve:
-    def __init__(self, n_points, has_errors):
-        self.pr = np.zeros((2, n_points))
-        if has_errors:
-            self.pr_err = np.zeros((2, 2, n_points))
+    pr: np.array = None
+    pr_err: np.array = None
+    ratio: np.array = None
+    thresholds: np.array = None
+    auc_score: float = None
+
+    def fill(self, cfg, create_ratio=False, ref_roc=None):
+        fpr = np.array(cfg['false_positive_rate'])
+        n_points = len(fpr)
+        self.auc_score = cfg.get('auc_score')
+        self.pr = np.empty((2, n_points))
+        self.pr[0, :] = fpr
+        self.pr[1, :] = cfg['true_positive_rate']
+
+        if 'false_positive_rate_up' in cfg:
+            self.pr_err = np.empty((2, 2, n_points))
+            self.pr_err[0, 0, :] = cfg['false_positive_rate_up']
+            self.pr_err[0, 1, :] = cfg['false_positive_rate_down']
+            self.pr_err[1, 0, :] = cfg['true_positive_rate_up']
+            self.pr_err[1, 1, :] = cfg['true_positive_rate_down']
+        
+        if 'thresholds' in cfg:
+            self.thresholds = np.empty(n_points)
+            self.thresholds[:] = cfg['thresholds']
+        
+        if 'auc_score' in cfg:
+            self.auc_score = cfg['auc_score']
+
+        if 'plot_cfg' in cfg:
+            self.color = cfg['plot_cfg'].get('color', 'black')
+            self.alpha = cfg['plot_cfg'].get('alpha', 1.)
+            self.dots_only = cfg['plot_cfg'].get('dots_only', False)
+            self.dashed = cfg['plot_cfg'].get('dashed', False)
+            self.marker_size = cfg['plot_cfg'].get('marker_size', 5)
+
+        if create_ratio:
+            if ref_roc is None:
+                ref_roc = self
+            self.ratio = create_roc_ratio(self.pr[1], self.pr[0], ref_roc.pr[1], ref_roc.pr[0], True)
         else:
-            self.pr_err = None
-        self.ratio = None
-        self.thresholds = None
-        self.auc_score = None
+            self.ratio = None
+            
 
     def prune(self, tpr_decimals=3):
         pruned = copy.deepcopy(self)
@@ -45,6 +79,44 @@ class RocCurve:
             pruned.pr_err = np.zeros((2, 2, n_points))
             pruned.pr_err[:, :, :] = self.pr_err[:, :, idx]
         return pruned
+
+    def draw(self, ax, ax_ratio = None):
+        main_plot_adjusted = False
+        if self.pr_err is not None:
+            x = self.pr[1]
+            y = self.pr[0]
+            entry = ax.errorbar(x, y, xerr=self.pr_err[1], yerr=self.pr_err[0], color=self.color, alpha=self.alpha,
+                        fmt='o', markersize=self.marker_size, linewidth=1)
+        else:
+            if self.dots_only:
+                entry = ax.errorbar(self.pr[1], self.pr[0], color=self.color, alpha=self.alpha, fmt='o', markersize=self.marker_size)
+            else:
+                fmt = '--' if self.dashed else ''
+                x = self.pr[1]
+                y = self.pr[0]
+                if x[-1] - x[-2] > 0.01:
+                    x = x[:-1]
+                    y = y[:-1]
+                    x_max_main = x[-1]
+                    main_plot_adjusted = True
+                entry = ax.errorbar(x, y, color=self.color, alpha=self.alpha, fmt=fmt)
+        if self.ratio is not None and ax_ratio is not None:
+            if self.pr_err is not None:
+                x = self.ratio[1]
+                y = self.ratio[0]
+                ax_ratio.errorbar(x, y, color=self.color, alpha=self.alpha, fmt='o', markersize='5', linewidth=1)
+            else:
+                linestyle = 'dashed' if self.dashed else None
+                x = self.ratio[1]
+                y = self.ratio[0]
+                if main_plot_adjusted:
+                    n = 0
+                    while x[n] < x_max_main and n < len(x):
+                        n += 1
+                    x = x[:n]
+                    y = y[:n]
+                ax_ratio.plot(x, y, color=self.color, alpha=self.alpha, linewidth=1, linestyle=linestyle)
+        return entry
 
 @dataclass
 class PlotSetup:
@@ -180,37 +252,50 @@ class Discriminator:
         roc, wp_roc = None, None
         if self.raw: # construct ROC curve
             fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
-            roc = RocCurve(len(fpr), False)
-            roc.pr[0, :] = fpr
-            roc.pr[1, :] = tpr
-            roc.thresholds = thresholds
-            if not (np.isnan(roc.pr[0, :]).any() or np.isnan(roc.pr[1, :]).any()):
-              roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
+            if not (np.isnan(fpr).any() or np.isnan(tpr).any()):
+                auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
+                roc = RocCurve()
+                roc_cfg = {
+                    'false_positive_rate': fpr,
+                    'true_positive_rate': tpr,
+                    'thresholds': thresholds,
+                    'auc_score': auc_score,
+                }
+                roc.fill(roc_cfg, create_ratio=False, ref_roc=None)
             else:
-              print('[INFO] ROC curve is empty!')
-              return None, None
+                print('[INFO] ROC curve is empty!')
+                return None, None
         else:
             print('[INFO] raw=False, will skip creating ROC curve')        
         
         # construct WPs
         if self.wp_from in ['wp_column', 'pred_column']:  
             if (n_wp:=len(self.wp_names)) > 0:
-                wp_roc = RocCurve(n_wp, not self.raw)
+                wp_roc = RocCurve()
+                wp_roc_cfg = {
+                    'false_positive_rate': np.empty(n_wp),
+                    'true_positive_rate': np.empty(n_wp),
+                    'false_positive_rate_up': np.empty(n_wp),
+                    'true_positive_rate_up': np.empty(n_wp),
+                    'false_positive_rate_down': np.empty(n_wp),
+                    'true_positive_rate_down': np.empty(n_wp),
+                }
                 for wp_i, wp_name in enumerate(self.wp_names):
-                    for kind in [0, 1]:
+                    for kind, pr_name in zip([0, 1], ['false_positive_rate', 'true_positive_rate']):
                         df_x = df[df['gen_tau'] == kind]
                         n_passed = self.count_passed(df_x, wp_name)
                         n_total = np.sum(df_x.weight.values)
                         eff = float(n_passed) / n_total if n_total > 0 else 0.0
-                        wp_roc.pr[kind, n_wp - wp_i - 1] = eff
+                        wp_roc_cfg[pr_name][n_wp - wp_i - 1] = eff
                         if not self.raw:
                             if sys.version_info.major > 2:
                                 ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
                             else:
                                 err = math.sqrt(eff * (1 - eff) / n_total)
                                 ci_low, ci_upp = eff - err, eff + err
-                            wp_roc.pr_err[kind, 1, n_wp - wp_i - 1] = ci_upp - eff
-                            wp_roc.pr_err[kind, 0, n_wp - wp_i - 1] = eff - ci_low
+                            wp_roc_cfg[f'{pr_name}_down'][n_wp - wp_i - 1] = ci_upp - eff
+                            wp_roc_cfg[f'{pr_name}_up'][n_wp - wp_i - 1] = eff - ci_low
+                wp_roc.fill(roc_cfg, create_ratio=False, ref_roc=None)
             else:
                 raise RuntimeError('No working points specified')
         elif self.wp_from is None:

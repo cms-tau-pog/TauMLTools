@@ -2,7 +2,6 @@
 
 import os
 import json
-import numpy as np
 
 import matplotlib
 matplotlib.use('Agg')
@@ -14,83 +13,7 @@ import hydra
 from hydra.utils import to_absolute_path, instantiate
 from omegaconf import OmegaConf, DictConfig
 
-from eval_tools import select_curve, create_roc_ratio, PlotSetup
-
-class RocCurve:
-    def __init__(self, data, ref_roc=None, WPcurve=False):
-        fpr = np.array(data['false_positive_rate'])
-        n_points = len(fpr)
-        self.auc_score = data.get('auc_score')
-        self.pr = np.empty((2, n_points))
-        self.pr[0, :] = fpr
-        self.pr[1, :] = data['true_positive_rate']
-
-        if 'false_positive_rate_up' in data:
-            self.pr_err = np.empty((2, 2, n_points))
-            self.pr_err[0, 0, :] = data['false_positive_rate_up']
-            self.pr_err[0, 1, :] = data['false_positive_rate_down']
-            self.pr_err[1, 0, :] = data['true_positive_rate_up']
-            self.pr_err[1, 1, :] = data['true_positive_rate_down']
-        else:
-            self.pr_err = None
-
-        if 'thresholds' in data:
-            self.thresholds = np.empty(n_points)
-            self.thresholds[:] = data['thresholds']
-        else:
-            self.thresholds = None
-
-        self.color = data['plot_cfg']['color']
-        self.alpha = data['plot_cfg'].get('alpha', 1.)
-        self.dots_only = data['plot_cfg']['dots_only']
-        self.dashed = data['plot_cfg']['dashed']
-        self.marker_size = data['plot_cfg'].get('marker_size', 5)
-
-        if ref_roc is None:
-            ref_roc = self
-
-        if WPcurve:
-            self.ratio = None
-        else:
-            self.ratio = create_roc_ratio(self.pr[1], self.pr[0], ref_roc.pr[1], ref_roc.pr[0], True)
-
-    def draw(self, ax, ax_ratio = None):
-        main_plot_adjusted = False
-        if self.pr_err is not None:
-            x = self.pr[1]
-            y = self.pr[0]
-            entry = ax.errorbar(x, y, xerr=self.pr_err[1], yerr=self.pr_err[0], color=self.color, alpha=self.alpha,
-                        fmt='o', markersize=self.marker_size, linewidth=1)
-        else:
-            if self.dots_only:
-                entry = ax.errorbar(self.pr[1], self.pr[0], color=self.color, alpha=self.alpha, fmt='o', markersize=self.marker_size)
-            else:
-                fmt = '--' if self.dashed else ''
-                x = self.pr[1]
-                y = self.pr[0]
-                if x[-1] - x[-2] > 0.01:
-                    x = x[:-1]
-                    y = y[:-1]
-                    x_max_main = x[-1]
-                    main_plot_adjusted = True
-                entry = ax.errorbar(x, y, color=self.color, alpha=self.alpha, fmt=fmt)
-        if self.ratio is not None and ax_ratio is not None:
-            if self.pr_err is not None:
-                x = self.ratio[1]
-                y = self.ratio[0]
-                ax_ratio.errorbar(x, y, color=self.color, alpha=self.alpha, fmt='o', markersize='5', linewidth=1)
-            else:
-                linestyle = 'dashed' if self.dashed else None
-                x = self.ratio[1]
-                y = self.ratio[0]
-                if main_plot_adjusted:
-                    n = 0
-                    while x[n] < x_max_main and n < len(x):
-                        n += 1
-                    x = x[:n]
-                    y = y[:n]
-                ax_ratio.plot(x, y, color=self.color, alpha=self.alpha, linewidth=1, linestyle=linestyle)
-        return entry
+from eval_tools import select_curve, PlotSetup, RocCurve
 
 @hydra.main(config_path='configs', config_name='plot_roc')
 def main(cfg: DictConfig) -> None:
@@ -128,7 +51,8 @@ def main(cfg: DictConfig) -> None:
     # import plotting parameters from plot_roc.yaml to class init kwargs
     ref_curve['plot_cfg'] = ref_discr_cfg['plot_cfg']
 
-    ref_roc = RocCurve(ref_curve, None)
+    ref_roc = RocCurve()
+    ref_roc.fill(ref_curve, create_ratio=False, ref_roc=None)
 
     curves_to_plot = []
     curve_names = []
@@ -151,10 +75,12 @@ def main(cfg: DictConfig) -> None:
                     if 'wp' in curve_type:
                         discr_curve['plot_cfg']['dots_only'] = True
                     # elif (discr_run_id==ref_discr_run_id and curve_type==ref_curve_type) or ('wp' in curve_type and any('curve' in ctype for ctype in discr_cfg["curve_types"])): # Temporary: Don't make ratio for 'roc_wp' if there's a ratio for 'roc_curve' already
+
+                    roc = RocCurve()
                     if (discr_run_id==ref_discr_run_id and curve_type==ref_curve_type):
-                        roc = RocCurve(discr_curve, ref_roc=None)
+                        roc.fill(discr_curve, create_ratio=True, ref_roc=None)
                     else:
-                        roc = RocCurve(discr_curve, ref_roc=ref_roc, WPcurve='wp' in curve_type)
+                        roc.fill(discr_curve, create_ratio='wp' not in curve_type, ref_roc=ref_roc)
                     curves_to_plot.append(roc)
                     curve_names.append(discr_cfg['name'])
 
