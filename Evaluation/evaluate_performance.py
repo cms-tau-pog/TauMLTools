@@ -9,7 +9,7 @@ import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import OmegaConf, DictConfig
 
-import eval_tools
+import utils.evaluation as eval_tools
 
 @hydra.main(config_path='configs/eval', config_name='run3')
 def main(cfg: DictConfig) -> None:

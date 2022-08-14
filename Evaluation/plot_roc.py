@@ -13,7 +13,7 @@ import hydra
 from hydra.utils import to_absolute_path, instantiate
 from omegaconf import OmegaConf, DictConfig
 
-from eval_tools import select_curve, PlotSetup, RocCurve
+from utils.evaluation import select_curve, PlotSetup, RocCurve
 
 @hydra.main(config_path='configs', config_name='plot_roc')
 def main(cfg: DictConfig) -> None:
