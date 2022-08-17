@@ -295,7 +295,7 @@ class Discriminator:
                                 ci_low, ci_upp = eff - err, eff + err
                             wp_roc_cfg[f'{pr_name}_down'][n_wp - wp_i - 1] = ci_upp - eff
                             wp_roc_cfg[f'{pr_name}_up'][n_wp - wp_i - 1] = eff - ci_low
-                wp_roc.fill(roc_cfg, create_ratio=False, ref_roc=None)
+                wp_roc.fill(wp_roc_cfg, create_ratio=False, ref_roc=None)
             else:
                 raise RuntimeError('No working points specified')
         elif self.wp_from is None:
