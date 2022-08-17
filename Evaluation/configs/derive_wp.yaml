@@ -37,6 +37,7 @@ wp_maker:
   epsilon: 1e-5
   n_iterations: 100
   verbose: False
+  rounding: 5
 
 create_df:
   _target_: __main__.create_df
