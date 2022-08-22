@@ -98,8 +98,8 @@ def main(cfg: DictConfig) -> None:
         pdf.savefig(fig, bbox_inches='tight')
 
     with mlflow.start_run(experiment_id=cfg.experiment_id, run_id=list(cfg.discriminators.keys())[0]):
-        mlflow.log_artifact(path_to_pdf, 'plots')
-    print(f'\n    Saved the plot in artifacts/plots for runID={list(cfg.discriminators.keys())[0]}\n')
+        mlflow.log_artifact(path_to_pdf, cfg['output_dir'])
+    print(f'\n    Saved the plot in artifacts/{cfg["output_dir"]} for runID={list(cfg.discriminators.keys())[0]}\n')
 
 if __name__ == '__main__':
     main()
