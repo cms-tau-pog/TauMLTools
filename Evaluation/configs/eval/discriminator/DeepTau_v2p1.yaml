@@ -11,7 +11,8 @@ target_column_prefix: node_
 wp_from: wp_column
 
 # for the case "wp_column: wp_column"
-wp_column: tau_byDeepTau2017v2p1VS${vs_type}
+wp_column_prefix: tau_byDeepTau2017v2p1VS
+wp_column: ${.wp_column_prefix}${vs_type}
 wp_name_to_index: ${.wp_name_to_index_map.${vs_type}}
 wp_name_to_index_map:
   e:

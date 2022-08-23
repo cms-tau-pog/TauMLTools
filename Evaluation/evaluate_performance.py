@@ -1,5 +1,6 @@
 import os
 import json
+import numpy as np
 import pandas as pd
 from collections import defaultdict
 from dataclasses import fields
@@ -40,8 +41,12 @@ def main(cfg: DictConfig) -> None:
     input_branches = OmegaConf.to_object(cfg.input_branches)
     if ((_b:=discriminator.pred_column) is not None) and (cfg.path_to_pred is None):
         input_branches.append(_b)
-    if (_b:=discriminator.wp_column) is not None:
-        input_branches.append(_b)
+    if (discriminator.wp_column) is not None:
+        if 'wp_name_to_index_map' in cfg['discriminator']: # append all branches for multiclass WP models
+            for tau_type in cfg['discriminator']['wp_name_to_index_map'].keys():
+                input_branches.append(cfg['discriminator']['wp_column_prefix'] + tau_type)
+        else: # append only wp_column branch for binary WP model
+            input_branches.append(discriminator.wp_column)
 
     # loop over input samples
     df_list = []
@@ -64,15 +69,20 @@ def main(cfg: DictConfig) -> None:
         df_all = df_all.query(cfg.cuts)
     if cfg['WPs_to_require'] is not None:
         for wp_vs_type, wp_name in cfg['WPs_to_require'].items():
-            if wp_thresholds is not None:
-                wp_thr = wp_thresholds[wp_vs_type][wp_name]
+            if cfg['discriminator']['wp_from']=='wp_column':
+                wp = cfg['discriminator']['wp_name_to_index_map'][wp_vs_type][wp_name]
+                wp_column = f"{cfg['discriminator']['wp_column_prefix']}{wp_vs_type}"
+                flag = 1 << wp
+                df_all = df_all[np.bitwise_and(df_all[wp_column], flag) != 0]
             else:
-                if cfg['discriminator']['wp_thresholds_map'] is not None:
+                if wp_thresholds is not None: # take thresholds from previously loaded json
+                    wp_thr = wp_thresholds[wp_vs_type][wp_name]
+                elif cfg['discriminator']['wp_thresholds_map'] is not None: # take thresholds from discriminator cfg
                     wp_thr = cfg['discriminator']['wp_thresholds_map'][wp_vs_type][wp_name]
                 else:
-                    raise RuntimeError('WP thresholds either via wp_thresholds_map or via input json file are not provided.')
-            wp_cut = f"{cfg['discriminator']['pred_column_prefix']}{wp_vs_type} > {wp_thr}"
-            df_all = df_all.query(wp_cut)
+                    raise RuntimeError('WP thresholds either from wp_column, or wp_thresholds_map, or via input json file are not provided.')
+                wp_cut = f"{cfg['discriminator']['pred_column_prefix']}{wp_vs_type} > {wp_thr}"
+                df_all = df_all.query(wp_cut)
         
 
     # # inverse scaling
