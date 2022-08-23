@@ -1,0 +1,26 @@
+# general 
+name: MVA (updated decay modes)
+color: red
+dashed: False
+raw: False
+
+# prediction/target columns
+pred_column_prefix: null
+pred_column: null
+target_column_prefix: node_
+
+# WPs
+wp_from: wp_column
+wp_column: tau_byIsolationMVArun2017v2DBnewDMwLT2017
+
+# WP maps
+wp_name_to_index:
+  VVVLoose: 0
+  VVLoose: 1
+  VLoose: 2
+  Loose: 3
+  Medium: 4
+  Tight: 5
+  VTight: 6
+  VVTight: 7
+  VVVTight: 8

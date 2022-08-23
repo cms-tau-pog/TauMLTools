@@ -5,15 +5,19 @@
                 "mean": 100.0,
                 "std": 100.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_pt": {
             "global": {
-                "mean": 2510.0,
-                "std": 2490.0,
+                "mean": 510.0,
+                "std": 490.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_eta": {
@@ -21,7 +25,9 @@
                 "mean": 0.0,
                 "std": 3.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_phi": {
@@ -29,23 +35,29 @@
                 "mean": 0.0,
                 "std": 3.141592653589793,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_mass": {
             "global": {
-                "mean": 0.5795,
-                "std": 0.5098,
+                "mean": 0.5718,
+                "std": 0.5081,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.5851,
+                "num": 710346
             }
         },
         "tau_E_over_pt": {
             "global": {
-                "mean": 2.175,
-                "std": 1.588,
+                "mean": 2.181,
+                "std": 1.593,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 7.292,
+                "num": 710346
             }
         },
         "tau_charge": {
@@ -53,7 +65,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_n_charged_prongs": {
@@ -61,7 +75,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_n_neutral_prongs": {
@@ -69,15 +85,19 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_chargedIsoPtSum": {
             "global": {
-                "mean": 14.7,
-                "std": 41.25,
+                "mean": 14.32,
+                "std": 41.7,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1944.0,
+                "num": 710346
             }
         },
         "tau_chargedIsoPtSumdR03_over_dR05": {
@@ -85,23 +105,29 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_footprintCorrection": {
             "global": {
-                "mean": 2.286,
-                "std": 6.957,
+                "mean": 2.243,
+                "std": 6.779,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 50.99,
+                "num": 710346
             }
         },
         "tau_neutralIsoPtSum": {
             "global": {
-                "mean": 13.54,
-                "std": 37.41,
+                "mean": 12.67,
+                "std": 39.88,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1751.0,
+                "num": 710346
             }
         },
         "tau_neutralIsoPtSumWeight_over_neutralIsoPtSum": {
@@ -109,7 +135,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum": {
@@ -117,7 +145,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_neutralIsoPtSumdR03_over_dR05": {
@@ -125,23 +155,29 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_photonPtSumOutsideSignalCone": {
             "global": {
-                "mean": 0.5043,
-                "std": 2.212,
+                "mean": 0.4827,
+                "std": 2.298,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 5.513,
+                "num": 710346
             }
         },
         "tau_puCorrPtSum": {
             "global": {
-                "mean": 121.9,
-                "std": 30.1,
+                "mean": 101.3,
+                "std": 32.93,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 11350.0,
+                "num": 710346
             }
         },
         "tau_dxy_valid": {
@@ -149,23 +185,29 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_dxy": {
             "global": {
-                "mean": 0.001588,
-                "std": 0.008189,
+                "mean": 0.001571,
+                "std": 0.008156,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 6.899e-05,
+                "num": 710238
             }
         },
         "tau_dxy_sig": {
             "global": {
-                "mean": 3.958,
-                "std": 8.993,
+                "mean": 3.935,
+                "std": 8.897,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 94.64,
+                "num": 710238
             }
         },
         "tau_ip3d_valid": {
@@ -173,31 +215,39 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_ip3d": {
             "global": {
-                "mean": 0.002022,
+                "mean": 0.002075,
                 "std": 0.01112,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.000128,
+                "num": 710238
             }
         },
         "tau_ip3d_sig": {
             "global": {
-                "mean": 4.341,
-                "std": 8.53,
+                "mean": 4.328,
+                "std": 8.502,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 91.02,
+                "num": 710238
             }
         },
         "tau_dz": {
             "global": {
-                "mean": 0.005873,
-                "std": 0.9624,
+                "mean": 0.001592,
+                "std": 0.8673,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.7522,
+                "num": 710346
             }
         },
         "tau_dz_sig_valid": {
@@ -205,47 +255,59 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_dz_sig": {
             "global": {
-                "mean": 110.2,
-                "std": 971.1,
+                "mean": 93.74,
+                "std": 862.9,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 753400.0,
+                "num": 710235
             }
         },
         "tau_flightLength_x": {
             "global": {
-                "mean": 0.0005129,
-                "std": 0.3514,
+                "mean": 0.0003602,
+                "std": 0.3587,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1287,
+                "num": 710346
             }
         },
         "tau_flightLength_y": {
             "global": {
-                "mean": -0.0005207,
-                "std": 0.3576,
+                "mean": -1.718e-05,
+                "std": 0.3585,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1285,
+                "num": 710346
             }
         },
         "tau_flightLength_z": {
             "global": {
-                "mean": 0.002676,
-                "std": 1.58,
+                "mean": -0.001134,
+                "std": 1.599,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 2.557,
+                "num": 710346
             }
         },
         "tau_flightLength_sig": {
             "global": {
-                "mean": -2.567,
-                "std": 20.04,
+                "mean": -2.712,
+                "std": 19.88,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 402.6,
+                "num": 710346
             }
         },
         "tau_pt_weighted_deta_strip": {
@@ -253,7 +315,9 @@
                 "mean": 0.5,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_pt_weighted_dphi_strip": {
@@ -261,15 +325,19 @@
                 "mean": 0.5,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_pt_weighted_dr_signal": {
             "global": {
-                "mean": 0.007673,
-                "std": 0.01724,
+                "mean": 0.007457,
+                "std": 0.01698,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.000344,
+                "num": 710346
             }
         },
         "tau_pt_weighted_dr_iso": {
@@ -277,15 +345,19 @@
                 "mean": 0.5,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_leadingTrackNormChi2": {
             "global": {
-                "mean": 1.076,
-                "std": 0.521,
+                "mean": 1.072,
+                "std": 0.5388,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.439,
+                "num": 710346
             }
         },
         "tau_e_ratio_valid": {
@@ -293,7 +365,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_e_ratio": {
@@ -301,7 +375,9 @@
                 "mean": 0.5,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_gj_angle_diff_valid": {
@@ -309,7 +385,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_gj_angle_diff": {
@@ -317,15 +395,19 @@
                 "mean": 1.5707963267948966,
                 "std": 1.5707963267948966,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_n_photons": {
             "global": {
-                "mean": 4.699,
-                "std": 3.389,
+                "mean": 4.13,
+                "std": 3.313,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 28.03,
+                "num": 710346
             }
         },
         "tau_emFraction": {
@@ -333,7 +415,9 @@
                 "mean": 0.0,
                 "std": 1.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_inside_ecal_crack": {
@@ -341,15 +425,19 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta": {
             "global": {
-                "mean": -0.00222,
-                "std": 0.8977,
+                "mean": -0.0008631,
+                "std": 0.9046,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.8182,
+                "num": 710346
             }
         }
     },
@@ -359,15 +447,19 @@
                 "mean": 100.0,
                 "std": 100.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_pt": {
             "global": {
-                "mean": 2510.0,
-                "std": 2490.0,
+                "mean": 510.0,
+                "std": 490.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_eta": {
@@ -375,7 +467,9 @@
                 "mean": 0.0,
                 "std": 3.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "tau_inside_ecal_crack": {
@@ -383,7 +477,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         }
     },
@@ -393,21 +489,27 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_ele_rel_pt": {
             "inner": {
-                "mean": 0.8458,
-                "std": 0.5623,
+                "mean": 0.8424,
+                "std": 0.6145,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.087,
+                "num": 211912
             },
             "outer": {
-                "mean": 0.1023,
-                "std": 0.8366,
+                "mean": 0.1106,
+                "std": 1.069,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.155,
+                "num": 102716
             }
         },
         "pfCand_ele_deta": {
@@ -415,13 +517,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_ele_dphi": {
@@ -429,13 +535,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_ele_pvAssociationQuality": {
@@ -443,7 +553,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_ele_puppiWeight": {
@@ -451,7 +563,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_ele_charge": {
@@ -459,7 +573,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_ele_lostInnerHits": {
@@ -467,7 +583,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_ele_nPixelHits": {
@@ -475,91 +593,135 @@
                 "mean": 7.5,
                 "std": 7.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_ele_vertex_dx": {
             "inner": {
-                "mean": -6.936e-05,
-                "std": 0.02047,
+                "mean": -1.594e-05,
+                "std": 0.01716,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0002946,
+                "num": 211912
             },
             "outer": {
-                "mean": 0.0002069,
-                "std": 0.1111,
+                "mean": -0.000121,
+                "std": 0.11,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.01209,
+                "num": 102716
             }
         },
         "pfCand_ele_vertex_dy": {
             "inner": {
-                "mean": 1.169e-05,
-                "std": 0.01882,
+                "mean": -1.615e-05,
+                "std": 0.01745,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0003045,
+                "num": 211912
             },
             "outer": {
-                "mean": 0.0003688,
-                "std": 0.1095,
+                "mean": 5.664e-06,
+                "std": 0.1115,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.01243,
+                "num": 102716
             }
         },
         "pfCand_ele_vertex_dz": {
             "inner": {
-                "mean": 0.01299,
-                "std": 1.401,
+                "mean": 0.001503,
+                "std": 1.209,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.462,
+                "num": 211912
             },
             "outer": {
-                "mean": 0.0314,
-                "std": 5.841,
+                "mean": 0.002146,
+                "std": 5.572,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 31.05,
+                "num": 102716
+            }
+        },
+        "pfCand_ele_vertex_dt": {
+            "inner": {
+                "mean": 0.0008906,
+                "std": 0.1881,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.0354,
+                "num": 211912
+            },
+            "outer": {
+                "mean": 0.001447,
+                "std": 0.1881,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.03539,
+                "num": 102716
             }
         },
         "pfCand_ele_vertex_dx_tauFL": {
             "inner": {
-                "mean": -0.005879,
-                "std": 0.5209,
+                "mean": -0.0001738,
+                "std": 0.5551,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.3082,
+                "num": 211912
             },
             "outer": {
-                "mean": -0.001251,
-                "std": 0.4296,
+                "mean": -0.001255,
+                "std": 0.4267,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.182,
+                "num": 102716
             }
         },
         "pfCand_ele_vertex_dy_tauFL": {
             "inner": {
-                "mean": -7.343e-06,
-                "std": 0.5203,
+                "mean": -0.00201,
+                "std": 0.5364,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.2877,
+                "num": 211912
             },
             "outer": {
-                "mean": 0.002566,
-                "std": 0.4443,
+                "mean": -0.0001182,
+                "std": 0.4208,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1771,
+                "num": 102716
             }
         },
         "pfCand_ele_vertex_dz_tauFL": {
             "inner": {
-                "mean": -0.008778,
-                "std": 3.6,
+                "mean": 0.008298,
+                "std": 3.608,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 13.02,
+                "num": 211912
             },
             "outer": {
-                "mean": 0.05992,
-                "std": 6.41,
+                "mean": 0.003788,
+                "std": 6.163,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 37.98,
+                "num": 102716
             }
         },
         "pfCand_ele_hasTrackDetails": {
@@ -567,91 +729,153 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_ele_dxy": {
             "inner": {
-                "mean": -8.702e-05,
-                "std": 0.02344,
+                "mean": 3.245e-05,
+                "std": 0.02022,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0004089,
+                "num": 211481
             },
             "outer": {
-                "mean": 2.745e-05,
-                "std": 0.0967,
+                "mean": 0.0008399,
+                "std": 0.09652,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.009317,
+                "num": 84838
             }
         },
         "pfCand_ele_dxy_sig": {
             "inner": {
-                "mean": 2.923,
-                "std": 6.197,
+                "mean": 2.908,
+                "std": 6.137,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 46.12,
+                "num": 211481
             },
             "outer": {
-                "mean": 6.433,
-                "std": 9.98,
+                "mean": 6.696,
+                "std": 10.57,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 156.6,
+                "num": 84838
             }
         },
         "pfCand_ele_dz": {
             "inner": {
-                "mean": 0.01349,
-                "std": 1.366,
+                "mean": 0.001685,
+                "std": 1.189,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.414,
+                "num": 211481
             },
             "outer": {
-                "mean": 0.03591,
-                "std": 5.867,
+                "mean": 0.02434,
+                "std": 5.509,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 30.35,
+                "num": 84838
             }
         },
         "pfCand_ele_dz_sig": {
             "inner": {
-                "mean": 136.5,
-                "std": 1045.0,
+                "mean": 105.5,
+                "std": 877.8,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 781600.0,
+                "num": 211481
             },
             "outer": {
-                "mean": 965.4,
-                "std": 1667.0,
+                "mean": 827.1,
+                "std": 1507.0,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 2954000.0,
+                "num": 84838
+            }
+        },
+        "pfCand_ele_time": {
+            "inner": {
+                "mean": -0.003007,
+                "std": 0.162,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.02626,
+                "num": 211481
+            },
+            "outer": {
+                "mean": -0.002257,
+                "std": 0.1381,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.01909,
+                "num": 84838
+            }
+        },
+        "pfCand_ele_time_sig": {
+            "inner": {
+                "mean": 5.174,
+                "std": 6.161,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 64.72,
+                "num": 211481
+            },
+            "outer": {
+                "mean": 3.222,
+                "std": 5.216,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 37.58,
+                "num": 84838
             }
         },
         "pfCand_ele_track_chi2_ndof": {
             "inner": {
-                "mean": 1.367,
-                "std": 6.144,
+                "mean": 1.305,
+                "std": 5.948,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 37.08,
+                "num": 211481
             },
             "outer": {
-                "mean": 3.022,
-                "std": 10.57,
+                "mean": 2.902,
+                "std": 11.02,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 129.9,
+                "num": 84838
             }
         },
         "pfCand_ele_track_ndof": {
             "inner": {
-                "mean": 11.79,
-                "std": 6.467,
+                "mean": 11.81,
+                "std": 6.481,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 181.5,
+                "num": 211481
             },
             "outer": {
-                "mean": 11.67,
-                "std": 6.659,
+                "mean": 11.96,
+                "std": 6.747,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 188.5,
+                "num": 84838
             }
         }
     },
@@ -661,21 +885,27 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_muon_rel_pt": {
             "inner": {
-                "mean": 0.9466,
-                "std": 0.536,
+                "mean": 0.9535,
+                "std": 0.6853,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.379,
+                "num": 188697
             },
             "outer": {
-                "mean": 0.06249,
-                "std": 0.8496,
+                "mean": 0.06569,
+                "std": 0.8174,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.6725,
+                "num": 208294
             }
         },
         "pfCand_muon_deta": {
@@ -683,13 +913,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_muon_dphi": {
@@ -697,13 +931,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_muon_pvAssociationQuality": {
@@ -711,7 +949,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_muon_fromPV": {
@@ -719,7 +959,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_muon_puppiWeight": {
@@ -727,7 +969,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_muon_charge": {
@@ -735,7 +979,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_muon_lostInnerHits": {
@@ -743,7 +989,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_muon_nPixelHits": {
@@ -751,91 +999,135 @@
                 "mean": 5.5,
                 "std": 5.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_muon_vertex_dx": {
             "inner": {
-                "mean": 2.574e-05,
-                "std": 0.02187,
+                "mean": -3.664e-05,
+                "std": 0.02,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0004002,
+                "num": 188697
             },
             "outer": {
-                "mean": -0.0002012,
-                "std": 0.06195,
+                "mean": -7.842e-05,
+                "std": 0.06539,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.004275,
+                "num": 208294
             }
         },
         "pfCand_muon_vertex_dy": {
             "inner": {
-                "mean": 0.0002119,
-                "std": 0.02278,
+                "mean": 1.199e-05,
+                "std": 0.02026,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0004105,
+                "num": 188697
             },
             "outer": {
-                "mean": 0.0005062,
-                "std": 0.06589,
+                "mean": -0.0001811,
+                "std": 0.06323,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.003998,
+                "num": 208294
             }
         },
         "pfCand_muon_vertex_dz": {
             "inner": {
-                "mean": 0.002343,
-                "std": 1.44,
+                "mean": -0.001638,
+                "std": 1.248,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.558,
+                "num": 188697
             },
             "outer": {
-                "mean": -0.002325,
-                "std": 6.1,
+                "mean": 0.0152,
+                "std": 6.064,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 36.77,
+                "num": 208294
+            }
+        },
+        "pfCand_muon_vertex_dt": {
+            "inner": {
+                "mean": 0.0008122,
+                "std": 0.1882,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.0354,
+                "num": 188697
+            },
+            "outer": {
+                "mean": 0.0004387,
+                "std": 0.1872,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.03506,
+                "num": 208294
             }
         },
         "pfCand_muon_vertex_dx_tauFL": {
             "inner": {
-                "mean": 4.153e-05,
-                "std": 0.2012,
+                "mean": -0.0003709,
+                "std": 0.188,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.03535,
+                "num": 188697
             },
             "outer": {
-                "mean": -0.004768,
-                "std": 0.473,
+                "mean": 1.847e-05,
+                "std": 0.4649,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.2161,
+                "num": 208294
             }
         },
         "pfCand_muon_vertex_dy_tauFL": {
             "inner": {
-                "mean": -0.001413,
-                "std": 0.1966,
+                "mean": 0.0004101,
+                "std": 0.1894,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.03588,
+                "num": 188697
             },
             "outer": {
-                "mean": 0.001134,
-                "std": 0.4469,
+                "mean": -0.002452,
+                "std": 0.4612,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.2127,
+                "num": 208294
             }
         },
         "pfCand_muon_vertex_dz_tauFL": {
             "inner": {
-                "mean": 0.001868,
-                "std": 1.556,
+                "mean": -0.0002903,
+                "std": 1.374,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.889,
+                "num": 188697
             },
             "outer": {
-                "mean": -0.006934,
-                "std": 6.494,
+                "mean": 0.01452,
+                "std": 6.464,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 41.78,
+                "num": 208294
             }
         },
         "pfCand_muon_hasTrackDetails": {
@@ -843,91 +1135,153 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_muon_dxy": {
             "inner": {
-                "mean": 9.147e-07,
-                "std": 0.03135,
+                "mean": 4.724e-05,
+                "std": 0.02816,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0007929,
+                "num": 188695
             },
             "outer": {
-                "mean": -0.0001305,
-                "std": 0.09022,
+                "mean": -0.0003077,
+                "std": 0.0908,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.008245,
+                "num": 208269
             }
         },
         "pfCand_muon_dxy_sig": {
             "inner": {
-                "mean": 2.918,
-                "std": 18.79,
+                "mean": 2.692,
+                "std": 17.5,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 313.4,
+                "num": 188695
             },
             "outer": {
-                "mean": 4.15,
-                "std": 26.78,
+                "mean": 4.264,
+                "std": 25.46,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 666.4,
+                "num": 208269
             }
         },
         "pfCand_muon_dz": {
             "inner": {
-                "mean": 0.00479,
-                "std": 1.44,
+                "mean": -0.0007676,
+                "std": 1.248,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.558,
+                "num": 188695
             },
             "outer": {
-                "mean": -0.002805,
-                "std": 6.1,
+                "mean": 0.01624,
+                "std": 6.063,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 36.76,
+                "num": 208269
             }
         },
         "pfCand_muon_dz_sig": {
             "inner": {
-                "mean": 84.33,
-                "std": 827.6,
+                "mean": 69.4,
+                "std": 742.1,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 555500.0,
+                "num": 188695
             },
             "outer": {
-                "mean": 666.1,
-                "std": 836.0,
+                "mean": 652.1,
+                "std": 832.1,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1118000.0,
+                "num": 208269
+            }
+        },
+        "pfCand_muon_time": {
+            "inner": {
+                "mean": 0.0009522,
+                "std": 0.1785,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.03186,
+                "num": 188695
+            },
+            "outer": {
+                "mean": -0.004777,
+                "std": 0.177,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.03136,
+                "num": 208269
+            }
+        },
+        "pfCand_muon_time_sig": {
+            "inner": {
+                "mean": 5.763,
+                "std": 5.737,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 66.13,
+                "num": 188695
+            },
+            "outer": {
+                "mean": 5.084,
+                "std": 5.525,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 56.37,
+                "num": 208269
             }
         },
         "pfCand_muon_track_chi2_ndof": {
             "inner": {
-                "mean": 0.4492,
-                "std": 0.6704,
+                "mean": 0.4363,
+                "std": 0.6667,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.6349,
+                "num": 188666
             },
             "outer": {
-                "mean": 0.8446,
-                "std": 0.8665,
+                "mean": 0.8343,
+                "std": 0.8017,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.339,
+                "num": 208198
             }
         },
         "pfCand_muon_track_ndof": {
             "inner": {
-                "mean": 18.02,
-                "std": 4.946,
+                "mean": 18.07,
+                "std": 4.928,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 350.9,
+                "num": 188666
             },
             "outer": {
-                "mean": 21.44,
-                "std": 5.777,
+                "mean": 21.51,
+                "std": 5.72,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 495.6,
+                "num": 208198
             }
         }
     },
@@ -937,21 +1291,27 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_rel_pt": {
             "inner": {
-                "mean": 0.1752,
-                "std": 0.2827,
+                "mean": 0.1902,
+                "std": 0.3578,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1641,
+                "num": 1866561
             },
             "outer": {
-                "mean": 0.02028,
-                "std": 0.05723,
+                "mean": 0.02063,
+                "std": 0.06009,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.004037,
+                "num": 41577016
             }
         },
         "pfCand_chHad_deta": {
@@ -959,13 +1319,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_dphi": {
@@ -973,13 +1337,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_tauLeadChargedHadrCand": {
@@ -987,7 +1355,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_pvAssociationQuality": {
@@ -995,7 +1365,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_fromPV": {
@@ -1003,7 +1375,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_puppiWeight": {
@@ -1011,7 +1385,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_puppiWeightNoLep": {
@@ -1019,7 +1395,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_charge": {
@@ -1027,7 +1405,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_lostInnerHits": {
@@ -1035,7 +1415,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_nPixelHits": {
@@ -1043,91 +1425,135 @@
                 "mean": 6.0,
                 "std": 6.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_vertex_dx": {
             "inner": {
-                "mean": -2.245e-05,
-                "std": 0.03582,
+                "mean": -3.22e-05,
+                "std": 0.0326,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.001063,
+                "num": 1866561
             },
             "outer": {
-                "mean": 3.043e-05,
-                "std": 0.04834,
+                "mean": 7.994e-06,
+                "std": 0.04616,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.002131,
+                "num": 41577016
             }
         },
         "pfCand_chHad_vertex_dy": {
             "inner": {
-                "mean": 6.221e-05,
-                "std": 0.03565,
+                "mean": 1.892e-05,
+                "std": 0.03277,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.001074,
+                "num": 1866561
             },
             "outer": {
-                "mean": 1.294e-05,
-                "std": 0.04857,
+                "mean": 1.326e-05,
+                "std": 0.04631,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.002145,
+                "num": 41577016
             }
         },
         "pfCand_chHad_vertex_dz": {
             "inner": {
-                "mean": -0.01866,
-                "std": 4.263,
+                "mean": 0.001798,
+                "std": 4.021,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 16.16,
+                "num": 1866561
             },
             "outer": {
-                "mean": -0.02323,
-                "std": 5.977,
+                "mean": 0.00378,
+                "std": 5.925,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 35.11,
+                "num": 41577016
+            }
+        },
+        "pfCand_chHad_vertex_dt": {
+            "inner": {
+                "mean": 0.00037,
+                "std": 0.1883,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.03546,
+                "num": 1866561
+            },
+            "outer": {
+                "mean": 0.000603,
+                "std": 0.188,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.03535,
+                "num": 41577016
             }
         },
         "pfCand_chHad_vertex_dx_tauFL": {
             "inner": {
-                "mean": 0.0002468,
-                "std": 0.4032,
+                "mean": -0.0005992,
+                "std": 0.413,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1706,
+                "num": 1866561
             },
             "outer": {
-                "mean": -0.0003822,
-                "std": 0.3502,
+                "mean": -0.0005101,
+                "std": 0.3523,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1241,
+                "num": 41577016
             }
         },
         "pfCand_chHad_vertex_dy_tauFL": {
             "inner": {
-                "mean": 0.0006147,
-                "std": 0.4113,
+                "mean": 0.0003633,
+                "std": 0.4153,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1724,
+                "num": 1866561
             },
             "outer": {
-                "mean": 0.0001945,
-                "std": 0.3561,
+                "mean": -2.036e-05,
+                "std": 0.3541,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1254,
+                "num": 41577016
             }
         },
         "pfCand_chHad_vertex_dz_tauFL": {
             "inner": {
-                "mean": -0.02012,
-                "std": 4.544,
+                "mean": 0.004573,
+                "std": 4.324,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 18.69,
+                "num": 1866561
             },
             "outer": {
-                "mean": -0.02437,
-                "std": 6.155,
+                "mean": 0.004647,
+                "std": 6.099,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 37.2,
+                "num": 41577016
             }
         },
         "pfCand_chHad_hasTrackDetails": {
@@ -1135,91 +1561,153 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_dxy": {
             "inner": {
-                "mean": 2.784e-05,
-                "std": 0.03167,
+                "mean": 8.158e-05,
+                "std": 0.03025,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0009151,
+                "num": 1592300
             },
             "outer": {
-                "mean": 0.00025,
-                "std": 0.04464,
+                "mean": 0.0002569,
+                "std": 0.04398,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.001935,
+                "num": 28120792
             }
         },
         "pfCand_chHad_dxy_sig": {
             "inner": {
-                "mean": 4.417,
-                "std": 11.85,
+                "mean": 4.518,
+                "std": 11.8,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 159.6,
+                "num": 1592300
             },
             "outer": {
-                "mean": 1.789,
-                "std": 5.921,
+                "mean": 1.772,
+                "std": 5.968,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 38.76,
+                "num": 28120792
             }
         },
         "pfCand_chHad_dz": {
             "inner": {
-                "mean": -0.00945,
-                "std": 3.781,
+                "mean": 0.006913,
+                "std": 3.547,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 12.58,
+                "num": 1592300
             },
             "outer": {
-                "mean": -0.02166,
-                "std": 5.884,
+                "mean": 0.004969,
+                "std": 5.843,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 34.14,
+                "num": 28120792
             }
         },
         "pfCand_chHad_dz_sig": {
             "inner": {
-                "mean": 322.3,
-                "std": 772.0,
+                "mean": 287.4,
+                "std": 728.6,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 613500.0,
+                "num": 1592300
             },
             "outer": {
-                "mean": 702.1,
-                "std": 757.3,
+                "mean": 695.1,
+                "std": 756.6,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1056000.0,
+                "num": 28120792
+            }
+        },
+        "pfCand_chHad_time": {
+            "inner": {
+                "mean": 0.004482,
+                "std": 0.1824,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.0333,
+                "num": 1592300
+            },
+            "outer": {
+                "mean": 0.009075,
+                "std": 0.2003,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.04019,
+                "num": 28120792
+            }
+        },
+        "pfCand_chHad_time_sig": {
+            "inner": {
+                "mean": 5.198,
+                "std": 7.234,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 79.35,
+                "num": 1592300
+            },
+            "outer": {
+                "mean": 4.375,
+                "std": 8.369,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 89.19,
+                "num": 28120792
             }
         },
         "pfCand_chHad_track_chi2_ndof": {
             "inner": {
-                "mean": 0.5817,
-                "std": 0.8034,
+                "mean": 0.5699,
+                "std": 0.8056,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.9737,
+                "num": 1592300
             },
             "outer": {
-                "mean": 0.6509,
-                "std": 0.8853,
+                "mean": 0.6393,
+                "std": 0.8879,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.197,
+                "num": 28120791
             }
         },
         "pfCand_chHad_track_ndof": {
             "inner": {
-                "mean": 16.09,
-                "std": 5.786,
+                "mean": 16.18,
+                "std": 5.736,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 294.6,
+                "num": 1592300
             },
             "outer": {
-                "mean": 15.16,
-                "std": 6.204,
+                "mean": 15.17,
+                "std": 6.185,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 268.5,
+                "num": 28120791
             }
         },
         "pfCand_chHad_hcalFraction": {
@@ -1227,7 +1715,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_chHad_rawCaloFraction": {
@@ -1235,7 +1725,9 @@
                 "mean": 1.3,
                 "std": 1.3,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         }
     },
@@ -1245,21 +1737,27 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_nHad_rel_pt": {
             "inner": {
-                "mean": 0.1124,
-                "std": 0.2144,
+                "mean": 0.1149,
+                "std": 0.2151,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.05946,
+                "num": 141428
             },
             "outer": {
-                "mean": 0.01436,
-                "std": 0.05455,
+                "mean": 0.01414,
+                "std": 0.05509,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.003235,
+                "num": 4898076
             }
         },
         "pfCand_nHad_deta": {
@@ -1267,13 +1765,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_nHad_dphi": {
@@ -1281,13 +1783,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_nHad_puppiWeight": {
@@ -1295,7 +1801,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_nHad_puppiWeightNoLep": {
@@ -1303,7 +1811,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_nHad_hcalFraction": {
@@ -1311,7 +1821,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         }
     },
@@ -1321,21 +1833,27 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_gamma_rel_pt": {
             "inner": {
-                "mean": 0.1534,
-                "std": 0.4004,
+                "mean": 0.1594,
+                "std": 0.4276,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.2083,
+                "num": 827218
             },
             "outer": {
-                "mean": 0.01286,
-                "std": 0.06991,
+                "mean": 0.01285,
+                "std": 0.07524,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.005826,
+                "num": 20647191
             }
         },
         "pfCand_gamma_deta": {
@@ -1343,13 +1861,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_gamma_dphi": {
@@ -1357,13 +1879,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_gamma_pvAssociationQuality": {
@@ -1371,7 +1897,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_gamma_fromPV": {
@@ -1379,7 +1907,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_gamma_puppiWeight": {
@@ -1387,7 +1917,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_gamma_puppiWeightNoLep": {
@@ -1395,7 +1927,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_gamma_lostInnerHits": {
@@ -1403,7 +1937,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_gamma_nPixelHits": {
@@ -1411,91 +1947,135 @@
                 "mean": 3.5,
                 "std": 3.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_gamma_vertex_dx": {
             "inner": {
-                "mean": -2.597e-06,
-                "std": 0.002672,
+                "mean": 1.295e-05,
+                "std": 0.004268,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.821e-05,
+                "num": 827218
             },
             "outer": {
-                "mean": -5.067e-06,
-                "std": 0.002879,
+                "mean": 4.308e-06,
+                "std": 0.003429,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.176e-05,
+                "num": 20647191
             }
         },
         "pfCand_gamma_vertex_dy": {
             "inner": {
-                "mean": -8.925e-07,
-                "std": 0.003128,
+                "mean": -8.435e-06,
+                "std": 0.003182,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.012e-05,
+                "num": 827218
             },
             "outer": {
-                "mean": -4.821e-06,
-                "std": 0.003189,
+                "mean": 1.919e-06,
+                "std": 0.003318,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.101e-05,
+                "num": 20647191
             }
         },
         "pfCand_gamma_vertex_dz": {
             "inner": {
-                "mean": 0.001673,
-                "std": 0.6775,
+                "mean": -0.001344,
+                "std": 0.6095,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.3715,
+                "num": 827218
             },
             "outer": {
-                "mean": -0.0004628,
-                "std": 0.5944,
+                "mean": -0.0005881,
+                "std": 0.5228,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.2733,
+                "num": 20647181
+            }
+        },
+        "pfCand_gamma_vertex_dt": {
+            "inner": {
+                "mean": 0.0006475,
+                "std": 0.1881,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.03537,
+                "num": 827218
+            },
+            "outer": {
+                "mean": 0.0005391,
+                "std": 0.188,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.03534,
+                "num": 20647181
             }
         },
         "pfCand_gamma_vertex_dx_tauFL": {
             "inner": {
-                "mean": 0.0003686,
-                "std": 0.3806,
+                "mean": -0.0006508,
+                "std": 0.3957,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1566,
+                "num": 827218
             },
             "outer": {
-                "mean": -0.001224,
-                "std": 0.3994,
+                "mean": -0.0009704,
+                "std": 0.4157,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1728,
+                "num": 20647191
             }
         },
         "pfCand_gamma_vertex_dy_tauFL": {
             "inner": {
-                "mean": 0.001325,
-                "std": 0.3966,
+                "mean": -0.0004855,
+                "std": 0.394,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1553,
+                "num": 827218
             },
             "outer": {
-                "mean": 0.001882,
-                "std": 0.409,
+                "mean": 0.000131,
+                "std": 0.4125,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1701,
+                "num": 20647191
             }
         },
         "pfCand_gamma_vertex_dz_tauFL": {
             "inner": {
-                "mean": -0.006299,
-                "std": 2.025,
+                "mean": 0.004292,
+                "std": 2.006,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 4.023,
+                "num": 827218
             },
             "outer": {
-                "mean": -0.009362,
-                "std": 2.381,
+                "mean": 0.001519,
+                "std": 2.441,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 5.958,
+                "num": 20647181
             }
         },
         "pfCand_gamma_hasTrackDetails": {
@@ -1503,91 +2083,153 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "pfCand_gamma_dxy": {
             "inner": {
-                "mean": -0.001243,
-                "std": 0.04587,
+                "mean": 0.001246,
+                "std": 0.02973,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0008856,
+                "num": 71
             },
             "outer": {
-                "mean": 0.0,
-                "std": 1.0,
+                "mean": 0.007348,
+                "std": 0.03917,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.001588,
+                "num": 5
             }
         },
         "pfCand_gamma_dxy_sig": {
             "inner": {
-                "mean": 10.72,
-                "std": 5.933,
+                "mean": 7.58,
+                "std": 10.0,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 157.5,
+                "num": 71
             },
             "outer": {
-                "mean": 0.0,
-                "std": 1.0,
+                "mean": 12.2,
+                "std": 8.802,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 226.3,
+                "num": 5
             }
         },
         "pfCand_gamma_dz": {
             "inner": {
-                "mean": -1.608,
-                "std": 7.7,
+                "mean": -0.4247,
+                "std": 6.273,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 39.53,
+                "num": 71
             },
             "outer": {
-                "mean": 0.0,
-                "std": 1.0,
+                "mean": 4.698,
+                "std": 5.297,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 50.14,
+                "num": 5
             }
         },
         "pfCand_gamma_dz_sig": {
             "inner": {
-                "mean": 3150.0,
-                "std": 1885.0,
+                "mean": 1903.0,
+                "std": 3515.0,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 15970000.0,
+                "num": 71
             },
             "outer": {
-                "mean": 0.0,
-                "std": 1.0,
+                "mean": 3080.0,
+                "std": 4449.0,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 29280000.0,
+                "num": 5
+            }
+        },
+        "pfCand_gamma_time": {
+            "inner": {
+                "mean": -0.01847,
+                "std": 0.1465,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.0218,
+                "num": 71
+            },
+            "outer": {
+                "mean": -0.01482,
+                "std": 0.02964,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.001098,
+                "num": 5
+            }
+        },
+        "pfCand_gamma_time_sig": {
+            "inner": {
+                "mean": 4.263,
+                "std": 6.37,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 58.75,
+                "num": 71
+            },
+            "outer": {
+                "mean": 0.8313,
+                "std": 1.663,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 3.455,
+                "num": 5
             }
         },
         "pfCand_gamma_track_chi2_ndof": {
             "inner": {
-                "mean": 30.71,
-                "std": 29.24,
+                "mean": 18.11,
+                "std": 39.42,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1882.0,
+                "num": 71
             },
             "outer": {
-                "mean": 0.0,
-                "std": 1.0,
+                "mean": 32.8,
+                "std": 38.05,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 2524.0,
+                "num": 5
             }
         },
         "pfCand_gamma_track_ndof": {
             "inner": {
-                "mean": 6.0,
-                "std": 1.69,
+                "mean": 7.873,
+                "std": 1.51,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 64.27,
+                "num": 71
             },
             "outer": {
-                "mean": 0.0,
-                "std": 1.0,
+                "mean": 5.8,
+                "std": 1.6,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 36.2,
+                "num": 5
             }
         }
     },
@@ -1597,21 +2239,27 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "ele_rel_pt": {
             "inner": {
-                "mean": 1.009,
-                "std": 0.8652,
+                "mean": 1.005,
+                "std": 1.014,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 2.039,
+                "num": 272814
             },
             "outer": {
-                "mean": 0.3672,
-                "std": 1.151,
+                "mean": 0.3915,
+                "std": 1.379,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 2.055,
+                "num": 135831
             }
         },
         "ele_deta": {
@@ -1619,13 +2267,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "ele_dphi": {
@@ -1633,13 +2285,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "ele_cc_valid": {
@@ -1647,287 +2303,369 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "ele_cc_ele_rel_energy": {
             "inner": {
-                "mean": 1.22,
-                "std": 0.5596,
+                "mean": 1.219,
+                "std": 0.5406,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.779,
+                "num": 174195
             },
             "outer": {
-                "mean": 0.9458,
-                "std": 1.646,
+                "mean": 0.978,
+                "std": 2.605,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 7.74,
+                "num": 51347
             }
         },
         "ele_cc_gamma_rel_energy": {
             "inner": {
-                "mean": 0.1824,
-                "std": 0.3369,
+                "mean": 0.1747,
+                "std": 0.3296,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.1392,
+                "num": 174195
             },
             "outer": {
-                "mean": 0.5069,
-                "std": 0.6991,
+                "mean": 0.4455,
+                "std": 0.6392,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.607,
+                "num": 51347
             }
         },
         "ele_cc_n_gamma": {
             "inner": {
-                "mean": 2.319,
-                "std": 2.072,
+                "mean": 2.046,
+                "std": 1.92,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 7.87,
+                "num": 174195
             },
             "outer": {
-                "mean": 1.971,
-                "std": 2.214,
+                "mean": 1.803,
+                "std": 2.079,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 7.572,
+                "num": 51347
             }
         },
         "ele_rel_trackMomentumAtVtx": {
             "inner": {
-                "mean": 2.193,
-                "std": 43.5,
+                "mean": 2.11,
+                "std": 20.89,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 441.0,
+                "num": 272814
             },
             "outer": {
-                "mean": 2.049,
-                "std": 5.97,
+                "mean": 2.508,
+                "std": 102.2,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 10450.0,
+                "num": 135831
             }
         },
         "ele_rel_trackMomentumAtCalo": {
             "inner": {
-                "mean": 2.193,
-                "std": 43.5,
+                "mean": 2.11,
+                "std": 20.89,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 441.0,
+                "num": 272814
             },
             "outer": {
-                "mean": 2.05,
-                "std": 5.97,
+                "mean": 2.508,
+                "std": 102.2,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 10450.0,
+                "num": 135831
             }
         },
         "ele_rel_trackMomentumOut": {
             "inner": {
-                "mean": 1.745,
-                "std": 14.73,
+                "mean": 1.784,
+                "std": 23.88,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 573.3,
+                "num": 272814
             },
             "outer": {
-                "mean": 1.379,
-                "std": 17.46,
+                "mean": 1.726,
+                "std": 99.4,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 9883.0,
+                "num": 135831
             }
         },
         "ele_rel_trackMomentumAtEleClus": {
             "inner": {
-                "mean": 1.745,
-                "std": 14.73,
+                "mean": 1.784,
+                "std": 23.88,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 573.3,
+                "num": 272814
             },
             "outer": {
-                "mean": 1.379,
-                "std": 17.46,
+                "mean": 1.726,
+                "std": 99.4,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 9883.0,
+                "num": 135831
             }
         },
         "ele_rel_trackMomentumAtVtxWithConstraint": {
             "inner": {
-                "mean": 2.031,
-                "std": 6.676,
+                "mean": 2.07,
+                "std": 5.072,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 30.01,
+                "num": 272814
             },
             "outer": {
-                "mean": 1.834,
-                "std": 19.76,
+                "mean": 1.957,
+                "std": 41.23,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1704.0,
+                "num": 135831
             }
         },
         "ele_rel_ecalEnergy": {
             "inner": {
-                "mean": 2.435,
-                "std": 1.784,
+                "mean": 2.439,
+                "std": 1.783,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 9.128,
+                "num": 272814
             },
             "outer": {
-                "mean": 2.289,
-                "std": 1.906,
+                "mean": 2.223,
+                "std": 1.889,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 8.512,
+                "num": 135831
             }
         },
         "ele_ecalEnergy_sig": {
             "inner": {
-                "mean": 43.43,
-                "std": 38.28,
+                "mean": 45.29,
+                "std": 39.63,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 3621.0,
+                "num": 272814
             },
             "outer": {
-                "mean": 9.849,
-                "std": 11.16,
+                "mean": 10.34,
+                "std": 12.54,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 264.1,
+                "num": 135831
             }
         },
         "ele_eSuperClusterOverP": {
             "inner": {
-                "mean": 2.095,
-                "std": 3.803,
+                "mean": 2.077,
+                "std": 3.758,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 18.44,
+                "num": 272814
             },
             "outer": {
-                "mean": 2.964,
-                "std": 8.233,
+                "mean": 2.985,
+                "std": 10.94,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 128.7,
+                "num": 135831
             }
         },
         "ele_eSeedClusterOverP": {
             "inner": {
-                "mean": 1.592,
-                "std": 3.098,
+                "mean": 1.602,
+                "std": 3.153,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 12.51,
+                "num": 272814
             },
             "outer": {
-                "mean": 1.475,
-                "std": 5.801,
+                "mean": 1.6,
+                "std": 9.838,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 99.34,
+                "num": 135831
             }
         },
         "ele_eSeedClusterOverPout": {
             "inner": {
-                "mean": 2.2,
-                "std": 4.727,
+                "mean": 2.207,
+                "std": 4.36,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 23.89,
+                "num": 272814
             },
             "outer": {
-                "mean": 1.624,
-                "std": 4.561,
+                "mean": 1.761,
+                "std": 4.864,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 26.76,
+                "num": 135831
             }
         },
         "ele_eEleClusterOverPout": {
             "inner": {
-                "mean": 1.554,
-                "std": 3.356,
+                "mean": 1.535,
+                "std": 2.753,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 9.938,
+                "num": 272814
             },
             "outer": {
-                "mean": 0.9877,
-                "std": 2.441,
+                "mean": 1.041,
+                "std": 2.771,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 8.759,
+                "num": 135831
             }
         },
         "ele_deltaEtaSuperClusterTrackAtVtx": {
             "inner": {
-                "mean": 3.41e-05,
-                "std": 0.01614,
+                "mean": 6.492e-06,
+                "std": 0.01403,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0001969,
+                "num": 272814
             },
             "outer": {
-                "mean": -5.324e-05,
-                "std": 0.03916,
+                "mean": 0.0001027,
+                "std": 0.04308,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.001856,
+                "num": 135831
             }
         },
         "ele_deltaEtaSeedClusterTrackAtCalo": {
             "inner": {
-                "mean": -9.062e-06,
-                "std": 0.01477,
+                "mean": -3.824e-06,
+                "std": 0.01394,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0001942,
+                "num": 272814
             },
             "outer": {
-                "mean": -0.0001487,
-                "std": 0.04679,
+                "mean": -0.0002442,
+                "std": 0.04422,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.001955,
+                "num": 135831
             }
         },
         "ele_deltaEtaEleClusterTrackAtCalo": {
             "inner": {
-                "mean": -3.952e-06,
-                "std": 0.01468,
+                "mean": -5.448e-06,
+                "std": 0.01382,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0001911,
+                "num": 272814
             },
             "outer": {
-                "mean": -0.0002185,
-                "std": 0.0454,
+                "mean": -0.0002209,
+                "std": 0.0429,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.001841,
+                "num": 135831
             }
         },
         "ele_deltaPhiEleClusterTrackAtCalo": {
             "inner": {
-                "mean": 5.606e-05,
-                "std": 0.02358,
+                "mean": 4.593e-05,
+                "std": 0.02341,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0005479,
+                "num": 272814
             },
             "outer": {
-                "mean": -0.0004392,
-                "std": 0.0625,
+                "mean": 5.576e-05,
+                "std": 0.06296,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.003964,
+                "num": 135831
             }
         },
         "ele_deltaPhiSuperClusterTrackAtVtx": {
             "inner": {
-                "mean": 0.0001882,
-                "std": 0.04725,
+                "mean": 9.523e-05,
+                "std": 0.04605,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.002121,
+                "num": 272814
             },
             "outer": {
-                "mean": -0.001107,
-                "std": 0.1348,
+                "mean": -0.0004276,
+                "std": 0.133,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.01768,
+                "num": 135831
             }
         },
         "ele_deltaPhiSeedClusterTrackAtCalo": {
             "inner": {
-                "mean": -1.232e-05,
-                "std": 0.04675,
+                "mean": 4.193e-05,
+                "std": 0.0464,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.002153,
+                "num": 272814
             },
             "outer": {
-                "mean": -0.0007996,
-                "std": 0.1191,
+                "mean": -0.0004178,
+                "std": 0.1179,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0139,
+                "num": 135831
             }
         },
         "ele_mvaInput_earlyBrem": {
@@ -1935,7 +2673,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "ele_mvaInput_lateBrem": {
@@ -1943,105 +2683,135 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "ele_mvaInput_sigmaEtaEta": {
             "inner": {
-                "mean": 0.0002712,
-                "std": 0.001503,
+                "mean": 0.0002632,
+                "std": 0.001201,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.512e-06,
+                "num": 174396
             },
             "outer": {
-                "mean": 0.0002116,
-                "std": 0.001283,
+                "mean": 0.0002244,
+                "std": 0.001352,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1.88e-06,
+                "num": 53614
             }
         },
         "ele_mvaInput_hadEnergy": {
             "inner": {
-                "mean": 2.306,
-                "std": 10.22,
+                "mean": 2.268,
+                "std": 10.6,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 117.6,
+                "num": 174396
             },
             "outer": {
-                "mean": 2.996,
-                "std": 12.96,
+                "mean": 3.137,
+                "std": 13.06,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 180.5,
+                "num": 53614
             }
         },
         "ele_mvaInput_deltaEta": {
             "inner": {
-                "mean": 0.003265,
-                "std": 0.01353,
+                "mean": 0.003118,
+                "std": 0.004481,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 2.98e-05,
+                "num": 174396
             },
             "outer": {
-                "mean": 0.01111,
-                "std": 0.03381,
+                "mean": 0.01031,
+                "std": 0.0315,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.001099,
+                "num": 53614
             }
         },
         "ele_gsfTrack_normalizedChi2": {
             "inner": {
-                "mean": 9.986,
-                "std": 1203.0,
+                "mean": 4.976,
+                "std": 35.88,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1312.0,
+                "num": 272814
             },
             "outer": {
-                "mean": 51.27,
-                "std": 1630.0,
+                "mean": 52.28,
+                "std": 1867.0,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 3490000.0,
+                "num": 135831
             }
         },
         "ele_gsfTrack_numberOfValidHits": {
             "inner": {
-                "mean": 9.789,
-                "std": 1.177,
+                "mean": 9.803,
+                "std": 1.185,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 97.51,
+                "num": 272814
             },
             "outer": {
-                "mean": 8.924,
-                "std": 1.342,
+                "mean": 8.907,
+                "std": 1.421,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 81.35,
+                "num": 135831
             }
         },
         "ele_rel_gsfTrack_pt": {
             "inner": {
-                "mean": 1.273,
-                "std": 24.66,
+                "mean": 1.455,
+                "std": 36.29,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1319.0,
+                "num": 272814
             },
             "outer": {
-                "mean": 1.814,
-                "std": 13.45,
+                "mean": 2.1,
+                "std": 77.27,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 5975.0,
+                "num": 135831
             }
         },
         "ele_gsfTrack_pt_sig": {
             "inner": {
-                "mean": 6.352,
-                "std": 3.156,
+                "mean": 6.346,
+                "std": 3.076,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 49.73,
+                "num": 272814
             },
             "outer": {
-                "mean": 7.045,
-                "std": 7.118,
+                "mean": 7.053,
+                "std": 6.956,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 98.14,
+                "num": 135831
             }
         },
         "ele_has_closestCtfTrack": {
@@ -2049,35 +2819,45 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "ele_closestCtfTrack_normalizedChi2": {
             "inner": {
-                "mean": 1.246,
-                "std": 0.7525,
+                "mean": 1.241,
+                "std": 0.726,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 2.068,
+                "num": 261906
             },
             "outer": {
-                "mean": 1.305,
-                "std": 1.065,
+                "mean": 1.288,
+                "std": 1.081,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 2.828,
+                "num": 80703
             }
         },
         "ele_closestCtfTrack_numberOfValidHits": {
             "inner": {
-                "mean": 15.61,
-                "std": 5.153,
+                "mean": 15.65,
+                "std": 5.13,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 271.2,
+                "num": 261906
             },
             "outer": {
-                "mean": 15.49,
-                "std": 6.702,
+                "mean": 15.6,
+                "std": 6.592,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 286.7,
+                "num": 80703
             }
         }
     },
@@ -2087,21 +2867,27 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_rel_pt": {
             "inner": {
-                "mean": 0.9908,
-                "std": 6.642,
+                "mean": 1.153,
+                "std": 35.54,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 1264.0,
+                "num": 281398
             },
             "outer": {
-                "mean": 0.1119,
-                "std": 1.373,
+                "mean": 0.1419,
+                "std": 5.958,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 35.52,
+                "num": 318842
             }
         },
         "muon_deta": {
@@ -2109,13 +2895,17 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_dphi": {
@@ -2123,41 +2913,53 @@
                 "mean": 0.0,
                 "std": 0.1,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             },
             "outer": {
                 "mean": 0.0,
                 "std": 0.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_dxy": {
             "inner": {
-                "mean": 0.0004143,
-                "std": 0.1763,
+                "mean": -1.624e-05,
+                "std": 0.16,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.02559,
+                "num": 281398
             },
             "outer": {
-                "mean": -0.0002675,
-                "std": 0.1301,
+                "mean": -7.344e-05,
+                "std": 0.1345,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.0181,
+                "num": 318842
             }
         },
         "muon_dxy_sig": {
             "inner": {
-                "mean": 26.25,
-                "std": 117.6,
+                "mean": 21.24,
+                "std": 105.2,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 11520.0,
+                "num": 281398
             },
             "outer": {
-                "mean": 8.294,
-                "std": 52.24,
+                "mean": 7.819,
+                "std": 49.28,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 2489.0,
+                "num": 318842
             }
         },
         "muon_normalizedChi2_valid": {
@@ -2165,35 +2967,45 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_normalizedChi2": {
             "inner": {
-                "mean": 16.11,
-                "std": 319.1,
+                "mean": 15.0,
+                "std": 269.2,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 72670.0,
+                "num": 188723
             },
             "outer": {
-                "mean": 36.46,
-                "std": 245.3,
+                "mean": 35.42,
+                "std": 274.6,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 76650.0,
+                "num": 48289
             }
         },
         "muon_numberOfValidHits": {
             "inner": {
-                "mean": 18.52,
-                "std": 4.69,
+                "mean": 18.63,
+                "std": 4.874,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 370.7,
+                "num": 188723
             },
             "outer": {
-                "mean": 17.64,
-                "std": 5.95,
+                "mean": 17.91,
+                "std": 5.823,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 354.7,
+                "num": 48289
             }
         },
         "muon_segmentCompatibility": {
@@ -2201,7 +3013,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_caloCompatibility": {
@@ -2209,7 +3023,9 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_pfEcalEnergy_valid": {
@@ -2217,21 +3033,27 @@
                 "mean": 0,
                 "std": 1,
                 "lim_min": "-inf",
-                "lim_max": "inf"
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_rel_pfEcalEnergy": {
             "inner": {
-                "mean": 0.05408,
-                "std": 0.2457,
+                "mean": 0.05187,
+                "std": 0.2431,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.06179,
+                "num": 251154
             },
             "outer": {
-                "mean": 0.05484,
-                "std": 0.2395,
+                "mean": 0.05448,
+                "std": 0.2388,
                 "lim_min": -5,
-                "lim_max": 5
+                "lim_max": 5,
+                "sqmean": 0.06001,
+                "num": 293178
             }
         },
         "muon_n_matches_DT_1": {
@@ -2239,7 +3061,9 @@
                 "mean": 1.0,
                 "std": 1.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_matches_DT_2": {
@@ -2247,7 +3071,9 @@
                 "mean": 1.0,
                 "std": 1.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_matches_DT_3": {
@@ -2255,7 +3081,9 @@
                 "mean": 1.0,
                 "std": 1.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_matches_DT_4": {
@@ -2263,7 +3091,9 @@
                 "mean": 1.0,
                 "std": 1.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_matches_CSC_1": {
@@ -2271,7 +3101,9 @@
                 "mean": 3.0,
                 "std": 3.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_matches_CSC_2": {
@@ -2279,7 +3111,9 @@
                 "mean": 1.0,
                 "std": 1.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_matches_CSC_3": {
@@ -2287,7 +3121,9 @@
                 "mean": 1.0,
                 "std": 1.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_matches_CSC_4": {
@@ -2295,7 +3131,9 @@
                 "mean": 1.0,
                 "std": 1.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_matches_RPC_1": {
@@ -2303,7 +3141,9 @@
                 "mean": 3.5,
                 "std": 3.5,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_matches_RPC_2": {
@@ -2311,7 +3151,9 @@
                 "mean": 3.0,
                 "std": 3.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_matches_RPC_3": {
@@ -2319,7 +3161,9 @@
                 "mean": 2.0,
                 "std": 2.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_matches_RPC_4": {
@@ -2327,7 +3171,9 @@
                 "mean": 2.0,
                 "std": 2.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_hits_DT_1": {
@@ -2335,7 +3181,9 @@
                 "mean": 6.0,
                 "std": 6.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_hits_DT_2": {
@@ -2343,7 +3191,9 @@
                 "mean": 6.0,
                 "std": 6.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_hits_DT_3": {
@@ -2351,7 +3201,9 @@
                 "mean": 6.0,
                 "std": 6.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_hits_DT_4": {
@@ -2359,7 +3211,9 @@
                 "mean": 4.0,
                 "std": 4.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_hits_CSC_1": {
@@ -2367,7 +3221,9 @@
                 "mean": 12.0,
                 "std": 12.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_hits_CSC_2": {
@@ -2375,7 +3231,9 @@
                 "mean": 6.0,
                 "std": 6.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_hits_CSC_3": {
@@ -2383,7 +3241,9 @@
                 "mean": 6.0,
                 "std": 6.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_hits_CSC_4": {
@@ -2391,7 +3251,9 @@
                 "mean": 6.0,
                 "std": 6.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_hits_RPC_1": {
@@ -2399,7 +3261,9 @@
                 "mean": 2.0,
                 "std": 2.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_hits_RPC_2": {
@@ -2407,7 +3271,9 @@
                 "mean": 2.0,
                 "std": 2.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_hits_RPC_3": {
@@ -2415,7 +3281,9 @@
                 "mean": 1.0,
                 "std": 1.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         },
         "muon_n_hits_RPC_4": {
@@ -2423,7 +3291,9 @@
                 "mean": 1.0,
                 "std": 1.0,
                 "lim_min": -1.0,
-                "lim_max": 1.0
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
             }
         }
     }

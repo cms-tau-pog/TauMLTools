@@ -80,13 +80,13 @@ namespace detail {
 
     template<typename DataType>
     struct EntryTypeSelector { using PtrEntry = SmartTreePtrEntry<DataType>; };
-    template<typename DataType>
-    struct EntryTypeSelector<std::vector<DataType>> {
-        using PtrEntry = SmartTreeCollectionEntry<std::vector<DataType>>;
+    template<typename DataType, typename Allocator>
+    struct EntryTypeSelector<std::vector<DataType, Allocator>> {
+        using PtrEntry = SmartTreeCollectionEntry<std::vector<DataType, Allocator>>;
     };
-    template<typename KeyType, typename DataType>
-    struct EntryTypeSelector<std::map<KeyType, DataType>> {
-        using PtrEntry = SmartTreeCollectionEntry<std::map<KeyType, DataType>>;
+    template<typename KeyType, typename DataType, typename Allocator>
+    struct EntryTypeSelector<std::map<KeyType, DataType, Allocator>> {
+        using PtrEntry = SmartTreeCollectionEntry<std::map<KeyType, DataType, Allocator>>;
     };
 
     struct BaseDataClass {

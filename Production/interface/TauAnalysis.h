@@ -4,6 +4,8 @@
 #pragma once
 
 #include <Math/VectorUtil.h>
+#include "DataFormats/PatCandidates/interface/Muon.h"
+#include "DataFormats/PatCandidates/interface/Electron.h"
 #include "DataFormats/PatCandidates/interface/Tau.h"
 
 namespace tau_analysis {
@@ -46,5 +48,7 @@ double CalculateDeltaEtaCrack(double eta);
 // Based on https://github.com/cms-sw/cmssw/blob/CMSSW_9_4_X/RecoTauTag/RecoTau/plugins/PATTauDiscriminationByMVAIsolationRun2.cc#L218
 bool CalculateGottfriedJacksonAngleDifference(const pat::Tau& tau, double& gj_diff);
 
+double PFRelIsolation(const pat::Muon& muon);
 
+double PFRelIsolation(const pat::Electron& electron, float rho);
 } // namespace tau_analysis

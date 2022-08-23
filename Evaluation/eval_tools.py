@@ -154,12 +154,20 @@ class Discriminator:
     wp_from: str = None
     wp_column: str = None
     wp_name_to_index: dict = None
-    working_points: list = field(default_factory=list)
-    working_points_thrs: dict = None 
+    wp_thresholds: dict = None 
 
     def __post_init__(self):
         if self.wp_from is None:
-            self.working_points = []
+            self.wp_thresholds = {}
+        else: # create list of WP names from either of provided WP dictionaries
+            if self.wp_name_to_index is not None and self.wp_thresholds is not None:
+                assert set(self.wp_name_to_index.keys()) == set(self.wp_thresholds.keys())
+            if self.wp_name_to_index is not None:
+                self.wp_names = list(self.wp_name_to_index.keys())
+            elif self.wp_thresholds is not None:
+                self.wp_names = list(self.wp_thresholds.keys())
+            else:
+                raise RuntimeError(f"For wp_from={self.wp_from} either wp_name_to_index or wp_thresholds should be specified, but both are None.")
 
     def count_passed(self, df, wp_name):
         if self.wp_from == 'wp_column':
@@ -170,9 +178,9 @@ class Discriminator:
             print("flag: ", flag)
             return np.sum(passed * df.weight.values)
         elif self.wp_from == 'pred_column':
-            if self.working_points_thrs is not None:
+            if len(self.wp_thresholds) > 0:
                 assert self.pred_column in df.columns
-                wp_thr = self.working_points_thrs[wp_name]
+                wp_thr = self.wp_thresholds[wp_name]
                 return np.sum(df[df[self.pred_column] > wp_thr].weight.values)
             else:
                 raise RuntimeError('Working points thresholds are not specified for discriminator "{}"'.format(self.name))
@@ -197,9 +205,9 @@ class Discriminator:
         
         # construct WPs
         if self.wp_from in ['wp_column', 'pred_column']:  
-            if (n_wp:=len(self.working_points)) > 0:
+            if (n_wp:=len(self.wp_names)) > 0:
                 wp_roc = RocCurve(n_wp, self.color, not self.raw, self.raw)
-                for wp_i, wp_name in enumerate(self.working_points):
+                for wp_i, wp_name in enumerate(self.wp_names):
                     for kind in [0, 1]:
                         print('wp: ',wp_name)
                         df_x = df[df['gen_tau'] == kind]
@@ -340,13 +348,13 @@ def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target,
             return basename
         
     # prepare list of files with inputs
-    if path_to_input is not None:
-        path_to_input = os.path.abspath(to_absolute_path(fill_placeholders(path_to_input, {"{sample_alias}": sample_alias})))
-        input_common_suffix = find_common_suffix(glob(path_to_input))
-        input_files = sorted(glob(path_to_input), key=partial(path_splitter, common_suffix=input_common_suffix))
-    else:
-        input_files = []
-
+    # if path_to_input is not None:
+    #     path_to_input = os.path.abspath(to_absolute_path(fill_placeholders(path_to_input, {"{sample_alias}": sample_alias})))
+    #     input_common_suffix = find_common_suffix(glob(path_to_input))
+    #     input_files = sorted(glob(path_to_input), key=partial(path_splitter, common_suffix=input_common_suffix))
+    # else:
+    #     input_files = []
+    
     # prepare list of files with target labels
     if path_to_target is not None:
         path_to_target = os.path.abspath(to_absolute_path(fill_placeholders(path_to_target, {"{sample_alias}": sample_alias})))
@@ -356,24 +364,32 @@ def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target,
             if os.path.exists(json_filemap_name):
                 with open(json_filemap_name, 'r') as json_file:
                     target_input_map = json.load(json_file)
-                    target_common_suffix = find_common_suffix(target_input_map.keys())
-                    target_files, input_files = zip(*sorted(target_input_map.items(), key=lambda item: partial(path_splitter, common_suffix=target_common_suffix)(item[0])))  # sort by values (target files)
+                    # target_common_suffix = find_common_suffix(target_input_map.keys())
+                    # target_files, input_files = zip(*sorted(target_input_map.items(), key=lambda item: partial(path_splitter, common_suffix=target_common_suffix)(item[0])))  # sort by values (target files)
+                    target_files = glob(path_to_target)
+                    input_files = [target_input_map[file] for file in target_files]
             else:
                 raise FileNotFoundError(f'File {json_filemap_name} does not exist. Please make sure that input<->target file mapping is stored in mlflow run artifacts.')
         else: # use paths from cfg 
-            target_common_suffix = find_common_suffix(glob(path_to_target))
-            target_files = sorted(glob(path_to_target), key=partial(path_splitter, common_suffix=target_common_suffix)) 
-            if len(target_files) != len(input_files):
-                raise Exception(f'Number of input files ({len(input_files)}) not equal to number of target files with labels ({len(target_files)})')
+            raise FileNotFoundError(f'Target files are not in the mlflow run artifacts.')
+            # target_common_suffix = find_common_suffix(glob(path_to_target))
+            # target_files = sorted(glob(path_to_target), key=partial(path_splitter, common_suffix=target_common_suffix)) 
+            # if len(target_files) != len(input_files):
+            #     raise Exception(f'Number of input files ({len(input_files)}) not equal to number of target files with labels ({len(target_files)})')
     else: # will assume that target branches "gen_*" are present in input files
-        assert len(input_files)>0
-        target_files = [None]*len(input_files)
+        raise FileNotFoundError(f'Target is not provided. With last modification target is required')
+        # assert len(input_files)>0
+        # target_files = [None]*len(input_files)
 
     # prepare list of files with inputs/predictions
     if path_to_pred is not None:
         path_to_pred = os.path.abspath(to_absolute_path(fill_placeholders(path_to_pred, {"{sample_alias}": sample_alias})))
-        pred_common_suffix = find_common_suffix(glob(path_to_pred))
-        pred_files = sorted(glob(path_to_pred), key=partial(path_splitter, common_suffix=pred_common_suffix))
+        # pred_common_suffix = find_common_suffix(glob(path_to_pred))
+        # pred_files = sorted(glob(path_to_pred), key=partial(path_splitter, common_suffix=pred_common_suffix))
+        if f'artifacts/predictions/{sample_alias}' in path_to_pred and path_to_pred==path_to_target:
+            pred_files = target_files
+        else:
+            raise FileNotFoundError('path to target and prediction should be the same')   
         if len(pred_files) != len(input_files):
             raise Exception(f'Number of input files ({len(input_files)}) not equal to number of prediction files with labels ({len(pred_files)})')
     else: # will assume that predictions are present in input files

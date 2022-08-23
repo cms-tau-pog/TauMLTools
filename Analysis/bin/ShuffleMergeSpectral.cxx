@@ -147,7 +147,11 @@ struct SourceDesc {
         ++total_n_processed;
 
         current_tau_type = boost::none;
-        const auto gen_match = GetGenLeptonMatch((*current_tuple)());
+        const auto gen_match = GetGenLeptonMatch(static_cast<reco_tau::gen_truth::GenLepton::Kind>((*current_tuple)().genLepton_kind), 
+                                                  (*current_tuple)().genLepton_index, (*current_tuple)().tau_pt, (*current_tuple)().tau_eta, 
+                                                  (*current_tuple)().tau_phi, (*current_tuple)().tau_mass, (*current_tuple)().genLepton_vis_pt, 
+                                                  (*current_tuple)().genLepton_vis_eta, (*current_tuple)().genLepton_vis_phi, 
+                                                   (*current_tuple)().genLepton_vis_mass, (*current_tuple)().genJet_index);                                           
         const auto sample_type = static_cast<SampleType>((*current_tuple)().sampleType);
 
         if (!gen_match) continue;
