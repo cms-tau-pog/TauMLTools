@@ -1,0 +1,493 @@
+Setup:
+    n_tau                :  100 # number of candidates in one batch
+    iso_cone             :  0.5
+    n_inner_cells        :  11
+    inner_cell_size      :  0.02
+    n_outer_cells        :  21
+    outer_cell_size      :  0.05
+    n_threads            :  1
+    debug                :  False
+    use_weights          :  True
+
+    # tau_types_names.keys are written in accordance with tauType in the tau tuple
+    tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
+    DeepTauVSjet_cut     : -1.0 
+    recompute_tautype    : True
+    include_mismatched   : False # whether to keep tau candidates with tau_type not present in `tau_types_names`
+    input_dir            : "/eos/cms/store/group/phys_tau/TauML/prod_Phase2_v2/PU140_PU200_ShuffleMerge_Eta3/"
+    input_spectrum       : "/eos/cms/store/group/phys_tau/TauML/prod_Phase2_v2/ShuffleMergeSpectral/PU140_PU200_ShuffleMergeSpectral_SpectrumEta3.root"
+    target_spectrum      : "/eos/cms/store/group/phys_tau/TauML/prod_Phase2_v2/ShuffleMergeSpectral/PU140_PU200_ShuffleMergeSpectral_SpectrumEta3.root"
+    weight_thr           : 100000.0
+    dataloader_core      : "TauMLTools/Training/interface/DataLoader_main.h"
+    rm_inner_from_outer  : False
+    input_type           : "ROOT" # supported 'ROOT' or 'tf'
+    tf_input_dir         : "/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/tf_datasets/emb_21k_99cut" # path to saved tf dataset
+    tf_dataset_x_order   : ["TauFlat", "inner_egamma", "inner_muon", "inner_hadron", "outer_egamma", "outer_muon", "outer_hadron"] # specify order of layers in tf dataset
+    adversarial_dataset  : False # False if not use, ds name if use
+    adv_parameter        : [1, 10] # k1, k2 for gradients in common layers
+    n_adv_tau            : 100 # number of candidates per adversarial batch
+    adv_learning_rate    : 0.01
+    use_previous_opt     : True
+
+    # here define variables for the Histogram_2D class
+    yaxis                : [
+      20. , 25. , 30. , 35. , 40. , 50. , 60. , 70. , 80. , 90. ,
+      100., 110., 120., 130., 140., 150., 175., 200., 250., 300.,
+      350., 400., 1000.
+    ]
+    xaxis_list           : [
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 3.0], #20-25
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 3.0], #25-30
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 3.0], #30-35
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 3.0], #35-40
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.0], #40-50
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.0], #50-60
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.0], #60-70
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.0], #70-80
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.0], #80-90
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.0], #90-100
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.0], #100-110
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.0], #110-120
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.0], #120-130
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.0], #130-140
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.0], #140-150
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.6, 3.0], #150-175
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.6, 3.0], #175-200
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.6, 3.0], #200-250
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.3, 3.0], #250-300
+      [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1.1, 1.4, 1.7, 2.0, 2.3, 3.0], #300-350
+      [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.5, 2.0, 3.0], #350-400
+      [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 2.0, 3.0], #400-1000
+                            ]
+    xmin                 : 0
+    xmax                 : 3.0
+
+SetupNN:
+    model_name           : "DeepTau2018v0"
+    n_batches            : -1
+    n_batches_val        : -1
+    n_batches_log        : 1000 # monitor every n batches in tensorboard
+    epoch                : 0
+    n_epochs             : 10
+    validation_split     : 0.2
+    max_queue_size       : 1
+    n_load_workers       : 1
+    input_grids          : [
+                            [ GridGlobal, PfCand_electron, PfCand_gamma, Electron ], # e-gamma
+                            [ GridGlobal, PfCand_muon, Muon ], # muons
+                            [ GridGlobal, PfCand_chHad, PfCand_nHad ] # hadrons
+                           ]
+    TauLossesSFs         : [0.8, 1.5, 4.0, 1.7]
+    optimizer_name       : "Nadam"
+    learning_rate        : 0.001
+    schedule_decay       : 0.0 # 0.0001 # Using step decay instead of schedule decay
+    step_decay           : 2 # Halve lr every *this* epochs
+    tau_net              : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.4, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
+    comp_net             : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
+    comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "n", "last_layer_width": 64 }
+    conv_2d_net          : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": null, "window_size": 3, "pooling": 0 }
+    dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 200, "last_layer_width": 200, "min_n_layers": 4 }
+    first_layer_reg      : null # eg "L1, reg_fact"
+    active_features      : ['TauFlat', 'GridGlobal', 'PfCand_electron', 'PfCand_muon', 'PfCand_chHad', 'PfCand_nHad', 'PfCand_gamma', 'Electron', 'Muon']
+    cell_locations       : ['inner', 'outer']
+    loss                 : "WPloss2" # should not be specified when using DeepTauModel() class
+    using_new_loss       : True
+    metrics              : ['accuracy', 'TauLosses.tau_crossentropy_v2', 'TauLosses.We', 'TauLosses.Wmu', 'TauLosses.Wjet', 'TauLosses.WPloss', 'TauLosses.WPloss2']
+
+CellObjectType : [
+                 GridGlobal,
+                 PfCand_electron,
+                 PfCand_muon,
+                 PfCand_chHad,
+                 PfCand_nHad,
+                 PfCand_gamma,
+                 Electron,
+                 Muon
+                 ]
+
+Scaling_setup:
+    # --------------------------------------------------------
+    file_path: '/eos/cms/store/group/phys_tau/TauML/prod_Phase2_v2/PU140_PU200_ShuffleMerge_Eta3/ShuffleMergeSpectral*.root' # input files to be used for computation of scaling params
+    output_json_folder: 'output_phase2json' # directory where json files with scaling params will be stored
+    file_range: -1 # range of files in the sorted `file_path` to be processed, right endpoint excluded; -1 to run on all files from file_path
+    tree_name: taus # TTree name in input files to be read
+    log_step: 1 # will make a snapshot of scaling parameters per this number of input files
+    version: 6 # string to be added to a json filename
+
+    # --------------------------------------------------------
+    # aliases for selection cuts
+    selection:
+      - &mpi -3.141592653589793
+      - &pi 3.141592653589793
+      # ----------------------------
+      - &tau_dxy_valid '(tau_dxy > -10) & (tau_dxy_error > 0)'
+      - &tau_dz_sig_valid 'tau_dz_error > 0'
+      - &tau_ip3d_valid '(tau_ip3d > - 10) & (tau_ip3d_error > 0)'
+      - &tau_e_ratio_valid 'tau_e_ratio > 0'
+      - &tau_gj_angle_diff_valid 'tau_gj_angle_diff >= 0'
+      # ----------------------------
+      - &is_pfElectron 'pfCand_particleType == 2'
+      - &is_pfElectron_hasTrackDetails '(pfCand_particleType == 2) & (pfCand_hasTrackDetails == 1)'
+      - &is_pfElectron_hasTrackDetails_track_ndof '(pfCand_particleType == 2) & (pfCand_hasTrackDetails == 1) & (pfCand_track_ndof > 0)'
+      # ----------------------------
+      - &is_pfMuon 'pfCand_particleType == 3'
+      - &is_pfMuon_hasTrackDetails '(pfCand_particleType == 3) & (pfCand_hasTrackDetails == 1)'
+      - &is_pfMuon_hasTrackDetails_track_ndof '(pfCand_particleType == 3) & (pfCand_hasTrackDetails == 1) & (pfCand_track_ndof > 0)'
+      # ----------------------------
+      - &is_pfGamma 'pfCand_particleType == 4'
+      - &is_pfGamma_hasTrackDetails '(pfCand_particleType == 4) & (pfCand_hasTrackDetails == 1)'
+      - &is_pfGamma_hasTrackDetails_track_ndof '(pfCand_particleType == 4) & (pfCand_hasTrackDetails == 1) & (pfCand_track_ndof > 0)'
+      - &is_pfGamma_filternan '(pfCand_particleType == 4) & (pfCand_vertex_z == pfCand_vertex_z)' # Strange NAN in a single event needs filtering
+      # ----------------------------
+      - &is_neutralHadron 'pfCand_particleType == 5'
+      # ----------------------------
+      - &is_chargedHadron 'pfCand_particleType == 1'
+      - &is_chargedHadron_hasTrackDetails '(pfCand_particleType == 1) & (pfCand_hasTrackDetails == 1)'
+      - &is_chargedHadron_hasTrackDetails_track_ndof '(pfCand_particleType == 1) & (pfCand_hasTrackDetails == 1) & (pfCand_track_ndof > 0)'
+      # ----------------------------
+      - &muon_normalizedChi2_valid 'muon_normalizedChi2 >= 0'
+      - &muon_pfEcalEnergy_valid 'muon_pfEcalEnergy >= 0'
+      # ----------------------------
+      - &ele_has_closestCtfTrack 'ele_closestCtfTrack_normalizedChi2 >= 0'
+      - &ele_cc_valid 'ele_cc_ele_energy >= 0'
+      - &ele_mvaInput_valid 'ele_mvaInput_sigmaEtaEta >= -1e38'
+
+    # --------------------------------------------------------
+    # parameters for inner/outer tau cones' definition
+    cone_definition:
+      inner: # parameters for `dR_tau_signal_cone`
+        min_pt: 30.
+        min_radius: 0.05
+        opening_coef: 3.
+      outer:
+        dR: 0.5 # `dR_tau_outer_cone`
+
+    # --------------------------------------------------------
+    # per feature types configuration for cone splitting
+    cone_selection:
+      TauFlat:
+        var_names: # used to derive dR selection query
+          pt: tau_pt
+          eta: tau_eta
+          phi: tau_phi
+        cone_types: [null] # [null] in case of no split into cones (i.e. inclusive computation)
+      # ----------------------------
+      GridGlobal:
+        var_names: # used to derive dR selection query
+          eta: tau_eta
+          phi: tau_phi
+        cone_types: [null] # [null] in case of no split into cones (i.e. inclusive computation)
+      # ----------------------------
+      PfCand_electron:
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [inner, outer] # list of cone types for which to compute scaling params
+      # ----------------------------
+      PfCand_muon:
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [inner, outer]
+      # ----------------------------
+      PfCand_chHad:
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [inner, outer]
+      # ----------------------------
+      PfCand_nHad:
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [inner, outer]
+      # ----------------------------
+      PfCand_gamma:
+        var_names:
+          eta: pfCand_eta
+          phi: pfCand_phi
+        cone_types: [inner, outer]
+      # ----------------------------
+      Electron:
+        var_names:
+          eta: ele_eta
+          phi: ele_phi
+        cone_types: [inner, outer]
+      # ----------------------------
+      Muon:
+        var_names:
+          eta: muon_eta
+          phi: muon_phi
+        cone_types: [inner, outer]
+    # --------------------------------------------------------
+
+##   Map of feature names to a list [selection, aliases, scaling_type, *lim_params] where:
+##     - selection: string, cuts to be applied on-the-fly by uproot when loading data into awkward array
+##     - aliases: dictionary, definitions of variables not present in original file and added on-the-fly by uproot when loading data.
+##     - scaling_type: string, one of ["no scaling", "categorical", "linear", "normal"]
+##     - lim_params: if passed, should be either a list of two numbers or a dictionary. See README for more details.
+Features_all :
+    TauFlat :
+                - rho: [null, null, "linear", 0, 200]
+                - tau_pt: [null, null, "linear", 20, 1000]
+                - tau_eta: [null, null, "linear", -3.0, 3.0]
+                - tau_phi: [null, null, "linear", *mpi, *pi]
+                - tau_mass: [null, null, "normal", -5, 5]
+                - tau_E_over_pt: [null, {"tau_E_over_pt": "sqrt((tau_pt*cosh(tau_eta))*(tau_pt*cosh(tau_eta)) + tau_mass*tau_mass)/tau_pt"}, "normal", -5, 5]
+                - tau_charge: [null, null, "no_scaling"]
+                - tau_n_charged_prongs: [null, {"tau_n_charged_prongs": "tau_decayMode//5 + 1"}, "categorical"]
+                - tau_n_neutral_prongs: [null, {"tau_n_neutral_prongs": "tau_decayMode%5"}, "categorical"]
+                - tau_chargedIsoPtSum: [null, null, "normal", -5, 5]
+                - tau_chargedIsoPtSumdR03_over_dR05: ['tau_chargedIsoPtSum!=0', {"tau_chargedIsoPtSumdR03_over_dR05": "tau_chargedIsoPtSumdR03/tau_chargedIsoPtSum"}, "no_scaling"]
+                - tau_footprintCorrection: [null, null, "normal", -5, 5]
+                - tau_neutralIsoPtSum: [null, null, "normal", -5, 5]
+                - tau_neutralIsoPtSumWeight_over_neutralIsoPtSum: ['tau_neutralIsoPtSum!=0', {"tau_neutralIsoPtSumWeight_over_neutralIsoPtSum": "tau_neutralIsoPtSumWeight/tau_neutralIsoPtSum"}, "no_scaling"]
+                - tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum: ['tau_neutralIsoPtSum!=0', {"tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum": "tau_neutralIsoPtSumWeightdR03/tau_neutralIsoPtSum"}, "no_scaling"]
+                - tau_neutralIsoPtSumdR03_over_dR05: ['tau_neutralIsoPtSum!=0', {"tau_neutralIsoPtSumdR03_over_dR05": "tau_neutralIsoPtSumdR03/tau_neutralIsoPtSum"}, "no_scaling"]
+                - tau_photonPtSumOutsideSignalCone: [null, null, "normal", -5, 5]
+                - tau_puCorrPtSum: [null, null, "normal", -5, 5]
+                - tau_dxy_valid: [null, {"tau_dxy_valid": *tau_dxy_valid}, "no_scaling"]
+                - tau_dxy: [*tau_dxy_valid, null, "normal", -5, 5]
+                - tau_dxy_sig: [*tau_dxy_valid, {"tau_dxy_sig": "abs(tau_dxy)/tau_dxy_error"}, "normal", -5, 5]
+                - tau_ip3d_valid: [null, {"tau_ip3d_valid": *tau_ip3d_valid}, "no_scaling"]
+                - tau_ip3d: [*tau_ip3d_valid, null, "normal", -5, 5]
+                - tau_ip3d_sig: [*tau_ip3d_valid, {"tau_ip3d_sig": "abs(tau_ip3d)/tau_ip3d_error"}, "normal", -5, 5]
+                - tau_dz: [null, null, "normal", -5, 5]
+                - tau_dz_sig_valid: [null, {"tau_dz_sig_valid": *tau_dz_sig_valid}, "no_scaling"]
+                - tau_dz_sig: [*tau_dz_sig_valid, {"tau_dz_sig": "abs(tau_dz)/tau_dz_error"}, "normal", -5, 5]
+                - tau_flightLength_x: [null, null, "normal", -5, 5]
+                - tau_flightLength_y: [null, null, "normal", -5, 5]
+                - tau_flightLength_z: [null, null, "normal", -5, 5]
+                - tau_flightLength_sig: [null, null, "normal", -5, 5]
+                - tau_pt_weighted_deta_strip: [null, null, "linear", 0., 1.]
+                - tau_pt_weighted_dphi_strip: [null, null, "linear", 0., 1.]
+                - tau_pt_weighted_dr_signal: [null, null, "normal", -5, 5]
+                - tau_pt_weighted_dr_iso: [null, null, "linear", 0., 1.]
+                - tau_leadingTrackNormChi2: [null, null, "normal", -5, 5]
+                - tau_e_ratio_valid: [null, {"tau_e_ratio_valid": *tau_e_ratio_valid}, "no_scaling"]
+                - tau_e_ratio: [*tau_e_ratio_valid, null, "linear", 0., 1.]
+                - tau_gj_angle_diff_valid: [null, {"tau_gj_angle_diff_valid": *tau_gj_angle_diff_valid}, "no_scaling"]
+                - tau_gj_angle_diff: [*tau_gj_angle_diff_valid, null, "linear", 0., *pi]
+                - tau_n_photons: [null, null, "normal", -5, 5]
+                - tau_emFraction: [null, null, "linear", -1., 1.]
+                - tau_inside_ecal_crack: [null, null, "no_scaling"]
+                - tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta: [null, {"tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta": "tau_leadChargedCand_etaAtEcalEntrance - tau_eta"}, "normal", -5, 5]
+
+    GridGlobal:
+                - rho: [null, null, "linear", 0, 200]
+                - tau_pt: [null, null, "linear", 20, 1000]
+                - tau_eta: [null, null, "linear", -3.0, 3.0]
+                - tau_inside_ecal_crack: [null, null, "no_scaling"]
+
+    PfCand_electron :
+                - pfCand_ele_valid: [*is_pfElectron, null, "no_scaling"]
+                - pfCand_ele_rel_pt: [*is_pfElectron, {"pfCand_ele_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
+                - pfCand_ele_deta: [*is_pfElectron, {"pfCand_ele_deta": "pfCand_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+                - pfCand_ele_dphi: [*is_pfElectron, {"pfCand_ele_dphi": "pfCand_phi - tau_phi"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
+                - pfCand_ele_pvAssociationQuality: [*is_pfElectron, {"pfCand_ele_pvAssociationQuality": "pfCand_pvAssociationQuality"}, "categorical"]
+                - pfCand_ele_puppiWeight: [*is_pfElectron, {"pfCand_ele_puppiWeight": "pfCand_puppiWeight"}, "no_scaling"]
+                - pfCand_ele_charge: [*is_pfElectron, {"pfCand_ele_charge": "pfCand_charge"}, "no_scaling"]
+                - pfCand_ele_lostInnerHits: [*is_pfElectron, {"pfCand_ele_lostInnerHits": "pfCand_lostInnerHits"}, "categorical"]
+                - pfCand_ele_nPixelHits: [*is_pfElectron, {"pfCand_ele_nPixelHits": "pfCand_nPixelHits"}, "linear", 0, 15]
+                - pfCand_ele_vertex_dx: [*is_pfElectron, {"pfCand_ele_vertex_dx": "pfCand_vertex_x-pv_x"}, "normal", -5, 5]
+                - pfCand_ele_vertex_dy: [*is_pfElectron, {"pfCand_ele_vertex_dy": "pfCand_vertex_y-pv_y"}, "normal", -5, 5]
+                - pfCand_ele_vertex_dz: [*is_pfElectron, {"pfCand_ele_vertex_dz": "pfCand_vertex_z-pv_z"}, "normal", -5, 5]
+                - pfCand_ele_vertex_dt: [*is_pfElectron, {"pfCand_ele_vertex_dt": "pfCand_vertex_t-pv_t"}, "normal", -5, 5]
+                - pfCand_ele_vertex_dx_tauFL: [*is_pfElectron, {"pfCand_ele_vertex_dx_tauFL": "pfCand_vertex_x-pv_x-tau_flightLength_x"}, "normal", -5, 5]
+                - pfCand_ele_vertex_dy_tauFL: [*is_pfElectron, {"pfCand_ele_vertex_dy_tauFL": "pfCand_vertex_y-pv_y-tau_flightLength_y"}, "normal", -5, 5]
+                - pfCand_ele_vertex_dz_tauFL: [*is_pfElectron, {"pfCand_ele_vertex_dz_tauFL": "pfCand_vertex_z-pv_z-tau_flightLength_z"}, "normal", -5, 5]
+                - pfCand_ele_hasTrackDetails: [*is_pfElectron, {"pfCand_ele_hasTrackDetails": "pfCand_hasTrackDetails==1"}, "no_scaling"]
+                - pfCand_ele_dxy: [*is_pfElectron_hasTrackDetails, {"pfCand_ele_dxy": "pfCand_dxy"}, "normal", -5, 5]
+                - pfCand_ele_dxy_sig: [*is_pfElectron_hasTrackDetails, {"pfCand_ele_dxy_sig": "abs(pfCand_dxy)/pfCand_dxy_error"}, "normal", -5, 5]
+                - pfCand_ele_dz: [*is_pfElectron_hasTrackDetails, {"pfCand_ele_dz": "pfCand_dz"}, "normal", -5, 5]
+                - pfCand_ele_dz_sig: [*is_pfElectron_hasTrackDetails, {"pfCand_ele_dz_sig": "abs(pfCand_dz)/pfCand_dz_error"}, "normal", -5, 5]
+                - pfCand_ele_time: [*is_pfElectron_hasTrackDetails, {"pfCand_ele_time": "pfCand_time"}, "normal", -5, 5]
+                - pfCand_ele_time_sig: [*is_pfElectron_hasTrackDetails, {"pfCand_ele_time_sig": "abs(pfCand_time)/pfCand_timeError"}, "normal", -5, 5]
+                - pfCand_ele_track_chi2_ndof: [*is_pfElectron_hasTrackDetails_track_ndof, {"pfCand_ele_track_chi2_ndof": "pfCand_track_chi2/pfCand_track_ndof"}, "normal", -5, 5]
+                - pfCand_ele_track_ndof: [*is_pfElectron_hasTrackDetails_track_ndof, {"pfCand_ele_track_ndof": "pfCand_track_ndof"}, "normal", -5, 5]
+
+    PfCand_muon :
+              - pfCand_muon_valid: [*is_pfMuon, null, "no_scaling"]
+              - pfCand_muon_rel_pt: [*is_pfMuon, {"pfCand_muon_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
+              - pfCand_muon_deta: [*is_pfMuon, {"pfCand_muon_deta": "pfCand_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - pfCand_muon_dphi: [*is_pfMuon, {"pfCand_muon_dphi": "pfCand_phi - tau_phi"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
+              - pfCand_muon_pvAssociationQuality: [*is_pfMuon, {"pfCand_muon_pvAssociationQuality": "pfCand_pvAssociationQuality"}, "categorical"]
+              - pfCand_muon_fromPV: [*is_pfMuon, {"pfCand_muon_fromPV": "pfCand_fromPV"}, "categorical"]
+              - pfCand_muon_puppiWeight: [*is_pfMuon, {"pfCand_muon_puppiWeight": "pfCand_puppiWeight"}, "no_scaling"]
+              - pfCand_muon_charge: [*is_pfMuon, {"pfCand_muon_charge": "pfCand_charge"}, "no_scaling"]
+              - pfCand_muon_lostInnerHits: [*is_pfMuon, {"pfCand_muon_lostInnerHits": "pfCand_lostInnerHits"}, "categorical"]
+              - pfCand_muon_nPixelHits: [*is_pfMuon, {"pfCand_muon_nPixelHits": "pfCand_nPixelHits"}, "linear", 0, 11]
+              - pfCand_muon_vertex_dx: [*is_pfMuon, {"pfCand_muon_vertex_dx": "pfCand_vertex_x-pv_x"}, "normal", -5, 5]
+              - pfCand_muon_vertex_dy: [*is_pfMuon, {"pfCand_muon_vertex_dy": "pfCand_vertex_y-pv_y"}, "normal", -5, 5]
+              - pfCand_muon_vertex_dz: [*is_pfMuon, {"pfCand_muon_vertex_dz": "pfCand_vertex_z-pv_z"}, "normal", -5, 5]
+              - pfCand_muon_vertex_dt: [*is_pfMuon, {"pfCand_muon_vertex_dt": "pfCand_vertex_t-pv_t"}, "normal", -5, 5]
+              - pfCand_muon_vertex_dx_tauFL: [*is_pfMuon, {"pfCand_muon_vertex_dx_tauFL": "pfCand_vertex_x-pv_x-tau_flightLength_x"}, "normal", -5, 5]
+              - pfCand_muon_vertex_dy_tauFL: [*is_pfMuon, {"pfCand_muon_vertex_dy_tauFL": "pfCand_vertex_y-pv_y-tau_flightLength_y"}, "normal", -5, 5]
+              - pfCand_muon_vertex_dz_tauFL: [*is_pfMuon, {"pfCand_muon_vertex_dz_tauFL": "pfCand_vertex_z-pv_z-tau_flightLength_z"}, "normal", -5, 5]
+              - pfCand_muon_hasTrackDetails: [*is_pfMuon, {"pfCand_muon_hasTrackDetails": "pfCand_hasTrackDetails==1"}, "no_scaling"]
+              - pfCand_muon_dxy: [*is_pfMuon_hasTrackDetails, {"pfCand_muon_dxy": "pfCand_dxy"}, "normal", -5, 5]
+              - pfCand_muon_dxy_sig: [*is_pfMuon_hasTrackDetails, {"pfCand_muon_dxy_sig": "abs(pfCand_dxy)/pfCand_dxy_error"}, "normal", -5, 5]
+              - pfCand_muon_dz: [*is_pfMuon_hasTrackDetails, {"pfCand_muon_dz": "pfCand_dz"}, "normal", -5, 5]
+              - pfCand_muon_dz_sig: [*is_pfMuon_hasTrackDetails, {"pfCand_muon_dz_sig": "abs(pfCand_dz)/pfCand_dz_error"}, "normal", -5, 5]
+              - pfCand_muon_time: [*is_pfMuon_hasTrackDetails, {"pfCand_muon_time": "pfCand_time"}, "normal", -5, 5]
+              - pfCand_muon_time_sig: [*is_pfMuon_hasTrackDetails, {"pfCand_muon_time_sig": "abs(pfCand_time)/pfCand_timeError"}, "normal", -5, 5]
+              - pfCand_muon_track_chi2_ndof: [*is_pfMuon_hasTrackDetails_track_ndof, {"pfCand_muon_track_chi2_ndof": "pfCand_track_chi2/pfCand_track_ndof"}, "normal", -5, 5]
+              - pfCand_muon_track_ndof: [*is_pfMuon_hasTrackDetails_track_ndof, {"pfCand_muon_track_ndof": "pfCand_track_ndof"}, "normal", -5, 5]
+
+    PfCand_chHad :
+              - pfCand_chHad_valid: [*is_chargedHadron, null, "no_scaling"]
+              - pfCand_chHad_rel_pt: [*is_chargedHadron, {"pfCand_chHad_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
+              - pfCand_chHad_deta: [*is_chargedHadron, {"pfCand_chHad_deta": "pfCand_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - pfCand_chHad_dphi: [*is_chargedHadron, {"pfCand_chHad_dphi": "pfCand_phi - tau_phi"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
+              - pfCand_chHad_tauLeadChargedHadrCand: [*is_chargedHadron, {"pfCand_chHad_tauLeadChargedHadrCand": "pfCand_tauLeadChargedHadrCand"}, "no_scaling"]
+              - pfCand_chHad_pvAssociationQuality: [*is_chargedHadron, {"pfCand_chHad_pvAssociationQuality": "pfCand_pvAssociationQuality"}, "categorical"]
+              - pfCand_chHad_fromPV: [*is_chargedHadron, {"pfCand_chHad_fromPV": "pfCand_fromPV"}, "categorical"]
+              - pfCand_chHad_puppiWeight: [*is_chargedHadron, {"pfCand_chHad_puppiWeight": "pfCand_puppiWeight"}, "no_scaling"]
+              - pfCand_chHad_puppiWeightNoLep: [*is_chargedHadron, {"pfCand_chHad_puppiWeightNoLep": "pfCand_puppiWeightNoLep"}, "no_scaling"]
+              - pfCand_chHad_charge: [*is_chargedHadron, {"pfCand_chHad_charge": "pfCand_charge"}, "no_scaling"]
+              - pfCand_chHad_lostInnerHits: [*is_chargedHadron, {"pfCand_chHad_lostInnerHits": "pfCand_lostInnerHits"}, "categorical"]
+              - pfCand_chHad_nPixelHits: [*is_chargedHadron, {"pfCand_chHad_nPixelHits": "pfCand_nPixelHits"}, "linear", 0, 12]
+              - pfCand_chHad_vertex_dx: [*is_chargedHadron, {"pfCand_chHad_vertex_dx": "pfCand_vertex_x - pv_x"}, "normal", -5, 5]
+              - pfCand_chHad_vertex_dy: [*is_chargedHadron, {"pfCand_chHad_vertex_dy": "pfCand_vertex_y - pv_y"}, "normal", -5, 5]
+              - pfCand_chHad_vertex_dz: [*is_chargedHadron, {"pfCand_chHad_vertex_dz": "pfCand_vertex_z - pv_z"}, "normal", -5, 5]
+              - pfCand_chHad_vertex_dt: [*is_chargedHadron, {"pfCand_chHad_vertex_dt": "pfCand_vertex_t - pv_t"}, "normal", -5, 5]
+              - pfCand_chHad_vertex_dx_tauFL: [*is_chargedHadron, {"pfCand_chHad_vertex_dx_tauFL": "pfCand_vertex_x - pv_x - tau_flightLength_x"}, "normal", -5, 5]
+              - pfCand_chHad_vertex_dy_tauFL: [*is_chargedHadron, {"pfCand_chHad_vertex_dy_tauFL": "pfCand_vertex_y - pv_y - tau_flightLength_y"}, "normal", -5, 5]
+              - pfCand_chHad_vertex_dz_tauFL: [*is_chargedHadron, {"pfCand_chHad_vertex_dz_tauFL": "pfCand_vertex_z - pv_z - tau_flightLength_z"}, "normal", -5, 5]
+              - pfCand_chHad_hasTrackDetails: [*is_chargedHadron, {"pfCand_chHad_hasTrackDetails": "pfCand_hasTrackDetails==1"}, "no_scaling"]
+              - pfCand_chHad_dxy: [*is_chargedHadron_hasTrackDetails, {"pfCand_chHad_dxy": "pfCand_dxy"}, "normal", -5, 5]
+              - pfCand_chHad_dxy_sig: [*is_chargedHadron_hasTrackDetails, {"pfCand_chHad_dxy_sig": "abs(pfCand_dxy)/pfCand_dxy_error"}, "normal", -5, 5]
+              - pfCand_chHad_dz: [*is_chargedHadron_hasTrackDetails, {"pfCand_chHad_dz": "pfCand_dz"}, "normal", -5, 5]
+              - pfCand_chHad_dz_sig: [*is_chargedHadron_hasTrackDetails, {"pfCand_chHad_dz_sig": "abs(pfCand_dz)/pfCand_dz_error"}, "normal", -5, 5]
+              - pfCand_chHad_time: [*is_chargedHadron_hasTrackDetails, {"pfCand_chHad_time": "pfCand_time"}, "normal", -5, 5]
+              - pfCand_chHad_time_sig: [*is_chargedHadron_hasTrackDetails, {"pfCand_chHad_time_sig": "abs(pfCand_time)/pfCand_timeError"}, "normal", -5, 5]
+              - pfCand_chHad_track_chi2_ndof: [*is_chargedHadron_hasTrackDetails_track_ndof, {"pfCand_chHad_track_chi2_ndof": "pfCand_track_chi2/pfCand_track_ndof"}, "normal", -5, 5]
+              - pfCand_chHad_track_ndof: [*is_chargedHadron_hasTrackDetails_track_ndof, {"pfCand_chHad_track_ndof": "pfCand_track_ndof"}, "normal", -5, 5]
+              - pfCand_chHad_hcalFraction: [*is_chargedHadron, {"pfCand_chHad_hcalFraction": "pfCand_hcalFraction"}, "no_scaling"]
+              - pfCand_chHad_rawCaloFraction: [*is_chargedHadron, {"pfCand_chHad_rawCaloFraction": "pfCand_rawCaloFraction"}, "linear", 0., 2.6]
+
+    PfCand_nHad :
+              - pfCand_nHad_valid: [*is_neutralHadron, null, "no_scaling"]
+              - pfCand_nHad_rel_pt: [*is_neutralHadron, {"pfCand_nHad_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
+              - pfCand_nHad_deta: [*is_neutralHadron, {"pfCand_nHad_deta": "pfCand_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - pfCand_nHad_dphi: [*is_neutralHadron, {"pfCand_nHad_dphi": "pfCand_phi - tau_phi"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
+              - pfCand_nHad_puppiWeight: [*is_neutralHadron, {"pfCand_nHad_puppiWeight": pfCand_puppiWeight}, "no_scaling"]
+              - pfCand_nHad_puppiWeightNoLep: [*is_neutralHadron, {"pfCand_nHad_puppiWeightNoLep": pfCand_puppiWeightNoLep}, "no_scaling"]
+              - pfCand_nHad_hcalFraction: [*is_neutralHadron, {"pfCand_nHad_hcalFraction": "pfCand_hcalFraction"}, "no_scaling"]
+
+    PfCand_gamma :
+              - pfCand_gamma_valid: [*is_pfGamma, null, "no_scaling"]
+              - pfCand_gamma_rel_pt: [*is_pfGamma, {"pfCand_gamma_rel_pt": "pfCand_pt/tau_pt"}, "normal", -5, 5]
+              - pfCand_gamma_deta: [*is_pfGamma, {"pfCand_gamma_deta": "pfCand_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - pfCand_gamma_dphi: [*is_pfGamma, {"pfCand_gamma_dphi": "pfCand_phi - tau_phi"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
+              - pfCand_gamma_pvAssociationQuality: [*is_pfGamma, {"pfCand_gamma_pvAssociationQuality": "pfCand_pvAssociationQuality"}, "categorical"]
+              - pfCand_gamma_fromPV: [*is_pfGamma, {"pfCand_gamma_fromPV": "pfCand_fromPV"}, "categorical"]
+              - pfCand_gamma_puppiWeight: [*is_pfGamma, {"pfCand_gamma_puppiWeight": "pfCand_puppiWeight"}, "no_scaling"]
+              - pfCand_gamma_puppiWeightNoLep: [*is_pfGamma, {"pfCand_gamma_puppiWeightNoLep": "pfCand_puppiWeightNoLep"}, "no_scaling"]
+              - pfCand_gamma_lostInnerHits: [*is_pfGamma, {"pfCand_gamma_lostInnerHits": "pfCand_lostInnerHits"}, "categorical"]
+              - pfCand_gamma_nPixelHits: [*is_pfGamma, {"pfCand_gamma_nPixelHits": "pfCand_nPixelHits"}, "linear", 0, 7]
+              - pfCand_gamma_vertex_dx: [*is_pfGamma, {"pfCand_gamma_vertex_dx": "pfCand_vertex_x - pv_x"}, "normal", -5, 5]
+              - pfCand_gamma_vertex_dy: [*is_pfGamma, {"pfCand_gamma_vertex_dy": "pfCand_vertex_y - pv_y"}, "normal", -5, 5]
+              - pfCand_gamma_vertex_dz: [*is_pfGamma_filternan, {"pfCand_gamma_vertex_dz": "pfCand_vertex_z - pv_z"}, "normal", -5, 5]
+              - pfCand_gamma_vertex_dt: [*is_pfGamma_filternan, {"pfCand_gamma_vertex_dt": "pfCand_vertex_t - pv_t"}, "normal", -5, 5]
+              - pfCand_gamma_vertex_dx_tauFL: [*is_pfGamma, {"pfCand_gamma_vertex_dx_tauFL": "pfCand_vertex_x - pv_x - tau_flightLength_x"}, "normal", -5, 5]
+              - pfCand_gamma_vertex_dy_tauFL: [*is_pfGamma, {"pfCand_gamma_vertex_dy_tauFL": "pfCand_vertex_y - pv_y - tau_flightLength_y"}, "normal", -5, 5]
+              - pfCand_gamma_vertex_dz_tauFL: [*is_pfGamma_filternan, {"pfCand_gamma_vertex_dz_tauFL": "pfCand_vertex_z - pv_z - tau_flightLength_z"}, "normal", -5, 5]
+              - pfCand_gamma_hasTrackDetails: [*is_pfGamma, {"pfCand_gamma_hasTrackDetails": "pfCand_hasTrackDetails==1"}, "no_scaling"]
+              - pfCand_gamma_dxy: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_dxy": "pfCand_dxy"}, "normal", -5, 5]
+              - pfCand_gamma_dxy_sig: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_dxy_sig": "abs(pfCand_dxy)/pfCand_dxy_error"}, "normal", -5, 5]
+              - pfCand_gamma_dz: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_dz": "pfCand_dz"}, "normal", -5, 5]
+              - pfCand_gamma_dz_sig: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_dz_sig": "abs(pfCand_dz)/pfCand_dz_error"}, "normal", -5, 5]
+              - pfCand_gamma_time: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_time": "pfCand_time"}, "normal", -5, 5]
+              - pfCand_gamma_time_sig: [*is_pfGamma_hasTrackDetails, {"pfCand_gamma_time_sig": "abs(pfCand_time)/pfCand_timeError"}, "normal", -5, 5]
+              - pfCand_gamma_track_chi2_ndof: [*is_pfGamma_hasTrackDetails_track_ndof, {"pfCand_gamma_track_chi2_ndof": "pfCand_track_chi2/pfCand_track_ndof"}, "normal", -5, 5]
+              - pfCand_gamma_track_ndof: [*is_pfGamma_hasTrackDetails_track_ndof, {"pfCand_gamma_track_ndof": "pfCand_track_ndof"}, "normal", -5, 5]
+
+    Electron :
+              - ele_valid: [null, null, "no_scaling"]
+              - ele_rel_pt: [null, {"ele_rel_pt": "ele_pt/tau_pt"}, "normal", -5, 5]
+              - ele_deta: [null, {"ele_deta": "ele_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - ele_dphi: [null, {"ele_dphi": "ele_phi - tau_phi"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
+              - ele_cc_valid: [null, {"ele_cc_valid": *ele_cc_valid}, "no_scaling"]
+              - ele_cc_ele_rel_energy: [*ele_cc_valid, {"ele_cc_ele_rel_energy": "ele_cc_ele_energy/ele_pt"}, "normal", -5, 5]
+              - ele_cc_gamma_rel_energy: [*ele_cc_valid, {"ele_cc_gamma_rel_energy": "ele_cc_gamma_energy/ele_cc_ele_energy"}, "normal", -5, 5]
+              - ele_cc_n_gamma: [*ele_cc_valid, null, "normal", -5, 5]
+              - ele_rel_trackMomentumAtVtx: [null, {"ele_rel_trackMomentumAtVtx": "ele_trackMomentumAtVtx/ele_pt"}, "normal", -5, 5]
+              - ele_rel_trackMomentumAtCalo: [null, {"ele_rel_trackMomentumAtCalo": "ele_trackMomentumAtCalo/ele_pt"}, "normal", -5, 5]
+              - ele_rel_trackMomentumOut: [null, {"ele_rel_trackMomentumOut": "ele_trackMomentumOut/ele_pt"}, "normal", -5, 5]
+              - ele_rel_trackMomentumAtEleClus: [null, {"ele_rel_trackMomentumAtEleClus": "ele_trackMomentumAtEleClus/ele_pt"}, "normal", -5, 5]
+              - ele_rel_trackMomentumAtVtxWithConstraint: [null, {"ele_rel_trackMomentumAtVtxWithConstraint": "ele_trackMomentumAtVtxWithConstraint/ele_pt"}, "normal", -5, 5]
+              - ele_rel_ecalEnergy: [null, {"ele_rel_ecalEnergy": "ele_ecalEnergy/ele_pt"}, "normal", -5, 5]
+              - ele_ecalEnergy_sig: [null, {"ele_ecalEnergy_sig": "ele_ecalEnergy/ele_ecalEnergy_error"}, "normal", -5, 5]
+              - ele_eSuperClusterOverP: [null, null, "normal", -5, 5]
+              - ele_eSeedClusterOverP: [null, null, "normal", -5, 5]
+              - ele_eSeedClusterOverPout: [null, null, "normal", -5, 5]
+              - ele_eEleClusterOverPout: [null, null, "normal", -5, 5]
+              - ele_deltaEtaSuperClusterTrackAtVtx: [null, null, "normal", -5, 5]
+              - ele_deltaEtaSeedClusterTrackAtCalo: [null, null, "normal", -5, 5]
+              - ele_deltaEtaEleClusterTrackAtCalo: [null, null, "normal", -5, 5]
+              - ele_deltaPhiEleClusterTrackAtCalo: [null, null, "normal", -5, 5]
+              - ele_deltaPhiSuperClusterTrackAtVtx: [null, null, "normal", -5, 5]
+              - ele_deltaPhiSeedClusterTrackAtCalo: [null, null, "normal", -5, 5]
+              - ele_mvaInput_earlyBrem: [*ele_mvaInput_valid, null, "categorical"]
+              - ele_mvaInput_lateBrem: [*ele_mvaInput_valid, null, "categorical"]
+              - ele_mvaInput_sigmaEtaEta: [*ele_mvaInput_valid, null, "normal", -5, 5]
+              - ele_mvaInput_hadEnergy: [*ele_mvaInput_valid, null, "normal", -5, 5]
+              - ele_mvaInput_deltaEta: [*ele_mvaInput_valid, null, "normal", -5, 5]
+              - ele_gsfTrack_normalizedChi2: [null, null, "normal", -5, 5]
+              - ele_gsfTrack_numberOfValidHits: [null, null, "normal", -5, 5]
+              - ele_rel_gsfTrack_pt: [null, {"ele_rel_gsfTrack_pt": "ele_gsfTrack_pt/ele_pt"}, "normal", -5, 5]
+              - ele_gsfTrack_pt_sig: [null, {"ele_gsfTrack_pt_sig": "ele_gsfTrack_pt/ele_gsfTrack_pt_error"}, "normal", -5, 5]
+              - ele_has_closestCtfTrack: [null, {"ele_has_closestCtfTrack": *ele_has_closestCtfTrack}, "no_scaling"]
+              - ele_closestCtfTrack_normalizedChi2: [*ele_has_closestCtfTrack, null, "normal", -5, 5]
+              - ele_closestCtfTrack_numberOfValidHits: [*ele_has_closestCtfTrack, null, "normal", -5, 5]
+
+    Muon :
+              - muon_valid: [null, null, "no_scaling"]
+              - muon_rel_pt: [null, {"muon_rel_pt": "muon_pt/tau_pt"}, "normal", -5, 5]
+              - muon_deta: [null, {"muon_deta": "muon_eta - tau_eta"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}]
+              - muon_dphi: [null, {"muon_dphi": "muon_phi - tau_phi"}, "linear", {'inner': [-0.1, 0.1], 'outer': [-0.5, 0.5]}] # NB: will not bring dphi values to [-pi,pi] on the fly here
+              - muon_dxy: [null, null, "normal", -5, 5]
+              - muon_dxy_sig: [null, {"muon_dxy_sig": "abs(muon_dxy)/muon_dxy_error"}, "normal", -5, 5]
+              - muon_normalizedChi2_valid: [null, {"muon_normalizedChi2_valid": *muon_normalizedChi2_valid}, "no_scaling"]
+              - muon_normalizedChi2: [*muon_normalizedChi2_valid, null, "normal", -5, 5]
+              - muon_numberOfValidHits: [*muon_normalizedChi2_valid, null, "normal", -5, 5]
+              - muon_segmentCompatibility: [null, null, "no_scaling"]
+              - muon_caloCompatibility: [null, null, "no_scaling"]
+              - muon_pfEcalEnergy_valid: [null, {"muon_pfEcalEnergy_valid": *muon_pfEcalEnergy_valid}, "no_scaling"]
+              - muon_rel_pfEcalEnergy: [*muon_pfEcalEnergy_valid, {"muon_rel_pfEcalEnergy": "muon_pfEcalEnergy/muon_pt"}, "normal", -5, 5]
+              - muon_n_matches_DT_1: [null, null, "linear", 0., 2.]
+              - muon_n_matches_DT_2: [null, null, "linear", 0., 2.]
+              - muon_n_matches_DT_3: [null, null, "linear", 0., 2.]
+              - muon_n_matches_DT_4: [null, null, "linear", 0., 2.]
+              - muon_n_matches_CSC_1: [null, null, "linear", 0., 6.]
+              - muon_n_matches_CSC_2: [null, null, "linear", 0., 2.]
+              - muon_n_matches_CSC_3: [null, null, "linear", 0., 2.]
+              - muon_n_matches_CSC_4: [null, null, "linear", 0., 2.]
+              - muon_n_matches_RPC_1: [null, null, "linear", 0., 7.]
+              - muon_n_matches_RPC_2: [null, null, "linear", 0., 6.]
+              - muon_n_matches_RPC_3: [null, null, "linear", 0., 4.]
+              - muon_n_matches_RPC_4: [null, null, "linear", 0., 4.]
+              - muon_n_hits_DT_1: [null, null, "linear", 0., 12.]
+              - muon_n_hits_DT_2: [null, null, "linear", 0., 12.]
+              - muon_n_hits_DT_3: [null, null, "linear", 0., 12.]
+              - muon_n_hits_DT_4: [null, null, "linear", 0., 8.]
+              - muon_n_hits_CSC_1: [null, null, "linear", 0., 24.]
+              - muon_n_hits_CSC_2: [null, null, "linear", 0., 12.]
+              - muon_n_hits_CSC_3: [null, null, "linear", 0., 12.]
+              - muon_n_hits_CSC_4: [null, null, "linear", 0., 12.]
+              - muon_n_hits_RPC_1: [null, null, "linear", 0., 4.]
+              - muon_n_hits_RPC_2: [null, null, "linear", 0., 4.]
+              - muon_n_hits_RPC_3: [null, null, "linear", 0., 2.]
+              - muon_n_hits_RPC_4: [null, null, "linear", 0., 2.]
+
+Features_disable :
+    TauFlat : ["tau_phi"]
+    GridGlobal : []
+    PfCand_electron : ["pfCand_ele_vertex_dt", "pfCand_ele_time", "pfCand_ele_time_sig"]
+    PfCand_muon : ["pfCand_muon_vertex_dt", "pfCand_muon_time", "pfCand_muon_time_sig"]
+    PfCand_chHad : ["pfCand_chHad_vertex_dt", "pfCand_chHad_time", "pfCand_chHad_time_sig"]
+    PfCand_nHad : [ ]
+    PfCand_gamma : ["pfCand_gamma_vertex_dt", "pfCand_gamma_time", "pfCand_gamma_time_sig"]
+    Electron : [ ]
+    Muon : [ ]

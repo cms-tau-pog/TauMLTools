@@ -12,10 +12,10 @@ from omegaconf import OmegaConf, DictConfig, ListConfig
 
 import eval_tools
 
-@hydra.main(config_path='configs', config_name='run3')
+@hydra.main(config_path='configs/eval', config_name='run3')
 def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(f"file://{to_absolute_path(cfg.path_to_mlflow)}")
-    
+
     # setting paths
     # path_to_weights_taus = to_absolute_path(cfg.path_to_weights_taus) if cfg.path_to_weights_taus is not None else None
     # path_to_weights_vs_type = to_absolute_path(cfg.path_to_weights_vs_type) if cfg.path_to_weights_vs_type is not None else None
@@ -25,6 +25,16 @@ def main(cfg: DictConfig) -> None:
     # init Discriminator() class from filtered input configuration
     field_names = set(f_.name for f_ in fields(eval_tools.Discriminator))
     init_params = {k:v for k,v in cfg.discriminator.items() if k in field_names}
+    if 'wp_thresholds' in init_params:
+        if not (isinstance(init_params['wp_thresholds'], DictConfig) or isinstance(init_params['wp_thresholds'], dict)):
+            if isinstance(init_params['wp_thresholds'], str): # assume that it's the filename to read WPs from
+                with open(f"{path_to_artifacts}/{init_params['wp_thresholds']}", 'r') as f:
+                    wp_thresholds = json.load(f)
+                init_params['wp_thresholds'] = wp_thresholds[cfg['vs_type']] # pass laoded dict with thresholds to Discriminator() class
+            else:
+                raise RuntimeError(f"Expect `wp_thresholds` argument to be either dict-like or str, but got the type: {type(init_params['wp_thresholds'])}")
+    else:
+        wp_thresholds = None
     discriminator = eval_tools.Discriminator(**init_params)
     
     # init PlotSetup() class from filtered input configuration
@@ -56,7 +66,20 @@ def main(cfg: DictConfig) -> None:
     df_all = pd.concat(df_list)
 
     # apply selection
-    if cfg.cuts is not None: df_all = df_all.query(cfg.cuts)
+    if cfg['cuts'] is not None:
+        df_all = df_all.query(cfg.cuts)
+    if cfg['WPs_to_require'] is not None:
+        for wp_vs_type, wp_name in cfg['WPs_to_require'].items():
+            if wp_thresholds is not None:
+                wp_thr = wp_thresholds[wp_vs_type][wp_name]
+            else:
+                if cfg['discriminator']['wp_thresholds_map'] is not None:
+                    wp_thr = cfg['discriminator']['wp_thresholds_map'][wp_vs_type][wp_name]
+                else:
+                    raise RuntimeError('WP thresholds either via wp_thresholds_map or via input json file are not provided.')
+            wp_cut = f"{cfg['discriminator']['pred_column_prefix']}{wp_vs_type} > {wp_thr}"
+            df_all = df_all.query(wp_cut)
+        
 
     # # inverse scaling
     # df_all['tau_pt'] = df_all.tau_pt*(1000 - 20) + 20
@@ -68,8 +91,7 @@ def main(cfg: DictConfig) -> None:
         if json_exists: # read performance data to append additional info 
             performance_data = json.load(json_file)
         else: # create dictionary to fill with data
-            performance_data = {'name': discriminator.name, 'period': cfg.period, 'metrics': defaultdict(list), 
-                                'roc_curve': defaultdict(list), 'roc_wp': defaultdict(list)}
+            performance_data = {'name': discriminator.name, 'period': cfg.period, 'metrics': defaultdict(list)}
 
         # loop over pt bins
         print(f'\n{discriminator.name}')
@@ -92,7 +114,7 @@ def main(cfg: DictConfig) -> None:
                 x_range = lim[1] - lim[0] if lim is not None else 1
                 roc = roc.Prune(tpr_decimals=max(0, round(math.log10(1000 / x_range))))
                 if roc.auc_score is not None:
-                    print(f'[INFO] ROC curve done, AUC = {roc.auc_score}')
+                    print(f'[INFO] ROC curve done, AUC = {roc.auc_score:.6f}')
 
             # loop over [ROC curve, ROC curve WP] for a given discriminator and store its info into dict
             for curve_type, curve in zip(['roc_curve', 'roc_wp'], [roc, wp_roc]):
@@ -129,7 +151,8 @@ def main(cfg: DictConfig) -> None:
                     'dashed': curve.dashed,
                     'marker_size': curve.marker_size
                 }
-                curve_data['plot_setup']['ratio_title'] = 'MVA/DeepTau' if cfg.vs_type != 'mu' else 'cut based/DeepTau'
+                # curve_data['plot_setup']['ratio_title'] = 'MVA/DeepTau' if cfg.vs_type != 'mu' else 'cut based/DeepTau'
+                curve_data['plot_setup']['ratio_title'] = "ratio"
 
                 # plot setup for the curve
                 for lim_name in [ 'x', 'y', 'ratio_y' ]:
@@ -170,6 +193,8 @@ def main(cfg: DictConfig) -> None:
                     curve_data['plot_setup']['dm_text'] = r'DM$ \in {}$'.format(dm_bin)
 
                 # append data for a given curve_type and pt bin
+                if curve_type not in performance_data['metrics']:
+                    performance_data['metrics'][curve_type] = []
                 performance_data['metrics'][curve_type].append(curve_data)
 
         json_file.seek(0) 

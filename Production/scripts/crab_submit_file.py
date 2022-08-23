@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # Submit jobs on CRAB.
 # This file is part of https://github.com/cms-tau-pog/TauTriggerTools.
-
+from __future__ import print_function
 import argparse
 import sys
 import re
-from sets import Set
+set = __import__('sets').Set if sys.version_info.major<3 else set
 
 parser = argparse.ArgumentParser(description='Submit jobs on CRAB.',
                   formatter_class = lambda prog: argparse.HelpFormatter(prog,width=90))
@@ -41,7 +41,8 @@ args = parser.parse_args()
 from CRABClient.UserUtilities import config, ClientException
 from CRABClient.UserUtilities import getUsernameFromCRIC as getUsername
 from CRABAPI.RawCommand import crabCommand
-from httplib import HTTPException
+httplib=__import__('httplib' if sys.version_info.major<3 else 'http.client')
+HTTPException=httplib.HTTPException if sys.version_info.major<3 else httplib.client.HTTPException
 
 config = config()
 
@@ -75,15 +76,15 @@ if len(args.blacklist) != 0:
 if len(args.whitelist) != 0:
 	config.Site.whitelist = re.split(',', args.whitelist)
 
-job_names = Set(filter(lambda s: len(s) != 0, re.split(",", args.jobNames)))
+job_names = set(filter(lambda s: len(s) != 0, re.split(",", args.jobNames)))
 
 from TauMLTools.Production.crab_tools import JobCollection
 try:
     job_collection = JobCollection(args.jobFile, job_names, args.lumiMask, args.jobNameSuffix)
-    print args.jobFile
-    print job_collection
-    print "Splitting: {} with {} units per job".format(args.splitting, args.unitsPerJob)
+    print (args.jobFile)
+    print (job_collection)
+    print ("Splitting: {} with {} units per job".format(args.splitting, args.unitsPerJob))
     job_collection.submit(config, args.splitting, args.unitsPerJob, args.dryrun)
 except RuntimeError as err:
-    print >> sys.stderr, "ERROR:", str(err)
+    print ("ERROR:", str(err), file=sys.stderr)
     sys.exit(1)

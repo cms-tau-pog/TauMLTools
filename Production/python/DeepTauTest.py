@@ -84,4 +84,4 @@ process.p = cms.Path(
 )
 
 if options.dumpPython:
-    print process.dumpPython()
+    print(process.dumpPython())

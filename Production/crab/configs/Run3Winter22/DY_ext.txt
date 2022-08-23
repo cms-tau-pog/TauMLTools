@@ -1,0 +1,3 @@
+sampleType=MC_RUN3_122X
+
+DYJetsToLL_M-50_ext1  /DYJetsToLL_M-50_TuneCP5_13p6TeV-madgraphMLM-pythia8/Run3Winter22MiniAOD-FlatPU0to70_122X_mcRun3_2021_realistic_v9_ext1-v2/MINIAODSIM

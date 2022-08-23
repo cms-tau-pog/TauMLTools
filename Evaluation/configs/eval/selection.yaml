@@ -1,0 +1,13 @@
+# # bitwise computation is not supported by pandas.eval() :(
+# apply_legacy_cuts:
+#   e: "(byIsolationMVArun2017v2DBoldDMwLT2017 & (1 << ${discriminator.wp_name_to_index.VVLoose})) \
+#               and (againstMuon3 & (1 << ${discriminator.wp_name_to_index.Loose})) \
+#               and (tau_decayMode != 5) & (tau_decayMode != 6)"
+#   mu: "(byIsolationMVArun2017v2DBoldDMwLT2017 & (1 << ${discriminator.wp_name_to_index.VVLoose})) \
+#               and (againstElectronMVA6 & (1 << ${discriminator.wp_name_to_index.VLoose})) \
+#               and (tau_decayMode != 5) & (tau_decayMode != 6)"
+#   jet: "(againstElectronMVA6 & (1 << ${discriminator.wp_name_to_index.VLoose})) \
+#               and (againstMuon3 & (1 << ${discriminator.wp_name_to_index.Loose})) \
+#               and (tau_decayMode != 5) & (tau_decayMode != 6)"
+
+apply_dm_cuts: "(tau_decayMode != 5) & (tau_decayMode != 6)"

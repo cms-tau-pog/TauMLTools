@@ -11,7 +11,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from eval_tools import select_curve, create_roc_ratio
 
 class RocCurve:
-    def __init__(self, data, ref_roc=None, WPcurve=True):
+    def __init__(self, data, ref_roc=None, WPcurve=False):
         fpr = np.array(data['false_positive_rate'])
         n_points = len(fpr)
         self.auc_score = data.get('auc_score')
@@ -41,7 +41,11 @@ class RocCurve:
 
         if ref_roc is None:
             ref_roc = self
-        self.ratio = create_roc_ratio(self.pr[1], self.pr[0], ref_roc.pr[1], ref_roc.pr[0], WPcurve)
+
+        if WPcurve:
+            self.ratio = None
+        else:
+            self.ratio = create_roc_ratio(self.pr[1], self.pr[0], ref_roc.pr[1], ref_roc.pr[0], True)
 
     def Draw(self, ax, ax_ratio = None):
         main_plot_adjusted = False
@@ -129,7 +133,7 @@ import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import OmegaConf, DictConfig
 
-@hydra.main(config_path='.', config_name='plot_roc')
+@hydra.main(config_path='configs', config_name='plot_roc')
 def main(cfg: DictConfig) -> None:
     path_to_mlflow = to_absolute_path(cfg.path_to_mlflow)
     mlflow.set_tracking_uri(f"file://{path_to_mlflow}")
@@ -176,7 +180,8 @@ def main(cfg: DictConfig) -> None:
                 if discr_curve is None:
                     print(f'[INFO] Didn\'t manage to retrieve a curve ({curve_type}) for discriminator ({discr_name}) from performance.json. Will proceed without plotting it.')
                     continue
-                elif (discr_name==ref_discr_name and curve_type==ref_curve_type) or ('wp' in curve_type and any('curve' in ctype for ctype in curve_types)): # Temporary: Don't make ratio for 'roc_wp' if there's a ratio for 'roc_curve' already
+                # elif (discr_name==ref_discr_name and curve_type==ref_curve_type) or ('wp' in curve_type and any('curve' in ctype for ctype in curve_types)): # Temporary: Don't make ratio for 'roc_wp' if there's a ratio for 'roc_curve' already
+                elif (discr_name==ref_discr_name and curve_type==ref_curve_type):
                     curves_to_plot.append(RocCurve(discr_curve, ref_roc=None))
                 else:
                     curves_to_plot.append(RocCurve(discr_curve, ref_roc=ref_roc, WPcurve='wp' in curve_type))

@@ -1,0 +1,43 @@
+defaults: # import plotting configuration
+  - wp_eff_var@_global_: ???
+  - _self_
+
+vs_type: jet
+pred_samples: # factorised from create_df() args for partial calls per tau_type
+  tau:
+    GluGluHToTauTau: 
+      filename_pattern: 'eventTuple_1-*_pred.h5' # single files, list of files and "*" are supported 
+      sample_lumi: null
+      reweight_to_lumi: null # null to not reweight
+  jet:
+    TTToSemiLeptonic:
+      filename_pattern: 'eventTuple_1-*_pred.h5'
+      sample_lumi: null
+      reweight_to_lumi: null
+
+
+require_WPs_in_numerator: True # whether to require passing of `WPs_to_require` (all except the one for `vs_type`) in the numerator of the efficiency formula
+require_WPs_in_denominator: False # whether to require passing of `WPs_to_require` (all except the one for `vs_type`) in the denominator of the efficiency formula
+WPs_to_require:
+  e: VVVLoose
+  mu: VLoose
+  jet: VVVLoose
+
+from_skims: False # if False, will run create_df() and log the skims to mlflow artifacts (in `output_skim_folder`), otherwise will read the skims  
+output_skim_folder: wp_eff/data # as /path/within/mlflow/artifacts/, to read/write skim from
+create_df: # dataframe composition
+  _target_: functools.partial # to instantiate a partial create_df() object 
+  _args_: ["${get_method:__main__.create_df}"]
+
+  # path to prediction files
+  path_to_mlflow: ???
+  experiment_id: ???
+  run_id: ???
+  path_to_preds: "${create_df.path_to_mlflow}/${create_df.experiment_id}/${create_df.run_id}/artifacts/predictions/"
+  
+  # paths to input ROOT files will be retrieved from corresponding pred_input_filemap.json
+  input_branches: [ 'tau_pt', 'tau_eta', 'tau_phi', 'tau_dz', 'tau_decayMode' ]
+  input_tree_name: taus
+  selection: '(tau_pt>=20) and (tau_pt<1000) and (abs(tau_eta) < 2.3) and (abs(tau_dz) < 0.2) and not (tau_decayMode in [5,6])'
+
+output_filename: wp_eff/plots/vs_${vs_type}/${var_cfg.var_name}.png # as /path/within/mlflow/artifacts/filename.png

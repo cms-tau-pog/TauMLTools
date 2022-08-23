@@ -520,6 +520,20 @@
                 "lim_max": 5
             }
         },
+        "pfCand_ele_vertex_dt": {
+            "inner": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
         "pfCand_ele_vertex_dx_tauFL": {
             "inner": {
                 "mean": 0.0002385,
@@ -622,6 +636,34 @@
             "outer": {
                 "mean": 169.6,
                 "std": 486.1,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_ele_time": {
+            "inner": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_ele_time_sig": {
+            "inner": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
                 "lim_min": -5,
                 "lim_max": 5
             }
@@ -796,6 +838,20 @@
                 "lim_max": 5
             }
         },
+        "pfCand_muon_vertex_dt": {
+            "inner": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
         "pfCand_muon_vertex_dx_tauFL": {
             "inner": {
                 "mean": 0.0001233,
@@ -898,6 +954,34 @@
             "outer": {
                 "mean": 296.6,
                 "std": 515.9,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_muon_time": {
+            "inner": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_muon_time_sig": {
+            "inner": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
                 "lim_min": -5,
                 "lim_max": 5
             }
@@ -1088,6 +1172,20 @@
                 "lim_max": 5
             }
         },
+        "pfCand_chHad_vertex_dt": {
+            "inner": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
         "pfCand_chHad_vertex_dx_tauFL": {
             "inner": {
                 "mean": 0.003532,
@@ -1190,6 +1288,34 @@
             "outer": {
                 "mean": 323.5,
                 "std": 443.9,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_chHad_time": {
+            "inner": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_chHad_time_sig": {
+            "inner": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
                 "lim_min": -5,
                 "lim_max": 5
             }
@@ -1456,6 +1582,20 @@
                 "lim_max": 5
             }
         },
+        "pfCand_gamma_vertex_dt": {
+            "inner": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
         "pfCand_gamma_vertex_dx_tauFL": {
             "inner": {
                 "mean": 0.0009319,
@@ -1558,6 +1698,34 @@
             "outer": {
                 "mean": 175.0,
                 "std": 546.1,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_gamma_time": {
+            "inner": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            }
+        },
+        "pfCand_gamma_time_sig": {
+            "inner": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
                 "lim_min": -5,
                 "lim_max": 5
             }

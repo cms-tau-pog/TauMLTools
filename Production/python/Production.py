@@ -5,6 +5,7 @@ import importlib
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
 import RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD as tauAtMiniTools
+from RecoMET.METPUSubtraction.deepMETProducer_cfi import deepMETProducer
 import os
 
 
@@ -25,6 +26,10 @@ options.register('dumpPython', False, VarParsing.multiplicity.singleton, VarPars
                  "Dump full config into stdout.")
 options.register('numberOfThreads', 1, VarParsing.multiplicity.singleton, VarParsing.varType.int,
                  "Number of threads.")
+options.register('selector', 'None', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                 "Name of the tauJet selector.")
+options.register('triggers', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                 "Store only events that pass the specified HLT paths.")
 options.register('storeJetsWithoutTau', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Store jets that don't match to any pat::Tau.")
 options.register('requireGenMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
@@ -48,6 +53,7 @@ isEmbedded = sampleConfig.IsEmbedded(options.sampleType)
 isRun2UL = sampleConfig.isRun2UL(options.sampleType)
 isRun2PreUL = sampleConfig.isRun2PreUL(options.sampleType)
 isPhase2 = sampleConfig.isPhase2(options.sampleType)
+isRun3 = sampleConfig.isRun3(options.sampleType)
 period = sampleConfig.GetPeriod(options.sampleType)
 period_cfg = sampleConfig.GetPeriodCfg(options.sampleType)
 
@@ -60,9 +66,36 @@ process.options.numberOfThreads = cms.untracked.uint32(options.numberOfThreads)
 process.options.numberOfStreams = cms.untracked.uint32(0)
 
 process.load('Configuration.StandardSequences.MagneticField_cff')
+
+# TauSpinner
+process.TauSpinnerReco = cms.EDProducer( "TauPOGSpinner",
+                                 isReco = cms.bool(True),
+                                 isTauolaConfigured = cms.bool(False),
+                                 isLHPDFConfigured = cms.bool(False),
+                                 LHAPDFname = cms.untracked.string('NNPDF30_nlo_as_0118'),
+                                 CMSEnergy = cms.double(13000.0),
+                                 gensrc = cms.InputTag('prunedGenParticles')
+                               )
+
+
+process.RandomNumberGeneratorService = cms.Service('RandomNumberGeneratorService',
+                                                   TauSpinnerReco = cms.PSet(
+    initialSeed = cms.untracked.uint32(123456789),
+    engineName = cms.untracked.string('HepJamesRandom')
+    )
+)
+
+# DeepMET
+process.deepMETProducer = deepMETProducer.clone()
+
 # include Phase2 specific configuration only after 11_0_X
 if isPhase2:
     process.load('Configuration.Geometry.GeometryExtended2026D49Reco_cff')
+    process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+    from Configuration.AlCa.GlobalTag import GlobalTag
+    process.GlobalTag = GlobalTag(process.GlobalTag, sampleConfig.GetGlobalTag(options.sampleType), '')
+elif isRun3:
+    process.load('Configuration.Geometry.GeometryRecoDB_cff')
     process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
     from Configuration.AlCa.GlobalTag import GlobalTag
     process.GlobalTag = GlobalTag(process.GlobalTag, sampleConfig.GetGlobalTag(options.sampleType), '')
@@ -114,6 +147,15 @@ if isPhase2:
     )
     tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
+elif isRun3:
+    tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
+    updatedTauName = "slimmedTausNewID"
+    tauIdEmbedder = tauIdConfig.TauIDEmbedder(
+        process, cms, updatedTauName = updatedTauName,
+        toKeep = [ "deepTau2018v2p5" ]
+    )
+    tauIdEmbedder.runTauID()
+    boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 elif isRun2UL:
     #this reruns the ID process...
     #but this shouldn't be necessary for UL
@@ -164,9 +206,11 @@ else:
         getattr(process, updatedBoostedTauName))
     boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
 
-# boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
+ # boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
 if isRun2UL:
     taus_InputTag = cms.InputTag('slimmedTaus')
+elif isRun3:
+    taus_InputTag = cms.InputTag('slimmedTausNewID')
 else:
     taus_InputTag = cms.InputTag('slimmedTausNewID')
 
@@ -179,7 +223,6 @@ if isPhase2:
 else:
     electrons_InputTag = cms.InputTag('slimmedElectrons')
     vtx_InputTag = cms.InputTag('offlineSlimmedPrimaryVertices')
-
 
 tauJetBuilderSetup = cms.PSet(
     genLepton_genJet_dR     = cms.double(0.4),
@@ -212,6 +255,7 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     requireGenORRecoTauMatch = cms.bool(options.requireGenORRecoTauMatch),
     applyRecoPtSieve         = cms.bool(options.applyRecoPtSieve),
     tauJetBuilderSetup       = tauJetBuilderSetup,
+    selector		     = cms.string(options.selector),
 
     lheEventProduct    = cms.InputTag('externalLHEProducer'),
     genEvent           = cms.InputTag('generator'),
@@ -230,24 +274,61 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     lostTracks         = cms.InputTag('lostTracks'),
     genJets            = cms.InputTag('slimmedGenJets'),
     genJetFlavourInfos = cms.InputTag('slimmedGenJetsFlavourInfos'),
+    METs               = cms.InputTag('slimmedMETs'),
+    puppiMETs	       = cms.InputTag('slimmedMETsPuppi'),
+    deepMETs           = cms.InputTag('deepMETProducer', ''),
+    genMETs	       = cms.InputTag('genMetTrue'),
+    triggerResults     = cms.InputTag('TriggerResults', '', 'HLT'),
+    triggerObjects     = cms.InputTag('slimmedPatTrigger'),
+    tauSpinnerWTEven   = cms.InputTag('TauSpinnerReco','TauSpinnerWTEven'),
+    tauSpinnerWTOdd    = cms.InputTag('TauSpinnerReco','TauSpinnerWTOdd'),
+    tauSpinnerWTMM     = cms.InputTag('TauSpinnerReco','TauSpinnerWTMM'),
+
 )
 
 process.tupleProductionSequence = cms.Sequence(process.tauTupleProducer)
 
 if isPhase2:
     process.p = cms.Path(
-        getattr(process, 'rerunMvaIsolationSequence') *
-        getattr(process, updatedTauName) *
+        process.slimmedElectronsMerged +
+        getattr(process, 'rerunMvaIsolationSequence') +
+        getattr(process, updatedTauName) +
         process.tupleProductionSequence
     )
+
 elif isRun2UL:
-    process.p = cms.Path(process.tupleProductionSequence)
+    process.p = cms.Path(
+	process.deepMETProducer +
+        process.TauSpinnerReco +
+        process.tupleProductionSequence
+    )
+
+elif isRun3:
+    process.p = cms.Path(
+        getattr(process, 'rerunMvaIsolationSequence') +
+        getattr(process, updatedTauName) +
+        process.tupleProductionSequence
+    )
 else:
     process.p = cms.Path(
-        getattr(process, updatedTauName + 'rerunMvaIsolationSequence') *
-        getattr(process, updatedTauName) *
+        process.deepMETProducer +
+        process.TauSpinnerReco +
+        getattr(process, updatedTauName + 'rerunMvaIsolationSequence') +
+        getattr(process, updatedTauName) +
+        process.boostedSequence +
         process.tupleProductionSequence
     )
+
+if len(options.triggers) > 0:
+    hlt_paths = options.triggers.split(',')
+    process.hltFilter = cms.EDFilter('TriggerResultsFilter',
+        hltResults = cms.InputTag('TriggerResults', '', 'HLT'),
+        l1tResults = cms.InputTag(''),
+        l1tIgnoreMaskAndPrescale = cms.bool(False),
+        throw = cms.bool(True),
+        triggerConditions = cms.vstring(hlt_paths),
+    )
+    process.p.insert(0, process.hltFilter)
 
 if isPhase2:
     process.p.insert(0, process.slimmedElectronsMerged)
@@ -267,4 +348,4 @@ x = x if x >= 0 else 10000
 process.MessageLogger.cerr.FwkReport.reportEvery = max(1, min(1000, x // 10))
 
 if options.dumpPython:
-    print process.dumpPython()
+    print(process.dumpPython())
