@@ -84,8 +84,10 @@ def runTauID(process, outputTauCollection='slimmedTausNewID', inputTauCollection
             srcFootprintCorrection = 'footprintCorrectiondR03'
             srcPhotonPtSumOutsideSignalCone = 'photonPtSumOutsideSignalConedR03'
         elif isBoosted:
-            srcChargedIsoPtSum = 'chargedIsoPtSumNoOverLap'
-            srcNeutralIsoPtSum = 'neutralIsoPtSumNoOverLap'
+            #srcChargedIsoPtSum = 'chargedIsoPtSumNoOverLap'
+            #srcNeutralIsoPtSum = 'neutralIsoPtSumNoOverLap'
+            srcChargedIsoPtSum = 'chargedIsoPtSum'
+            srcNeutralIsoPtSum = 'neutralIsoPtSum'
             srcFootprintCorrection = 'footprintCorrection'
             srcPhotonPtSumOutsideSignalCone = 'photonPtSumOutsideSignalCone'
         else:

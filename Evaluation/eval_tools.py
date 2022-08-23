@@ -175,6 +175,7 @@ class Discriminator:
             wp = self.wp_name_to_index[wp_name]
             flag = 1 << wp
             passed = (np.bitwise_and(df[self.wp_column], flag) != 0).astype(int)
+            print("flag: ", flag)
             return np.sum(passed * df.weight.values)
         elif self.wp_from == 'pred_column':
             if len(self.wp_thresholds) > 0:
@@ -208,10 +209,13 @@ class Discriminator:
                 wp_roc = RocCurve(n_wp, self.color, not self.raw, self.raw)
                 for wp_i, wp_name in enumerate(self.wp_names):
                     for kind in [0, 1]:
+                        print('wp: ',wp_name)
                         df_x = df[df['gen_tau'] == kind]
                         n_passed = self.count_passed(df_x, wp_name)
                         n_total = np.sum(df_x.weight.values)
                         eff = float(n_passed) / n_total if n_total > 0 else 0.0
+                        print('passed: ',n_passed)
+                        print(eff)
                         wp_roc.pr[kind, n_wp - wp_i - 1] = eff
                         if not self.raw:
                             if sys.version_info.major > 2:

@@ -13,7 +13,8 @@ namespace analysis {
         using GTGenLeptonKind = reco_tau::gen_truth::GenLepton::Kind;
 
         if (genLepton_index >= 0){
-            LorentzVectorM genv(tau_pt, tau_eta, tau_phi, tau_mass);
+	  //LorentzVectorM genv(tau.tau_pt, tau.tau_eta, tau.tau_phi, tau.tau_mass);
+	  LorentzVectorM genv(tau.boostedTau_pt, tau.boostedTau_eta, tau.boostedTau_phi, tau.boostedTau_mass);
             LorentzVectorM tauv(  genLepton_vis_pt  ,
                                 genLepton_vis_eta ,
                                 genLepton_vis_phi ,

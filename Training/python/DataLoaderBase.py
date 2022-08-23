@@ -223,7 +223,7 @@ class GetData():
         X_all = []      
         # Flat Tau features
         if 'TauFlat' in active_features:
-            X_all += [ __class__.getdata(data.x_tau, filled_tau, (batch_size, n_flat_features), debug_area="TauFlat") ]
+            X_all += [ __class__.getdata(data.x_boostedTau, filled_tau, (batch_size, n_flat_features), debug_area="TauFlat") ]
         # Inner grid
         if 'inner' in cell_locations:
             X_all += __class__.getgrid(data.x_grid, filled_tau, batch_size, n_grid_features,

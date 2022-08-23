@@ -191,6 +191,7 @@ public:
         requireGenMatch(cfg.getParameter<bool>("requireGenMatch")),
         requireGenORRecoTauMatch(cfg.getParameter<bool>("requireGenORRecoTauMatch")),
         applyRecoPtSieve(cfg.getParameter<bool>("applyRecoPtSieve")),
+	useBoostedTauFilter(cfg.getParameter<bool>("useBoostedTauFilter")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
         genParticles_token(mayConsume<reco::GenParticleCollection>(cfg.getParameter<edm::InputTag>("genParticles"))),
         genJets_token(mayConsume<reco::GenJetCollection>(cfg.getParameter<edm::InputTag>("genJets"))),
@@ -341,7 +342,7 @@ private:
 
         TauJetBuilder builder(builderSetup, *taus, *boostedTaus, *jets, *fatJets, *cands, *electrons, *muons,
                               *isoTracks, *lostTracks, genParticles, genJets, requireGenMatch,
-                              requireGenORRecoTauMatch, applyRecoPtSieve);
+                              requireGenORRecoTauMatch, applyRecoPtSieve, useBoostedTauFilter);
         const auto [tauJets, tagObj] = selector->Select(event, builder.GetTauJets(), *electrons, *muons,
                                                            METs->at(0), PV, *triggerObjects, *triggerResults, *rho);
         tauTuple().tagObj_valid = tagObj != nullptr;                                                    
@@ -985,7 +986,7 @@ private:
     }
 
 private:
-    const bool isMC, isEmbedded, requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve;
+    const bool isMC, isEmbedded, requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve, useBoostedTauFilter;
     TauJetBuilderSetup builderSetup;
 
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;

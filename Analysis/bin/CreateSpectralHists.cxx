@@ -87,6 +87,7 @@ public:
             std::cout << "file: " << file_name << std::endl;
             auto file = root_ext::OpenRootFile(file_name);
 
+	    /*
             TauTuple input_tauTuple("taus", file.get(), true, {},
                      {"tau_pt", "tau_eta", "sampleType", "genLepton_kind", "tau_index",
                       "genLepton_index", "genJet_index",
@@ -94,6 +95,15 @@ public:
                       "tau_pt", "tau_eta", "tau_phi", "tau_mass", "evt"});
             
             output_txt << file_name << " " << input_tauTuple.GetEntries() << "\n";
+	    */
+	    
+            TauTuple input_tauTuple("taus", file.get(), true, {},
+                     {"boostedTau_pt", "boostedTau_eta", "sampleType", "genLepton_kind", "boostedTau_index",
+                      "genLepton_index", "genJet_index",
+                      "genLepton_vis_pt", "genLepton_vis_eta", "genLepton_vis_phi", "genLepton_vis_mass",
+			 "boostedTau_pt", "boostedTau_eta", "boostedTau_phi", "boostedTau_mass", "evt"});
+	    output_txt << file_name << " " << input_tauTuple.GetEntries() << "\n";
+
 
             for(const Tau& tau : input_tauTuple)
             {
@@ -144,7 +154,7 @@ private:
         if(PassSelection(tau) && gen_match) {
             const auto sample_type = static_cast<SampleType>(tau.sampleType);
             const TauType tau_type = analysis::GenMatchToTauType(*gen_match, sample_type);
-            hists->eta_pt_hist(tau_type).Fill(std::abs(tau.tau_eta), tau.tau_pt);
+            hists->eta_pt_hist(tau_type).Fill(std::abs(tau.boostedTau_eta), tau.boostedTau_pt);
             ttypes[tau_type] = true;
         } else {
             hists->not_valid().Fill(1);
@@ -153,7 +163,7 @@ private:
 
     bool PassSelection(const Tau& tau) const
     {
-      return (tau.tau_index >= 0);
+      return (tau.boostedTau_index >= 0);
     }
 
     double Integral() const

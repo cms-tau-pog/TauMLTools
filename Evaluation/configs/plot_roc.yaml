@@ -1,11 +1,15 @@
 # input
-path_to_mlflow: ???
-experiment_id: ???
+path_to_mlflow: ../Training/python/2018v1/mlruns/
+experiment_id: 2
 discriminators: # in the format -> run_id: ['curve_type_1', 'curve_type_2', ...]
-  ???: ['roc_curve', 'roc_wp']
-  ???: ['roc_wp']
+  #???: ['roc_curve', 'roc_wp']
+  #???: ['roc_wp']
+  #04fedb1b3f8748c781c2ab91bb045516: ['roc_curve']
+  #48c753ec976f4454b24dac27f38bb3ed: ['roc_wp']
+  513e6e23a85a476d8cd9c27e3e5a5f34: ['roc_curve']
 reference: 
-  ???: 'roc_curve'
+  #04fedb1b3f8748c781c2ab91bb045516: 'roc_curve'
+  513e6e23a85a476d8cd9c27e3e5a5f34: 'roc_curve'
 
 # region
 vs_type: ??? # jet/e/mu/tau

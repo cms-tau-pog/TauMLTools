@@ -19,7 +19,7 @@ eta_bins: [[0, 2.5]]
 dm_bins: [[0, 1, 2, 10, 11]]
 
 # selection
-input_branches: [ 'tau_pt', 'tau_eta', 'tau_decayMode' ] # add here branches with targets/prediction if necessary
+input_branches: [ 'boostedTau_pt', 'boostedTau_eta', 'boostedTau_decayMode' ] # add here branches with targets/prediction if necessary
 cuts: ${apply_dm_cuts}
 WPs_to_require: null # null to not apply WP as selection
 # WPs_to_require: ### example for vs. jet
@@ -28,8 +28,8 @@ WPs_to_require: null # null to not apply WP as selection
 
 # inputs/paths
 input_samples: # "sample_alias": [list of strings with tau types to be selected]
-  ???: ['tau']
-  ???: ["${vs_type}"]
+  TTJets_Even: ['tau']
+  TTJets_JetsSource_Even: ["${vs_type}"]
 path_to_input: null
 path_to_pred: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/{sample_alias}/*_pred.h5'
 path_to_target: '${path_to_mlflow}/${experiment_id}/${run_id}/artifacts/predictions/{sample_alias}/*_pred.h5'

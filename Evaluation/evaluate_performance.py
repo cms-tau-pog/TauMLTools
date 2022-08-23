@@ -99,7 +99,7 @@ def main(cfg: DictConfig) -> None:
          for eta_index, (eta_min, eta_max) in enumerate(cfg.eta_bins):
           for pt_index, (pt_min, pt_max) in enumerate(cfg.pt_bins):
             # apply pt/eta/dm bin selection
-            df_cut = df_all.query(f'tau_pt >= {pt_min} and tau_pt < {pt_max} and abs(tau_eta) >= {eta_min} and abs(tau_eta) < {eta_max} and tau_decayMode in {dm_bin}')
+            df_cut = df_all.query(f'boostedTau_pt >= {pt_min} and boostedTau_pt < {pt_max} and abs(boostedTau_eta) >= {eta_min} and abs(boostedTau_eta) < {eta_max} and boostedTau_decayMode in {dm_bin}')
             if df_cut.shape[0] == 0:
                 print("Warning: bin with pt ({}, {}) and eta ({}, {}) and DMs {} is empty.".format(pt_min, pt_max, eta_min, eta_max, dm_bin))
                 continue
