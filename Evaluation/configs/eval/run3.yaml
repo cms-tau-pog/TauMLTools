@@ -17,8 +17,8 @@ eta_bins: [[0, 2.5]]
 dm_bins: [[0, 1, 2, 10, 11]]
 
 # selection
-input_branches: [ 'tau_pt', 'tau_eta', 'tau_decayMode' ] # add here branches with targets/prediction if necessary
-cuts: ${apply_dm_cuts}
+input_branches: [ 'tau_pt', 'tau_eta', 'tau_decayMode' , 'tau_dz'] # add here WP branches if necessary 
+cuts: "(${apply_dm_cuts}) and (abs(tau_dz) < 0.2)" 
 WPs_to_require: null # null to not apply WP as selection
 # WPs_to_require: ### example for vs. jet
 #   e: VVVLoose
