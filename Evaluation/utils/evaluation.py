@@ -1,23 +1,19 @@
 import numpy as np
 import pandas as pd
 import uproot
-import math
 import copy
 from sklearn import metrics
 from scipy import interpolate
+from statsmodels.stats.proportion import proportion_confint
 from _ctypes import PyObj_FromPtr
 import os
 import h5py
 import json
 import re
-import sys
 from glob import glob
 from dataclasses import dataclass
 from hydra.utils import to_absolute_path
 from functools import partial
-
-if sys.version_info.major > 2:
-    from statsmodels.stats.proportion import proportion_confint
 
 @dataclass
 class RocCurve:
@@ -55,6 +51,7 @@ class RocCurve:
             self.dots_only = cfg['plot_cfg'].get('dots_only', False)
             self.dashed = cfg['plot_cfg'].get('dashed', False)
             self.marker_size = cfg['plot_cfg'].get('marker_size', 5)
+            self.with_errors = cfg['plot_cfg'].get('with_errors', True)
 
         if create_ratio:
             if ref_roc is None:
@@ -63,7 +60,6 @@ class RocCurve:
         else:
             self.ratio = None
             
-
     def prune(self, tpr_decimals=3):
         pruned = copy.deepcopy(self)
         rounded_tpr = np.round(self.pr[1, :], decimals=tpr_decimals)
@@ -82,7 +78,7 @@ class RocCurve:
 
     def draw(self, ax, ax_ratio = None):
         main_plot_adjusted = False
-        if self.pr_err is not None:
+        if self.pr_err is not None and self.with_errors:
             x = self.pr[1]
             y = self.pr[0]
             entry = ax.errorbar(x, y, xerr=self.pr_err[1], yerr=self.pr_err[0], color=self.color, alpha=self.alpha,
@@ -101,7 +97,7 @@ class RocCurve:
                     main_plot_adjusted = True
                 entry = ax.errorbar(x, y, color=self.color, alpha=self.alpha, fmt=fmt)
         if self.ratio is not None and ax_ratio is not None:
-            if self.pr_err is not None:
+            if self.pr_err is not None and self.with_errors:
                 x = self.ratio[1]
                 y = self.ratio[0]
                 ax_ratio.errorbar(x, y, color=self.color, alpha=self.alpha, fmt='o', markersize='5', linewidth=1)
@@ -145,6 +141,8 @@ class RocCurve:
             ratio[0, :] = y1_upd_clean / y2_clean
             ratio[1, :] = x2_clean
         return ratio
+
+### ----------------------------------------------------------------------------------------------------------------------  
 
 @dataclass
 class PlotSetup:
@@ -235,6 +233,7 @@ class PlotSetup:
         ax.text(0.73, header_y, period, fontsize=13, transform=ax.transAxes, fontweight='bold',
                 fontfamily='sans-serif')
 
+### ----------------------------------------------------------------------------------------------------------------------  
 
 @dataclass
 class Discriminator:
@@ -310,19 +309,18 @@ class Discriminator:
                 }
                 for wp_i, wp_name in enumerate(self.wp_names):
                     for kind, pr_name in zip([0, 1], ['false_positive_rate', 'true_positive_rate']):
+                        # central values
                         df_x = df[df['gen_tau'] == kind]
                         n_passed = self.count_passed(df_x, wp_name)
                         n_total = np.sum(df_x.weight.values)
                         eff = float(n_passed) / n_total if n_total > 0 else 0.0
                         wp_roc_cfg[pr_name][n_wp - wp_i - 1] = eff
-                        if not self.raw:
-                            if sys.version_info.major > 2:
-                                ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
-                            else:
-                                err = math.sqrt(eff * (1 - eff) / n_total)
-                                ci_low, ci_upp = eff - err, eff + err
-                            wp_roc_cfg[f'{pr_name}_down'][n_wp - wp_i - 1] = ci_upp - eff
-                            wp_roc_cfg[f'{pr_name}_up'][n_wp - wp_i - 1] = eff - ci_low
+                        
+                        # up/down variations
+                        ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
+                        wp_roc_cfg[f'{pr_name}_down'][n_wp - wp_i - 1] = ci_upp - eff
+                        wp_roc_cfg[f'{pr_name}_up'][n_wp - wp_i - 1] = eff - ci_low
+                        
                 wp_roc.fill(wp_roc_cfg, create_ratio=False, ref_roc=None)
             else:
                 raise RuntimeError('No working points specified')
@@ -475,6 +473,8 @@ def fill_placeholders(string, placeholder_to_value):
     for placeholder, value in placeholder_to_value.items():
         string = string.replace(placeholder, str(value))
     return string
+
+### ----------------------------------------------------------------------------------------------------------------------  
 
 class FloatList(object):
     def __init__(self, value):

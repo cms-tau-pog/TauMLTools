@@ -14,6 +14,7 @@ discriminators: # in the format run_id -> cfg
       dashed: false
       alpha: 1.
       dots_only: false # if true, possible also to specify `marker_size` here
+      with_errors: true # plot error bars for each of `curve_types`
   ???: # DeepTau v2.5
     name: "DeepTau (v2.5)"
     curve_types: ['roc_curve', 'roc_wp'] 
@@ -22,6 +23,7 @@ discriminators: # in the format run_id -> cfg
       dashed: false
       alpha: 1.
       dots_only: false
+      with_errors: true
 reference:  # should be present in `discriminators`
   ???: 'roc_curve'
 
