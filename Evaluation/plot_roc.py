@@ -74,8 +74,7 @@ def main(cfg: DictConfig) -> None:
                     discr_curve['plot_cfg'] = discr_cfg['plot_cfg']
                     if 'wp' in curve_type:
                         discr_curve['plot_cfg']['dots_only'] = True
-                    # elif (discr_run_id==ref_discr_run_id and curve_type==ref_curve_type) or ('wp' in curve_type and any('curve' in ctype for ctype in discr_cfg["curve_types"])): # Temporary: Don't make ratio for 'roc_wp' if there's a ratio for 'roc_curve' already
-
+                    
                     roc = RocCurve()
                     if (discr_run_id==ref_discr_run_id and curve_type==ref_curve_type):
                         roc.fill(discr_curve, create_ratio=True, ref_roc=None)

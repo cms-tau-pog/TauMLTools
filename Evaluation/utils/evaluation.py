@@ -115,8 +115,8 @@ class RocCurve:
         return entry
 
     @staticmethod
-    def create_roc_ratio(x1, y1, x2, y2, wp):
-        if not wp:
+    def create_roc_ratio(x1, y1, x2, y2, wp): # wp -> if ratio curve (x2,y2) is a WP
+        if not wp: # compute ratio for interpolation of both curves over their common and joint domain
             sp1 = interpolate.interp1d(x1, y1)
             sp2 = interpolate.interp1d(x2, y2)
             x_comb = np.unique(np.sort(np.concatenate((x1, x2))))
@@ -129,7 +129,7 @@ class RocCurve:
             ratio = np.empty((2, x_clean.shape[0]))
             ratio[0, :] = y1_upd_clean / y2_upd_clean
             ratio[1, :] = x_clean
-        else:   
+        else: # compute ratio for interpolation of probed curve only over common domain points with ratio curve
             sp = interpolate.interp1d(x1, y1)
             x2_sub = x2[np.all([ x2 >= max(x1[0], x2[0]) , x2 <= min(x1[-1], x2[-1]) ], axis=0)]
             y2_sub = y2[np.all([ x2 >= max(x1[0], x2[0]) , x2 <= min(x1[-1], x2[-1]) ], axis=0)]
