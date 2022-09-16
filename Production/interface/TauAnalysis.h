@@ -6,6 +6,7 @@
 #include <Math/VectorUtil.h>
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/PatCandidates/interface/Electron.h"
+#include "DataFormats/PatCandidates/interface/Photon.h"
 #include "DataFormats/PatCandidates/interface/Tau.h"
 
 namespace tau_analysis {

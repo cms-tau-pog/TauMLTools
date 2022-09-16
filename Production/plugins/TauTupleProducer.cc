@@ -10,6 +10,7 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 
 #include "DataFormats/PatCandidates/interface/Electron.h"
+#include "DataFormats/PatCandidates/interface/Photon.h"
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/PatCandidates/interface/Tau.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
@@ -95,6 +96,37 @@ namespace tau_analysis {
         static float full5x5_hcalDepth1OverEcalBc(const Elec* ele) { return ele->full5x5_hcalDepth1OverEcalBc(); }
         static float full5x5_hcalDepth2OverEcalBc(const Elec* ele) { return ele->full5x5_hcalDepth2OverEcalBc(); }
     };
+
+    template<typename Gamma, int cmssw_version>
+    struct GetGammaVer;
+
+    //CMSSW 10 --> 12
+    //hcalOverEcal()   -->  hadronicOverEm()
+    //hcalOverEcalBc() -->  hadTowOverEm()
+    template<typename Gamma>
+    struct GetGammaVer<Gamma, 12> {
+        static float hcalDepth1OverEcal(const Gamma* photon) { return photon->hadronicOverEm(1); }
+        static float hcalDepth2OverEcal(const Gamma* photon) { return photon->hadronicOverEm(2); }
+        static float hcalDepth1OverEcalBc(const Gamma* photon) { return photon->hadTowOverEm(1); }
+        static float hcalDepth2OverEcalBc(const Gamma* photon) { return photon->hadTowOverEm(2); }
+        static float full5x5_hcalDepth1OverEcal(const Gamma* photon) { return photon->full5x5_hadronicOverEm(1); }
+        static float full5x5_hcalDepth2OverEcal(const Gamma* photon) { return photon->full5x5_hadronicOverEm(2); }
+        static float full5x5_hcalDepth1OverEcalBc(const Gamma* photon) { return photon->full5x5_hadTowOverEm(1); }
+        static float full5x5_hcalDepth2OverEcalBc(const Gamma* photon) { return photon->full5x5_hadTowOverEm(2); }
+    };
+
+    template<typename Gamma>
+    struct GetGammaVer<Gamma, 10> {
+        static float hcalDepth1OverEcal(const Gamma* photon) { return photon->hadronicDepth1OverEm(); }
+        static float hcalDepth2OverEcal(const Gamma* photon) { return photon->hadronicDepth2OverEm(); }
+        static float hcalDepth1OverEcalBc(const Gamma* photon) { return photon->hadTowDepth1OverEm(); }
+        static float hcalDepth2OverEcalBc(const Gamma* photon) { return photon->hadTowDepth2OverEm(); }
+        static float full5x5_hcalDepth1OverEcal(const Gamma* photon) { return -999.; }
+        static float full5x5_hcalDepth2OverEcal(const Gamma* photon) { return -999.; }
+        static float full5x5_hcalDepth1OverEcalBc(const Gamma* photon) { return -999.; }
+        static float full5x5_hcalDepth2OverEcalBc(const Gamma* photon) { return -999.; }
+    };
+
 
 
 struct TauTupleProducerData {
@@ -197,6 +229,7 @@ public:
         vertices_token(consumes<std::vector<reco::Vertex> >(cfg.getParameter<edm::InputTag>("vertices"))),
         rho_token(consumes<double>(cfg.getParameter<edm::InputTag>("rho"))),
         electrons_token(consumes<pat::ElectronCollection>(cfg.getParameter<edm::InputTag>("electrons"))),
+        photons_token(consumes<pat::PhotonCollection>(cfg.getParameter<edm::InputTag>("photons"))),
         muons_token(consumes<pat::MuonCollection>(cfg.getParameter<edm::InputTag>("muons"))),
         taus_token(consumes<pat::TauCollection>(cfg.getParameter<edm::InputTag>("taus"))),
         boostedTaus_token(consumes<pat::TauCollection>(cfg.getParameter<edm::InputTag>("boostedTaus"))),
@@ -296,6 +329,7 @@ private:
         tauTuple().pv_ndof = static_cast<float>(PV.ndof());
 
         auto electrons = getHandle(event, electrons_token);
+        auto photons = getHandle(event, photons_token);
         auto muons = getHandle(event, muons_token);
         auto taus = getHandle(event, taus_token);
         auto boostedTaus = getHandle(event, boostedTaus_token);
@@ -336,10 +370,10 @@ private:
         tauTuple().tauSpinnerWTOdd = (*tauSpinnerWTOdd);
         tauTuple().tauSpinnerWTMM = (*tauSpinnerWTMM);
 
-        TauJetBuilder builder(builderSetup, *taus, *boostedTaus, *jets, *fatJets, *cands, *electrons, *muons,
+        TauJetBuilder builder(builderSetup, *taus, *boostedTaus, *jets, *fatJets, *cands, *electrons, *photons, *muons,
                               *isoTracks, *lostTracks, genParticles, genJets, requireGenMatch,
                               requireGenORRecoTauMatch, applyRecoPtSieve);
-        const auto [tauJets, tagObj] = selector->Select(event, builder.GetTauJets(), *electrons, *muons,
+        const auto [tauJets, tagObj] = selector->Select(event, builder.GetTauJets(), *electrons, *photons, *muons,
                                                            METs->at(0), PV, *triggerObjects, *triggerResults, *rho);
         tauTuple().tagObj_valid = tagObj != nullptr;                                                    
         tauTuple().tagObj_pt = tagObj ? tagObj->p4.pt() : default_value;
@@ -369,6 +403,7 @@ private:
             FillPFCandidates(tauJet.cands, "pfCand_");
             FillPFCandidates(tauJet.lostTracks, "lostTrack_");
             FillElectrons(tauJet.electrons);
+            FillPhotons(tauJet.photons);
             FillMuons(tauJet.muons, PV);
             FillIsoTracks(tauJet.isoTracks);
 
@@ -841,6 +876,51 @@ private:
         }
     }
 
+    void FillPhotons(const TauJet::PhotonCollection& photons)
+    {
+        for(const auto& photon_ptr : photons) {
+            const pat::Photon* photon = photon_ptr.obj;
+            tauTuple().photon_index.push_back(photon_ptr.index);
+            tauTuple().photon_pt.push_back(static_cast<float>(photon->polarP4().pt()));
+            tauTuple().photon_eta.push_back(static_cast<float>(photon->polarP4().eta()));
+            tauTuple().photon_phi.push_back(static_cast<float>(photon->polarP4().phi()));
+            tauTuple().photon_energy.push_back(static_cast<float>(photon->polarP4().energy()));
+
+            const bool isHGCAL = photon->hasUserFloat("hgcPhotonID:sigmaUU");
+            const bool hasShapeVars = !isHGCAL && photon->polarP4().pt() > 5;
+
+            tauTuple().photon_sigmaEtaEta.push_back(hasShapeVars ? photon->sigmaEtaEta() : default_value);
+            tauTuple().photon_sigmaIetaIeta.push_back(hasShapeVars ? photon->sigmaIetaIeta() : default_value);
+            tauTuple().photon_e1x5.push_back(hasShapeVars ? photon->e1x5() : default_value);
+            tauTuple().photon_e2x5.push_back(hasShapeVars ? photon->e2x5() : default_value);
+            tauTuple().photon_e3x3.push_back(hasShapeVars ? photon->e3x3() : default_value);
+            tauTuple().photon_e5x5.push_back(hasShapeVars ? photon->e5x5() : default_value);
+            tauTuple().photon_r1x5.push_back(hasShapeVars ? photon->r1x5() : default_value);
+            tauTuple().photon_r2x5.push_back(hasShapeVars ? photon->r2x5() : default_value);
+            tauTuple().photon_r9.push_back(hasShapeVars ? photon->r9() : default_value);
+            tauTuple().photon_maxEnergyXtal.push_back(hasShapeVars ? photon->maxEnergyXtal() : default_value);
+            tauTuple().photon_hcalDepth1OverEcal.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::hcalDepth1OverEcal(photon) : default_value);
+            tauTuple().photon_hcalDepth2OverEcal.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::hcalDepth2OverEcal(photon) : default_value);
+            tauTuple().photon_hcalDepth1OverEcalBc.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::hcalDepth1OverEcalBc(photon) : default_value);
+            tauTuple().photon_hcalDepth2OverEcalBc.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::hcalDepth2OverEcalBc(photon) : default_value);
+
+            tauTuple().photon_full5x5_sigmaEtaEta.push_back(hasShapeVars ? photon->full5x5_sigmaEtaEta() : default_value);
+            tauTuple().photon_full5x5_sigmaIetaIeta.push_back(hasShapeVars ? photon->full5x5_sigmaIetaIeta() : default_value);
+            tauTuple().photon_full5x5_e1x5.push_back(hasShapeVars ? photon->full5x5_e1x5() : default_value);
+            tauTuple().photon_full5x5_e2x5.push_back(hasShapeVars ? photon->full5x5_e2x5() : default_value);
+            tauTuple().photon_full5x5_e3x3.push_back(hasShapeVars ? photon->full5x5_e3x3() : default_value);
+            tauTuple().photon_full5x5_e5x5.push_back(hasShapeVars ? photon->full5x5_e5x5() : default_value);
+            tauTuple().photon_full5x5_r1x5.push_back(hasShapeVars ? photon->full5x5_r1x5() : default_value);
+            tauTuple().photon_full5x5_r2x5.push_back(hasShapeVars ? photon->full5x5_r2x5() : default_value);
+            tauTuple().photon_full5x5_r9.push_back(hasShapeVars ? photon->full5x5_r9() : default_value);
+            tauTuple().photon_full5x5_maxEnergyXtal.push_back(hasShapeVars ? photon->full5x5_maxEnergyXtal() : default_value);
+            tauTuple().photon_full5x5_hcalDepth1OverEcal.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::full5x5_hcalDepth1OverEcal(photon) : default_value);
+            tauTuple().photon_full5x5_hcalDepth2OverEcal.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::full5x5_hcalDepth2OverEcal(photon) : default_value);
+            tauTuple().photon_full5x5_hcalDepth1OverEcalBc.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::full5x5_hcalDepth1OverEcalBc(photon) : default_value);
+            tauTuple().photon_full5x5_hcalDepth2OverEcalBc.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::full5x5_hcalDepth2OverEcalBc(photon) : default_value);
+        }
+    }
+
     void FillMuons(const TauJet::MuonCollection& muons, const reco::Vertex& PV)
     {
         for(const auto& muon_ptr : muons) {
@@ -993,6 +1073,7 @@ private:
     edm::EDGetTokenT<std::vector<reco::Vertex>> vertices_token;
     edm::EDGetTokenT<double> rho_token;
     edm::EDGetTokenT<pat::ElectronCollection> electrons_token;
+    edm::EDGetTokenT<pat::PhotonCollection> photons_token;
     edm::EDGetTokenT<pat::MuonCollection> muons_token;
     edm::EDGetTokenT<pat::TauCollection> taus_token, boostedTaus_token;
     edm::EDGetTokenT<pat::JetCollection> jets_token, fatJets_token;

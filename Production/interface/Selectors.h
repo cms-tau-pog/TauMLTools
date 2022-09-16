@@ -25,7 +25,7 @@ struct TauJetSelector {
 
     virtual ~TauJetSelector() {}
     virtual Result Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
-                          const std::vector<pat::Electron>& electrons,
+                          const std::vector<pat::Electron>& electrons, const std::vector<pat::Photon>& photons,
                           const std::vector<pat::Muon>& muons, const pat::MET& met,
                           const reco::Vertex& primaryVertex,
                           const pat::TriggerObjectStandAloneCollection& triggerObjects,
@@ -36,7 +36,7 @@ struct TauJetSelector {
 
 struct MuTau : TauJetSelector {
     virtual Result Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
-                          const std::vector<pat::Electron>& electrons,
+                          const std::vector<pat::Electron>& electrons, const std::vector<pat::Photon>& photons,
                           const std::vector<pat::Muon>& muons, const pat::MET& met,
                           const reco::Vertex& primaryVertex,
                           const pat::TriggerObjectStandAloneCollection& triggerObjects,
@@ -45,7 +45,7 @@ struct MuTau : TauJetSelector {
 
 struct genTauTau : TauJetSelector {
     virtual Result Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
-                          const std::vector<pat::Electron>& electrons,
+                          const std::vector<pat::Electron>& electrons, const std::vector<pat::Photon>& photons,
                           const std::vector<pat::Muon>& muons, const pat::MET& met,
                           const reco::Vertex& primaryVertex,
                           const pat::TriggerObjectStandAloneCollection& triggerObjects,

@@ -6,6 +6,7 @@
 #include <boost/optional.hpp>
 
 #include "DataFormats/PatCandidates/interface/Electron.h"
+#include "DataFormats/PatCandidates/interface/Photon.h"
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/PatCandidates/interface/Tau.h"
 #include "DataFormats/PatCandidates/interface/Jet.h"
@@ -45,6 +46,7 @@ struct ObjPtr {
 struct TauJet {
     using PFCandCollection = std::vector<PFCandDesc>;
     using ElectronCollection = std::vector<ObjPtr<const pat::Electron>>;
+    using PhotonCollection = std::vector<ObjPtr<const pat::Photon>>;
     using MuonCollection = std::vector<ObjPtr<const pat::Muon>>;
     using IsoTrackCollection = std::vector<ObjPtr<const pat::IsolatedTrack>>;
     using LostTrackCollection = std::vector<ObjPtr<const pat::PackedCandidate>>;
@@ -58,6 +60,7 @@ struct TauJet {
 
     PFCandCollection cands;
     ElectronCollection electrons;
+    PhotonCollection photons;
     MuonCollection muons;
     IsoTrackCollection isoTracks;
     PFCandCollection lostTracks;
@@ -106,7 +109,7 @@ public:
     TauJetBuilder(const TauJetBuilderSetup& setup, const pat::TauCollection& taus,
                   const pat::TauCollection& boostedTaus, const pat::JetCollection& jets,
                   const pat::JetCollection& fatJets, const pat::PackedCandidateCollection& cands,
-                  const pat::ElectronCollection& electrons, const pat::MuonCollection& muons,
+                  const pat::ElectronCollection& electrons, const pat::PhotonCollection& photons, const pat::MuonCollection& muons,
                   const pat::IsolatedTrackCollection& isoTracks, const pat::PackedCandidateCollection& lostTracks,
                   const reco::GenParticleCollection* genParticles, const reco::GenJetCollection* genJets,
                   bool requireGenMatch, bool requireGenORRecoTauMatch, bool applyRecoPtSieve);
@@ -134,6 +137,7 @@ private:
     const pat::JetCollection& fatJets_;
     const pat::PackedCandidateCollection& cands_;
     const pat::ElectronCollection& electrons_;
+    const pat::PhotonCollection& photons_;
     const pat::MuonCollection& muons_;
     const pat::IsolatedTrackCollection& isoTracks_;
     const pat::PackedCandidateCollection& lostTracks_;

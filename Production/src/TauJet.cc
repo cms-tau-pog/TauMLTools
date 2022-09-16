@@ -90,14 +90,14 @@ std::ostream& operator<<(std::ostream& os, const TauJetBuilder::MatchResult& mat
 TauJetBuilder::TauJetBuilder(const TauJetBuilderSetup& setup, const pat::TauCollection& taus,
               const pat::TauCollection& boostedTaus, const pat::JetCollection& jets,
               const pat::JetCollection& fatJets, const pat::PackedCandidateCollection& cands,
-              const pat::ElectronCollection& electrons, const pat::MuonCollection& muons,
+              const pat::ElectronCollection& electrons, const pat::PhotonCollection& photons, const pat::MuonCollection& muons,
               const pat::IsolatedTrackCollection& isoTracks, const pat::PackedCandidateCollection& lostTracks,
               const reco::GenParticleCollection* genParticles, const reco::GenJetCollection* genJets,
               bool requireGenMatch, bool requireGenORRecoTauMatch, bool applyRecoPtSieve) :
     setup_(setup), taus_(taus), boostedTaus_(boostedTaus), jets_(jets), fatJets_(fatJets), cands_(cands),
-    electrons_(electrons), muons_(muons), isoTracks_(isoTracks), lostTracks_(lostTracks), genParticles_(genParticles),
-    genJets_(genJets), requireGenMatch_(requireGenMatch), requireGenORRecoTauMatch_(requireGenORRecoTauMatch),
-    applyRecoPtSieve_(applyRecoPtSieve)
+    electrons_(electrons), photons_(photons), muons_(muons), isoTracks_(isoTracks), lostTracks_(lostTracks), 
+    genParticles_(genParticles), genJets_(genJets), requireGenMatch_(requireGenMatch), 
+    requireGenORRecoTauMatch_(requireGenORRecoTauMatch), applyRecoPtSieve_(applyRecoPtSieve)
 {
     if(genParticles)
         genLeptons_ = reco_tau::gen_truth::GenLepton::fromGenParticleCollection(*genParticles);
@@ -365,6 +365,7 @@ void TauJetBuilder::Build()
         }
 
         fillMatched(tauJet.electrons, electrons_);
+        fillMatched(tauJet.photons, photons_);
         fillMatched(tauJet.muons, muons_);
         fillMatched(tauJet.isoTracks, isoTracks_);
     }

@@ -34,6 +34,13 @@
 #define ELE_VAR5(type, name1, name2, name3, name4, name5) ELE_VAR4(type, name1, name2, name3, name4) \
                                                           ELE_VAR(type, name5)
 
+#define PHOTON_VAR(type, name) VAR(std::vector<type>, photon_##name)
+#define PHOTON_VAR2(type, name1, name2) PHOTON_VAR(type, name1) PHOTON_VAR(type, name2)
+#define PHOTON_VAR3(type, name1, name2, name3) PHOTON_VAR2(type, name1, name2) PHOTON_VAR(type, name3)
+#define PHOTON_VAR4(type, name1, name2, name3, name4) PHOTON_VAR3(type, name1, name2, name3) PHOTON_VAR(type, name4)
+#define PHOTON_VAR5(type, name1, name2, name3, name4, name5) PHOTON_VAR4(type, name1, name2, name3, name4) \
+                                                             PHOTON_VAR(type, name5)
+
 #define MUON_VAR(type, name) VAR(std::vector<type>, muon_##name)
 #define MUON_VAR2(type, name1, name2) MUON_VAR(type, name1) MUON_VAR(type, name2)
 #define MUON_VAR3(type, name1, name2, name3) MUON_VAR2(type, name1, name2) MUON_VAR(type, name3)
@@ -326,6 +333,19 @@
     ELE_VAR3(Float_t, hgcal_pcaPositionX, hgcal_pcaPositionY, hgcal_pcaPositionZ) /* pca position in X,Y,Z (?) */ \
     ELE_VAR3(Float_t, hgcal_pcaEig1, hgcal_pcaEig2, hgcal_pcaEig3) /* pca eigenvalues (?) */ \
     ELE_VAR3(Float_t, hgcal_pcaSig1, hgcal_pcaSig2, hgcal_pcaSig3) /* pca significances (?) */ \
+    /* PAT photons */ \
+    PHOTON_VAR(Int_t, index) /* index of the electron */ \
+    PHOTON_VAR4(Float_t, pt, eta, phi, energy) /* 4-momentum of the electron */ \
+    PHOTON_VAR2(Float_t, sigmaEtaEta, sigmaIetaIeta) /* shower shape spread */ \
+    PHOTON_VAR4(Float_t, e1x5, e2x5, e3x3, e5x5) /* shower shape signatures */ \
+    PHOTON_VAR3(Float_t, r1x5, r2x5, r9) /* shower shape signatures */ \
+    PHOTON_VAR(Float_t, maxEnergyXtal) \
+    PHOTON_VAR4(Float_t, hcalDepth1OverEcal, hcalDepth2OverEcal, hcalDepth1OverEcalBc, hcalDepth2OverEcalBc) /* HCAL over ECAL variables */ \
+    PHOTON_VAR2(Float_t, full5x5_sigmaEtaEta, full5x5_sigmaIetaIeta) /* shower shape spread */ \
+    PHOTON_VAR4(Float_t, full5x5_e1x5, full5x5_e2x5, full5x5_e3x3, full5x5_e5x5) /* shower shape signatures */ \
+    PHOTON_VAR3(Float_t, full5x5_r1x5, full5x5_r2x5, full5x5_r9) /* shower shape signatures */ \
+    PHOTON_VAR(Float_t, full5x5_maxEnergyXtal) \
+    PHOTON_VAR4(Float_t, full5x5_hcalDepth1OverEcal, full5x5_hcalDepth2OverEcal, full5x5_hcalDepth1OverEcalBc, full5x5_hcalDepth2OverEcalBc) /* HCAL over ECAL variables */ \
     /* PAT muons */ \
     MUON_VAR(Int_t, index) /* index of the muon */ \
     MUON_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the muon */ \

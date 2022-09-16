@@ -59,7 +59,7 @@ std::shared_ptr<TauJetSelector> TauJetSelector::Make(const std::string& name)
 
 
 TauJetSelector::Result TauJetSelector::Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
-                                      const std::vector<pat::Electron>& electrons,
+                                      const std::vector<pat::Electron>& electrons, const std::vector<pat::Photon>& photons,
                                       const std::vector<pat::Muon>& muons, const pat::MET& met,
                                       const reco::Vertex& primaryVertex,
                                       const pat::TriggerObjectStandAloneCollection& triggerObjects,
@@ -72,7 +72,7 @@ TauJetSelector::Result TauJetSelector::Select(const edm::Event& event, const std
 }
 
 TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
-                                     const std::vector<pat::Electron>& electrons,
+                                     const std::vector<pat::Electron>& electrons, const std::vector<pat::Photon>& photons,
                                      const std::vector<pat::Muon>& muons, const pat::MET& met,
                                      const reco::Vertex& primaryVertex,
                                      const pat::TriggerObjectStandAloneCollection& triggerObjects,
@@ -138,7 +138,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
 }
 
 TauJetSelector::Result genTauTau::Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
-                                     const std::vector<pat::Electron>& electrons,
+                                     const std::vector<pat::Electron>& electrons, const std::vector<pat::Photon>& photons,
                                      const std::vector<pat::Muon>& muons, const pat::MET& met,
                                      const reco::Vertex& primaryVertex,
                                      const pat::TriggerObjectStandAloneCollection& triggerObjects,
