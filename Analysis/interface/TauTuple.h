@@ -34,12 +34,15 @@
 #define ELE_VAR5(type, name1, name2, name3, name4, name5) ELE_VAR4(type, name1, name2, name3, name4) \
                                                           ELE_VAR(type, name5)
 
-#define PHOTON_VAR(type, name) VAR(std::vector<type>, photon_##name)
+#define PHOTON_VAR(type, name) VAR(std::vector<type>, photon_##name) 
 #define PHOTON_VAR2(type, name1, name2) PHOTON_VAR(type, name1) PHOTON_VAR(type, name2)
 #define PHOTON_VAR3(type, name1, name2, name3) PHOTON_VAR2(type, name1, name2) PHOTON_VAR(type, name3)
 #define PHOTON_VAR4(type, name1, name2, name3, name4) PHOTON_VAR3(type, name1, name2, name3) PHOTON_VAR(type, name4)
-#define PHOTON_VAR5(type, name1, name2, name3, name4, name5) PHOTON_VAR4(type, name1, name2, name3, name4) \
-                                                             PHOTON_VAR(type, name5)
+
+#define PHOTONSHAPE_VAR(type, name) VAR(std::vector<type>, photon_shape_##name) VAR(std::vector<type>, photon_full5x5shape_##name)
+#define PHOTONSHAPE_VAR2(type, name1, name2) PHOTONSHAPE_VAR(type, name1) PHOTONSHAPE_VAR(type, name2)
+#define PHOTONSHAPE_VAR3(type, name1, name2, name3) PHOTONSHAPE_VAR2(type, name1, name2) PHOTONSHAPE_VAR(type, name3)
+#define PHOTONSHAPE_VAR4(type, name1, name2, name3, name4) PHOTONSHAPE_VAR3(type, name1, name2, name3) PHOTONSHAPE_VAR(type, name4)
 
 #define MUON_VAR(type, name) VAR(std::vector<type>, muon_##name)
 #define MUON_VAR2(type, name1, name2) MUON_VAR(type, name1) MUON_VAR(type, name2)
@@ -57,6 +60,7 @@
     VAR(UInt_t, lumi) /* lumi section */ \
     VAR(ULong64_t, evt) /* event number */ \
     VAR(Int_t, npv) /* number of primary vertices */ \
+    VAR(Int_t, nsv) /* number of secondary vertices */ \
     VAR(Float_t, rho) /* fixed grid energy density */ \
     VAR(Float_t, genEventWeight) /* gen event weight */ \
     VAR(Float_t, trainingWeight) /* training weight */ \
@@ -71,6 +75,11 @@
     VAR4(Float_t, pv_xE, pv_yE, pv_zE, pv_tE) /* position and time errors of the primary vertex (PV) */ \
     VAR(Float_t, pv_chi2) /* chi^2 of the primary vertex (PV) */ \
     VAR(Float_t, pv_ndof) /* number of degrees of freedom of the primary vertex (PV) */ \
+    VAR4(std::vector<Float_t>, sv_x, sv_y, sv_z, sv_t) /* position and time of the secondary vertices (SV) */ \
+    VAR4(std::vector<Float_t>, sv_xE, sv_yE, sv_zE, sv_tE) /* position and time errors of the secondary vertices (SV) */ \
+    VAR(std::vector<Float_t>, sv_chi2) /* chi^2 of the secondary vertices (SV) */ \
+    VAR(std::vector<Float_t>, sv_ndof) /* number of degrees of freedom of the secondary vertices (SV) */ \
+    VAR2(std::vector<Int_t>, sv_cands_svIdx, sv_cands_candIdx) /* idx of cands from SV and PF */ \
     VAR2(Float_t, met_pt, met_phi) /* MET momentum */ \
     VAR3(Float_t, metcov_00, metcov_01, metcov_11) /* MET covariance */ \
     VAR2(Float_t, puppimet_pt, puppimet_phi) /* PuppiMET momentum */ \
@@ -336,16 +345,28 @@
     /* PAT photons */ \
     PHOTON_VAR(Int_t, index) /* index of the electron */ \
     PHOTON_VAR4(Float_t, pt, eta, phi, energy) /* 4-momentum of the electron */ \
-    PHOTON_VAR2(Float_t, sigmaEtaEta, sigmaIetaIeta) /* shower shape spread */ \
-    PHOTON_VAR4(Float_t, e1x5, e2x5, e3x3, e5x5) /* shower shape signatures */ \
-    PHOTON_VAR3(Float_t, r1x5, r2x5, r9) /* shower shape signatures */ \
-    PHOTON_VAR(Float_t, maxEnergyXtal) \
-    PHOTON_VAR4(Float_t, hcalDepth1OverEcal, hcalDepth2OverEcal, hcalDepth1OverEcalBc, hcalDepth2OverEcalBc) /* HCAL over ECAL variables */ \
-    PHOTON_VAR2(Float_t, full5x5_sigmaEtaEta, full5x5_sigmaIetaIeta) /* shower shape spread */ \
-    PHOTON_VAR4(Float_t, full5x5_e1x5, full5x5_e2x5, full5x5_e3x3, full5x5_e5x5) /* shower shape signatures */ \
-    PHOTON_VAR3(Float_t, full5x5_r1x5, full5x5_r2x5, full5x5_r9) /* shower shape signatures */ \
-    PHOTON_VAR(Float_t, full5x5_maxEnergyXtal) \
-    PHOTON_VAR4(Float_t, full5x5_hcalDepth1OverEcal, full5x5_hcalDepth2OverEcal, full5x5_hcalDepth1OverEcalBc, full5x5_hcalDepth2OverEcalBc) /* HCAL over ECAL variables */ \
+    PHOTON_VAR2(Bool_t, passElectronVeto, hasPixelSeed) \
+    PHOTON_VAR3(Float_t, see, spp, sep) \
+    PHOTON_VAR4(Float_t, maxDR, maxDRDPhi, maxDRDEta, maxDRRawEnergy) \
+    PHOTON_VAR3(Float_t, subClusRawE1, subClusRawE2, subClusRawE3) \
+    PHOTON_VAR3(Float_t, subClusDPhi1, subClusDPhi2, subClusDPhi3) \
+    PHOTON_VAR3(Float_t, subClusDEta1, subClusDEta2, subClusDEta3) \
+    PHOTON_VAR2(Float_t, cryPhi, cryEta) \
+    PHOTON_VAR2(Float_t, iPhi, iEta) \
+    PHOTON_VAR3(Float_t, eMax, e2nd, e3x3) \
+    PHOTON_VAR4(Float_t, eTop, eLeft, eRight, eBottom) \
+    /* RECO PHOTONS */ \
+    PHOTONSHAPE_VAR2(Float_t, sigmaEtaEta, sigmaIetaIeta) /* shower shape spread */ \
+    PHOTONSHAPE_VAR2(Float_t, sigmaIetaIphi, sigmaIphiIphi) /* shower shape spread (?) */ \
+    PHOTONSHAPE_VAR4(Float_t, e1x5, e2x5, e3x3, e5x5) /* shower shape signatures */ \
+    PHOTONSHAPE_VAR(Float_t, maxEnergyXtal) \
+    PHOTONSHAPE_VAR4(Float_t, hcalDepth1OverEcal, hcalDepth2OverEcal, hcalDepth1OverEcalBc, hcalDepth2OverEcalBc) /* HCAL over ECAL variables */ \
+    PHOTONSHAPE_VAR(Float_t, effSigmaRR) \
+    PHOTONSHAPE_VAR(Float_t, e2nd) \
+    PHOTONSHAPE_VAR4(Float_t, eTop, eLeft, eRight, eBottom) \
+    PHOTONSHAPE_VAR3(Float_t, e1x3, e2x2, e2x5Max) \
+    PHOTONSHAPE_VAR4(Float_t, e2x5Left, e2x5Right, e2x5Top, e2x5Bottom) \
+    PHOTONSHAPE_VAR3(Float_t, smMajor, smMinor, smAlpha) \
     /* PAT muons */ \
     MUON_VAR(Int_t, index) /* index of the muon */ \
     MUON_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the muon */ \

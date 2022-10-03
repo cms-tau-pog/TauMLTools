@@ -226,7 +226,8 @@ public:
         genJetFlavourInfos_token(consumes<reco::JetFlavourInfoMatchingCollection>(
                                  cfg.getParameter<edm::InputTag>("genJetFlavourInfos"))),
         puInfo_token(mayConsume<std::vector<PileupSummaryInfo>>(cfg.getParameter<edm::InputTag>("puInfo"))),
-        vertices_token(consumes<std::vector<reco::Vertex> >(cfg.getParameter<edm::InputTag>("vertices"))),
+        vertices_token(consumes<std::vector<reco::Vertex>>(cfg.getParameter<edm::InputTag>("vertices"))),
+        secondVertices_token(consumes<std::vector<reco::VertexCompositePtrCandidate>>(cfg.getParameter<edm::InputTag>("secondVertices"))),
         rho_token(consumes<double>(cfg.getParameter<edm::InputTag>("rho"))),
         electrons_token(consumes<pat::ElectronCollection>(cfg.getParameter<edm::InputTag>("electrons"))),
         photons_token(consumes<pat::PhotonCollection>(cfg.getParameter<edm::InputTag>("photons"))),
@@ -305,6 +306,7 @@ private:
 
         auto vertices = getHandle(event, vertices_token);
         tauTuple().npv = static_cast<int>(vertices->size());
+	auto secondVertices = getProduct(event, secondVertices_token);
         auto rho = getHandle(event, rho_token);
         tauTuple().rho = static_cast<float>(*rho);
 
@@ -406,6 +408,7 @@ private:
             FillPhotons(tauJet.photons);
             FillMuons(tauJet.muons, PV);
             FillIsoTracks(tauJet.isoTracks);
+	    FillSV(secondVertices, tauJet.cands);
 
             tauTuple.Fill();
         }
@@ -878,46 +881,110 @@ private:
 
     void FillPhotons(const TauJet::PhotonCollection& photons)
     {
+        auto fillShape = [&](const pat::Photon*& gamma, const std::string& prefix) {
+	    if(prefix ==  "photon_shape_") {
+            	tauTuple.get<std::vector<float>>(prefix + "sigmaEtaEta").push_back(gamma->showerShapeVariables().sigmaEtaEta);
+	    	tauTuple.get<std::vector<float>>(prefix + "sigmaIetaIeta").push_back(gamma->showerShapeVariables().sigmaIetaIeta);
+            	tauTuple.get<std::vector<float>>(prefix + "e1x5").push_back(gamma->showerShapeVariables().e1x5);
+            	tauTuple.get<std::vector<float>>(prefix + "e2x5").push_back(gamma->showerShapeVariables().e2x5);
+            	tauTuple.get<std::vector<float>>(prefix + "e3x3").push_back(gamma->showerShapeVariables().e3x3);
+            	tauTuple.get<std::vector<float>>(prefix + "e5x5").push_back(gamma->showerShapeVariables().e5x5);
+            	tauTuple.get<std::vector<float>>(prefix + "maxEnergyXtal").push_back(gamma->showerShapeVariables().maxEnergyXtal);
+            	tauTuple.get<std::vector<float>>(prefix + "hcalDepth1OverEcal").push_back(gamma->showerShapeVariables().hcalDepth1OverEcal);
+            	tauTuple.get<std::vector<float>>(prefix + "hcalDepth2OverEcal").push_back(gamma->showerShapeVariables().hcalDepth2OverEcal);
+            	tauTuple.get<std::vector<float>>(prefix + "hcalDepth1OverEcalBc").push_back(gamma->showerShapeVariables().hcalDepth1OverEcalBc);
+            	tauTuple.get<std::vector<float>>(prefix + "hcalDepth2OverEcalBc").push_back(gamma->showerShapeVariables().hcalDepth2OverEcalBc);
+            	tauTuple.get<std::vector<float>>(prefix + "effSigmaRR").push_back(gamma->showerShapeVariables().effSigmaRR);
+            	tauTuple.get<std::vector<float>>(prefix + "sigmaIetaIphi").push_back(gamma->showerShapeVariables().sigmaIetaIphi);
+            	tauTuple.get<std::vector<float>>(prefix + "sigmaIphiIphi").push_back(gamma->showerShapeVariables().sigmaIphiIphi);
+            	tauTuple.get<std::vector<float>>(prefix + "e2nd").push_back(gamma->showerShapeVariables().e2nd);
+           	tauTuple.get<std::vector<float>>(prefix + "eTop").push_back(gamma->showerShapeVariables().eTop);
+            	tauTuple.get<std::vector<float>>(prefix + "eLeft").push_back(gamma->showerShapeVariables().eLeft);
+            	tauTuple.get<std::vector<float>>(prefix + "eRight").push_back(gamma->showerShapeVariables().eRight);
+            	tauTuple.get<std::vector<float>>(prefix + "eBottom").push_back(gamma->showerShapeVariables().eBottom);
+            	tauTuple.get<std::vector<float>>(prefix + "e1x3").push_back(gamma->showerShapeVariables().e1x3);
+            	tauTuple.get<std::vector<float>>(prefix + "e2x2").push_back(gamma->showerShapeVariables().e2x2);
+            	tauTuple.get<std::vector<float>>(prefix + "e2x5Max").push_back(gamma->showerShapeVariables().e2x5Max);
+            	tauTuple.get<std::vector<float>>(prefix + "e2x5Left").push_back(gamma->showerShapeVariables().e2x5Left);
+            	tauTuple.get<std::vector<float>>(prefix + "e2x5Right").push_back(gamma->showerShapeVariables().e2x5Right);
+            	tauTuple.get<std::vector<float>>(prefix + "e2x5Top").push_back(gamma->showerShapeVariables().e2x5Top);
+            	tauTuple.get<std::vector<float>>(prefix + "e2x5Bottom").push_back(gamma->showerShapeVariables().e2x5Bottom);
+            	tauTuple.get<std::vector<float>>(prefix + "smMajor").push_back(gamma->showerShapeVariables().smMajor);
+            	tauTuple.get<std::vector<float>>(prefix + "smMinor").push_back(gamma->showerShapeVariables().smMinor);
+            	tauTuple.get<std::vector<float>>(prefix + "smAlpha").push_back(gamma->showerShapeVariables().smAlpha);	
+	    }
+            if(prefix ==  "photon_full5x5shape_") {
+                tauTuple.get<std::vector<float>>(prefix + "sigmaEtaEta").push_back(gamma->full5x5_showerShapeVariables().sigmaEtaEta);
+                tauTuple.get<std::vector<float>>(prefix + "sigmaIetaIeta").push_back(gamma->full5x5_showerShapeVariables().sigmaIetaIeta);
+                tauTuple.get<std::vector<float>>(prefix + "e1x5").push_back(gamma->full5x5_showerShapeVariables().e1x5);
+                tauTuple.get<std::vector<float>>(prefix + "e2x5").push_back(gamma->full5x5_showerShapeVariables().e2x5);
+                tauTuple.get<std::vector<float>>(prefix + "e3x3").push_back(gamma->full5x5_showerShapeVariables().e3x3);
+                tauTuple.get<std::vector<float>>(prefix + "e5x5").push_back(gamma->full5x5_showerShapeVariables().e5x5);
+                tauTuple.get<std::vector<float>>(prefix + "maxEnergyXtal").push_back(gamma->full5x5_showerShapeVariables().maxEnergyXtal);
+                tauTuple.get<std::vector<float>>(prefix + "hcalDepth1OverEcal").push_back(gamma->full5x5_showerShapeVariables().hcalDepth1OverEcal);
+                tauTuple.get<std::vector<float>>(prefix + "hcalDepth2OverEcal").push_back(gamma->full5x5_showerShapeVariables().hcalDepth2OverEcal);
+                tauTuple.get<std::vector<float>>(prefix + "hcalDepth1OverEcalBc").push_back(gamma->full5x5_showerShapeVariables().hcalDepth1OverEcalBc);
+                tauTuple.get<std::vector<float>>(prefix + "hcalDepth2OverEcalBc").push_back(gamma->full5x5_showerShapeVariables().hcalDepth2OverEcalBc);
+                tauTuple.get<std::vector<float>>(prefix + "effSigmaRR").push_back(gamma->full5x5_showerShapeVariables().effSigmaRR);
+                tauTuple.get<std::vector<float>>(prefix + "sigmaIetaIphi").push_back(gamma->full5x5_showerShapeVariables().sigmaIetaIphi);
+                tauTuple.get<std::vector<float>>(prefix + "sigmaIphiIphi").push_back(gamma->full5x5_showerShapeVariables().sigmaIphiIphi);
+                tauTuple.get<std::vector<float>>(prefix + "e2nd").push_back(gamma->full5x5_showerShapeVariables().e2nd);
+                tauTuple.get<std::vector<float>>(prefix + "eTop").push_back(gamma->full5x5_showerShapeVariables().eTop);
+                tauTuple.get<std::vector<float>>(prefix + "eLeft").push_back(gamma->full5x5_showerShapeVariables().eLeft);
+                tauTuple.get<std::vector<float>>(prefix + "eRight").push_back(gamma->full5x5_showerShapeVariables().eRight);
+                tauTuple.get<std::vector<float>>(prefix + "eBottom").push_back(gamma->full5x5_showerShapeVariables().eBottom);
+                tauTuple.get<std::vector<float>>(prefix + "e1x3").push_back(gamma->full5x5_showerShapeVariables().e1x3);
+                tauTuple.get<std::vector<float>>(prefix + "e2x2").push_back(gamma->full5x5_showerShapeVariables().e2x2);
+                tauTuple.get<std::vector<float>>(prefix + "e2x5Max").push_back(gamma->full5x5_showerShapeVariables().e2x5Max);
+                tauTuple.get<std::vector<float>>(prefix + "e2x5Left").push_back(gamma->full5x5_showerShapeVariables().e2x5Left);
+                tauTuple.get<std::vector<float>>(prefix + "e2x5Right").push_back(gamma->full5x5_showerShapeVariables().e2x5Right);
+                tauTuple.get<std::vector<float>>(prefix + "e2x5Top").push_back(gamma->full5x5_showerShapeVariables().e2x5Top);
+                tauTuple.get<std::vector<float>>(prefix + "e2x5Bottom").push_back(gamma->full5x5_showerShapeVariables().e2x5Bottom);
+                tauTuple.get<std::vector<float>>(prefix + "smMajor").push_back(gamma->full5x5_showerShapeVariables().smMajor);
+                tauTuple.get<std::vector<float>>(prefix + "smMinor").push_back(gamma->full5x5_showerShapeVariables().smMinor);
+                tauTuple.get<std::vector<float>>(prefix + "smAlpha").push_back(gamma->full5x5_showerShapeVariables().smAlpha);
+            }
+	};
+
         for(const auto& photon_ptr : photons) {
-            const pat::Photon* photon = photon_ptr.obj;
+            const pat::Photon* photon = photon_ptr.obj;	    
             tauTuple().photon_index.push_back(photon_ptr.index);
             tauTuple().photon_pt.push_back(static_cast<float>(photon->polarP4().pt()));
             tauTuple().photon_eta.push_back(static_cast<float>(photon->polarP4().eta()));
             tauTuple().photon_phi.push_back(static_cast<float>(photon->polarP4().phi()));
             tauTuple().photon_energy.push_back(static_cast<float>(photon->polarP4().energy()));
-
-            const bool isHGCAL = photon->hasUserFloat("hgcPhotonID:sigmaUU");
-            const bool hasShapeVars = !isHGCAL && photon->polarP4().pt() > 5;
-
-            tauTuple().photon_sigmaEtaEta.push_back(hasShapeVars ? photon->sigmaEtaEta() : default_value);
-            tauTuple().photon_sigmaIetaIeta.push_back(hasShapeVars ? photon->sigmaIetaIeta() : default_value);
-            tauTuple().photon_e1x5.push_back(hasShapeVars ? photon->e1x5() : default_value);
-            tauTuple().photon_e2x5.push_back(hasShapeVars ? photon->e2x5() : default_value);
-            tauTuple().photon_e3x3.push_back(hasShapeVars ? photon->e3x3() : default_value);
-            tauTuple().photon_e5x5.push_back(hasShapeVars ? photon->e5x5() : default_value);
-            tauTuple().photon_r1x5.push_back(hasShapeVars ? photon->r1x5() : default_value);
-            tauTuple().photon_r2x5.push_back(hasShapeVars ? photon->r2x5() : default_value);
-            tauTuple().photon_r9.push_back(hasShapeVars ? photon->r9() : default_value);
-            tauTuple().photon_maxEnergyXtal.push_back(hasShapeVars ? photon->maxEnergyXtal() : default_value);
-            tauTuple().photon_hcalDepth1OverEcal.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::hcalDepth1OverEcal(photon) : default_value);
-            tauTuple().photon_hcalDepth2OverEcal.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::hcalDepth2OverEcal(photon) : default_value);
-            tauTuple().photon_hcalDepth1OverEcalBc.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::hcalDepth1OverEcalBc(photon) : default_value);
-            tauTuple().photon_hcalDepth2OverEcalBc.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::hcalDepth2OverEcalBc(photon) : default_value);
-
-            tauTuple().photon_full5x5_sigmaEtaEta.push_back(hasShapeVars ? photon->full5x5_sigmaEtaEta() : default_value);
-            tauTuple().photon_full5x5_sigmaIetaIeta.push_back(hasShapeVars ? photon->full5x5_sigmaIetaIeta() : default_value);
-            tauTuple().photon_full5x5_e1x5.push_back(hasShapeVars ? photon->full5x5_e1x5() : default_value);
-            tauTuple().photon_full5x5_e2x5.push_back(hasShapeVars ? photon->full5x5_e2x5() : default_value);
-            tauTuple().photon_full5x5_e3x3.push_back(hasShapeVars ? photon->full5x5_e3x3() : default_value);
-            tauTuple().photon_full5x5_e5x5.push_back(hasShapeVars ? photon->full5x5_e5x5() : default_value);
-            tauTuple().photon_full5x5_r1x5.push_back(hasShapeVars ? photon->full5x5_r1x5() : default_value);
-            tauTuple().photon_full5x5_r2x5.push_back(hasShapeVars ? photon->full5x5_r2x5() : default_value);
-            tauTuple().photon_full5x5_r9.push_back(hasShapeVars ? photon->full5x5_r9() : default_value);
-            tauTuple().photon_full5x5_maxEnergyXtal.push_back(hasShapeVars ? photon->full5x5_maxEnergyXtal() : default_value);
-            tauTuple().photon_full5x5_hcalDepth1OverEcal.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::full5x5_hcalDepth1OverEcal(photon) : default_value);
-            tauTuple().photon_full5x5_hcalDepth2OverEcal.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::full5x5_hcalDepth2OverEcal(photon) : default_value);
-            tauTuple().photon_full5x5_hcalDepth1OverEcalBc.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::full5x5_hcalDepth1OverEcalBc(photon) : default_value);
-            tauTuple().photon_full5x5_hcalDepth2OverEcalBc.push_back(hasShapeVars ? GetGammaVer<pat::Photon, GetCMSSWVersion()>::full5x5_hcalDepth2OverEcalBc(photon) : default_value);
+	    tauTuple().photon_passElectronVeto.push_back(photon->passElectronVeto());
+            tauTuple().photon_hasPixelSeed.push_back(photon->hasPixelSeed());
+	    tauTuple().photon_eMax.push_back(photon->eMax());
+            tauTuple().photon_e2nd.push_back(photon->e2nd());
+            tauTuple().photon_e3x3.push_back(photon->e3x3());
+            tauTuple().photon_eTop.push_back(photon->eTop());
+            tauTuple().photon_eBottom.push_back(photon->eBottom());
+            tauTuple().photon_eLeft.push_back(photon->eLeft());
+            tauTuple().photon_eRight.push_back(photon->eRight());
+            tauTuple().photon_see.push_back(photon->see());
+            tauTuple().photon_spp.push_back(photon->spp());
+            tauTuple().photon_sep.push_back(photon->sep());
+            tauTuple().photon_maxDR.push_back(photon->maxDR());
+            tauTuple().photon_maxDRDPhi.push_back(photon->maxDRDPhi());
+            tauTuple().photon_maxDRDEta.push_back(photon->maxDRDEta());
+            tauTuple().photon_maxDRRawEnergy.push_back(photon->maxDRRawEnergy());
+            tauTuple().photon_subClusRawE1.push_back(photon->subClusRawE1());
+            tauTuple().photon_subClusRawE2.push_back(photon->subClusRawE2());
+            tauTuple().photon_subClusRawE3.push_back(photon->subClusRawE3());
+            tauTuple().photon_subClusDPhi1.push_back(photon->subClusDPhi1());
+            tauTuple().photon_subClusDPhi2.push_back(photon->subClusDPhi2());
+            tauTuple().photon_subClusDPhi3.push_back(photon->subClusDPhi3());
+            tauTuple().photon_subClusDEta1.push_back(photon->subClusDEta1());
+            tauTuple().photon_subClusDEta2.push_back(photon->subClusDEta2());
+            tauTuple().photon_subClusDEta3.push_back(photon->subClusDEta3());
+            tauTuple().photon_cryPhi.push_back(photon->cryPhi());
+            tauTuple().photon_cryEta.push_back(photon->cryEta());
+            tauTuple().photon_iPhi.push_back(photon->iPhi());
+            tauTuple().photon_iEta.push_back(photon->iEta());
+	    //
+	    fillShape(photon, "photon_shape_");
+            fillShape(photon, "photon_full5x5shape_");
         }
     }
 
@@ -1030,6 +1097,51 @@ private:
         }
     }
 
+    void FillSV(const std::vector<reco::VertexCompositePtrCandidate>*& SVts, const TauJet::PFCandCollection& cands)
+    {
+
+	auto findMatch = [&](const edm::Ptr<reco::Candidate>& recocand) {
+	    for(size_t cand_idx = 0; cand_idx < cands.size(); ++cand_idx) {
+                auto pfcand = dynamic_cast<const reco::Candidate*>(cands.at(cand_idx).candidate);
+		if(pfcand == &(*recocand))
+		   return static_cast<int>(cand_idx);
+	    }
+	    return -1;
+	};
+
+	auto collectCands = [&](const reco::VertexCompositePtrCandidate& sv) {
+	    std::set<int> cand_indices;
+	    for(size_t it = 0; it < sv.numberOfSourceCandidatePtrs(); it++) {
+                const edm::Ptr<reco::Candidate>& recocand = sv.sourceCandidatePtr(it);
+		int match_idx = findMatch(recocand);
+		if(match_idx >= 0) 
+		   cand_indices.insert(match_idx);
+	    }
+	    return cand_indices;
+	};
+
+        for(unsigned int sv_idx = 0; sv_idx < SVts->size(); ++sv_idx) {
+	   const auto& iSVtx = SVts->at(sv_idx);
+	   auto candsIdx = collectCands(iSVtx);
+	   if(candsIdx.size() > 0){
+	      tauTuple().sv_x.push_back(static_cast<float>(iSVtx.position().x()));
+              tauTuple().sv_y.push_back(static_cast<float>(iSVtx.position().y()));
+              tauTuple().sv_z.push_back(static_cast<float>(iSVtx.position().z()));
+              tauTuple().sv_t.push_back(static_cast<float>(iSVtx.t()));
+	      tauTuple().sv_xE.push_back(static_cast<float>(std::sqrt(iSVtx.vertexCovariance(0,0))));
+              tauTuple().sv_yE.push_back(static_cast<float>(std::sqrt(iSVtx.vertexCovariance(1,1))));
+              tauTuple().sv_zE.push_back(static_cast<float>(std::sqrt(iSVtx.vertexCovariance(2,2))));
+              tauTuple().sv_tE.push_back(static_cast<float>(iSVtx.tError()));
+	      tauTuple().sv_chi2.push_back(static_cast<float>(iSVtx.vertexChi2()));
+              tauTuple().sv_ndof.push_back(static_cast<float>(iSVtx.vertexNdof()));
+	      for(int cand_idx : candsIdx) {
+		 tauTuple().sv_cands_svIdx.push_back(sv_idx);
+		 tauTuple().sv_cands_candIdx.push_back(cand_idx);
+	      }    
+	   }
+        }
+    }
+
     static float CalculateGottfriedJacksonAngleDifference(const pat::Tau& tau)
     {
         double gj_diff;
@@ -1071,6 +1183,7 @@ private:
     edm::EDGetTokenT<reco::JetFlavourInfoMatchingCollection> genJetFlavourInfos_token;
     edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puInfo_token;
     edm::EDGetTokenT<std::vector<reco::Vertex>> vertices_token;
+    edm::EDGetTokenT<std::vector<reco::VertexCompositePtrCandidate>> secondVertices_token;
     edm::EDGetTokenT<double> rho_token;
     edm::EDGetTokenT<pat::ElectronCollection> electrons_token;
     edm::EDGetTokenT<pat::PhotonCollection> photons_token;
