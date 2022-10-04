@@ -26,7 +26,7 @@ function run_cmd {
     fi
 }
 
-if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "phase2_113X" || $MODE = "prod2018UL" || $MODE = "run3" ]]; then
+if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "phase2_113X" || $MODE = "prod2018UL" || $MODE = "run3" || $MODE = "hlt" ]]; then
     if [ $MODE = "prod2018" ] ; then
         CMSSW_VER=CMSSW_10_6_29
         APPLY_BOOSTED_FIX=1
@@ -43,10 +43,10 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "phase2_113X" || $MODE =
         CMSSW_VER=CMSSW_10_6_29
         APPLY_BOOSTED_FIX=0
         export SCRAM_ARCH=slc7_amd64_gcc700
-    elif [ $MODE = "run3" ] ; then
-        CMSSW_VER=CMSSW_12_4_0
+    elif [[ $MODE = "run3" || $MODE = "hlt" ]] ; then
+        CMSSW_VER=CMSSW_12_4_9
         APPLY_BOOSTED_FIX=0
-        export SCRAM_ARCH=slc7_amd64_gcc10
+        export SCRAM_ARCH=el8_amd64_gcc10
     fi
 
     if ! [ -f soft/$CMSSW_VER/.installed ]; then
@@ -69,9 +69,10 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "phase2_113X" || $MODE =
         run_cmd ln -s ../../../../Analysis Analysis
         run_cmd ln -s ../../../../Core Core
         run_cmd ln -s ../../../../Production Production
-        run_cmd touch ../../.installed
+        run_cmd cd ..
+        run_cmd touch ../.installed
         run_cmd scram b -j8
-        run_cmd cd ../../../..
+        run_cmd cd ../../..
     else
         run_cmd cd soft/$CMSSW_VER/src
         run_cmd eval `scramv1 runtime -sh`
