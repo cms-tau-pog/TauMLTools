@@ -1,12 +1,41 @@
+
+Skip to content
+Pull requests
+Issues
+Marketplace
+Explore
+@msessini
+cms-tau-pog /
+TauMLTools
+Public
+
+Code
+Issues 6
+Pull requests 6
+Actions
+Projects 2
+Security
+
+    Insights
+
+TauMLTools/env.sh
+@DennRoy
+DennRoy Merge branch 'master' into Phase2_production
+Latest commit 701eab0 on Jul 11
+History
+4 contributors
+@shedprog
+@kandrosov
+@DennRoy
+@lucasrussell01
+159 lines (150 sloc) 5.93 KB
 #!/bin/bash
 
 if (( $# < 1 )) ; then
     cat << EOF
 Setup environment for TauMLTools
 Usage: source env.sh mode [mode_arg_1] [mode_arg_2] ...
-
 Supported modes: prod2018 prod2018UL phase2 lcg conda
-
 Mode-specific arguments:
 conda
   --update [env.yaml]  updates environment from env.yaml (default: tau-ml-env.yaml)
@@ -26,23 +55,27 @@ function run_cmd {
     fi
 }
 
-if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = "run3" ]]; then
+if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "phase2_113X" || $MODE = "prod2018UL" || $MODE = "run3" ]]; then
     if [ $MODE = "prod2018" ] ; then
         CMSSW_VER=CMSSW_10_6_29
         APPLY_BOOSTED_FIX=1
         export SCRAM_ARCH=slc7_amd64_gcc700
     elif [[ $MODE = "phase2" ]]; then
-        CMSSW_VER=CMSSW_12_4_8
+        CMSSW_VER=CMSSW_11_2_5
         APPLY_BOOSTED_FIX=0
-        export SCRAM_ARCH=slc7_amd64_gcc100
+        export SCRAM_ARCH=slc7_amd64_gcc900
+    elif [[ $MODE = "phase2_113X" ]]; then
+        CMSSW_VER=CMSSW_11_3_0
+        APPLY_BOOSTED_FIX=0
+        export SCRAM_ARCH=slc7_amd64_gcc900
     elif [ $MODE = "prod2018UL" ] ; then
         CMSSW_VER=CMSSW_10_6_29
         APPLY_BOOSTED_FIX=0
         export SCRAM_ARCH=slc7_amd64_gcc700
     elif [ $MODE = "run3" ] ; then
-        CMSSW_VER=CMSSW_12_4_0_pre3
+        CMSSW_VER=CMSSW_12_4_0
         APPLY_BOOSTED_FIX=0
-        export SCRAM_ARCH=slc7_amd64_gcc100
+        export SCRAM_ARCH=slc7_amd64_gcc10
     fi
 
     if ! [ -f soft/$CMSSW_VER/.installed ]; then
@@ -153,3 +186,20 @@ else
 fi
 
 echo "$MODE environment is successfully loaded."
+Footer
+© 2022 GitHub, Inc.
+Footer navigation
+
+    Terms
+    Privacy
+    Security
+    Status
+    Docs
+    Contact GitHub
+    Pricing
+    API
+    Training
+    Blog
+    About
+
+TauMLTools/env.sh at master · cms-tau-pog/TauMLTools
