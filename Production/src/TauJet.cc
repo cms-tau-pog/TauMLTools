@@ -91,11 +91,12 @@ TauJetBuilder::TauJetBuilder(const TauJetBuilderSetup& setup, const pat::TauColl
               const pat::TauCollection& boostedTaus, const pat::JetCollection& jets,
               const pat::JetCollection& fatJets, const pat::PackedCandidateCollection& cands,
               const pat::ElectronCollection& electrons, const pat::PhotonCollection& photons, const pat::MuonCollection& muons,
-              const pat::IsolatedTrackCollection& isoTracks, const pat::PackedCandidateCollection& lostTracks,
+              const pat::IsolatedTrackCollection& isoTracks, const pat::PackedCandidateCollection& lostTracks, 
+	      const std::vector<reco::VertexCompositePtrCandidate>& secondVertices,
               const reco::GenParticleCollection* genParticles, const reco::GenJetCollection* genJets,
               bool requireGenMatch, bool requireGenORRecoTauMatch, bool applyRecoPtSieve) :
     setup_(setup), taus_(taus), boostedTaus_(boostedTaus), jets_(jets), fatJets_(fatJets), cands_(cands),
-    electrons_(electrons), photons_(photons), muons_(muons), isoTracks_(isoTracks), lostTracks_(lostTracks), 
+    electrons_(electrons), photons_(photons), muons_(muons), isoTracks_(isoTracks), lostTracks_(lostTracks), secondVertices_(secondVertices), 
     genParticles_(genParticles), genJets_(genJets), requireGenMatch_(requireGenMatch), 
     requireGenORRecoTauMatch_(requireGenORRecoTauMatch), applyRecoPtSieve_(applyRecoPtSieve)
 {
@@ -308,6 +309,31 @@ void TauJetBuilder::Build()
 
     for(TauJet& tauJet : tauJets_) {
 
+	auto findSVMatch = [&](const reco::VertexCompositePtrCandidate& sv, auto& pfCandPtr) {
+	    for(size_t it = 0; it < sv.numberOfSourceCandidatePtrs(); ++it) {
+	        const edm::Ptr<reco::Candidate>& recoCandPtr = sv.sourceCandidatePtr(it);
+		if(pfCandPtr == &(*recoCandPtr))
+		     return true;
+            }
+	    return false;	
+	};
+
+        const auto collectSV = [&](const auto& pfCand) {
+	    auto pfCandPtr = dynamic_cast<const reco::Candidate*>(&pfCand);
+	    for(size_t sv_idx = 0; sv_idx < secondVertices_.size(); ++sv_idx) {
+	        const auto& sv = secondVertices_.at(sv_idx);
+                if(findSVMatch(sv, pfCandPtr))
+		    return static_cast<int>(sv_idx);
+            }
+            return -1;
+	};
+
+        const auto fillSVMatched = [&](auto& out_SVcol, const auto& in_SVcol, const auto& pfCand) {
+	    auto index = collectSV(pfCand);
+	    if(index > 0)
+	        out_SVcol.emplace_back(in_SVcol.at(index), index);
+	};
+
         const auto hasMatch = [&](const PolarLorentzVector& p4) {
             if(tauJet.genLepton && deltaR(p4, tauJet.genLepton->visibleP4()) < setup_.genLepton_cone)
                 return true;
@@ -334,7 +360,8 @@ void TauJetBuilder::Build()
 
         for(size_t pfCandIndex = 0; pfCandIndex < cands_.size(); ++pfCandIndex) {
             const auto& pfCand = cands_.at(pfCandIndex);
-            if(!hasMatch(pfCand.polarP4())) continue;
+	    auto SVidx = collectSV(pfCand);
+            if(!hasMatch(pfCand.polarP4()) && SVidx<0) continue;
             PFCandDesc pfCandDesc;
             pfCandDesc.candidate = &pfCand;
             pfCandDesc.index = static_cast<int>(pfCandIndex);
@@ -353,6 +380,8 @@ void TauJetBuilder::Build()
             if(tauJet.fatJet)
                 pfCandDesc.subJetDaughter = GetMatchedSubJetIndex(*tauJet.fatJet, pfCand);
             tauJet.cands.push_back(pfCandDesc);
+	    if(SVidx>0)
+	        fillSVMatched(tauJet.secondVertices, secondVertices_, pfCand);	    
         }
 
         for(size_t pfCandIndex = 0; pfCandIndex < lostTracks_.size(); ++pfCandIndex) {

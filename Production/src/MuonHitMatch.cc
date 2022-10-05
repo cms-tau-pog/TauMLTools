@@ -47,7 +47,7 @@ void MuonHitMatch::CountMatches(const pat::Muon& muon, CountMap& n_matches)
 {
     for(const auto& segment : muon.matches()) {
         if(segment.segmentMatches.empty() && segment.rpcMatches.empty() && segment.gemMatches.empty() && segment.me0Matches.empty()) continue;
-        if(n_matches.count(segment.detector())) {
+        if(n_matches.count(segment.detector()) && segment.station()!=0) {
             const size_t station_index = GetStationIndex(segment.station(), true);
             ++n_matches.at(segment.detector()).at(station_index);
         }

@@ -79,7 +79,7 @@
     VAR4(std::vector<Float_t>, sv_xE, sv_yE, sv_zE, sv_tE) /* position and time errors of the secondary vertices (SV) */ \
     VAR(std::vector<Float_t>, sv_chi2) /* chi^2 of the secondary vertices (SV) */ \
     VAR(std::vector<Float_t>, sv_ndof) /* number of degrees of freedom of the secondary vertices (SV) */ \
-    VAR2(std::vector<Int_t>, sv_cands_svIdx, sv_cands_candIdx) /* idx of cands from SV and PF */ \
+    VAR(std::vector<Int_t>, sv_cands_svIdx) /* idx of cands from SV */ \
     VAR2(Float_t, met_pt, met_phi) /* MET momentum */ \
     VAR3(Float_t, metcov_00, metcov_01, metcov_11) /* MET covariance */ \
     VAR2(Float_t, puppimet_pt, puppimet_phi) /* PuppiMET momentum */ \
@@ -343,8 +343,8 @@
     ELE_VAR3(Float_t, hgcal_pcaEig1, hgcal_pcaEig2, hgcal_pcaEig3) /* pca eigenvalues (?) */ \
     ELE_VAR3(Float_t, hgcal_pcaSig1, hgcal_pcaSig2, hgcal_pcaSig3) /* pca significances (?) */ \
     /* PAT photons */ \
-    PHOTON_VAR(Int_t, index) /* index of the electron */ \
-    PHOTON_VAR4(Float_t, pt, eta, phi, energy) /* 4-momentum of the electron */ \
+    PHOTON_VAR(Int_t, index) /* index of the photon */ \
+    PHOTON_VAR4(Float_t, pt, eta, phi, energy) /* 4-momentum of the photon */ \
     PHOTON_VAR2(Bool_t, passElectronVeto, hasPixelSeed) \
     PHOTON_VAR3(Float_t, see, spp, sep) \
     PHOTON_VAR4(Float_t, maxDR, maxDRDPhi, maxDRDEta, maxDRRawEnergy) \
@@ -356,9 +356,10 @@
     PHOTON_VAR3(Float_t, eMax, e2nd, e3x3) \
     PHOTON_VAR4(Float_t, eTop, eLeft, eRight, eBottom) \
     /* RECO PHOTONS */ \
+    /* More details on shower shape variables : https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideEgammaShowerShape */ \
     PHOTONSHAPE_VAR2(Float_t, sigmaEtaEta, sigmaIetaIeta) /* shower shape spread */ \
-    PHOTONSHAPE_VAR2(Float_t, sigmaIetaIphi, sigmaIphiIphi) /* shower shape spread (?) */ \
-    PHOTONSHAPE_VAR4(Float_t, e1x5, e2x5, e3x3, e5x5) /* shower shape signatures */ \
+    PHOTONSHAPE_VAR2(Float_t, sigmaIetaIphi, sigmaIphiIphi) /* shower shape spread */ \
+    PHOTONSHAPE_VAR4(Float_t, e1x5, e2x5, e3x3, e5x5) /* energy deposit in terms of granularity */ \
     PHOTONSHAPE_VAR(Float_t, maxEnergyXtal) \
     PHOTONSHAPE_VAR4(Float_t, hcalDepth1OverEcal, hcalDepth2OverEcal, hcalDepth1OverEcalBc, hcalDepth2OverEcalBc) /* HCAL over ECAL variables */ \
     PHOTONSHAPE_VAR(Float_t, effSigmaRR) \
@@ -475,6 +476,15 @@ INITIALIZE_TREE(tau_tuple, TauTuple, TAU_DATA)
 #undef TRACK_VAR3
 #undef TRACK_VAR4
 #undef TAU_ID
+#undef PHOTON_VAR
+#undef PHOTON_VAR2
+#undef PHOTON_VAR3
+#undef PHOTON_VAR4
+#undef PHOTONSHAPE_VAR
+#undef PHOTONSHAPE_VAR2
+#undef PHOTONSHAPE_VAR3
+#undef PHOTONSHAPE_VAR4
+
 
 namespace tau_tuple {
 

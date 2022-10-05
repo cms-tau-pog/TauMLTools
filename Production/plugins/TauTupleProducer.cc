@@ -97,38 +97,6 @@ namespace tau_analysis {
         static float full5x5_hcalDepth2OverEcalBc(const Elec* ele) { return ele->full5x5_hcalDepth2OverEcalBc(); }
     };
 
-    template<typename Gamma, int cmssw_version>
-    struct GetGammaVer;
-
-    //CMSSW 10 --> 12
-    //hcalOverEcal()   -->  hadronicOverEm()
-    //hcalOverEcalBc() -->  hadTowOverEm()
-    template<typename Gamma>
-    struct GetGammaVer<Gamma, 12> {
-        static float hcalDepth1OverEcal(const Gamma* photon) { return photon->hadronicOverEm(1); }
-        static float hcalDepth2OverEcal(const Gamma* photon) { return photon->hadronicOverEm(2); }
-        static float hcalDepth1OverEcalBc(const Gamma* photon) { return photon->hadTowOverEm(1); }
-        static float hcalDepth2OverEcalBc(const Gamma* photon) { return photon->hadTowOverEm(2); }
-        static float full5x5_hcalDepth1OverEcal(const Gamma* photon) { return photon->full5x5_hadronicOverEm(1); }
-        static float full5x5_hcalDepth2OverEcal(const Gamma* photon) { return photon->full5x5_hadronicOverEm(2); }
-        static float full5x5_hcalDepth1OverEcalBc(const Gamma* photon) { return photon->full5x5_hadTowOverEm(1); }
-        static float full5x5_hcalDepth2OverEcalBc(const Gamma* photon) { return photon->full5x5_hadTowOverEm(2); }
-    };
-
-    template<typename Gamma>
-    struct GetGammaVer<Gamma, 10> {
-        static float hcalDepth1OverEcal(const Gamma* photon) { return photon->hadronicDepth1OverEm(); }
-        static float hcalDepth2OverEcal(const Gamma* photon) { return photon->hadronicDepth2OverEm(); }
-        static float hcalDepth1OverEcalBc(const Gamma* photon) { return photon->hadTowDepth1OverEm(); }
-        static float hcalDepth2OverEcalBc(const Gamma* photon) { return photon->hadTowDepth2OverEm(); }
-        static float full5x5_hcalDepth1OverEcal(const Gamma* photon) { return -999.; }
-        static float full5x5_hcalDepth2OverEcal(const Gamma* photon) { return -999.; }
-        static float full5x5_hcalDepth1OverEcalBc(const Gamma* photon) { return -999.; }
-        static float full5x5_hcalDepth2OverEcalBc(const Gamma* photon) { return -999.; }
-    };
-
-
-
 struct TauTupleProducerData {
     using clock = std::chrono::system_clock;
 
@@ -306,7 +274,7 @@ private:
 
         auto vertices = getHandle(event, vertices_token);
         tauTuple().npv = static_cast<int>(vertices->size());
-	auto secondVertices = getProduct(event, secondVertices_token);
+	auto secondVertices = getHandle(event, secondVertices_token);
         auto rho = getHandle(event, rho_token);
         tauTuple().rho = static_cast<float>(*rho);
 
@@ -373,9 +341,9 @@ private:
         tauTuple().tauSpinnerWTMM = (*tauSpinnerWTMM);
 
         TauJetBuilder builder(builderSetup, *taus, *boostedTaus, *jets, *fatJets, *cands, *electrons, *photons, *muons,
-                              *isoTracks, *lostTracks, genParticles, genJets, requireGenMatch,
+                              *isoTracks, *lostTracks, *secondVertices, genParticles, genJets, requireGenMatch,
                               requireGenORRecoTauMatch, applyRecoPtSieve);
-        const auto [tauJets, tagObj] = selector->Select(event, builder.GetTauJets(), *electrons, *photons, *muons,
+        const auto [tauJets, tagObj] = selector->Select(event, builder.GetTauJets(), *electrons, *muons,
                                                            METs->at(0), PV, *triggerObjects, *triggerResults, *rho);
         tauTuple().tagObj_valid = tagObj != nullptr;                                                    
         tauTuple().tagObj_pt = tagObj ? tagObj->p4.pt() : default_value;
@@ -408,7 +376,7 @@ private:
             FillPhotons(tauJet.photons);
             FillMuons(tauJet.muons, PV);
             FillIsoTracks(tauJet.isoTracks);
-	    FillSV(secondVertices, tauJet.cands);
+	    FillSV(tauJet.secondVertices);
 
             tauTuple.Fill();
         }
@@ -1097,49 +1065,23 @@ private:
         }
     }
 
-    void FillSV(const std::vector<reco::VertexCompositePtrCandidate>*& SVts, const TauJet::PFCandCollection& cands)
+    void FillSV(const TauJet::SVCollection sv)
     {
-
-	auto findMatch = [&](const edm::Ptr<reco::Candidate>& recocand) {
-	    for(size_t cand_idx = 0; cand_idx < cands.size(); ++cand_idx) {
-                auto pfcand = dynamic_cast<const reco::Candidate*>(cands.at(cand_idx).candidate);
-		if(pfcand == &(*recocand))
-		   return static_cast<int>(cand_idx);
-	    }
-	    return -1;
-	};
-
-	auto collectCands = [&](const reco::VertexCompositePtrCandidate& sv) {
-	    std::set<int> cand_indices;
-	    for(size_t it = 0; it < sv.numberOfSourceCandidatePtrs(); it++) {
-                const edm::Ptr<reco::Candidate>& recocand = sv.sourceCandidatePtr(it);
-		int match_idx = findMatch(recocand);
-		if(match_idx >= 0) 
-		   cand_indices.insert(match_idx);
-	    }
-	    return cand_indices;
-	};
-
-        for(unsigned int sv_idx = 0; sv_idx < SVts->size(); ++sv_idx) {
-	   const auto& iSVtx = SVts->at(sv_idx);
-	   auto candsIdx = collectCands(iSVtx);
-	   if(candsIdx.size() > 0){
-	      tauTuple().sv_x.push_back(static_cast<float>(iSVtx.position().x()));
-              tauTuple().sv_y.push_back(static_cast<float>(iSVtx.position().y()));
-              tauTuple().sv_z.push_back(static_cast<float>(iSVtx.position().z()));
-              tauTuple().sv_t.push_back(static_cast<float>(iSVtx.t()));
-	      tauTuple().sv_xE.push_back(static_cast<float>(std::sqrt(iSVtx.vertexCovariance(0,0))));
-              tauTuple().sv_yE.push_back(static_cast<float>(std::sqrt(iSVtx.vertexCovariance(1,1))));
-              tauTuple().sv_zE.push_back(static_cast<float>(std::sqrt(iSVtx.vertexCovariance(2,2))));
-              tauTuple().sv_tE.push_back(static_cast<float>(iSVtx.tError()));
-	      tauTuple().sv_chi2.push_back(static_cast<float>(iSVtx.vertexChi2()));
-              tauTuple().sv_ndof.push_back(static_cast<float>(iSVtx.vertexNdof()));
-	      for(int cand_idx : candsIdx) {
-		 tauTuple().sv_cands_svIdx.push_back(sv_idx);
-		 tauTuple().sv_cands_candIdx.push_back(cand_idx);
-	      }    
-	   }
+        for(const auto& sv_ptr : sv) {
+	   const reco::VertexCompositePtrCandidate* SV = sv_ptr.obj;
+           tauTuple().sv_cands_svIdx.push_back(sv_ptr.index);
+	   tauTuple().sv_x.push_back(static_cast<float>(SV->position().x()));
+           tauTuple().sv_y.push_back(static_cast<float>(SV->position().y()));
+           tauTuple().sv_z.push_back(static_cast<float>(SV->position().z()));
+           tauTuple().sv_t.push_back(static_cast<float>(SV->t()));
+	   tauTuple().sv_xE.push_back(static_cast<float>(std::sqrt(SV->vertexCovariance(0,0))));
+           tauTuple().sv_yE.push_back(static_cast<float>(std::sqrt(SV->vertexCovariance(1,1))));
+           tauTuple().sv_zE.push_back(static_cast<float>(std::sqrt(SV->vertexCovariance(2,2))));
+           tauTuple().sv_tE.push_back(static_cast<float>(SV->tError()));
+	   tauTuple().sv_chi2.push_back(static_cast<float>(SV->vertexChi2()));
+           tauTuple().sv_ndof.push_back(static_cast<float>(SV->vertexNdof()));
         }
+        tauTuple().nsv = sv.size();
     }
 
     static float CalculateGottfriedJacksonAngleDifference(const pat::Tau& tau)

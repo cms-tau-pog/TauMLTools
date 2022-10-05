@@ -32,9 +32,9 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "prod2018UL" || $MODE = 
         APPLY_BOOSTED_FIX=1
         export SCRAM_ARCH=slc7_amd64_gcc700
     elif [[ $MODE = "phase2" ]]; then
-        CMSSW_VER=CMSSW_11_2_5
+        CMSSW_VER=CMSSW_12_4_8
         APPLY_BOOSTED_FIX=0
-        export SCRAM_ARCH=slc7_amd64_gcc900
+        export SCRAM_ARCH=slc7_amd64_gcc100
     elif [ $MODE = "prod2018UL" ] ; then
         CMSSW_VER=CMSSW_10_6_29
         APPLY_BOOSTED_FIX=0

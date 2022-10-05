@@ -197,7 +197,7 @@ else:
 
 if isPhase2:
     process.slimmedElectronsMerged = cms.EDProducer("SlimmedElectronMerger",
-    src = cms.VInputTag("slimmedElectrons","slimmedElectronsFromMultiCl")
+    src = cms.VInputTag("slimmedElectrons","slimmedElectronsHGC")
     )
     electrons_InputTag = cms.InputTag('slimmedElectronsMerged')
     vtx_InputTag = cms.InputTag('offlineSlimmedPrimaryVertices4D')
