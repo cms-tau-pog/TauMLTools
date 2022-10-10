@@ -1,3 +1,4 @@
+plot_ratio: True
 plot_setup: ${.plot_setup_map.${vs_type}}
 plot_setup_map: 
 # ------------------------------------------

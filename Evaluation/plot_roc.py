@@ -83,7 +83,10 @@ def main(cfg: DictConfig) -> None:
                     curves_to_plot.append(roc)
                     curve_names.append(discr_cfg['name'])
 
-        fig, (ax, ax_ratio) = plt.subplots(2, 1, figsize=(7, 7), sharex=True, gridspec_kw = {'height_ratios':[3, 1]})
+        if cfg['plot_ratio']:
+            fig, (ax, ax_ratio) = plt.subplots(2, 1, figsize=(7, 7), sharex=True, gridspec_kw = {'height_ratios':[3, 1]})
+        else:
+            (fig, ax), ax_ratio = plt.subplots(1, 1, figsize=(7, 7)), None
         plot_entries = []
         for curve_to_plot in curves_to_plot:
             plot_entry = curve_to_plot.draw(ax, ax_ratio)
