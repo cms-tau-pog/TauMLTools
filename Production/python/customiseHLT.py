@@ -3,6 +3,33 @@
 # cmsRun hltRun3Summer21MC.py
 
 import FWCore.ParameterSet.Config as cms
+from PhysicsTools.NanoAOD.common_cff import Var, P4Vars
+
+def customiseGenParticles(process):
+  def pdgOR(pdgs):
+    abs_pdgs = [ f'abs(pdgId) == {pdg}' for pdg in pdgs ]
+    return '( ' + ' || '.join(abs_pdgs) + ' )'
+
+  leptons = pdgOR([ 11, 13, 15 ])
+  important_particles = pdgOR([ 6, 23, 24, 25, 35, 39, 9990012, 9900012 ])
+  process.finalGenParticles.select = [
+    'drop *',
+    'keep++ statusFlags().isLastCopy() && ' + leptons,
+    '+keep statusFlags().isFirstCopy() && ' + leptons,
+    'keep+ statusFlags().isLastCopy() && ' + important_particles,
+    '+keep statusFlags().isFirstCopy() && ' + important_particles,
+    "drop abs(pdgId) == 2212 && abs(pz) > 1000", #drop LHC protons accidentally added by previous keeps
+  ]
+
+  for coord in [ 'x', 'y', 'z' ]:
+    setattr(process.genParticleTable.variables, 'v' + coord,
+            Var(f'vertex().{coord}', float, precision=10,
+                doc=f'{coord} coordinate of the gen particle production vertex'))
+  process.genParticleTable.variables.mass.expr = cms.string('mass')
+  process.genParticleTable.variables.mass.doc = cms.string('mass')
+
+  return process
+
 
 def customise(process):
   process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",
@@ -24,27 +51,53 @@ def customise(process):
   #call to customisation function nanoAOD_customizeMC imported from PhysicsTools.NanoAOD.nano_cff
   process = nanoAOD_customizeMC(process)
 
-  process.nanoAOD_step = cms.Path(process.nanoSequenceMC)
+  process.nanoAOD_step = cms.Path(process.HLTBeginSequence \
+    + process.HLTL2TauTagNNSequence \
+    + process.HLTGlobalPFTauHPSSequence \
+    + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau \
+    + process.nanoSequenceMC)
   process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
 
-  process.nanoTableTaskFS = cms.Task(process.genParticleTablesTask, process.genParticleTask)
-  process.nanoSequenceFS = cms.Sequence(process.nanoTableTaskFS)
+  process.tauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src = cms.InputTag( "hltHpsPFTauProducer" ),
+    cut = cms.string(""),
+    name= cms.string("Tau"),
+    doc = cms.string("HLT taus"),
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(False), # this is the main table
+    variables = cms.PSet(
+      P4Vars,
+      charge = Var("charge", int, doc="electric charge"),
+    )
+  )
+
+  process.pfCandTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src = cms.InputTag( "hltParticleFlowForTaus" ),
+    cut = cms.string(""),
+    name= cms.string("PFCand"),
+    doc = cms.string("HLT PF candidates for taus"),
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(False), # this is the main table
+    variables = cms.PSet(
+      P4Vars,
+      charge = Var("charge", int, doc="electric charge"),
+    )
+  )
+
+  process.tauTablesTask = cms.Task(process.tauTable)
+  process.pfCandTablesTask = cms.Task(process.pfCandTable)
+  process.nanoTableTaskFS = cms.Task(process.genParticleTablesTask, process.genParticleTask,
+                                     process.tauTablesTask, process.pfCandTablesTask)
   process.nanoSequenceMC = cms.Sequence(process.nanoTableTaskFS)
   process.finalGenParticles.src = cms.InputTag("genParticles")
 
-  process.MessageLogger.cerr.FwkReport.reportEvery = 100
-  process.finalGenParticles.select = cms.vstring(
-      "drop *",
-      "keep++ abs(pdgId) == 15", # keep full decay chain for taus
-      "+keep abs(pdgId) == 11 || abs(pdgId) == 13 || abs(pdgId) == 15", #keep leptons, with at most one mother back in the history
-      "+keep+ abs(pdgId) == 6 || abs(pdgId) == 23 || abs(pdgId) == 24 || abs(pdgId) == 25 || abs(pdgId) == 35 || abs(pdgId) == 39  || abs(pdgId) == 9990012 || abs(pdgId) == 9900012",   # keep VIP particles
-      "drop abs(pdgId)= 2212 && abs(pz) > 1000", #drop LHC protons accidentally added by previous keeps
-  )
 
-  from PhysicsTools.NanoAOD.common_cff import Var
-  process.genParticleTable.variables.vertex_x = Var('vertex().x', float, precision=10, doc='x coordinate of the gen particle production vertex')
-  process.genParticleTable.variables.vertex_y = Var('vertex().y', float, precision=10, doc='y coordinate of the gen particle production vertex')
-  process.genParticleTable.variables.vertex_z = Var('vertex().z', float, precision=10, doc='z coordinate of the gen particle production vertex')
+  process.MessageLogger.cerr.FwkReport.reportEvery = 100
+  process = customiseGenParticles(process)
+
+  process.genParticleTable.variables.vx = Var('vertex().x', float, precision=10, doc='x coordinate of the gen particle production vertex')
+  process.genParticleTable.variables.vy = Var('vertex().y', float, precision=10, doc='y coordinate of the gen particle production vertex')
+  process.genParticleTable.variables.vz = Var('vertex().z', float, precision=10, doc='z coordinate of the gen particle production vertex')
   process.genParticleTable.variables.mass.expr = cms.string('mass')
   process.genParticleTable.variables.mass.doc = cms.string('mass')
 
