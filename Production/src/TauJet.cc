@@ -328,12 +328,6 @@ void TauJetBuilder::Build()
             return -1;
 	};
 
-        const auto fillSVMatched = [&](auto& out_SVcol, const auto& in_SVcol, const auto& pfCand) {
-	    auto index = collectSV(pfCand);
-	    if(index > 0)
-	        out_SVcol.emplace_back(in_SVcol.at(index), index);
-	};
-
         const auto hasMatch = [&](const PolarLorentzVector& p4) {
             if(tauJet.genLepton && deltaR(p4, tauJet.genLepton->visibleP4()) < setup_.genLepton_cone)
                 return true;
@@ -380,8 +374,6 @@ void TauJetBuilder::Build()
             if(tauJet.fatJet)
                 pfCandDesc.subJetDaughter = GetMatchedSubJetIndex(*tauJet.fatJet, pfCand);
             tauJet.cands.push_back(pfCandDesc);
-	    if(SVidx>0)
-	        fillSVMatched(tauJet.secondVertices, secondVertices_, pfCand);	    
         }
 
         for(size_t pfCandIndex = 0; pfCandIndex < lostTracks_.size(); ++pfCandIndex) {
@@ -391,6 +383,11 @@ void TauJetBuilder::Build()
             pfCandDesc.candidate = &pfCand;
             pfCandDesc.index = static_cast<int>(pfCandIndex);
             tauJet.lostTracks.push_back(pfCandDesc);
+        }
+
+        for(size_t svIndex = 0; svIndex < secondVertices_.size(); ++svIndex) {
+   	  const auto& sv = secondVertices_.at(svIndex);
+	  tauJet.secondVertices.emplace_back(sv, static_cast<int>(svIndex));
         }
 
         fillMatched(tauJet.electrons, electrons_);

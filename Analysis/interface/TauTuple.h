@@ -79,7 +79,7 @@
     VAR4(std::vector<Float_t>, sv_xE, sv_yE, sv_zE, sv_tE) /* position and time errors of the secondary vertices (SV) */ \
     VAR(std::vector<Float_t>, sv_chi2) /* chi^2 of the secondary vertices (SV) */ \
     VAR(std::vector<Float_t>, sv_ndof) /* number of degrees of freedom of the secondary vertices (SV) */ \
-    VAR(std::vector<Int_t>, sv_cands_svIdx) /* idx of cands from SV */ \
+    VAR2(std::vector<Int_t>, sv_cands_svIdx, sv_cands_pfcandIdx) /* idx of cands from SV and associated pf cands*/ \
     VAR2(Float_t, met_pt, met_phi) /* MET momentum */ \
     VAR3(Float_t, metcov_00, metcov_01, metcov_11) /* MET covariance */ \
     VAR2(Float_t, puppimet_pt, puppimet_phi) /* PuppiMET momentum */ \

@@ -1,34 +1,3 @@
-
-Skip to content
-Pull requests
-Issues
-Marketplace
-Explore
-@msessini
-cms-tau-pog /
-TauMLTools
-Public
-
-Code
-Issues 6
-Pull requests 6
-Actions
-Projects 2
-Security
-
-    Insights
-
-TauMLTools/env.sh
-@DennRoy
-DennRoy Merge branch 'master' into Phase2_production
-Latest commit 701eab0 on Jul 11
-History
-4 contributors
-@shedprog
-@kandrosov
-@DennRoy
-@lucasrussell01
-159 lines (150 sloc) 5.93 KB
 #!/bin/bash
 
 if (( $# < 1 )) ; then
@@ -186,20 +155,3 @@ else
 fi
 
 echo "$MODE environment is successfully loaded."
-Footer
-© 2022 GitHub, Inc.
-Footer navigation
-
-    Terms
-    Privacy
-    Security
-    Status
-    Docs
-    Contact GitHub
-    Pricing
-    API
-    Training
-    Blog
-    About
-
-TauMLTools/env.sh at master · cms-tau-pog/TauMLTools
