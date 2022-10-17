@@ -1,0 +1,66 @@
+plot_ratio: True
+plot_setup: ${.plot_setup_map.${vs_type}}
+plot_setup_map: 
+# ------------------------------------------
+  e: 
+    _target_: plot_roc.PlotSetup
+    tick_size: 14
+    xlim: [0.5, 1]
+    #
+    ylabel: 'Electron mis-id probability'
+    ylabel_size: 16
+    yscale: 'log'
+    ylim: [2e-5, 1]
+    #
+    ratio_xlabel_size: 16
+    ratio_yscale: 'log'
+    ratio_ylim: [0.2, 2]
+    ratio_ylabel: 'Ratio'
+    ratio_ylabel_size: 16
+    ratio_ylabel_pad: 10
+    ratio_tick_size: 12
+    #
+    legend_loc: 'upper left'
+    legend_fontsize: 14
+# ------------------------------------------
+  mu:
+    _target_: plot_roc.PlotSetup
+    tick_size: 14
+    xlim: [0.98, 1]
+    #
+    ylabel: 'Muon mis-id probability'
+    ylabel_size: 16
+    yscale: 'log'
+    ylim: [2e-5, 1]
+    #
+    ratio_xlabel_size: 16
+    ratio_yscale: 'log'
+    ratio_ylim: [0.5, 2]
+    ratio_ylabel: 'Ratio'
+    ratio_ylabel_size: 16
+    ratio_ylabel_pad: 10  
+    ratio_tick_size: 12
+    #
+    legend_loc: 'upper left'
+    legend_fontsize: 14
+# ------------------------------------------
+  jet:
+    _target_: plot_roc.PlotSetup
+    tick_size: 14
+    xlim: [0.3, 1]
+    #
+    ylabel: 'Jet mis-id probability'
+    ylabel_size: 16
+    yscale: 'log'
+    ylim: [3e-4, 1]
+    #
+    ratio_xlabel_size: 16
+    ratio_yscale: 'linear'
+    ratio_ylim: [0.4, 1.1]
+    ratio_ylabel: 'Ratio'
+    ratio_ylabel_size: 16
+    ratio_ylabel_pad: 17
+    ratio_tick_size: 12
+    #
+    legend_loc: 'upper left'
+    legend_fontsize: 14

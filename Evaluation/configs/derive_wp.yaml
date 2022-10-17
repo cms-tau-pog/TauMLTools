@@ -37,6 +37,7 @@ wp_maker:
   epsilon: 1e-5
   n_iterations: 100
   verbose: False
+  rounding: 4
 
 create_df:
   _target_: __main__.create_df
@@ -65,7 +66,15 @@ create_df:
       sample_lumi: 59.83
       reweight_to_lumi: 137.64
 
+  # naming conventions of prediction files
+  pred_group_name: predictions
+  pred_column_prefix: node_ # node_ // pred_
+  target_group_name: targets # targets // labels
+  target_column_prefix: node_ # node_ // label_
+
+  # add columns to apply selection on
   # paths to input ROOT files will be retrieved from corresponding pred_input_filemap.json
-  input_branches: [ 'tau_pt', 'tau_eta', 'tau_dz', 'tau_decayMode' ]
-  input_tree_name: taus
+  add_columns_from: 'inputs' # either "predictions" or "inputs"
+  add_columns: [ 'tau_pt', 'tau_eta', 'tau_dz', 'tau_decayMode' ]
   selection: '(tau_pt>=30) and (tau_pt<80) and (abs(tau_eta) < 2.3) and (abs(tau_dz) < 0.2) and not (tau_decayMode in [5,6])'
+  group_or_tree_name: taus # add_columns // taus -- either group name (add_columns_from=prediction) or tree name (add_columns_from=inputs)
