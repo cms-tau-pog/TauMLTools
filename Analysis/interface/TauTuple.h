@@ -77,6 +77,7 @@
     VAR(Float_t, pv_ndof) /* number of degrees of freedom of the primary vertex (PV) */ \
     VAR4(std::vector<Float_t>, sv_x, sv_y, sv_z, sv_t) /* position and time of the secondary vertices (SV) */ \
     VAR4(std::vector<Float_t>, sv_xE, sv_yE, sv_zE, sv_tE) /* position and time errors of the secondary vertices (SV) */ \
+    VAR4(std::vector<Float_t>, sv_pt, sv_eta, sv_phi, sv_mass) /* pt, eta, phi and mass of the secondary vertices (SV) */ \
     VAR(std::vector<Float_t>, sv_chi2) /* chi^2 of the secondary vertices (SV) */ \
     VAR(std::vector<Float_t>, sv_ndof) /* number of degrees of freedom of the secondary vertices (SV) */ \
     VAR2(std::vector<Int_t>, sv_cands_svIdx, sv_cands_pfcandIdx) /* idx of cands from SV and associated pf cands*/ \
