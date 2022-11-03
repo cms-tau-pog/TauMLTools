@@ -1001,7 +1001,7 @@ private:
         }
     }
 
-    void FillSV(const TauJet::SVCollection sv_col, const TauJet::PFCandCollection& cands)
+    void FillSV(const TauJet::SVCollection& sv_col, const TauJet::PFCandCollection& cands)
     {
 
         auto findMatch = [&](const edm::Ptr<reco::Candidate>& recocand) { 
