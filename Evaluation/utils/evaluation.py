@@ -1,83 +1,66 @@
 import numpy as np
 import pandas as pd
 import uproot
-import math
 import copy
 from sklearn import metrics
 from scipy import interpolate
+from statsmodels.stats.proportion import proportion_confint
 from _ctypes import PyObj_FromPtr
 import os
 import h5py
 import json
 import re
-import sys
 from glob import glob
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from hydra.utils import to_absolute_path
 from functools import partial
 
-if sys.version_info.major > 2:
-    from statsmodels.stats.proportion import proportion_confint
-
+@dataclass
 class RocCurve:
-    def __init__(self, n_points, color, has_errors, dots_only = False, dashed = False):
-        self.pr = np.zeros((2, n_points))
-        self.color = color
-        if has_errors:
-            self.pr_err = np.zeros((2, 2, n_points))
+    pr: np.array = None
+    pr_err: np.array = None
+    ratio: np.array = None
+    thresholds: np.array = None
+    auc_score: float = None
+
+    def fill(self, cfg, create_ratio=False, ref_roc=None):
+        fpr = np.array(cfg['false_positive_rate'])
+        n_points = len(fpr)
+        self.auc_score = cfg.get('auc_score')
+        self.pr = np.empty((2, n_points))
+        self.pr[0, :] = fpr
+        self.pr[1, :] = cfg['true_positive_rate']
+
+        if 'false_positive_rate_up' in cfg:
+            self.pr_err = np.empty((2, 2, n_points))
+            self.pr_err[0, 0, :] = cfg['false_positive_rate_up']
+            self.pr_err[0, 1, :] = cfg['false_positive_rate_down']
+            self.pr_err[1, 0, :] = cfg['true_positive_rate_up']
+            self.pr_err[1, 1, :] = cfg['true_positive_rate_down']
+        
+        if 'thresholds' in cfg:
+            self.thresholds = np.empty(n_points)
+            self.thresholds[:] = cfg['thresholds']
+        
+        if 'auc_score' in cfg:
+            self.auc_score = cfg['auc_score']
+
+        if 'plot_cfg' in cfg:
+            self.color = cfg['plot_cfg'].get('color', 'black')
+            self.alpha = cfg['plot_cfg'].get('alpha', 1.)
+            self.dots_only = cfg['plot_cfg'].get('dots_only', False)
+            self.dashed = cfg['plot_cfg'].get('dashed', False)
+            self.marker_size = cfg['plot_cfg'].get('marker_size', 5)
+            self.with_errors = cfg['plot_cfg'].get('with_errors', True)
+
+        if create_ratio:
+            if ref_roc is None:
+                ref_roc = self
+            self.ratio = self.create_roc_ratio(self.pr[1], self.pr[0], ref_roc.pr[1], ref_roc.pr[0], True)
         else:
-            self.pr_err = None
-        self.ratio = None
-        self.thresholds = None
-        self.auc_score = None
-        self.dots_only = dots_only
-        self.dashed = dashed
-        self.marker_size = '5'
-
-    def Draw(self, ax, ax_ratio = None):
-        main_plot_adjusted = False
-        if self.pr_err is not None:
-            x = self.pr[1]
-            y = self.pr[0]
-            entry = ax.errorbar(x, y, xerr=self.pr_err[1], yerr=self.pr_err[0], color=self.color,
-                        fmt='o', markersize=self.marker_size, linewidth=1)
-
-        else:
-            if self.dots_only:
-                entry = ax.errorbar(self.pr[1], self.pr[0], color=self.color, fmt='o', markersize=self.marker_size)
-            else:
-                fmt = '--' if self.dashed else ''
-                x = self.pr[1]
-                y = self.pr[0]
-                if x[-1] - x[-2] > 0.01:
-                    x = x[:-1]
-                    y = y[:-1]
-                    x_max_main = x[-1]
-                    main_plot_adjusted = True
-                entry = ax.errorbar(x, y, color=self.color, fmt=fmt)
-        if self.ratio is not None and ax_ratio is not None:
-            if self.pr_err is not None:
-                x = self.ratio[1]
-                y = self.ratio[0]
-                ax_ratio.errorbar(x, y, color=self.color, fmt='o', markersize='5', linewidth=1)
-                # sp = interpolate.interp1d(x, y, kind='cubic', fill_value="extrapolate")
-                # x_fine = np.arange(x[0], x[-1], step=(x[-1] - x[0]) / 1000)
-                # y_fine = sp(x_fine)
-                # ax_ratio.errorbar(x_fine, y_fine, color=self.color, linewidth=1, fmt='--')
-            else:
-                linestyle = 'dashed' if self.dashed else None
-                x = self.ratio[1]
-                y = self.ratio[0]
-                if main_plot_adjusted:
-                    n = 0
-                    while x[n] < x_max_main and n < len(x):
-                        n += 1
-                    x = x[:n]
-                    y = y[:n]
-                ax_ratio.plot(x, y, color=self.color, linewidth=1, linestyle=linestyle)
-        return entry
-
-    def Prune(self, tpr_decimals=3):
+            self.ratio = None
+            
+    def prune(self, tpr_decimals=3):
         pruned = copy.deepcopy(self)
         rounded_tpr = np.round(self.pr[1, :], decimals=tpr_decimals)
         unique_tpr, idx = np.unique(rounded_tpr, return_index=True)
@@ -93,73 +76,187 @@ class RocCurve:
             pruned.pr_err[:, :, :] = self.pr_err[:, :, idx]
         return pruned
 
+    def draw(self, ax, ax_ratio = None):
+        main_plot_adjusted = False
+        if self.pr_err is not None and self.with_errors:
+            x = self.pr[1]
+            y = self.pr[0]
+            entry = ax.errorbar(x, y, xerr=self.pr_err[1], yerr=self.pr_err[0], color=self.color, alpha=self.alpha,
+                        fmt='o', markersize=self.marker_size, linewidth=1)
+        else:
+            if self.dots_only:
+                entry = ax.errorbar(self.pr[1], self.pr[0], color=self.color, alpha=self.alpha, fmt='o', markersize=self.marker_size)
+            else:
+                fmt = '--' if self.dashed else ''
+                x = self.pr[1]
+                y = self.pr[0]
+                if x[-1] - x[-2] > 0.01:
+                    x = x[:-1]
+                    y = y[:-1]
+                    x_max_main = x[-1]
+                    main_plot_adjusted = True
+                entry = ax.errorbar(x, y, color=self.color, alpha=self.alpha, fmt=fmt)
+        if self.ratio is not None and ax_ratio is not None:
+            if self.pr_err is not None and self.with_errors:
+                x = self.ratio[1]
+                y = self.ratio[0]
+                ax_ratio.errorbar(x, y, color=self.color, alpha=self.alpha, fmt='o', markersize='5', linewidth=1)
+            else:
+                linestyle = 'dashed' if self.dashed else None
+                x = self.ratio[1]
+                y = self.ratio[0]
+                if main_plot_adjusted:
+                    n = 0
+                    while x[n] < x_max_main and n < len(x):
+                        n += 1
+                    x = x[:n]
+                    y = y[:n]
+                ax_ratio.plot(x, y, color=self.color, alpha=self.alpha, linewidth=1, linestyle=linestyle)
+        return entry
+
+    @staticmethod
+    def create_roc_ratio(x1, y1, x2, y2, wp): # wp -> if ratio curve (x2,y2) is a WP
+        if not wp: # compute ratio for interpolation of both curves over their common and joint domain
+            sp1 = interpolate.interp1d(x1, y1)
+            sp2 = interpolate.interp1d(x2, y2)
+            x_comb = np.unique(np.sort(np.concatenate((x1, x2))))
+            x_sub = x_comb[np.all([ x_comb >= max(x1[0], x2[0]) , x_comb <= min(x1[-1], x2[-1]) ], axis=0)]
+            y1_upd = sp1(x_sub)
+            y2_upd = sp2(x_sub)
+            y1_upd_clean = y1_upd[y2_upd > 0]
+            y2_upd_clean = y2_upd[y2_upd > 0]
+            x_clean = x_sub[y2_upd > 0]
+            ratio = np.empty((2, x_clean.shape[0]))
+            ratio[0, :] = y1_upd_clean / y2_upd_clean
+            ratio[1, :] = x_clean
+        else: # compute ratio for interpolation of probed curve only over common domain points with ratio curve
+            sp = interpolate.interp1d(x1, y1)
+            x2_sub = x2[np.all([ x2 >= max(x1[0], x2[0]) , x2 <= min(x1[-1], x2[-1]) ], axis=0)]
+            y2_sub = y2[np.all([ x2 >= max(x1[0], x2[0]) , x2 <= min(x1[-1], x2[-1]) ], axis=0)]
+            y1_upd = sp(x2_sub)
+            y1_upd_clean = y1_upd[y2_sub > 0]
+            x2_clean = x2_sub[y2_sub > 0]
+            y2_clean = y2_sub[y2_sub > 0]
+            ratio = np.empty((2, x2_clean.shape[0]))
+            ratio[0, :] = y1_upd_clean / y2_clean
+            ratio[1, :] = x2_clean
+        return ratio
+
+### ----------------------------------------------------------------------------------------------------------------------  
+
 @dataclass
 class PlotSetup:
-    xlim: list = None
-    ylim: list = None
-    ratio_ylim: list = None
-    ylabel: str = None
+    
+    # general
+    tick_size: int = 14
+    xlim: list = None 
+
+    # y-axis params
+    ylabel: str = "Mis-id probability"
+    ylabel_size: int = 16
     yscale: str = 'log'
+    ylim: list = None
+
+    # ratio params
+    ratio_xlabel_size: int = 16
     ratio_yscale: str = 'linear'
+    ratio_ylim: list = None
+    ratio_ylabel: str = 'Ratio'
+    ratio_ylabel_size: int = 16
+    ratio_ylabel_pad: int = 15
+    ratio_tick_size: int = 12
+
+    # legend params
     legend_loc: str = 'upper left'
-    ratio_ylabel_pad: int = 20
+    legend_fontsize: int = 14
 
-    def Apply(self, names, entries, range_index, ratio_title, ax, ax_ratio = None):
+    def apply(self, names, entries, ax, ax_ratio = None):
         if self.xlim is not None:
-            xlim = self.xlim[range_index] if type(self.xlim[0]) == list else self.xlim
-            ax.set_xlim(xlim)
-
+            ax.set_xlim(self.xlim)
         if self.ylim is not None:
-            ylim = self.ylim[range_index] if type(self.ylim[0]) == list else self.ylim
-            ax.set_ylim(ylim)
+            ax.set_ylim(self.ylim)
 
         ax.set_yscale(self.yscale)
-        ax.set_ylabel(self.ylabel, fontsize=16)
-        ax.tick_params(labelsize=14)
+        ax.set_ylabel(self.ylabel, fontsize=self.ylabel_size)
+        ax.tick_params(labelsize=self.tick_size)
         ax.grid(True)
-        ax.legend(entries, names, fontsize=14, loc=self.legend_loc)
-        #ax.legend(names, fontsize=14, loc='lower right')
+        lentries = []
+        lnames = []
+        for e,n in zip(entries, names):
+          if n not in lnames:
+            lentries.append(e)
+            lnames.append(n)
+        ax.legend(lentries, lnames, fontsize=self.legend_fontsize, loc=self.legend_loc)
 
         if ax_ratio is not None:
             if self.ratio_ylim is not None:
-                ylim = self.ratio_ylim[range_index] if type(self.ratio_ylim[0]) == list else self.ratio_ylim
-                ax_ratio.set_ylim(ylim)
+                ax_ratio.set_ylim(self.ratio_ylim)
 
             ax_ratio.set_yscale(self.ratio_yscale)
-            ax_ratio.set_xlabel('Tau ID efficiency', fontsize=16)
-            #ratio_title = 'MVA/DeepTau' if args.other_type != 'mu' else 'cut based/DeepTau'
-            ax_ratio.set_ylabel(ratio_title, fontsize=14, labelpad=self.ratio_ylabel_pad)
-            ax_ratio.tick_params(labelsize=10)
+            ax_ratio.set_xlabel('Tau ID efficiency', fontsize=self.ratio_xlabel_size)
+            ax_ratio.set_ylabel(self.ratio_ylabel, fontsize=self.ratio_ylabel_size, labelpad=self.ratio_ylabel_pad)
+            ax_ratio.tick_params(labelsize=self.ratio_tick_size)
             ax_ratio.grid(True, which='both')
+    
+    @staticmethod
+    def get_pt_text(pt_min, pt_max):
+        if pt_max == 1000:
+            pt_text = r'$p_T > {}$ GeV'.format(pt_min)
+        elif pt_min == 20:
+            pt_text = r'$p_T < {}$ GeV'.format(pt_max)
+        else:
+            pt_text = r'$p_T\in ({}, {})$ GeV'.format(pt_min, pt_max)
+        
+        return pt_text
 
-def find_threshold(pr, thresholds, target_pr):
-    min_delta_index = 0
-    min_delta = abs(pr[0] - target_pr)
-    for n in range(len(pr)):
-        delta = abs(pr[n] - target_pr)
-        if delta < min_delta:
-            min_delta = delta
-            min_delta_index = n
-    if min_delta > 0.01:
-        return None
-    return thresholds[min_delta_index]
+    @staticmethod
+    def get_eta_text(eta_min, eta_max):
+        eta_text = r'${} < |\eta| < {}$'.format(eta_min, eta_max)
+        return eta_text
+    
+    @staticmethod
+    def get_dm_text(dm_bin):
+        if len(dm_bin)==1:
+            dm_text = r'DM$ = {}$'.format(dm_bin[0])
+        else:
+            dm_text = r'DM$ \in {}$'.format(dm_bin)
+        return dm_text
+
+    def add_text(self, ax, n_entries, pt_min, pt_max, eta_min, eta_max, dm_bin, period):
+        header_y = 1.02
+        ax.text(0.03, 0.89 - n_entries*0.07, self.get_pt_text(pt_min, pt_max), fontsize=14, transform=ax.transAxes)
+        ax.text(0.03, 0.82 - n_entries*0.07, self.get_eta_text(eta_min, eta_max), fontsize=14, transform=ax.transAxes)
+        ax.text(0.03, 0.75 - n_entries*0.07, self.get_dm_text(dm_bin), fontsize=14, transform=ax.transAxes)
+        ax.text(0.01, header_y, 'CMS', fontsize=14, transform=ax.transAxes, fontweight='bold', fontfamily='sans-serif')
+        ax.text(0.12, header_y, 'Simulation Preliminary', fontsize=14, transform=ax.transAxes, fontstyle='italic',
+                fontfamily='sans-serif')
+        ax.text(0.73, header_y, period, fontsize=13, transform=ax.transAxes, fontweight='bold',
+                fontfamily='sans-serif')
+
+### ----------------------------------------------------------------------------------------------------------------------  
 
 @dataclass
 class Discriminator:
     name: str
     pred_column: str
     raw: bool
-    color: str
-    dashed: bool = False 
     wp_from: str = None
     wp_column: str = None
     wp_name_to_index: dict = None
-    working_points: list = field(default_factory=list)
-    working_points_thrs: dict = None 
+    wp_thresholds: dict = None 
 
     def __post_init__(self):
         if self.wp_from is None:
-            self.working_points = []
+            self.wp_thresholds = {}
+        else: # create list of WP names from either of provided WP dictionaries
+            if self.wp_name_to_index is not None and self.wp_thresholds is not None:
+                assert set(self.wp_name_to_index.keys()) == set(self.wp_thresholds.keys())
+            if self.wp_name_to_index is not None:
+                self.wp_names = list(self.wp_name_to_index.keys())
+            elif self.wp_thresholds is not None:
+                self.wp_names = list(self.wp_thresholds.keys())
+            else:
+                raise RuntimeError(f"For wp_from={self.wp_from} either wp_name_to_index or wp_thresholds should be specified, but both are None.")
 
     def count_passed(self, df, wp_name):
         if self.wp_from == 'wp_column':
@@ -169,9 +266,9 @@ class Discriminator:
             passed = (np.bitwise_and(df[self.wp_column], flag) != 0).astype(int)
             return np.sum(passed * df.weight.values)
         elif self.wp_from == 'pred_column':
-            if self.working_points_thrs is not None:
+            if len(self.wp_thresholds) > 0:
                 assert self.pred_column in df.columns
-                wp_thr = self.working_points_thrs[wp_name]
+                wp_thr = self.wp_thresholds[wp_name]
                 return np.sum(df[df[self.pred_column] > wp_thr].weight.values)
             else:
                 raise RuntimeError('Working points thresholds are not specified for discriminator "{}"'.format(self.name))
@@ -182,37 +279,49 @@ class Discriminator:
         roc, wp_roc = None, None
         if self.raw: # construct ROC curve
             fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
-            roc = RocCurve(len(fpr), self.color, False, dashed=self.dashed)
-            roc.pr[0, :] = fpr
-            roc.pr[1, :] = tpr
-            roc.thresholds = thresholds
-            if not (np.isnan(roc.pr[0, :]).any() or np.isnan(roc.pr[1, :]).any()):
-              roc.auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
+            if not (np.isnan(fpr).any() or np.isnan(tpr).any()):
+                auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
+                roc = RocCurve()
+                roc_cfg = {
+                    'false_positive_rate': fpr,
+                    'true_positive_rate': tpr,
+                    'thresholds': thresholds,
+                    'auc_score': auc_score,
+                }
+                roc.fill(roc_cfg, create_ratio=False, ref_roc=None)
             else:
-              print('[INFO] ROC curve is empty!')
-              return None, None
+                print('[INFO] ROC curve is empty!')
+                return None, None
         else:
             print('[INFO] raw=False, will skip creating ROC curve')        
         
         # construct WPs
         if self.wp_from in ['wp_column', 'pred_column']:  
-            if (n_wp:=len(self.working_points)) > 0:
-                wp_roc = RocCurve(n_wp, self.color, not self.raw, self.raw)
-                for wp_i, wp_name in enumerate(self.working_points):
-                    for kind in [0, 1]:
+            if (n_wp:=len(self.wp_names)) > 0:
+                wp_roc = RocCurve()
+                wp_roc_cfg = {
+                    'false_positive_rate': np.empty(n_wp),
+                    'true_positive_rate': np.empty(n_wp),
+                    'false_positive_rate_up': np.empty(n_wp),
+                    'true_positive_rate_up': np.empty(n_wp),
+                    'false_positive_rate_down': np.empty(n_wp),
+                    'true_positive_rate_down': np.empty(n_wp),
+                }
+                for wp_i, wp_name in enumerate(self.wp_names):
+                    for kind, pr_name in zip([0, 1], ['false_positive_rate', 'true_positive_rate']):
+                        # central values
                         df_x = df[df['gen_tau'] == kind]
                         n_passed = self.count_passed(df_x, wp_name)
                         n_total = np.sum(df_x.weight.values)
                         eff = float(n_passed) / n_total if n_total > 0 else 0.0
-                        wp_roc.pr[kind, n_wp - wp_i - 1] = eff
-                        if not self.raw:
-                            if sys.version_info.major > 2:
-                                ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
-                            else:
-                                err = math.sqrt(eff * (1 - eff) / n_total)
-                                ci_low, ci_upp = eff - err, eff + err
-                            wp_roc.pr_err[kind, 1, n_wp - wp_i - 1] = ci_upp - eff
-                            wp_roc.pr_err[kind, 0, n_wp - wp_i - 1] = eff - ci_low
+                        wp_roc_cfg[pr_name][n_wp - wp_i - 1] = eff
+                        
+                        # up/down variations
+                        ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
+                        wp_roc_cfg[f'{pr_name}_down'][n_wp - wp_i - 1] = ci_upp - eff
+                        wp_roc_cfg[f'{pr_name}_up'][n_wp - wp_i - 1] = eff - ci_low
+                        
+                wp_roc.fill(wp_roc_cfg, create_ratio=False, ref_roc=None)
             else:
                 raise RuntimeError('No working points specified')
         elif self.wp_from is None:
@@ -221,33 +330,7 @@ class Discriminator:
             raise RuntimeError(f'create_roc_curve() behaviour not defined for: wp_from={self.wp_from}')
         return roc, wp_roc
 
-def create_roc_ratio(x1, y1, x2, y2, wp):
-    if not wp:
-      sp1 = interpolate.interp1d(x1, y1)
-      sp2 = interpolate.interp1d(x2, y2)
-      x_comb = np.unique(np.sort(np.concatenate((x1, x2))))
-      x_sub = x_comb[np.all([ x_comb >= max(x1[0], x2[0]) , x_comb <= min(x1[-1], x2[-1]) ], axis=0)]
-      y1_upd = sp1(x_sub)
-      y2_upd = sp2(x_sub)
-      y1_upd_clean = y1_upd[y2_upd > 0]
-      y2_upd_clean = y2_upd[y2_upd > 0]
-      x_clean = x_sub[y2_upd > 0]
-      ratio = np.empty((2, x_clean.shape[0]))
-      ratio[0, :] = y1_upd_clean / y2_upd_clean
-      ratio[1, :] = x_clean
-    else:
-      sp = interpolate.interp1d(x1, y1)
-      x2_sub = x2[np.all([ x2 >= max(x1[0], x2[0]) , x2 <= min(x1[-1], x2[-1]) ], axis=0)]
-      y2_sub = y2[np.all([ x2 >= max(x1[0], x2[0]) , x2 <= min(x1[-1], x2[-1]) ], axis=0)]
-      y1_upd = sp(x2_sub)
-      y1_upd_clean = y1_upd[y2_sub > 0]
-      x2_clean = x2_sub[y2_sub > 0]
-      y2_clean = y2_sub[y2_sub > 0]
-      ratio = np.empty((2, x2_clean.shape[0]))
-      ratio[0, :] = y1_upd_clean / y2_clean
-      ratio[1, :] = x2_clean
-
-    return ratio
+### ----------------------------------------------------------------------------------------------------------------------  
 
 def select_curve(curve_list, **selection):
     filter_func = lambda x: all([x[k]==v if k in x else False for k,v in selection.items()])
@@ -390,6 +473,8 @@ def fill_placeholders(string, placeholder_to_value):
     for placeholder, value in placeholder_to_value.items():
         string = string.replace(placeholder, str(value))
     return string
+
+### ----------------------------------------------------------------------------------------------------------------------  
 
 class FloatList(object):
     def __init__(self, value):

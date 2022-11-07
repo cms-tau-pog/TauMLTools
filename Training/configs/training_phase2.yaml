@@ -3,12 +3,11 @@ Setup:
     iso_cone             :  0.5
     n_inner_cells        :  11
     inner_cell_size      :  0.02
-    n_outer_cells        :  21
-    outer_cell_size      :  0.05
+    n_outer_cells        :  25
+    outer_cell_size      :  0.042
     n_threads            :  1
     debug                :  False
     use_weights          :  True
-
 
     # tau_types_names.keys are written in accordance with tauType in the tau tuple
     tau_types_names      : { "0":"e", "1":"mu", "2":"tau", "3":"jet" }
@@ -65,29 +64,29 @@ Setup:
 
 SetupNN:
     model_name           : "DeepTauPhase2v1"
-    n_batches            : -1 # 80000 # -1 for all
-    n_batches_val        : -1 # 80000 # -1 for all
+    n_batches            : -1 # -1 for all
+    n_batches_val        : -1 # -1 for all
     n_batches_log        : 1000 # monitor every n batches in tensorboard
     epoch                : 0
-    n_epochs             : 40
+    n_epochs             : 10
     validation_split     : 0.2
-    max_queue_size       : 10
-    n_load_workers       : 4
+    max_queue_size       : 1
+    n_load_workers       : 1
     input_grids          : [
                             [ GridGlobal, PfCand_electron, PfCand_gamma, Electron ], # e-gamma
                             [ GridGlobal, PfCand_muon, Muon ], # muons
                             [ GridGlobal, PfCand_chHad, PfCand_nHad ] # hadrons
                            ]
-    TauLossesSFs         : [1, 2.5, 5, 1.5]
+    TauLossesSFs         : [0.8, 1.5, 4.0, 1.7]
     optimizer_name       : "Nadam"
     learning_rate        : 0.001
     schedule_decay       : 0.0 #0.0001 # Using step decay instead of schedule decay
     step_decay           : 2 # Halve lr every *this* epochs
     tau_net              : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.4, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
     comp_net             : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "2*n*(1+drop)", "last_layer_width": "n*(1+drop)" }
-    comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.6, "first_layer_width": "n", "last_layer_width": 64 }
-    conv_2d_net          : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": null, "window_size": 3, "pooling": 0 }
-    dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 200, "last_layer_width": 200, "min_n_layers": 4 }
+    comp_merge_net       : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1.65, "first_layer_width": "0.6*n", "last_layer_width": 32 }
+    conv_2d_net          : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": null, "window_size": 3, "pooling": 3 }
+    dense_net            : { "activation": "PReLU", "dropout_rate": 0.2, "reduction_rate": 1, "first_layer_width": 135, "last_layer_width": 135, "min_n_layers": 4 }
     first_layer_reg      : null # eg "L1, reg_fact"
     active_features      : ['TauFlat', 'GridGlobal', 'PfCand_electron', 'PfCand_muon', 'PfCand_chHad', 'PfCand_nHad', 'PfCand_gamma', 'Electron', 'Muon']
     cell_locations       : ['inner', 'outer']

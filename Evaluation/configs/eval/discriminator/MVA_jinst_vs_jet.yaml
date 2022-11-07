@@ -1,7 +1,5 @@
 # general 
 name: MVA vs. jets (JINST 13 (2018) P10005)
-color: green
-dashed: False
 raw: False
 
 # prediction/target columns
@@ -12,14 +10,6 @@ target_column_prefix: node_
 # WPs
 wp_from: wp_column
 wp_column: tau_byIsolationMVArun2017v2DBoldDMwLT2017
-working_points: 
-  - VVLoose
-  - VLoose
-  - Loose
-  - Medium
-  - Tight
-  - VTight
-  - VVTight
 
 # WP maps
 wp_name_to_index:

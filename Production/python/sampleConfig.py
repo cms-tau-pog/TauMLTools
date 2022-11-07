@@ -7,7 +7,7 @@ import os
 if sys.version_info.major < 3:
     from sets import Set as set
 
-mcSampleTypes = set([ 'MC_16', 'MC_UL16', 'MC_UL16APV', 'MC_17', 'MC_UL17', 'MC_18', 'MC_UL18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D', 'MC_Phase2_111X', 'MC_Phase2_110X', 'MC_RUN3_122X'])
+mcSampleTypes = set([ 'MC_16', 'MC_UL16', 'MC_UL16APV', 'MC_17', 'MC_UL17', 'MC_18', 'MC_UL18', 'Emb_16', 'Emb_17', 'Emb_18ABC', 'Emb_18D', 'MC_Phase2_113X', 'MC_Phase2_111X', 'MC_Phase2_110X', 'MC_RUN3_122X'])
 dataSampleTypes = set([ 'Run2016' , 'Run2017', 'Run2018ABC', 'Run2018D', 'RunUL2018' ])
 
 periodDict = { 'MC_16' : 'Run2016',
@@ -28,6 +28,7 @@ periodDict = { 'MC_16' : 'Run2016',
                'Emb_18D' : 'Run2018',
                'MC_Phase2_110X' : 'Phase2',
                'MC_Phase2_111X' : 'Phase2',
+               'MC_Phase2_113X' : 'Phase2',
                'MC_RUN3_122X': "Run3"
              }
 
@@ -50,6 +51,7 @@ globalTagMap = { 'MC_16' : '102X_mcRun2_asymptotic_v7',
                  'Emb_18D' : '102X_dataRun2_Prompt_v15',
                  'MC_Phase2_110X' : '110X_mcRun4_realistic_v3',
                  'MC_Phase2_111X' : 'auto:phase2_realistic_T15',
+                 'MC_Phase2_113X' : 'auto:phase2_realistic_T15',
                  'MC_RUN3_122X' : '122X_mcRun3_2021_realistic_v9'
                }
 
@@ -89,7 +91,7 @@ def isPhase2(sampleType):
     if sampleType not in periodDict:
         print ("ERROR: unknown sample type = '{}'".format(sampleType))
         sys.exit(1)
-    return sampleType in ['MC_Phase2_111X', 'MC_Phase2_110X']
+    return sampleType in ['MC_Phase2_113X', 'MC_Phase2_111X', 'MC_Phase2_110X']
 
 def isRun2PreUL(sampleType):
     if sampleType not in periodDict:

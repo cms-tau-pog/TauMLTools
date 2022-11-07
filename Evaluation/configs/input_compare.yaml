@@ -1,0 +1,29 @@
+
+# mlflow info
+path_to_mlflow: ???
+experiment_id: ???
+run_id: ???
+
+path_to_input_dir: ???
+sample_alias: ??? 
+input_filename: ??? # without file extension
+
+mode:
+    - compare_ids
+    # - compare_input
+
+tensor_map:
+    input_tau : ["TauFlat"]
+    input_inner_egamma  :  [ GridGlobal, PfCand_electron, PfCand_gamma, Electron ] # e-gamma
+    input_inner_muon  :    [ GridGlobal, PfCand_muon, Muon ] # muons
+    input_inner_hadrons :  [ GridGlobal, PfCand_chHad, PfCand_nHad ] # hadrons
+    input_outer_egamma  :  [ GridGlobal, PfCand_electron, PfCand_gamma, Electron ] # e-gamma
+    input_outer_muon  :    [ GridGlobal, PfCand_muon, Muon ] # muons
+    input_outer_hadrons :  [ GridGlobal, PfCand_chHad, PfCand_nHad ] # hadrons
+
+# ToDo -> tensors need to correspond for two interfaces 
+compare_input:
+    input_cmssw : "<cmssw_input_grid>.json"
+    input_python :
+        event : <event_number>
+        tau_index : <tau_number>
