@@ -197,7 +197,7 @@ else:
 
 if isPhase2:
     process.slimmedElectronsMerged = cms.EDProducer("SlimmedElectronMerger",
-    src = cms.VInputTag("slimmedElectrons","slimmedElectronsFromMultiCl")
+    src = cms.VInputTag("slimmedElectrons","slimmedElectronsHGC")
     )
     electrons_InputTag = cms.InputTag('slimmedElectronsMerged')
     vtx_InputTag = cms.InputTag('offlineSlimmedPrimaryVertices4D')
@@ -243,8 +243,10 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     genParticles       = cms.InputTag('prunedGenParticles'),
     puInfo             = cms.InputTag('slimmedAddPileupInfo'),
     vertices           = vtx_InputTag,
+    secondVertices     = cms.InputTag('slimmedSecondaryVertices'),
     rho                = cms.InputTag('fixedGridRhoAll'),
     electrons          = electrons_InputTag,
+    photons	       = cms.InputTag('slimmedPhotons'),
     muons              = cms.InputTag('slimmedMuons'),
     taus               = taus_InputTag,
     boostedTaus        = boostedTaus_InputTag,

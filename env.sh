@@ -4,9 +4,7 @@ if (( $# < 1 )) ; then
     cat << EOF
 Setup environment for TauMLTools
 Usage: source env.sh mode [mode_arg_1] [mode_arg_2] ...
-
 Supported modes: prod2018 prod2018UL phase2 lcg conda
-
 Mode-specific arguments:
 conda
   --update [env.yaml]  updates environment from env.yaml (default: tau-ml-env.yaml)
@@ -44,9 +42,14 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "phase2_113X" || $MODE =
         APPLY_BOOSTED_FIX=0
         export SCRAM_ARCH=slc7_amd64_gcc700
     elif [ $MODE = "run3" ] ; then
-        CMSSW_VER=CMSSW_12_4_0
+        CMSSW_VER=CMSSW_12_4_10
         APPLY_BOOSTED_FIX=0
-        export SCRAM_ARCH=slc7_amd64_gcc10
+        local os_version=$(cat /etc/os-release | grep VERSION_ID | sed -E 's/VERSION_ID="([0-9]+)"/\1/')
+        if [[ $os_version = "7" ]]; then
+            export SCRAM_ARCH=slc7_amd64_gcc10
+        else
+            export SCRAM_ARCH=el8_amd64_gcc10
+        fi
     fi
 
     if ! [ -f soft/$CMSSW_VER/.installed ]; then
