@@ -262,9 +262,6 @@ if len(options.triggers) > 0:
     )
     process.p.insert(0, process.hltFilter)
 
-if isPhase2:
-    process.p.insert(0, process.slimmedElectronsMerged)
-
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 x = process.maxEvents.input.value()
 x = x if x >= 0 else 10000
