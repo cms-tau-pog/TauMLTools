@@ -1,4 +1,4 @@
-sampleType=MC_Phase2_110X
+sampleType=MC era=Phase2_110X
 
 Muminus_Pt100-gun_NoPU   /Muminus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
 Muminus_Pt100-gun_PU140  /Muminus_Pt100-gun/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM

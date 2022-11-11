@@ -1,4 +1,4 @@
-sampleType=MC_Phase2_111X
+sampleType=MC era=Phase2_111X
 
 TTTo2L2Nu_NoPU   /TTTo2L2Nu_TuneCP5_14TeV-powheg-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-NoPU_111X_mcRun4_realistic_T15_v1-v1/FEVT
 TTTo2L2Nu_PU140  /TTTo2L2Nu_TuneCP5_14TeV-powheg-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-PU140_111X_mcRun4_realistic_T15_v1-v1/FEVT
