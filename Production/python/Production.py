@@ -11,7 +11,9 @@ import os
 
 options = VarParsing('analysis')
 options.register('sampleType', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
-                 "Indicates the sample type: MC_18, Run2018ABC, ...")
+                 "Indicates the sample type")
+options.register('era', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                 "Indicates the era")
 options.register('fileList', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "List of root files to process.")
 options.register('fileNamePrefix', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
@@ -45,18 +47,23 @@ options.register('rerunTauReco', False, VarParsing.multiplicity.singleton, VarPa
                 "If true, tau reconstruction is re-run on MINIAOD with a larger signal cone and no DM finding filter")
 options.parseArguments()
 
-sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
-isData = sampleConfig.IsData(options.sampleType)
-isEmbedded = sampleConfig.IsEmbedded(options.sampleType)
-isRun2UL = sampleConfig.isRun2UL(options.sampleType)
-isRun2PreUL = sampleConfig.isRun2PreUL(options.sampleType)
-isPhase2 = sampleConfig.isPhase2(options.sampleType)
-isRun3 = sampleConfig.isRun3(options.sampleType)
-period = sampleConfig.GetPeriod(options.sampleType)
-period_cfg = sampleConfig.GetPeriodCfg(options.sampleType)
+from TauMLTools.Production.sampleConfig import Era, SampleType
+import TauMLTools.Production.sampleConfig as sampleConfig
+sampleType = SampleType[options.sampleType]
+era = Era[options.era]
+isData = sampleType == SampleType.Data
+isEmbedded = sampleType == SampleType.Embedded
+isRun2 = sampleConfig.isRun2(era)
+isRun3 = sampleConfig.isRun3(era)
+isPhase2 = sampleConfig.isPhase2(era)
+era_cfg = sampleConfig.getEraCfg(era)
+globalTag = sampleConfig.getGlobalTag(era, sampleType)
+
+if not (isRun2 or isRun3 or isPhase2):
+    raise RuntimeError("Support for era = {} is not implemented".format(era.name))
 
 processName = 'tupleProduction'
-process = cms.Process(processName, period_cfg)
+process = cms.Process(processName, era_cfg)
 process.options = cms.untracked.PSet()
 process.options.wantSummary = cms.untracked.bool(False)
 process.options.allowUnscheduled = cms.untracked.bool(True)
@@ -89,18 +96,13 @@ process.deepMETProducer = deepMETProducer.clone()
 # include Phase2 specific configuration only after 11_0_X
 if isPhase2:
     process.load('Configuration.Geometry.GeometryExtended2026D49Reco_cff')
-    process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-    from Configuration.AlCa.GlobalTag import GlobalTag
-    process.GlobalTag = GlobalTag(process.GlobalTag, sampleConfig.GetGlobalTag(options.sampleType), '')
-elif isRun3 or isRun2UL:
+elif isRun2 or isRun3:
     process.load('Configuration.Geometry.GeometryRecoDB_cff')
-    process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-    from Configuration.AlCa.GlobalTag import GlobalTag
-    process.GlobalTag = GlobalTag(process.GlobalTag, sampleConfig.GetGlobalTag(options.sampleType), '')
-else:
-    process.load('Configuration.Geometry.GeometryRecoDB_cff')
-    process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
-    process.GlobalTag.globaltag = sampleConfig.GetGlobalTag(options.sampleType)
+
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag, globalTag, '')
+
 process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring())
 process.TFileService = cms.Service('TFileService', fileName = cms.string(options.tupleOutput) )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
@@ -144,8 +146,7 @@ if isPhase2:
         toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1", "newDMPhase2v1"]
     )
     tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
-    boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
-elif isRun3:
+elif isRun2 or isRun3:
     tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
     updatedTauName = "slimmedTausNewID"
     tauIdEmbedder = tauIdConfig.TauIDEmbedder(
@@ -154,54 +155,17 @@ elif isRun3:
     )
     tauIdEmbedder.runTauID()
     boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
-elif isRun2UL:
-    boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
-else:
-    from TauMLTools.Production.runTauIdMVA import runTauID
-    updatedTauName = "slimmedTausNewID"
-    runTauID(process, outputTauCollection = updatedTauName, inputTauCollection = tau_collection,
-             toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
-    tauIdConfig = importlib.import_module('TauMLTools.Production.runTauIdMVA')
 
-    from RecoTauTag.Configuration.boostedHPSPFTaus_cff import ca8PFJetsCHSprunedForBoostedTaus
-    process.ca8PFJetsCHSprunedForBoostedTausPAT = ca8PFJetsCHSprunedForBoostedTaus.clone(
-        src = cms.InputTag("packedPFCandidates"),
-        jetCollInstanceName = cms.string('subJetsForSeedingBoostedTausPAT')
-    )
-    process.cleanedSlimmedTausBoosted = cms.EDProducer("PATBoostedTauCleaner",
-        src = cms.InputTag('slimmedTausBoosted'),
-        pfcands = cms.InputTag('packedPFCandidates'),
-        vtxLabel= cms.InputTag('offlineSlimmedPrimaryVertices'),
-        ca8JetSrc = cms.InputTag('ca8PFJetsCHSprunedForBoostedTausPAT','subJetsForSeedingBoostedTausPAT'),
-        removeOverLap = cms.bool(True),
-    )
-
-    updatedBoostedTauName = "slimmedBoostedTausNewID"
-    runTauID(process, outputTauCollection=updatedBoostedTauName, inputTauCollection="cleanedSlimmedTausBoosted",
-             toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
-
-    process.boostedSequence = cms.Sequence(
-        process.ca8PFJetsCHSprunedForBoostedTausPAT *
-        process.cleanedSlimmedTausBoosted *
-        getattr(process, updatedBoostedTauName + 'rerunMvaIsolationSequence') *
-        getattr(process, updatedBoostedTauName))
-    boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
-
- # boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
-if isRun2UL:
-    taus_InputTag = cms.InputTag('slimmedTaus')
-elif isRun3:
-    taus_InputTag = cms.InputTag('slimmedTausNewID')
-else:
-    taus_InputTag = cms.InputTag('slimmedTausNewID')
+boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
+taus_InputTag = cms.InputTag('slimmedTausNewID')
 
 if isPhase2:
     process.slimmedElectronsMerged = cms.EDProducer("SlimmedElectronMerger",
-    src = cms.VInputTag("slimmedElectrons","slimmedElectronsHGC")
+        src = cms.VInputTag("slimmedElectrons","slimmedElectronsHGC")
     )
     electrons_InputTag = cms.InputTag('slimmedElectronsMerged')
     vtx_InputTag = cms.InputTag('offlineSlimmedPrimaryVertices4D')
-else:
+elif isRun2 or isRun3:
     electrons_InputTag = cms.InputTag('slimmedElectrons')
     vtx_InputTag = cms.InputTag('offlineSlimmedPrimaryVertices')
 
@@ -278,27 +242,12 @@ if isPhase2:
         getattr(process, updatedTauName) +
         process.tupleProductionSequence
     )
-
-elif isRun2UL:
-    process.p = cms.Path(
-	process.deepMETProducer +
-        process.TauSpinnerReco +
-        process.tupleProductionSequence
-    )
-
-elif isRun3:
-    process.p = cms.Path(
-        getattr(process, 'rerunMvaIsolationSequence') +
-        getattr(process, updatedTauName) +
-        process.tupleProductionSequence
-    )
-else:
+elif isRun2 or isRun3:
     process.p = cms.Path(
         process.deepMETProducer +
         process.TauSpinnerReco +
-        getattr(process, updatedTauName + 'rerunMvaIsolationSequence') +
+        getattr(process, 'rerunMvaIsolationSequence') +
         getattr(process, updatedTauName) +
-        process.boostedSequence +
         process.tupleProductionSequence
     )
 
@@ -315,9 +264,6 @@ if len(options.triggers) > 0:
 
 if isPhase2:
     process.p.insert(0, process.slimmedElectronsMerged)
-
-if isRun2PreUL:
-    process.p.insert(2, process.boostedSequence)
 
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 x = process.maxEvents.input.value()
