@@ -92,7 +92,7 @@ if isPhase2:
     process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
     from Configuration.AlCa.GlobalTag import GlobalTag
     process.GlobalTag = GlobalTag(process.GlobalTag, sampleConfig.GetGlobalTag(options.sampleType), '')
-elif isRun3:
+elif isRun3 or isRun2UL:
     process.load('Configuration.Geometry.GeometryRecoDB_cff')
     process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
     from Configuration.AlCa.GlobalTag import GlobalTag
