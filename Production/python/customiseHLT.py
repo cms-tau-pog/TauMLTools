@@ -7,17 +7,17 @@ from PhysicsTools.NanoAOD.common_cff import Var, P4Vars
 
 def customiseGenParticles(process):
   def pdgOR(pdgs):
-    abs_pdgs = [ f'abs(pdgId) == {pdg}'for pdg in pdgs ]
-    return '( '+ '|| '.join(abs_pdgs) + ')'
+    abs_pdgs = [ f'abs(pdgId) == {pdg}' for pdg in pdgs ]
+    return '( ' + ' || '.join(abs_pdgs) + ' )'
 
   leptons = pdgOR([ 11, 13, 15 ])
   important_particles = pdgOR([ 6, 23, 24, 25, 35, 39, 9990012, 9900012 ])
   process.finalGenParticles.select = [
     'drop *',
-    'keep++ statusFlags().isLastCopy() && '+ leptons,
-    '+keep statusFlags().isFirstCopy() && '+ leptons,
-    'keep+ statusFlags().isLastCopy() && '+ important_particles,
-    '+keep statusFlags().isFirstCopy() && '+ important_particles,
+    'keep++ statusFlags().isLastCopy() && ' + leptons,
+    '+keep statusFlags().isFirstCopy() && ' + leptons,
+    'keep+ statusFlags().isLastCopy() && ' + important_particles,
+    '+keep statusFlags().isFirstCopy() && ' + important_particles,
     "drop abs(pdgId) == 2212 && abs(pz) > 1000", #drop LHC protons accidentally added by previous keeps
   ]
 
