@@ -1,28 +1,28 @@
 # How to run:
 # hltGetConfiguration /dev/CMSSW_12_4_0/GRun --globaltag auto:phase1_2022_realistic --mc --unprescale --no-output --max-events 100 --eras Run3 --l1-emulator FullMC --l1 L1Menu_Collisions2022_v1_3_0-d1_xml --customise TauMLTools/Production/customiseHLT.customise --input /store/mc/Run3Summer21DRPremix/TT_TuneCP5_14TeV-powheg-pythia8/GEN-SIM-DIGI-RAW/120X_mcRun3_2021_realistic_v6-v2/2540000/b354245e-d8bc-424d-b527-58815586a6a5.root > hltRun3Summer21MC.py
 # cmsRun hltRun3Summer21MC.py
-
+# file dataset=/store/mc/Run3Summer21DRPremix/TT_TuneCP5_14TeV-powheg-pythia8/GEN-SIM-DIGI-RAW/120X_mcRun3_2021_realistic_v6-v2/2540000/00c642d1-bf7e-477d-91e1-4dd9ce2c8099.root
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import Var, P4Vars
 
 def customiseGenParticles(process):
   def pdgOR(pdgs):
-    abs_pdgs = [ f'abs(pdgId) == {pdg}' for pdg in pdgs ]
-    return '( ' + ' || '.join(abs_pdgs) + ' )'
+    abs_pdgs = [ f'abs(pdgId) == {pdg}'for pdg in pdgs ]
+    return '( '+ '|| '.join(abs_pdgs) + ')'
 
   leptons = pdgOR([ 11, 13, 15 ])
   important_particles = pdgOR([ 6, 23, 24, 25, 35, 39, 9990012, 9900012 ])
   process.finalGenParticles.select = [
     'drop *',
-    'keep++ statusFlags().isLastCopy() && ' + leptons,
-    '+keep statusFlags().isFirstCopy() && ' + leptons,
-    'keep+ statusFlags().isLastCopy() && ' + important_particles,
-    '+keep statusFlags().isFirstCopy() && ' + important_particles,
+    'keep++ statusFlags().isLastCopy() && '+ leptons,
+    '+keep statusFlags().isFirstCopy() && '+ leptons,
+    'keep+ statusFlags().isLastCopy() && '+ important_particles,
+    '+keep statusFlags().isFirstCopy() && '+ important_particles,
     "drop abs(pdgId) == 2212 && abs(pz) > 1000", #drop LHC protons accidentally added by previous keeps
   ]
 
-  for coord in [ 'x', 'y', 'z' ]:
-    setattr(process.genParticleTable.variables, 'v' + coord,
+  for coord in [ 'x', 'y', 'z']:
+    setattr(process.genParticleTable.variables, 'v'+ coord,
             Var(f'vertex().{coord}', float, precision=10,
                 doc=f'{coord} coordinate of the gen particle production vertex'))
   process.genParticleTable.variables.mass.expr = cms.string('mass')
@@ -70,6 +70,7 @@ def customise(process):
       charge = Var("charge", int, doc="electric charge"),
     )
   )
+  # cms.EDProducer : an object that produces a new data object
 
   process.pfCandTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag( "hltParticleFlowForTaus" ),
@@ -81,6 +82,43 @@ def customise(process):
     variables = cms.PSet(
       P4Vars,
       charge = Var("charge", int, doc="electric charge"),
+
+      energy = Var("energy",float, doc= 'energy'),
+      et = Var("et",float, doc= 'transverse energy'),
+      et2 = Var("et2",float, doc= 'transverse energy squared (use this for cut!)'),
+      massSqr = Var("massSqr",float, doc= 'mass squared'),
+      mt = Var("mt",float, doc= 'transverse mass'),
+      mtSqr = Var("mtSqr",float, doc= 'transverse mass squared'),
+      px = Var("px",float, doc= 'x coordinate of momentum vector'),
+      py = Var("py",float, doc= 'y coordinate of momentum vector'),
+      pz = Var("pz",float, doc= 'z coordinate of momentum vector'),
+      theta = Var("theta",float, doc= 'momentum polar angle'),
+      rapidity = Var("rapidity", float, doc='rapidity'),
+      y = Var("y", float, doc='rapidity'),
+      vx = Var("vx", float, doc='x coordinate of vertex position'),
+      vy = Var("vy", float, doc='y coordinate of vertex position'),
+      vz = Var("vz", float, doc='z coordinate of vertex position'),
+      vertexChi2 = Var("vertexChi2", float, doc='chi-squares'),
+      vertexNdof = Var("vertexNdof", float, doc='Number of degrees of freedom,  Meant to be Double32_t for soft-assignment fitters'),
+      vertexNormalizedChi2 = Var("vertexNormalizedChi2", float, doc='chi-squared divided by n.d.o.f.'),
+      pdgId = Var("pdgId", int, doc='PDG identifier'),
+      status = Var("status", int, doc='status word'),
+      longLived = Var("longLived", bool, doc='is long lived?'),
+      massConstraint = Var("massConstraint", bool, doc='do mass constraint?'),
+      hasMasterClone = Var("hasMasterClone", bool, doc='This only happens if the concrete Candidate type is ShallowCloneCandidate'),
+      hasMasterClonePtr = Var("hasMasterClonePtr", bool, doc='This only happens if the concrete Candidate type is ShallowClonePtrCandidate'),
+      isElectron = Var("isElectron", bool, doc=''),
+      isMuon = Var("isMuon", bool, doc=''),
+      isStandAloneMuon = Var("isStandAloneMuon", bool, doc=''),
+      isGlobalMuon = Var("isGlobalMuon", bool, doc=''),
+      isTrackerMuon = Var("isTrackerMuon", bool, doc=''),
+      isCaloMuon = Var("isCaloMuon", bool, doc=''),
+      isPhoton = Var("isPhoton", bool, doc=''),
+      isConvertedPhoton = Var("isConvertedPhoton", bool, doc=''),
+      isJet = Var("isJet", bool, doc=''),
+
+
+
     )
   )
 
