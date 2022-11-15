@@ -88,7 +88,6 @@ def customise(process):
       vz = Var("vz", float, doc='z coordinate of vertex position'),
       vertexChi2 = Var("vertexChi2", float, doc='chi-squares'),
       vertexNdof = Var("vertexNdof", float, doc='Number of degrees of freedom,  Meant to be Double32_t for soft-assignment fitters'),
-      vertexNormalizedChi2 = Var("vertexNormalizedChi2", float, doc='chi-squared divided by n.d.o.f.'),
       pdgId = Var("pdgId", int, doc='PDG identifier'),
       status = Var("status", int, doc='status word'),
       longLived = Var("longLived", bool, doc='is long lived?'),
