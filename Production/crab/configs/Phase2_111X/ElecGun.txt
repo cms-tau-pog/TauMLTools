@@ -1,4 +1,4 @@
-sampleType=MC_Phase2_111X
+sampleType=MC era=Phase2_111X
 
 DoubleElectron_FlatPt-1To100_NoPU   /DoubleElectron_FlatPt-1To100/Phase2HLTTDRSummer20ReRECOMiniAOD-NoPU_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
 DoubleElectron_FlatPt-1To100_PU140  /DoubleElectron_FlatPt-1To100/Phase2HLTTDRSummer20ReRECOMiniAOD-PU140_111X_mcRun4_realistic_T15_v1-v2/GEN-SIM-DIGI-RAW-MINIAOD
