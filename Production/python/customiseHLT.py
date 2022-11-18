@@ -116,7 +116,7 @@ def customise(process):
       isPhoton = Var("isPhoton", bool, doc=''),
       isConvertedPhoton = Var("isConvertedPhoton", bool, doc=''),
       isJet = Var("isJet", bool, doc=''),
-
+      # source: cmssw/PhysicsTools/NanoAOD/plugins/SimpleFlatTableProducerPlugins.cc 
 
 
     )
