@@ -92,17 +92,6 @@ def customise(process):
       status = Var("status", int, doc='status word'),
       longLived = Var("longLived", bool, doc='is long lived?'),
       massConstraint = Var("massConstraint", bool, doc='do mass constraint?'),
-      hasMasterClone = Var("hasMasterClone", bool, doc='This only happens if the concrete Candidate type is ShallowCloneCandidate'),
-      hasMasterClonePtr = Var("hasMasterClonePtr", bool, doc='This only happens if the concrete Candidate type is ShallowClonePtrCandidate'),
-      isElectron = Var("isElectron", bool, doc=''),
-      isMuon = Var("isMuon", bool, doc=''),
-      isStandAloneMuon = Var("isStandAloneMuon", bool, doc=''),
-      isGlobalMuon = Var("isGlobalMuon", bool, doc=''),
-      isTrackerMuon = Var("isTrackerMuon", bool, doc=''),
-      isCaloMuon = Var("isCaloMuon", bool, doc=''),
-      isPhoton = Var("isPhoton", bool, doc=''),
-      isConvertedPhoton = Var("isConvertedPhoton", bool, doc=''),
-      isJet = Var("isJet", bool, doc=''),
       # source: cmssw/PhysicsTools/NanoAOD/plugins/SimpleFlatTableProducerPlugins.cc 
 
 
