@@ -93,7 +93,19 @@ def customise(process):
       longLived = Var("longLived", bool, doc='is long lived?'),
       massConstraint = Var("massConstraint", bool, doc='do mass constraint?'),
       # source: cmssw/PhysicsTools/NanoAOD/plugins/SimpleFlatTableProducerPlugins.cc 
-
+      CKFtrackDz = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dz : -999.", float, doc = "CKF track Dz"),
+      GSFtrackDz = Var("? gsfTrackRef.isNonnull && gsfTrackRef.isAvailable ? gsfTrackRef.dz : -999.", float, doc = "GSF track Dz"),
+      CKFtrackDxy = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dxy : -999.", float, doc = "CKF track Dxy"),
+      GSFtrackDxy = Var("? gsfTrackRef.isNonnull && gsfTrackRef.isAvailable ? gsfTrackRef.dxy : -999.", float, doc = "GSF track Dxy"),
+      CKFtrackIsValid = Var("trackRef.isNonnull && trackRef.isAvailable", bool, doc = "CKF track is valid"),
+      GSFtrackIsValid = Var("gsfTrackRef.isNonnull && gsfTrackRef.isAvailable", bool, doc = "GSF track is valid"),
+      
+      # CKFLostInnerHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.hitPattern.numberOfLostHits(reco::HitPattern::MISSING_INNER_HITS) : -999.", float, doc = "CKF track LostInnerHit"), 
+      # This doesn't work: failed to parse "? trackRef.isNonnull && trackRef.isAvailable ? trackRef.hitPattern.numberOfLostHits(reco::HitPattern::MISSING_INNER_HITS) : -999."
+      # also tried: CKFLostInnerHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.hitPattern.numberOfLostHits : -999.", float, doc = "CKF track LostInnerHit"), 
+      # this doesn't work: method named "numberOfLostHits" for type "reco::HitPattern" was passed the wrong number of arguments. 
+      rawHcalEnergy = Var("rawHcalEnergy", float, doc='rawHcalEnergy'),
+      rawEcalEnergy = Var("rawEcalEnergy", float, doc='rawEcalEnergy'),
 
     )
   )
