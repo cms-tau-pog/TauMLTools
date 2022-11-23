@@ -93,20 +93,60 @@ def customise(process):
       longLived = Var("longLived", bool, doc='is long lived?'),
       massConstraint = Var("massConstraint", bool, doc='do mass constraint?'),
       # source: cmssw/PhysicsTools/NanoAOD/plugins/SimpleFlatTableProducerPlugins.cc 
-      CKFtrackDz = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dz : -999.", float, doc = "CKF track Dz"),
-      GSFtrackDz = Var("? gsfTrackRef.isNonnull && gsfTrackRef.isAvailable ? gsfTrackRef.dz : -999.", float, doc = "GSF track Dz"),
-      CKFtrackDxy = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dxy : -999.", float, doc = "CKF track Dxy"),
-      GSFtrackDxy = Var("? gsfTrackRef.isNonnull && gsfTrackRef.isAvailable ? gsfTrackRef.dxy : -999.", float, doc = "GSF track Dxy"),
-      CKFtrackIsValid = Var("trackRef.isNonnull && trackRef.isAvailable", bool, doc = "CKF track is valid"),
-      GSFtrackIsValid = Var("gsfTrackRef.isNonnull && gsfTrackRef.isAvailable", bool, doc = "GSF track is valid"),
+      trackDz = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dz : -999.", float, doc = "track Dz"),
+      trackDxy = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dxy : -999.", float, doc = "track Dxy"),
+      trackIsValid = Var("trackRef.isNonnull && trackRef.isAvailable", bool, doc = "track is valid"),
       
-      # CKFLostInnerHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.hitPattern.numberOfLostHits(reco::HitPattern::MISSING_INNER_HITS) : -999.", float, doc = "CKF track LostInnerHit"), 
-      # This doesn't work: failed to parse "? trackRef.isNonnull && trackRef.isAvailable ? trackRef.hitPattern.numberOfLostHits(reco::HitPattern::MISSING_INNER_HITS) : -999."
-      # also tried: CKFLostInnerHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.hitPattern.numberOfLostHits : -999.", float, doc = "CKF track LostInnerHit"), 
-      # this doesn't work: method named "numberOfLostHits" for type "reco::HitPattern" was passed the wrong number of arguments. 
+      trackDzError = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dzError : -999.", float, doc = "track DzError"),
+      trackDxyError = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dxyError : -999.", float, doc = "track DxyError"),
+      
+      trackPt = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.pt : -999.", float, doc = "track Pt"),
+      trackEta = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.eta : -999.", float, doc = "track Eta"),
+      trackPhi = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.phi : -999.", float, doc = "track Phi"),
+      trackPtError = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.ptError : -999.", float, doc = "track PtError"),
+      trackPtaError = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.etaError : -999.", float, doc = "track PtaError"),
+      trackPhiError = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.phiError : -999.", float, doc = "track PhiError"),
+      trackChi2 = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.chi2 : -999.", float, doc = "track Chi2"),
+      trackNdof = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.ndof : -999.", float, doc = "track Ndof"),
+      
+      # source: DataFormats/TrackReco/interface/HitPattern.h
+      
+      trackNumberOfValidHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.hitPattern.numberOfValidHits : -999.", float, doc = "number of valid hits found"),
+      trackNumberOfLostHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.numberOfLostHits : -999.", float, doc = " number of cases where track crossed a layer without getting a hit."),
+      trackMissingInnerHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.missingInnerHits : -999.", float, doc = "number of hits expected from inner track extrapolation but missing"),
+      missingOuterHits= Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.missingOuterHits : -999.", float, doc = " number of hits expected from outer track extrapolation but missing"),
+      validFraction= Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.validFraction : -999.", float, doc = "fraction of valid hits on the track"),
+
       rawHcalEnergy = Var("rawHcalEnergy", float, doc='rawHcalEnergy'),
       rawEcalEnergy = Var("rawEcalEnergy", float, doc='rawEcalEnergy'),
+      EcalEnergy = Var("ecalEnergy", float, doc='EcalEnergy'),
+      HcalEnergy = Var("hcalEnergy", float, doc='HcalEnergy'),
+      # ecalEnergy()
+      # """
+      # TODO:
+      # track_dxyError
+      # track_dzError
+      # track_pt
+      # track_eta
+      # track_phi
+      # track_ptError
+      # track_etaError
+      # track_phiError
+      # track_chi2
+      # track_ndof
 
+      # track_numberOfValidHits
+      # track_numberOfLostHits
+      # track_missingInnerHits
+      # track_missingOuterHits
+      # track_validFraction
+      # track_qualityMask
+
+      # hcalEnergy
+      # ecalEnergy
+      # """
+      
+      
     )
   )
 
