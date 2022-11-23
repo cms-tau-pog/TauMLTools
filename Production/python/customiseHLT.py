@@ -109,9 +109,8 @@ def customise(process):
       trackChi2 = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.chi2 : -999.", float, doc = "track Chi2"),
       trackNdof = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.ndof : -999.", float, doc = "track Ndof"),
       
-      # source: DataFormats/TrackReco/interface/HitPattern.h
-      
-      trackNumberOfValidHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.hitPattern.numberOfValidHits : -999.", float, doc = "number of valid hits found"),
+      # source: DataFormats/TrackReco/interface/TrackBase.h
+      trackNumberOfValidHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.numberOfValidHits : -999.", float, doc = "number of valid hits found"),
       trackNumberOfLostHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.numberOfLostHits : -999.", float, doc = " number of cases where track crossed a layer without getting a hit."),
       trackMissingInnerHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.missingInnerHits : -999.", float, doc = "number of hits expected from inner track extrapolation but missing"),
       missingOuterHits= Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.missingOuterHits : -999.", float, doc = " number of hits expected from outer track extrapolation but missing"),
