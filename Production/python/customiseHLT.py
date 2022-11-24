@@ -120,31 +120,6 @@ def customise(process):
       rawEcalEnergy = Var("rawEcalEnergy", float, doc='rawEcalEnergy'),
       EcalEnergy = Var("ecalEnergy", float, doc='EcalEnergy'),
       HcalEnergy = Var("hcalEnergy", float, doc='HcalEnergy'),
-      # ecalEnergy()
-      # """
-      # TODO:
-      # track_dxyError
-      # track_dzError
-      # track_pt
-      # track_eta
-      # track_phi
-      # track_ptError
-      # track_etaError
-      # track_phiError
-      # track_chi2
-      # track_ndof
-
-      # track_numberOfValidHits
-      # track_numberOfLostHits
-      # track_missingInnerHits
-      # track_missingOuterHits
-      # track_validFraction
-      # track_qualityMask
-
-      # hcalEnergy
-      # ecalEnergy
-      # """
-      
       
     )
   )
@@ -160,9 +135,6 @@ def customise(process):
   process.MessageLogger.cerr.FwkReport.reportEvery = 100
   process = customiseGenParticles(process)
 
-  process.genParticleTable.variables.vx = Var('vertex().x', float, precision=10, doc='x coordinate of the gen particle production vertex')
-  process.genParticleTable.variables.vy = Var('vertex().y', float, precision=10, doc='y coordinate of the gen particle production vertex')
-  process.genParticleTable.variables.vz = Var('vertex().z', float, precision=10, doc='z coordinate of the gen particle production vertex')
   process.genParticleTable.variables.mass.expr = cms.string('mass')
   process.genParticleTable.variables.mass.doc = cms.string('mass')
 
