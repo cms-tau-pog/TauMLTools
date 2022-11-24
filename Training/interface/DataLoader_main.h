@@ -1,3 +1,4 @@
+#include "TauMLTools/Analysis/interface/TauTuple.h"
 #include "TauMLTools/Training/interface/DataLoader_tools.h"
 #include "TauMLTools/Training/interface/histogram2d.h"
 
