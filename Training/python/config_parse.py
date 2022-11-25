@@ -169,10 +169,10 @@ def create_scaling_input(input_scaling_file: str, training_cfg_data: dict, verbo
 
     def create_scaling(content_scaling: dict, content_cfg: dict) -> str:
         string = "namespace Scaling {\n"
-        for FeatureT in content_scaling:
+        for FeatureT in content_cfg["Features_all"]:
             string += "struct "+FeatureT+"{\n"
             duplicate = FeatureT in content_cfg['CellObjectType'] # whether to duplicate scaling param values across cone_groups
-            for i, subg in enumerate(subgroups):
+            for subg in subgroups:
                 string += "inline static const "
                 string += "std::vector<std::vector<float>> "
                 string += subg + " = "
@@ -185,7 +185,7 @@ def create_scaling_input(input_scaling_file: str, training_cfg_data: dict, verbo
                         continue
                     feature_list_enabled.append(list(feature_dict)[0])
 
-                for var_i, var in enumerate(feature_list_enabled):
+                for var in feature_list_enabled:
                     var_params = content_scaling[FeatureT][var]
                     if len(var_params)==len(cone_groups) and all([g in var_params.keys() for g in cone_groups]):
                         var_string.append(",".join([conv_str(var_params[cone_group][subg]) for cone_group in cone_groups]))
