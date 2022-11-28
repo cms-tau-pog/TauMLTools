@@ -411,11 +411,9 @@ private:
                 Long64_t pos = 0;
                 Long64_t shift = 1;
                 std::set<int> mother_indices;
-		int Nmother = 0;
                 for(auto mother : mothers) {
-		    if(Nmother>6) break;
+		    if(mother_indices.size() >= 6) break;
                     mother_indices.insert(getIndex(mother));
-		    ++Nmother;
 		}
                 for(int mother_idx : mother_indices) {
                     pos = pos + shift * mother_idx;
@@ -424,9 +422,7 @@ private:
                 return pos;
             };
 
-            tauTuple().genLepton_lastMotherIndex = static_cast<int>(genLepton->mothers().size()) - 1;
-	    if(genLepton->mothers().size()>6) 
-		    tauTuple().genLepton_lastMotherIndex = 5;
+            tauTuple().genLepton_lastMotherIndex = static_cast<int>(std::min(genLepton->mothers().size(),6)) - 1;
             for(const auto& p : genLepton->allParticles()) {
                 tauTuple().genParticle_pdgId.push_back(p.pdgId);
                 tauTuple().genParticle_mother.push_back(encodeMotherIndex(p.mothers));
