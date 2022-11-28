@@ -422,7 +422,7 @@ private:
                 return pos;
             };
 
-            tauTuple().genLepton_lastMotherIndex = static_cast<int>(std::min(genLepton->mothers().size(),6)) - 1;
+            tauTuple().genLepton_lastMotherIndex = std::min(static_cast<int>(genLepton->mothers().size()),6) - 1;
             for(const auto& p : genLepton->allParticles()) {
                 tauTuple().genParticle_pdgId.push_back(p.pdgId);
                 tauTuple().genParticle_mother.push_back(encodeMotherIndex(p.mothers));
