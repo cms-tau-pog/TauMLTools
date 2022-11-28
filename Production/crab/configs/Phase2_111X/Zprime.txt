@@ -1,4 +1,4 @@
-sampleType=MC_Phase2_111X
+sampleType=MC era=Phase2_111X
 
 ZprimeToEE_M-6000_NoPU   /ZprimeToEE_M-6000_TuneCP5_14TeV-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-NoPU_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
 ZprimeToEE_M-6000_PU140  /ZprimeToEE_M-6000_TuneCP5_14TeV-pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-PU140_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD

@@ -1,4 +1,4 @@
-sampleType=MC_Phase2_110X
+sampleType=MC era=Phase2_110X
 
 DYToLL_M-50_NoPU_pilot   /DYToLL_M-50_TuneCP5_14TeV-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_pilot_110X_mcRun4_realistic_v3-v2/MINIAODSIM
 DYToLL_M-50_PU140_pilot1 /DYToLL_M-50_TuneCP5_14TeV-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-PU140_pilot1_110X_mcRun4_realistic_v3-v2/MINIAODSIM

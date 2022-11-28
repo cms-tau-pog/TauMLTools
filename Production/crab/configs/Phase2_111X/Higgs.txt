@@ -1,4 +1,4 @@
-sampleType=MC_Phase2_111X
+sampleType=MC era=Phase2_111X
 
 GluGluHToTauTau_M125_NoPU   /GluGluHToTauTau_M125_14TeV_powheg_pythia8_TuneCP5/Phase2HLTTDRSummer20ReRECOMiniAOD-NoPU_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD
 GluGluHToTauTau_M125_PU140  /GluGluHToTauTau_M125_TuneCP5_14TeV_powheg_pythia8/Phase2HLTTDRSummer20ReRECOMiniAOD-PU140_111X_mcRun4_realistic_T15_v1-v1/GEN-SIM-DIGI-RAW-MINIAOD

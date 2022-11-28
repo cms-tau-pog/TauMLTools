@@ -1,4 +1,4 @@
-sampleType=MC_Phase2_110X
+sampleType=MC era=Phase2_110X
 
 MinBias_TuneCP5_NoPU  /MinBias_TuneCP5_14TeV-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_110X_mcRun4_realistic_v3-v2/MINIAODSIM
 MinBias_TuneCP5_PU140 /MinBias_TuneCP5_14TeV-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-PU140_110X_mcRun4_realistic_v3-v2/MINIAODSIM

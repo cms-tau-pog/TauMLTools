@@ -4,7 +4,7 @@ if (( $# < 1 )) ; then
     cat << EOF
 Setup environment for TauMLTools
 Usage: source env.sh mode [mode_arg_1] [mode_arg_2] ...
-Supported modes: prod2018 prod2018UL phase2 lcg conda
+Supported modes: run2 run3 phase2_112X phase2_113X lcg conda
 Mode-specific arguments:
 conda
   --update [env.yaml]  updates environment from env.yaml (default: tau-ml-env.yaml)
@@ -24,27 +24,17 @@ function run_cmd {
     fi
 }
 
-if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "phase2_113X" || $MODE = "prod2018UL" || $MODE = "run3" ]]; then
-    if [ $MODE = "prod2018" ] ; then
-        CMSSW_VER=CMSSW_10_6_29
-        APPLY_BOOSTED_FIX=1
-        export SCRAM_ARCH=slc7_amd64_gcc700
-    elif [[ $MODE = "phase2" ]]; then
-        CMSSW_VER=CMSSW_11_2_5
-        APPLY_BOOSTED_FIX=0
+export TAU_ML_DIR="$(pwd)"
+if [[ $MODE = "phase2_112X" || $MODE = "phase2_113X" || $MODE = "run2" || $MODE = "run3" ]]; then
+    local os_version=$(cat /etc/os-release | grep VERSION_ID | sed -E 's/VERSION_ID="([0-9]+)"/\1/')
+    if [[ $MODE = "phase2_112X" ]]; then
+        local CMSSW_VER=CMSSW_11_2_5
         export SCRAM_ARCH=slc7_amd64_gcc900
     elif [[ $MODE = "phase2_113X" ]]; then
-        CMSSW_VER=CMSSW_11_3_0
-        APPLY_BOOSTED_FIX=0
+        local CMSSW_VER=CMSSW_11_3_0
         export SCRAM_ARCH=slc7_amd64_gcc900
-    elif [ $MODE = "prod2018UL" ] ; then
-        CMSSW_VER=CMSSW_10_6_29
-        APPLY_BOOSTED_FIX=0
-        export SCRAM_ARCH=slc7_amd64_gcc700
-    elif [ $MODE = "run3" ] ; then
-        CMSSW_VER=CMSSW_12_4_10
-        APPLY_BOOSTED_FIX=0
-        local os_version=$(cat /etc/os-release | grep VERSION_ID | sed -E 's/VERSION_ID="([0-9]+)"/\1/')
+    elif [[ $MODE = "run2" || $MODE = "run3" ]] ; then
+        local CMSSW_VER=CMSSW_12_4_10
         if [[ $os_version = "7" ]]; then
             export SCRAM_ARCH=slc7_amd64_gcc10
         else
@@ -52,33 +42,31 @@ if [[ $MODE = "prod2018" || $MODE = "phase2" || $MODE = "phase2_113X" || $MODE =
         fi
     fi
 
-    if ! [ -f soft/$CMSSW_VER/.installed ]; then
-        run_cmd mkdir -p soft
-        run_cmd cd soft
+    local cmssw_inst_root="$TAU_ML_DIR/soft/CentOS${os_version}"
+    local cmssw_inst="$cmssw_inst_root/$CMSSW_VER"
+    if ! [ -f $cmssw_inst/.installed ]; then
+        run_cmd mkdir -p "$cmssw_inst_root"
+        run_cmd cd "$cmssw_inst_root"
         if [ -d $CMSSW_VER ]; then
             echo "Removing incomplete $CMSSW_VER installation..."
             run_cmd rm -rf $CMSSW_VER
         fi
         echo "Creating new $CMSSW_VER area..."
         run_cmd scramv1 project CMSSW $CMSSW_VER
-        run_cmd cd $CMSSW_VER/src
+        run_cmd cd "$CMSSW_VER/src"
         run_cmd eval `scramv1 runtime -sh`
-        if (( $APPLY_BOOSTED_FIX == 1 )); then
-            run_cmd git cms-merge-topic -u cms-tau-pog:CMSSW_10_6_X_tau-pog_boostedTausMiniFix
-        fi
-
         run_cmd mkdir TauMLTools
         run_cmd cd TauMLTools
-        run_cmd ln -s ../../../../Analysis Analysis
-        run_cmd ln -s ../../../../Core Core
-        run_cmd ln -s ../../../../Production Production
-        run_cmd touch ../../.installed
+        run_cmd ln -s "$TAU_ML_DIR/Analysis" Analysis
+        run_cmd ln -s "$TAU_ML_DIR/Core" Core
+        run_cmd ln -s "$TAU_ML_DIR/Production" Production
+        run_cmd touch "$cmssw_inst/.installed"
         run_cmd scram b -j8
-        run_cmd cd ../../../..
+        run_cmd cd "$TAU_ML_DIR"
     else
-        run_cmd cd soft/$CMSSW_VER/src
+        run_cmd cd "$cmssw_inst/src"
         run_cmd eval `scramv1 runtime -sh`
-        run_cmd cd ../../..
+        run_cmd cd "$TAU_ML_DIR"
     fi
 elif [[ $MODE = "conda" ]]; then
     CONDA=$(which conda 2>/dev/null)
@@ -151,8 +139,8 @@ elif [[ $MODE = "conda" ]]; then
         echo "Updating conda environment from '$ENV_YAML'..."
         run_cmd conda env update --file $ENV_YAML --prune
     fi
-    TAU_ML_DIR=$(cd $(dirname $(which python))/..; pwd)
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TAU_ML_DIR/lib
+    local TAU_ML_LIB_DIR=$(cd $(dirname $(which python))/..; pwd)
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TAU_ML_LIB_DIR/lib
 elif [[ $MODE = "lcg" ]]; then
     run_cmd source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_101cuda x86_64-centos7-gcc10-opt
 else
