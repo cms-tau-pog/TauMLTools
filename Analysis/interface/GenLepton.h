@@ -244,14 +244,8 @@ private:
 
             if(!particle->motherRefVector().empty()) {
 		int Nmother = 0;
-                for(const auto& mother : particle->motherRefVector()) {
+                for(const auto& mother : particle->motherRefVector())
                     FillDaughters(mother.get(), NoneIndex, false);
-		    ++Nmother;
-		    if(Nmother>6) {
-			    std::cout<<"Warning : Gen particle with > 6 mothers, storing only 6 firsts"<<std::endl;
-			    break;
-		    }
-		}
                 last_mother_index = particle->motherRefVector().size() - 1;
             }
 
