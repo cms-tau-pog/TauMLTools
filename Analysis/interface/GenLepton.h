@@ -248,7 +248,7 @@ private:
                     FillDaughters(mother.get(), NoneIndex, false);
 		    ++Nmother;
 		    if(Nmother>6) {
-			    std::cout<<"Warning : Gen lepton with > 6 mothers, storing only 6 firsts"<<std::endl;
+			    std::cout<<"Warning : Gen particle with > 6 mothers, storing only 6 firsts"<<std::endl;
 			    break;
 		    }
 		}
