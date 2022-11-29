@@ -243,7 +243,6 @@ private:
             size_t last_mother_index = NoneIndex;
 
             if(!particle->motherRefVector().empty()) {
-		int Nmother = 0;
                 for(const auto& mother : particle->motherRefVector())
                     FillDaughters(mother.get(), NoneIndex, false);
                 last_mother_index = particle->motherRefVector().size() - 1;

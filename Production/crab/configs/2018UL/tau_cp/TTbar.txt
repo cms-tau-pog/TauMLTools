@@ -1,0 +1,4 @@
+sampleType=MC era=Run2_2018 selector=genTauTau
+
+TTbar_2L2Nu /TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM
+
