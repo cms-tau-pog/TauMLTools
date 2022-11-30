@@ -403,15 +403,18 @@ private:
                         static_cast<Long64_t>(reco_tau::gen_truth::GenLepton::MaxNumberOfParticles);
 
                 if(mothers.empty()) return -1;
-                if(mothers.size() > 6)
-                    throw cms::Exception("TauTupleProducer") << "Gen particle with > 6 mothers.";
+                if(mothers.size() > 6) {
+		    std::cout<<"Warning : Gen particle with > 6 mothers, storing only 6 firsts"<<std::endl;
+		}
                 if(mothers.size() > 1 && genLepton->allParticles().size() > static_cast<size_t>(shift_scale))
                     throw cms::Exception("TauTupleProducer") << "Too many gen particles per gen lepton.";
                 Long64_t pos = 0;
                 Long64_t shift = 1;
                 std::set<int> mother_indices;
-                for(auto mother : mothers)
+                for(auto mother : mothers) {
+		    if(mother_indices.size() >= 6) break;
                     mother_indices.insert(getIndex(mother));
+		}
                 for(int mother_idx : mother_indices) {
                     pos = pos + shift * mother_idx;
                     shift *= shift_scale;
@@ -419,7 +422,7 @@ private:
                 return pos;
             };
 
-            tauTuple().genLepton_lastMotherIndex = static_cast<int>(genLepton->mothers().size()) - 1;
+            tauTuple().genLepton_lastMotherIndex = std::min(static_cast<int>(genLepton->mothers().size()),6) - 1;
             for(const auto& p : genLepton->allParticles()) {
                 tauTuple().genParticle_pdgId.push_back(p.pdgId);
                 tauTuple().genParticle_mother.push_back(encodeMotherIndex(p.mothers));
