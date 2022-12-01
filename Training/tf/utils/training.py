@@ -2,10 +2,12 @@ import yaml
 from glob import glob
 from collections import defaultdict
 from hydra.utils import to_absolute_path
+from omegaconf import OmegaConf
 
 import tensorflow as tf
 from tensorflow.python.ops import math_ops, array_ops
 import numpy as np
+import mlflow
 
 def compose_datasets(datasets, tf_dataset_cfg):
     datasets_for_training, sample_probas = _combine_for_sampling(datasets)
@@ -121,3 +123,43 @@ def _smart_batch(train_data, val_data, tf_dataset_cfg):
 def create_padding_mask(seq):
     mask = tf.math.reduce_any(tf.math.not_equal(seq, 0), axis=-1) # [batch, seq], 0 -> padding, 1 -> constituent
     return mask
+
+def log_to_mlflow(model, cfg):
+    # log data params
+    mlflow.log_param('dataset_name', cfg["dataset_name"])
+    mlflow.log_param('datasets_train', cfg["datasets"]["train"].keys())
+    mlflow.log_param('datasets_val', cfg["datasets"]["val"].keys())
+    mlflow.log_params(cfg['tf_dataset_cfg'])
+
+    # log model params
+    params_encoder = OmegaConf.to_object(cfg["model"]["kwargs"]["encoder"])
+    params_embedding = params_encoder.pop('embedding_kwargs')
+    params_embedding = {f'emb_{p}': v for p,v in params_embedding.items()}
+    mlflow.log_param('model_name', cfg["model"]["name"])
+    mlflow.log_params(params_encoder)
+    for ptype, feature_list in params_embedding['emb_features_to_drop'].items():
+        if len(feature_list)>5:
+            params_embedding['emb_features_to_drop'][ptype] = ['too_long_to_log']
+    mlflow.log_params(params_embedding)
+    mlflow.log_params(cfg["model"]["kwargs"]["decoder"])
+    mlflow.log_params({f'model_node_{i}': c for i,c in enumerate(cfg["tf_dataset_cfg"]["classes"])})
+    if cfg['schedule']=='decrease':
+        mlflow.log_param('decrease_every', cfg['decrease_every'])
+        mlflow.log_param('decrease_by', cfg['decrease_by'])
+    
+    # log N trainable params 
+    summary_list = []
+    model.summary(print_fn=summary_list.append)
+    for l in summary_list:
+        if (s:='Trainable params: ') in l:
+            mlflow.log_param('n_train_params', int(l.split(s)[-1].replace(',', '')))
+    
+    # log encoder & decoder summaries
+    if cfg["model"]["type"] == 'taco_net':
+        summary_list_encoder, summary_list_decoder = [], []
+        model.wave_encoder.summary(print_fn=summary_list_encoder.append)
+        model.wave_decoder.summary(print_fn=summary_list_decoder.append)
+        summary_encoder, summary_decoder = "\n".join(summary_list_encoder), "\n".join(summary_list_decoder)
+        mlflow.log_text(summary_encoder, artifact_file="encoder_summary.txt")
+        mlflow.log_text(summary_decoder, artifact_file="decoder_summary.txt") 
+

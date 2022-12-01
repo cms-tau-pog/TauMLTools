@@ -1,7 +1,7 @@
 import shutil
 import hydra
 from hydra.utils import to_absolute_path
-from omegaconf import OmegaConf, DictConfig
+from omegaconf import DictConfig
 from sklearn.metrics import roc_auc_score
 
 import tensorflow as tf
@@ -10,7 +10,7 @@ import tensorflow_addons as tfa
 from models.taco import TacoNet
 from models.transformer import Transformer, CustomSchedule
 from models.particle_net import ParticleNet
-from utils.training import compose_datasets
+from utils.training import compose_datasets, log_to_mlflow
 
 import mlflow
 mlflow.tensorflow.autolog(log_models=False) 
@@ -86,7 +86,7 @@ def main(cfg: DictConfig) -> None:
         else:
             raise RuntimeError(f"Unknown value for optimiser: {cfg['optimiser']}. Only \'sgd\' and \'adam\' are supported.")
 
-        # callbacks & compile
+        # callbacks, compile, fit
         early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=cfg["min_delta"], patience=cfg["patience"], mode='auto', restore_best_weights=True)
         checkpoint_path = 'tmp_checkpoints'
         model_checkpoint = tf.keras.callbacks.ModelCheckpoint(
@@ -114,45 +114,8 @@ def main(cfg: DictConfig) -> None:
         elif cfg['model']['type'] == 'particle_net':
             print(model.summary())
 
-        # log data params
-        mlflow.log_param('dataset_name', cfg["dataset_name"])
-        mlflow.log_param('datasets_train', cfg["datasets"]["train"].keys())
-        mlflow.log_param('datasets_val', cfg["datasets"]["val"].keys())
-        mlflow.log_params(cfg['tf_dataset_cfg'])
-
-        # log model params
-        params_encoder = OmegaConf.to_object(cfg["model"]["kwargs"]["encoder"])
-        params_embedding = params_encoder.pop('embedding_kwargs')
-        params_embedding = {f'emb_{p}': v for p,v in params_embedding.items()}
-        mlflow.log_param('model_name', cfg["model"]["name"])
-        mlflow.log_params(params_encoder)
-        for ptype, feature_list in params_embedding['emb_features_to_drop'].items():
-            if len(feature_list)>5:
-                params_embedding['emb_features_to_drop'][ptype] = ['too_long_to_log']
-        mlflow.log_params(params_embedding)
-        mlflow.log_params(cfg["model"]["kwargs"]["decoder"])
-        mlflow.log_params({f'model_node_{i}': c for i,c in enumerate(cfg["tf_dataset_cfg"]["classes"])})
-        if cfg['schedule']=='decrease':
-            mlflow.log_param('decrease_every', cfg['decrease_every'])
-            mlflow.log_param('decrease_by', cfg['decrease_by'])
-        
-        # log N trainable params 
-        summary_list = []
-        model.summary(print_fn=summary_list.append)
-        for l in summary_list:
-            if (s:='Trainable params: ') in l:
-                mlflow.log_param('n_train_params', int(l.split(s)[-1].replace(',', '')))
-        
-        # log encoder & decoder summaries
-        if cfg["model"]["type"] == 'taco_net':
-            summary_list_encoder, summary_list_decoder = [], []
-            model.wave_encoder.summary(print_fn=summary_list_encoder.append)
-            model.wave_decoder.summary(print_fn=summary_list_decoder.append)
-            summary_encoder, summary_decoder = "\n".join(summary_list_encoder), "\n".join(summary_list_decoder)
-            mlflow.log_text(summary_encoder, artifact_file="encoder_summary.txt")
-            mlflow.log_text(summary_decoder, artifact_file="decoder_summary.txt") 
-
-        # log misc. info
+        # log info
+        log_to_mlflow(model, cfg)
         mlflow.log_param('run_id', run_id)
         mlflow.log_artifacts(checkpoint_path, "checkpoints")
         shutil.rmtree(checkpoint_path)
