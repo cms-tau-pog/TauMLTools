@@ -1,0 +1,60 @@
+
+defaults:
+  - model@model: ???
+  - data@_global_: features
+  - _self_
+
+# mlflow
+path_to_mlflow: mlruns
+experiment_name: ???
+
+# datasets
+dataset_name: SM_v4 # to log to mlflow for bookkeeping
+datasets: 
+  train:
+    SM_v4: # will take all files from "train" subfolder of this dataset
+      path_to_dataset: ./datasets
+      tau_types: ["tau", "e", "mu", "jet"]
+  val:
+    SM_v4: # will take all files from "val" subfolder of this dataset
+      path_to_dataset: ./datasets
+      tau_types: ["tau", "e", "mu", "jet"]  
+
+# TF dataset formation
+tf_dataset_cfg:
+  n_threads: 5 # without controlling it may throw thread limit exception
+  smart_batching_step: 10
+  sequence_length_dist_start: 0
+  sequence_length_dist_end: 300 
+  shuffle_buffer_size: 40000 # null to not shuffle
+  shuffle_smart_buffer_size: 1000
+  cache: null # null to not cache the training dataset
+  train_batch_size: 128
+  val_batch_size: 128
+  classes: ["tau", "e", "mu", "jet"] # will pick only those labels (in this order)
+
+# LR schedule
+schedule: decrease # custom // null // decrease
+warmup_steps: null # only for schedule=custom, max LR = lr_multiplier * 1/sqrt(dim_model) * 1/sqrt(warmup_steps)
+lr_multiplier: null # only for schedule=custom
+learning_rate: 0.0001 # only for schedule=null
+decrease_every: 10 # only for schedule=decrease
+decrease_by: 10 # only for schedule=decrease
+
+# optimiser
+optimiser: radam # sgd // adam // adamw // radam
+momentum: null # only for sgd
+nesterov: null # only for sgd
+weight_decay: 0 # only for adamw/radam
+beta_1: 0.9 # only for adam/adamw/radam
+beta_2: 0.999 # only for adam/adamw/radam
+epsilon: 1e-7 # only for adam/adamw/radam
+
+# training
+n_epochs: 1
+min_delta: 0.0001
+patience: 3
+
+# gpu
+gpu_id: 0
+memory_limit: 10 # in Gb

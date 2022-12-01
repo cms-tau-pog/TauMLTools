@@ -1,0 +1,86 @@
+tree_name: taus
+input_branches: [
+                  ### global
+                  'rho', 'tauType', 'tau_pt', 'tau_eta', 'tau_phi', 'tau_mass', 'tau_decayMode', 'tau_decayModeFinding', 'tau_charge',
+                  'tau_chargedIsoPtSum', 'tau_chargedIsoPtSumdR03', 'tau_footprintCorrection', 'tau_neutralIsoPtSum',
+                  'tau_neutralIsoPtSumWeight', 'tau_neutralIsoPtSumWeightdR03',
+                  'tau_neutralIsoPtSumdR03', 'tau_photonPtSumOutsideSignalCone', 'tau_puCorrPtSum',
+                  'pv_x', 'pv_y', 'pv_z', 
+                  'tau_hasSecondaryVertex', 'tau_sv_x', 'tau_sv_y', 'tau_sv_z', 
+                  'tau_dxy', 'tau_dxy_error', 'tau_ip3d', 'tau_ip3d_error', 'tau_dz', 'tau_dz_error',
+                  'tau_flightLength_x', 'tau_flightLength_y', 'tau_flightLength_z', 'tau_flightLength_sig',
+                  'tau_pt_weighted_deta_strip', 'tau_pt_weighted_dphi_strip', 'tau_pt_weighted_dr_signal', 'tau_pt_weighted_dr_iso',
+                  'tau_leadingTrackNormChi2', 'tau_e_ratio', 'tau_gj_angle_diff',
+                  'tau_n_photons', 'tau_emFraction', 'tau_inside_ecal_crack',
+                  'tau_leadChargedCand_etaAtEcalEntrance',
+                  'tau_byDeepTau2017v2p1VSjetraw', 'tau_byDeepTau2017v2p1VSmuraw', 'tau_byDeepTau2017v2p1VSeraw', 
+                  ### gen level
+                  'sampleType', 'genLepton_index', 'genJet_index', 'genLepton_kind', 'genLepton_vis_pt', 'genLepton_vis_eta', 'genLepton_vis_phi', 
+                  ### PF candidates
+                  'pfCand_pt', 'pfCand_eta', 'pfCand_phi', 'pfCand_particleType',
+                  'pfCand_vertex_x', 'pfCand_vertex_y', 'pfCand_vertex_z',
+                  'pfCand_charge', 'pfCand_pvAssociationQuality', 'pfCand_puppiWeight', 
+                  'pfCand_lostInnerHits', 'pfCand_nPixelHits', 'pfCand_hasTrackDetails',
+                  'pfCand_dxy', 'pfCand_dxy_error', 'pfCand_dz', 'pfCand_dz_error',
+                  'pfCand_track_chi2', 'pfCand_track_ndof',
+                  'pfCand_fromPV', 'pfCand_tauLeadChargedHadrCand',
+                  'pfCand_hcalFraction', 'pfCand_rawCaloFraction', 'pfCand_rawHcalFraction', 
+                  'pfCand_nHits', 'pfCand_nPixelLayers', 'pfCand_nStripLayers',
+                  ### PAT electron
+                  'ele_pt', 'ele_eta', 'ele_phi', 'ele_cc_ele_energy', 'ele_cc_gamma_energy', 'ele_cc_n_gamma', 
+                  'ele_trackMomentumAtVtx', 'ele_trackMomentumAtCalo', 'ele_trackMomentumOut',
+                  'ele_trackMomentumAtEleClus', 'ele_trackMomentumAtVtxWithConstraint', 
+                  'ele_ecalEnergy', 'ele_ecalEnergy_error', 
+                  'ele_eSuperClusterOverP', 'ele_eSeedClusterOverP', 'ele_eSeedClusterOverPout', 'ele_eEleClusterOverPout',
+                  'ele_deltaEtaSuperClusterTrackAtVtx', 'ele_deltaEtaSeedClusterTrackAtCalo', 'ele_deltaEtaEleClusterTrackAtCalo',
+                  'ele_deltaPhiEleClusterTrackAtCalo', 'ele_deltaPhiSuperClusterTrackAtVtx', 'ele_deltaPhiSeedClusterTrackAtCalo',
+                  'ele_mvaInput_earlyBrem', 'ele_mvaInput_lateBrem', 'ele_mvaInput_sigmaEtaEta', 'ele_mvaInput_hadEnergy', 'ele_mvaInput_deltaEta',
+                  'ele_gsfTrack_normalizedChi2', 'ele_gsfTrack_numberOfValidHits',
+                  'ele_gsfTrack_pt', 'ele_gsfTrack_pt_error', 
+                  'ele_closestCtfTrack_normalizedChi2', 'ele_closestCtfTrack_numberOfValidHits',
+                  'ele_sigmaEtaEta', 'ele_sigmaIetaIeta', 'ele_sigmaIphiIphi', 'ele_sigmaIetaIphi',
+                  'ele_e1x5', 'ele_e2x5Max', 'ele_e5x5', 'ele_r9', 
+                  'ele_hcalDepth1OverEcal', 'ele_hcalDepth2OverEcal', 'ele_hcalDepth1OverEcalBc', 'ele_hcalDepth2OverEcalBc',
+                  'ele_eLeft', 'ele_eRight', 'ele_eBottom', 'ele_eTop',
+                  'ele_full5x5_sigmaEtaEta', 'ele_full5x5_sigmaIetaIeta', 'ele_full5x5_sigmaIphiIphi', 'ele_full5x5_sigmaIetaIphi',
+                  'ele_full5x5_e1x5', 'ele_full5x5_e2x5Max', 'ele_full5x5_e5x5', 'ele_full5x5_r9',
+                  'ele_full5x5_hcalDepth1OverEcal', 'ele_full5x5_hcalDepth2OverEcal', 'ele_full5x5_hcalDepth1OverEcalBc', 'ele_full5x5_hcalDepth2OverEcalBc',
+                  'ele_full5x5_eLeft', 'ele_full5x5_eRight', 'ele_full5x5_eBottom', 'ele_full5x5_eTop',
+                  'ele_full5x5_e2x5Left', 'ele_full5x5_e2x5Right', 'ele_full5x5_e2x5Bottom', 'ele_full5x5_e2x5Top',
+                  ### PAT muon
+                  'muon_pt', 'muon_eta', 'muon_phi', 'muon_dxy', 'muon_dxy_error', 'muon_pfEcalEnergy', 
+                  'muon_normalizedChi2', 'muon_numberOfValidHits', 'muon_segmentCompatibility', 'muon_caloCompatibility',
+                  'muon_n_matches_DT_1', 'muon_n_matches_DT_2', 'muon_n_matches_DT_3', 'muon_n_matches_DT_4',
+                  'muon_n_matches_CSC_1', 'muon_n_matches_CSC_2', 'muon_n_matches_CSC_3', 'muon_n_matches_CSC_4',
+                  'muon_n_matches_RPC_1', 'muon_n_matches_RPC_2', 'muon_n_matches_RPC_3', 'muon_n_matches_RPC_4',  
+                  'muon_n_hits_DT_1', 'muon_n_hits_DT_2', 'muon_n_hits_DT_3', 'muon_n_hits_DT_4', 
+                  'muon_n_hits_CSC_1', 'muon_n_hits_CSC_2', 'muon_n_hits_CSC_3', 'muon_n_hits_CSC_4', 
+                  'muon_n_hits_RPC_1', 'muon_n_hits_RPC_2', 'muon_n_hits_RPC_3', 'muon_n_hits_RPC_4'
+                ]
+
+input_data: # "sample_alias": [list of strings with tau types to be selected]
+  train:
+    recompute_tau_type: False
+    add_columns: null
+    files:
+      "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_100.root": ["tau", "e", "mu", "jet"]
+  
+  val:
+    recompute_tau_type: False
+    add_columns: null
+    files: 
+      "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_450.root": ["tau", "e", "mu", "jet"]
+  
+  #### for evaluation
+  # test:
+  #   recompute_tau_type: True
+  #   add_columns:  # will return them in this order; set to null to skip returning
+  #     - tau_byDeepTau2017v2p1VSeraw
+  #     - tau_byDeepTau2017v2p1VSmuraw
+  #     - tau_byDeepTau2017v2p1VSjetraw
+  #     - tau_pt
+  #     - tau_eta
+  #     - tau_decayMode
+  #     - tau_dz
+  #   files:
+  #     "../data/GluGluHToTauTau_M125/eventTuple_*": ["tau"]

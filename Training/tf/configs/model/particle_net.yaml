@@ -1,0 +1,31 @@
+defaults:
+  - .@kwargs.encoder.embedding_kwargs: embedding
+  - _self_
+
+type: particle_net
+name: particle_net_test
+kwargs:
+  encoder:
+    embedding_kwargs: # overloading emb. cfg
+      shared_cat_dim_in: 9 # adjust to dropped global features
+      out_dim: 64
+      features_to_drop:
+        global: "all"
+      hidden_dim: [256, 256, 256] # adjust to dropped global features
+    conv_params: [
+      [16, [160, 128, 96]],
+      [12, [160, 128, 96]],
+      [8, [160, 128, 96]],
+    ]
+    conv_pooling: 'mean'
+    masking: true
+    coordinate_type: polar
+    spatial_features: ['r', 'theta']
+    activation: relu
+  decoder:
+    use_global_features: true
+    global_features_to_drop: ['particle_type']
+    dense_params: [192, 160, 128, 96, 64]
+    activation: relu
+    dropout_rate: 0.1
+    n_outputs: 4

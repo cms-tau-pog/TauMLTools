@@ -1,0 +1,18 @@
+path_to_dataset: ./datasets
+dataset_name: ???
+dataset_type: ???
+tau_type: ???
+batch_size: ???
+n_files: -1
+
+# gpu
+gpu_id: 0
+memory_limit: 8 # in Gb
+
+path_to_mlflow: mlruns
+experiment_id: ???
+run_id: ???
+checkpoint: ??? # null to load from "model" folder
+
+output_filename: predictions
+
