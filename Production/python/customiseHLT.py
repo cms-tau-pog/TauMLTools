@@ -197,12 +197,70 @@ def customise(process):
       
     )
   )
+  process.AK4PFJetsTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src = cms.InputTag( "hltAK4PFJets" ),
+    cut = cms.string(""),
+    name= cms.string("AK4PFJets"),
+    doc = cms.string("HLT AK4 PF Jets"),
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(False), # this is the main table
+    variables = cms.PSet(
+      # these variables are 0
+      # AK4PFJets_chargedEmEnergyFraction
+      # AK4PFJets_chargedEmEnergy
+      # AK4PFJets_electronEnergy
+      # AK4PFJets_electronEnergyFraction
+      # AK4PFJets_electronMultiplicity
+      P4Vars,
+      chargedHadronEnergy = Var("chargedHadronEnergy", float, doc = "chargedHadronEnergy"),
+      chargedHadronEnergyFraction = Var("chargedHadronEnergyFraction", float, doc = "chargedHadronEnergyFraction"),
+      neutralHadronEnergy = Var("neutralHadronEnergy", float, doc = "neutralHadronEnergy"),
+      neutralHadronEnergyFraction = Var("neutralHadronEnergyFraction", float, doc = "neutralHadronEnergyFraction"),
+      photonEnergy = Var("photonEnergy", float, doc = "photonEnergy"),
+      photonEnergyFraction = Var("photonEnergyFraction", float, doc = "photonEnergyFraction"),
+      electronEnergy = Var("electronEnergy", float, doc = "electronEnergy"),
+      electronEnergyFraction = Var("electronEnergyFraction", float, doc = "electronEnergyFraction"),
+      muonEnergy = Var("muonEnergy", float, doc = "muonEnergy"),
+      muonEnergyFraction = Var("muonEnergyFraction", float, doc = "muonEnergyFraction"),
+      HFHadronEnergy = Var("HFHadronEnergy", float, doc = "HFHadronEnergy"),
+      HFHadronEnergyFraction = Var("HFHadronEnergyFraction", float, doc = "HFHadronEnergyFraction"),
+      HFEMEnergy = Var("HFEMEnergy", float, doc = "HFEMEnergy"),
+      HFEMEnergyFraction = Var("HFEMEnergyFraction", float, doc = "HFEMEnergyFraction"),
+      chargedHadronMultiplicity = Var("chargedHadronMultiplicity", float, doc = "chargedHadronMultiplicity"),
+      neutralHadronMultiplicity = Var("neutralHadronMultiplicity", float, doc = "neutralHadronMultiplicity"),
+      photonMultiplicity = Var("photonMultiplicity", float, doc = "photonMultiplicity"),
+      electronMultiplicity = Var("electronMultiplicity", float, doc = "electronMultiplicity"),
+      muonMultiplicity = Var("muonMultiplicity", float, doc = "muonMultiplicity"),
+      HFHadronMultiplicity = Var("HFHadronMultiplicity", float, doc = "HFHadronMultiplicity"),
+      HFEMMultiplicity = Var("HFEMMultiplicity", float, doc = "HFEMMultiplicity"),
+      chargedEmEnergy = Var("chargedEmEnergy", float, doc = "chargedEmEnergy"),
+      chargedEmEnergyFraction = Var("chargedEmEnergyFraction", float, doc = "chargedEmEnergyFraction"),
+      chargedMuEnergy = Var("chargedMuEnergy", float, doc = "chargedMuEnergy"),
+      chargedMuEnergyFraction = Var("chargedMuEnergyFraction", float, doc = "chargedMuEnergyFraction"),
+      neutralEmEnergy = Var("neutralEmEnergy", float, doc = "neutralEmEnergy"),
+      neutralEmEnergyFraction = Var("neutralEmEnergyFraction", float, doc = "neutralEmEnergyFraction"),
+      chargedMultiplicity = Var("chargedMultiplicity", float, doc = "chargedMultiplicity"),
+      neutralMultiplicity = Var("neutralMultiplicity", float, doc = "neutralMultiplicity"),
+      hoEnergy = Var("hoEnergy", float, doc = "hoEnergy"),
+      hoEnergyFraction = Var("hoEnergyFraction", float, doc = "hoEnergyFraction"),
+      nConstituents = Var("nConstituents", int, doc = "nConstituents"),
+      etaetaMoment =  Var("etaetaMoment", float, doc = " eta-eta second moment, ET weighted " ),
+      phiphiMoment =  Var("phiphiMoment", float, doc = " phi-phi second moment, ET weighted " ),
+      etaphiMoment =  Var("etaphiMoment", float, doc = " eta-phi second moment, ET weighted " ),
+      maxDistance =  Var("maxDistance", float, doc = " maximum distance from jet to constituent " ),
+      constituentPtDistribution =  Var("constituentPtDistribution", float, doc = " jet structure variables: constituentPtDistribution is the pT distribution among the jet constituents (ptDistribution = 1 if jet made by one constituent carrying all its momentum,  ptDistribution = 0 if jet made by infinite constituents carrying an infinitesimal fraction of pt) "    ),
+      constituentEtaPhiSpread =  Var("constituentEtaPhiSpread", float, doc = " the rms of the eta-phi spread of the jet's constituents wrt the jet axis " ),
+      jetArea =  Var("jetArea", float, doc = " get jet area " ),
+      pileup =  Var("pileup", float, doc = "  pileup energy contribution as calculated by algorithm " ),
+    )
+  )
 
   
   process.tauTablesTask = cms.Task(process.tauTable, process.tauExtTable)
   process.pfCandTablesTask = cms.Task(process.pfCandTable)
+  process.AK4PFJetsTableTask = cms.Task(process.AK4PFJetsTable)
   process.nanoTableTaskFS = cms.Task(process.genParticleTablesTask, process.genParticleTask,
-                                     process.tauTablesTask, process.pfCandTablesTask)
+                                     process.tauTablesTask, process.pfCandTablesTask, process.AK4PFJetsTableTask)
   process.nanoSequenceMC = cms.Sequence(process.nanoTableTaskFS)
   process.finalGenParticles.src = cms.InputTag("genParticles")
 
