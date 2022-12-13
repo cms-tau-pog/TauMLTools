@@ -6,6 +6,12 @@
 # file dataset=/store/mc/Run3Summer21DRPremix/TT_TuneCP5_14TeV-powheg-pythia8/GEN-SIM-DIGI-RAW/120X_mcRun3_2021_realistic_v6-v2/2540000/00c642d1-bf7e-477d-91e1-4dd9ce2c8099.root
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import Var, P4Vars
+from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
+from PhysicsTools.NanoAOD.jetMC_cff import Var, P4Vars
+
+
+
+
 
 def customiseGenParticles(process):
   def pdgOR(pdgs):
@@ -48,8 +54,9 @@ def customise(process):
       )
   )
   process.load('PhysicsTools.NanoAOD.nano_cff')
+  process.load('RecoJets.JetProducers.ak4GenJets_cfi')
   from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeMC
-
+  from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets 
   #call to customisation function nanoAOD_customizeMC imported from PhysicsTools.NanoAOD.nano_cff
   process = nanoAOD_customizeMC(process)
 
@@ -59,7 +66,61 @@ def customise(process):
     + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau \
     + process.nanoSequenceMC)
   process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
+  
+  # set ak4GenJets producer 
+  process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu")
+  # process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu", bHadrons= cms.InputTag("selectedHadronsAndPartons","bHadrons"),
+  # cHadrons= cms.InputTag("selectedHadronsAndPartons","cHadrons"),partons= cms.InputTag("selectedHadronsAndPartons","physicsPartons"), )
 
+  process.GenJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+    src = cms.InputTag( "ak4GenJetsNoNu" ),
+    cut = cms.string(""),
+    name= cms.string("ak4GenJetnonu"),
+    doc = cms.string("HLT ak4 GenJet"),
+    SkipEvent = cms.untracked.vstring('ProductNotFound'),
+    singleton = cms.bool(False), # the number of entries is variable
+    extension = cms.bool(False), # this is the main table
+    variables = cms.PSet(
+      P4Vars,
+      emEnergy = Var("emEnergy", float, doc="energy of electromagnetic particles "),
+      hadEnergy = Var("hadEnergy", float, doc="energy of hadronic particles "),
+      invisibleEnergy = Var("invisibleEnergy", float, doc="invisible energy "),
+      auxiliaryEnergy = Var("auxiliaryEnergy", float, doc=" other energy (undecayed Sigmas etc.) "),
+      chargedHadronEnergy = Var("chargedHadronEnergy", float, doc="energy of charged hadrons "),
+      neutralHadronEnergy = Var("neutralHadronEnergy", float, doc="energy of neutral hadrons "),
+      chargedEmEnergy = Var("chargedEmEnergy", float, doc="energy of charged electromagnetic particles "),
+      neutralEmEnergy = Var("neutralEmEnergy", float, doc="energy of neutral electromagnetic particles "),
+      muonEnergy = Var("muonEnergy", float, doc="energy of muons "),
+      chargedHadronMultiplicity = Var("chargedHadronMultiplicity", int, doc="number of charged hadrons "),
+      neutralHadronMultiplicity = Var("neutralHadronMultiplicity", int, doc="number of neutral hadrons "),
+      chargedEmMultiplicity = Var("chargedEmMultiplicity", int, doc="number of charged electromagnetic particles "),
+      neutralEmMultiplicity = Var("neutralEmMultiplicity", int, doc="number of neutral electromagnetic particles "),
+      muonMultiplicity = Var("muonMultiplicity", int, doc="number of muons "),
+      # n_bHadrons = Var("jetRef.jetFlavourInfo().getbHadrons().size()", int, doc = ' abc '),
+      # n_bHadrons = Var("n_bHadrons", int, doc="number of b hadrons clustered inside the jet "),
+      # n_cHadrons = Var("n_cHadrons", int, doc="number of c hadrons clustered inside the jet "),
+      # n_partons = Var("n_partons", int, doc="number of partons clustered inside the jet "),
+      # n_leptons = Var("n_leptons", int, doc="number of leptons clustered inside the jet "),
+      # hadronFlavour = Var("hadronFlavour", int, doc="hadron-based flavour "),
+      # partonFlavour = Var("partonFlavour", int, doc="parton-based flavour "),
+      )
+  )
+  process.genParticlesForJetsNoNu = cms.EDProducer("InputGenJetsParticleSelector",
+    src = cms.InputTag("finalGenParticles"),
+    ignoreParticleIDs = cms.vuint32(
+        #  1000022,
+        #  1000012, 1000014, 1000016,
+        #  2000012, 2000014, 2000016,
+        #  1000039, 5100039,
+        #  4000012, 4000014, 4000016,
+        #  9900012, 9900014, 9900016,
+        #  39, 
+         12,14,16 ), # ignore for neutrinos
+    partonicFinalState = cms.bool(False),
+    excludeResonances = cms.bool(False),
+    excludeFromResonancePids = cms.vuint32(12, 13, 14, 16), # why 13 ????
+    tausAsJets = cms.bool(False)
+)
   process.tauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag( "hltHpsPFTauProducer" ),
     cut = cms.string(""),
@@ -73,10 +134,7 @@ def customise(process):
       vx = Var("vx", float, doc='x coordinate of vertex position'),
       vy = Var("vy", float, doc='y coordinate of vertex position'),
       vz = Var("vz", float, doc='z coordinate of vertex position'),
-
-
       # all Tau_muonDecision is 1? 
-
       # these variables are 0
       # Tau_chargedEmEnergy
       # Tau_electronEnergy
@@ -132,9 +190,6 @@ def customise(process):
       # lepton decision variables
       electronPreIDDecision = Var("electronPreIDDecision", bool, doc = " Decision from Electron PreID"),
       muonDecision = Var("muonDecision", bool, doc = "muonDecision"),
-
-
-
     )
   )
   # cms.EDProducer : an object that produces a new data object
@@ -146,8 +201,12 @@ def customise(process):
     tauTransverseImpactParameters = cms.InputTag( "hltHpsPFTauTransverseImpactParametersForDeepTauForVBFIsoTau" ),
     precision = cms.int32(7),
   )
-
-
+  process.ak4GenJetsNoNuExtTable = cms.EDProducer("GenJetFlavourTableProducer",
+    taus = cms.InputTag( "ak4GenJetsNoNu" ),
+    cut = cms.string(""),
+    deltaR = cms.double(0.4),
+    # jetFlavourInfos = ????
+  )
   process.pfCandTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag( "hltParticleFlowForTaus" ),
     cut = cms.string(""),
@@ -158,7 +217,6 @@ def customise(process):
     variables = cms.PSet(
       P4Vars,
       charge = Var("charge", int, doc="electric charge"),
-
       vx = Var("vx", float, doc='x coordinate of vertex position'),
       vy = Var("vy", float, doc='y coordinate of vertex position'),
       vz = Var("vz", float, doc='z coordinate of vertex position'),
@@ -172,10 +230,8 @@ def customise(process):
       trackDz = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dz : -999.", float, doc = "track Dz"),
       trackDxy = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dxy : -999.", float, doc = "track Dxy"),
       trackIsValid = Var("trackRef.isNonnull && trackRef.isAvailable", bool, doc = "track is valid"),
-      
       trackDzError = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dzError : -999.", float, doc = "track DzError"),
       trackDxyError = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dxyError : -999.", float, doc = "track DxyError"),
-      
       trackPt = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.pt : -999.", float, doc = "track Pt"),
       trackEta = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.eta : -999.", float, doc = "track Eta"),
       trackPhi = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.phi : -999.", float, doc = "track Phi"),
@@ -184,17 +240,14 @@ def customise(process):
       trackPhiError = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.phiError : -999.", float, doc = "track PhiError"),
       trackChi2 = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.chi2 : -999.", float, doc = "track Chi2"),
       trackNdof = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.ndof : -999.", float, doc = "track Ndof"),
-      
       # source: DataFormats/TrackReco/interface/TrackBase.h
       trackNumberOfValidHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.numberOfValidHits : -999.", float, doc = "number of valid hits found"),
       trackNumberOfLostHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.numberOfLostHits : -999.", float, doc = " number of cases where track crossed a layer without getting a hit."),
       trackHitsValidFraction= Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.validFraction : -999.", float, doc = "fraction of valid hits on the track"),
-
       rawHcalEnergy = Var("rawHcalEnergy", float, doc='rawHcalEnergy'),
       rawEcalEnergy = Var("rawEcalEnergy", float, doc='rawEcalEnergy'),
       EcalEnergy = Var("ecalEnergy", float, doc='EcalEnergy'),
       HcalEnergy = Var("hcalEnergy", float, doc='HcalEnergy'),
-      
     )
   )
   process.AK4PFJetsTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -255,15 +308,29 @@ def customise(process):
     )
   )
 
-  
+      
   process.tauTablesTask = cms.Task(process.tauTable, process.tauExtTable)
   process.pfCandTablesTask = cms.Task(process.pfCandTable)
   process.AK4PFJetsTableTask = cms.Task(process.AK4PFJetsTable)
+  process.genParticlesForJetsNoNuTask = cms.Task(process.genParticlesForJetsNoNu)
+  process.recoAllGenJetsNoNuTask=cms.Task(process.ak4GenJetsNoNu)
+  process.GenJetTableTask = cms.Task(process.GenJetTable)
   process.nanoTableTaskFS = cms.Task(process.genParticleTablesTask, process.genParticleTask,
-                                     process.tauTablesTask, process.pfCandTablesTask, process.AK4PFJetsTableTask)
+                                     process.tauTablesTask, process.pfCandTablesTask, process.genParticlesForJetsNoNuTask,
+                                     process.AK4PFJetsTableTask, process.recoAllGenJetsNoNuTask,process.GenJetTableTask)#,  )
   process.nanoSequenceMC = cms.Sequence(process.nanoTableTaskFS)
   process.finalGenParticles.src = cms.InputTag("genParticles")
 
+  #   ----- Begin Fatal Exception 12-Dec-2022 15:17:49 CET-----------------------
+  # An exception of category 'Invalid Jet Inputs' occurred while
+  #    [0] Processing  Event run: 1 lumi: 3606 event: 2797484 stream: 1
+  #    [1] Running path 'NANOAODSIMoutput_step'
+  #    [2] Prefetching for module NanoAODOutputModule/'NANOAODSIMoutput'
+  #    [3] Prefetching for module SimpleCandidateFlatTableProducer/'GenJetTable'
+  #    [4] Calling method for module FastjetJetProducer/'ak4GenJetsNoNu'
+  # Exception Message:
+  # Did not specify appropriate inputs for VirtualJetProducer, Abort!
+  # ----- End Fatal Exception -------------------------------------------------
 
   process.MessageLogger.cerr.FwkReport.reportEvery = 100
   process = customiseGenParticles(process)
