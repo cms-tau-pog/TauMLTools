@@ -8,8 +8,7 @@ import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import Var, P4Vars
 from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
 from PhysicsTools.NanoAOD.jetMC_cff import Var, P4Vars
-
-
+from PhysicsTools.JetMCAlgos.AK4PFJetsMCFlavourInfos_cfi import ak4JetFlavourInfos
 
 
 
@@ -67,15 +66,37 @@ def customise(process):
     + process.nanoSequenceMC)
   process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
   
+  from PhysicsTools.JetMCAlgos.HadronAndPartonSelector_cfi import selectedHadronsAndPartons
+  process.selectedHadronsAndPartons = selectedHadronsAndPartons.clone(src = cms.InputTag("genParticlesForJetsNoNu"))
   # set ak4GenJets producer 
-  process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu")
-  # process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu", bHadrons= cms.InputTag("selectedHadronsAndPartons","bHadrons"),
-  # cHadrons= cms.InputTag("selectedHadronsAndPartons","cHadrons"),partons= cms.InputTag("selectedHadronsAndPartons","physicsPartons"), )
-
+  # process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu")
+  process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu")#, bHadrons= cms.InputTag("selectedHadronsAndPartons","bHadrons"), cHadrons= cms.InputTag("selectedHadronsAndPartons","cHadrons"),partons= cms.InputTag("selectedHadronsAndPartons","physicsPartons"), )
+  process.genJetFlavourInfos = ak4JetFlavourInfos.clone(  
+    jets = cms.InputTag( "ak4GenJetsNoNu" ),
+    bHadrons= cms.InputTag("selectedHadronsAndPartons","bHadrons"), 
+    cHadrons= cms.InputTag("selectedHadronsAndPartons","cHadrons"),
+    partons= cms.InputTag("selectedHadronsAndPartons","physicsPartons"), )
+  
+  process.genParticlesForJetsNoNu = cms.EDProducer("InputGenJetsParticleSelector",
+    src = cms.InputTag("finalGenParticles"),
+    ignoreParticleIDs = cms.vuint32(
+        #  1000022,
+        #  1000012, 1000014, 1000016,
+        #  2000012, 2000014, 2000016,
+        #  1000039, 5100039,
+        #  4000012, 4000014, 4000016,
+        #  9900012, 9900014, 9900016,
+        #  39, 
+         12,14,16 ), # ignore for neutrinos
+    partonicFinalState = cms.bool(False),
+    excludeResonances = cms.bool(False),
+    excludeFromResonancePids = cms.vuint32(12, 13, 14, 16), # why 13 ????
+    tausAsJets = cms.bool(False)
+)
   process.GenJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag( "ak4GenJetsNoNu" ),
     cut = cms.string(""),
-    name= cms.string("ak4GenJetnonu"),
+    name= cms.string("GenJet"),
     doc = cms.string("HLT ak4 GenJet"),
     SkipEvent = cms.untracked.vstring('ProductNotFound'),
     singleton = cms.bool(False), # the number of entries is variable
@@ -105,22 +126,6 @@ def customise(process):
       # partonFlavour = Var("partonFlavour", int, doc="parton-based flavour "),
       )
   )
-  process.genParticlesForJetsNoNu = cms.EDProducer("InputGenJetsParticleSelector",
-    src = cms.InputTag("finalGenParticles"),
-    ignoreParticleIDs = cms.vuint32(
-        #  1000022,
-        #  1000012, 1000014, 1000016,
-        #  2000012, 2000014, 2000016,
-        #  1000039, 5100039,
-        #  4000012, 4000014, 4000016,
-        #  9900012, 9900014, 9900016,
-        #  39, 
-         12,14,16 ), # ignore for neutrinos
-    partonicFinalState = cms.bool(False),
-    excludeResonances = cms.bool(False),
-    excludeFromResonancePids = cms.vuint32(12, 13, 14, 16), # why 13 ????
-    tausAsJets = cms.bool(False)
-)
   process.tauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag( "hltHpsPFTauProducer" ),
     cut = cms.string(""),
@@ -201,11 +206,12 @@ def customise(process):
     tauTransverseImpactParameters = cms.InputTag( "hltHpsPFTauTransverseImpactParametersForDeepTauForVBFIsoTau" ),
     precision = cms.int32(7),
   )
-  process.ak4GenJetsNoNuExtTable = cms.EDProducer("GenJetFlavourTableProducer",
-    taus = cms.InputTag( "ak4GenJetsNoNu" ),
+  process.ak4GenJetsNoNuExtTable = cms.EDProducer("GenJetFlavourTableProducerHLT",
+    name = cms.string("GenJet"),
+    src = cms.InputTag( "ak4GenJetsNoNu" ),
     cut = cms.string(""),
     deltaR = cms.double(0.4),
-    # jetFlavourInfos = ????
+    jetFlavourInfos = cms.InputTag( "genJetFlavourInfos" ),
   )
   process.pfCandTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag( "hltParticleFlowForTaus" ),
@@ -312,25 +318,16 @@ def customise(process):
   process.tauTablesTask = cms.Task(process.tauTable, process.tauExtTable)
   process.pfCandTablesTask = cms.Task(process.pfCandTable)
   process.AK4PFJetsTableTask = cms.Task(process.AK4PFJetsTable)
-  process.genParticlesForJetsNoNuTask = cms.Task(process.genParticlesForJetsNoNu)
+  process.genParticlesForJetsNoNuTask = cms.Task(process.genParticlesForJetsNoNu, process.selectedHadronsAndPartons)
+  process.genJetFlavourInfosTask =  cms.Task(process.genJetFlavourInfos)
   process.recoAllGenJetsNoNuTask=cms.Task(process.ak4GenJetsNoNu)
-  process.GenJetTableTask = cms.Task(process.GenJetTable)
+  process.GenJetTableTask = cms.Task(process.GenJetTable, process.ak4GenJetsNoNuExtTable)
   process.nanoTableTaskFS = cms.Task(process.genParticleTablesTask, process.genParticleTask,
-                                     process.tauTablesTask, process.pfCandTablesTask, process.genParticlesForJetsNoNuTask,
+                                     process.tauTablesTask, process.pfCandTablesTask, process.genParticlesForJetsNoNuTask, process.genJetFlavourInfosTask,
                                      process.AK4PFJetsTableTask, process.recoAllGenJetsNoNuTask,process.GenJetTableTask)#,  )
   process.nanoSequenceMC = cms.Sequence(process.nanoTableTaskFS)
   process.finalGenParticles.src = cms.InputTag("genParticles")
 
-  #   ----- Begin Fatal Exception 12-Dec-2022 15:17:49 CET-----------------------
-  # An exception of category 'Invalid Jet Inputs' occurred while
-  #    [0] Processing  Event run: 1 lumi: 3606 event: 2797484 stream: 1
-  #    [1] Running path 'NANOAODSIMoutput_step'
-  #    [2] Prefetching for module NanoAODOutputModule/'NANOAODSIMoutput'
-  #    [3] Prefetching for module SimpleCandidateFlatTableProducer/'GenJetTable'
-  #    [4] Calling method for module FastjetJetProducer/'ak4GenJetsNoNu'
-  # Exception Message:
-  # Did not specify appropriate inputs for VirtualJetProducer, Abort!
-  # ----- End Fatal Exception -------------------------------------------------
 
   process.MessageLogger.cerr.FwkReport.reportEvery = 100
   process = customiseGenParticles(process)
