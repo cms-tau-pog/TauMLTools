@@ -249,7 +249,7 @@ dependencies:
   - pexpect=4.8.0=pyh9f0ad1d_2
   - pickleshare=0.7.5=py_1003
   - pillow=9.1.0=py38h0ee0e06_2
-  - pip=22.1=pyhd8ed1ab_0
+  - pip=21.1.2=pyhd8ed1ab_0
   - pipdeptree=2.2.0=pyhd8ed1ab_0
   - pixman=0.40.0=h36c2ea0_0
   - popt=1.16=h0b475e3_2002

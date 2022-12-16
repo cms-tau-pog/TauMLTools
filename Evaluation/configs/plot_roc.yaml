@@ -1,13 +1,34 @@
+defaults:
+  - plot_setup
+  - _self_
+
 # input
 path_to_mlflow: ???
 experiment_id: ???
-discriminators: # in the format -> run_id: ['curve_type_1', 'curve_type_2', ...]
-  ???: ['roc_curve', 'roc_wp']
-  ???: ['roc_wp']
-reference: 
+discriminators: # in the format run_id -> cfg
+  ???: # DeepTau v2.1
+    name: "DeepTau (v2.1)"
+    curve_types: ['roc_curve', 'roc_wp'] 
+    plot_cfg:
+      color: grey
+      dashed: false
+      alpha: 1.
+      dots_only: false # if true, possible also to specify `marker_size` here
+      with_errors: true # plot error bars for each of `curve_types`
+  ???: # DeepTau v2.5
+    name: "DeepTau (v2.5)"
+    curve_types: ['roc_curve', 'roc_wp'] 
+    plot_cfg:
+      color: black
+      dashed: false
+      alpha: 1.
+      dots_only: false
+      with_errors: true
+reference:  # should be present in `discriminators`
   ???: 'roc_curve'
 
 # region
+period:  # \ 2018 (13 TeV) \  Phase 2 \ # for plotting only, not used in curve selection 
 vs_type: ??? # jet/e/mu/tau
 dataset_alias: ??? # sample alias asigned in yaml cfg at eval step
 pt_bin: ??? # list, e.g [20, 100], min and max
@@ -15,4 +36,5 @@ eta_bin: ??? # list, e.g [0, 1.5], min and max (of absolute eta)
 dm_bin: ??? # list, e.g [0, 1, 2, 10, 11], all DMs to be included
 
 # will log the plot to the run of the first discriminator in the "discriminators" list
+output_dir: plots # within mlflow artifacts
 output_name: 'roc_curve_vs_${vs_type}_${dataset_alias}_pt_${pt_bin[0]}_${pt_bin[1]}_eta_${eta_bin[0]}_${eta_bin[1]}_dm_'
