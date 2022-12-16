@@ -4,10 +4,11 @@
 
 # cmsRun hltRun3Summer21MC.py
 # file dataset=/store/mc/Run3Summer21DRPremix/TT_TuneCP5_14TeV-powheg-pythia8/GEN-SIM-DIGI-RAW/120X_mcRun3_2021_realistic_v6-v2/2540000/00c642d1-bf7e-477d-91e1-4dd9ce2c8099.root
+# file dataset=/TT_TuneCP5_14TeV-powheg-pythia8/Run3Summer21DRPremix-120X_mcRun3_2021_realistic_v6-v2/GEN-SIM-DIGI-RAW
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import Var, P4Vars
 from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
-from PhysicsTools.NanoAOD.jetMC_cff import Var, P4Vars
+# from PhysicsTools.NanoAOD.jetMC_cff import Var, P4Vars
 from PhysicsTools.JetMCAlgos.AK4PFJetsMCFlavourInfos_cfi import ak4JetFlavourInfos
 
 
@@ -90,7 +91,7 @@ def customise(process):
          12,14,16 ), # ignore for neutrinos
     partonicFinalState = cms.bool(False),
     excludeResonances = cms.bool(False),
-    excludeFromResonancePids = cms.vuint32(12, 13, 14, 16), # why 13 ????
+    excludeFromResonancePids = cms.vuint32(12, 14, 16), 
     tausAsJets = cms.bool(False)
 )
   process.GenJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -117,13 +118,6 @@ def customise(process):
       chargedEmMultiplicity = Var("chargedEmMultiplicity", int, doc="number of charged electromagnetic particles "),
       neutralEmMultiplicity = Var("neutralEmMultiplicity", int, doc="number of neutral electromagnetic particles "),
       muonMultiplicity = Var("muonMultiplicity", int, doc="number of muons "),
-      # n_bHadrons = Var("jetRef.jetFlavourInfo().getbHadrons().size()", int, doc = ' abc '),
-      # n_bHadrons = Var("n_bHadrons", int, doc="number of b hadrons clustered inside the jet "),
-      # n_cHadrons = Var("n_cHadrons", int, doc="number of c hadrons clustered inside the jet "),
-      # n_partons = Var("n_partons", int, doc="number of partons clustered inside the jet "),
-      # n_leptons = Var("n_leptons", int, doc="number of leptons clustered inside the jet "),
-      # hadronFlavour = Var("hadronFlavour", int, doc="hadron-based flavour "),
-      # partonFlavour = Var("partonFlavour", int, doc="parton-based flavour "),
       )
   )
   process.tauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -139,35 +133,13 @@ def customise(process):
       vx = Var("vx", float, doc='x coordinate of vertex position'),
       vy = Var("vy", float, doc='y coordinate of vertex position'),
       vz = Var("vz", float, doc='z coordinate of vertex position'),
-      # all Tau_muonDecision is 1? 
-      # these variables are 0
-      # Tau_chargedEmEnergy
-      # Tau_electronEnergy
-      # Tau_electronMultiplicity
-      # Tau_electronPreIDDecision
-      # Tau_HFHadronEnergy
-      # Tau_HFHadroMultiplicity
-      # Tau_hoEnergy
-      # Tau_secondaryVertex_t
-      # Tau_vertexChi2 = Var("vertexChi2", float, doc='chi-squares'),
-      # Tau_vertexNdof = Var("vertexNdof", float, doc='Number of degrees of freedom,  Meant to be Double32_t for soft-assignment fitters'),
-      # nPFCand
-      # PFCand_vertexChi2
-      # PFCand_vertexNdof
-      # PFCand_longLived = Var("longLived", bool, doc='is long lived?'),
-      # PFCand_trackMissingInnerHits = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.missingInnerHits : -999.", float, doc = "number of hits expected from inner track extrapolation but missing"),
-      # PFCand_trackMissingOuterHits= Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.missingOuterHits : -999.", float, doc = " number of hits expected from outer track extrapolation but missing"),
-      # PFCand_status = Var("status", int, doc='status word'),
-      # PFCand_longLived = Var("longLived", bool, doc='is long lived?'),
-      # PFCand_massConstraint = Var("massConstraint", bool, doc='do mass constraint?'),
-
       pdgId = Var("pdgId", int, doc='PDG identifier'),
       dz = Var("? leadPFCand.trackRef.isNonnull && leadPFCand.trackRef.isAvailable ? leadPFCand.trackRef.dz : -999 ", float, doc='lead PF Candidate dz'),
       dzError = Var("? leadPFCand.trackRef.isNonnull && leadPFCand.trackRef.isAvailable ? leadPFCand.trackRef.dzError : -999 ", float, doc='lead PF Candidate dz Error'),
       decayMode = Var("decayMode", int, doc='tau decay mode'),
       tauIsValid = Var("jetRef.isNonnull && jetRef.isAvailable", bool, doc = "tau is valid"),
       # variables available in PF jets
-      # DataFormats/JetReco/interface/PFJet.h
+      # source: DataFormats/JetReco/interface/PFJet.h
       chargedHadronEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.chargedHadronEnergy : -999.", float, doc = "chargedHadronEnergy"),
       neutralHadronEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.neutralHadronEnergy : -999.", float, doc = "neutralHadronEnergy"),
       photonEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.photonEnergy : -999.", float, doc = "photonEnergy"),
