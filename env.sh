@@ -4,7 +4,7 @@ if (( $# < 1 )) ; then
     cat << EOF
 Setup environment for TauMLTools
 Usage: source env.sh mode [mode_arg_1] [mode_arg_2] ...
-Supported modes: run2 run3 phase2_112X phase2_113X lcg conda
+Supported modes: run2 run3 phase2_112X phase2_113X lcg conda hlt
 Mode-specific arguments:
 conda
   --update [env.yaml]  updates environment from env.yaml (default: tau-ml-env.yaml)
