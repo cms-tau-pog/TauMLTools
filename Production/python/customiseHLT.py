@@ -99,7 +99,6 @@ def customise(process):
     cut = cms.string(""),
     name= cms.string("GenJet"),
     doc = cms.string("HLT ak4 GenJet"),
-    SkipEvent = cms.untracked.vstring('ProductNotFound'),
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table
     variables = cms.PSet(
