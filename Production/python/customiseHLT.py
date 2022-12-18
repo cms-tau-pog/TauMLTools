@@ -78,22 +78,8 @@ def customise(process):
     cHadrons= cms.InputTag("selectedHadronsAndPartons","cHadrons"),
     partons= cms.InputTag("selectedHadronsAndPartons","physicsPartons"), )
   
-  process.genParticlesForJetsNoNu = cms.EDProducer("InputGenJetsParticleSelector",
-    src = cms.InputTag("finalGenParticles"),
-    ignoreParticleIDs = cms.vuint32(
-        #  1000022,
-        #  1000012, 1000014, 1000016,
-        #  2000012, 2000014, 2000016,
-        #  1000039, 5100039,
-        #  4000012, 4000014, 4000016,
-        #  9900012, 9900014, 9900016,
-        #  39, 
-         12,14,16 ), # ignore for neutrinos
-    partonicFinalState = cms.bool(False),
-    excludeResonances = cms.bool(False),
-    excludeFromResonancePids = cms.vuint32(12, 14, 16), 
-    tausAsJets = cms.bool(False)
-)
+  process.load('RecoJets.Configuration.GenJetParticles_cff')
+
   process.GenJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag( "ak4GenJetsNoNu" ),
     cut = cms.string(""),
@@ -178,7 +164,7 @@ def customise(process):
     tauTransverseImpactParameters = cms.InputTag( "hltHpsPFTauTransverseImpactParametersForDeepTauForVBFIsoTau" ),
     precision = cms.int32(7),
   )
-  process.ak4GenJetsNoNuExtTable = cms.EDProducer("GenJetFlavourTableProducerHLT",
+  process.ak4GenJetsNoNuExtTable = cms.EDProducer("GenJetFlavourTableProducer",
     name = cms.string("GenJet"),
     src = cms.InputTag( "ak4GenJetsNoNu" ),
     cut = cms.string(""),
