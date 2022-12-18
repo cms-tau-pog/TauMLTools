@@ -229,7 +229,7 @@ def customise(process):
   process.AK4PFJetsTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag( "hltAK4PFJets" ),
     cut = cms.string(""),
-    name= cms.string("AK4PFJets"),
+    name= cms.string("Jet"),
     doc = cms.string("HLT AK4 PF Jets"),
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table
