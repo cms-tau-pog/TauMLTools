@@ -19,7 +19,7 @@ def customiseGenParticles(process):
     return '( ' + ' || '.join(abs_pdgs) + ' )'
 
   leptons = pdgOR([ 11, 13, 15 ])
-  important_particles = pdgOR([ 6, 23, 24, 25, 35, 39, 9990012, 9900012 ])
+  important_particles = pdgOR([ 6, 23, 24, 25, 35, 39, 9990012, 9900012, 1000015 ])
   process.finalGenParticles.select = [
     'drop *',
     'keep++ statusFlags().isLastCopy() && ' + leptons,
