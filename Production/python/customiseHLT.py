@@ -70,8 +70,7 @@ def customise(process):
   from PhysicsTools.JetMCAlgos.HadronAndPartonSelector_cfi import selectedHadronsAndPartons
   process.selectedHadronsAndPartons = selectedHadronsAndPartons.clone(src = cms.InputTag("genParticlesForJetsNoNu"))
   # set ak4GenJets producer 
-  # process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu")
-  process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu")#, bHadrons= cms.InputTag("selectedHadronsAndPartons","bHadrons"), cHadrons= cms.InputTag("selectedHadronsAndPartons","cHadrons"),partons= cms.InputTag("selectedHadronsAndPartons","physicsPartons"), )
+  process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu")
   process.genJetFlavourInfos = ak4JetFlavourInfos.clone(  
     jets = cms.InputTag( "ak4GenJetsNoNu" ),
     bHadrons= cms.InputTag("selectedHadronsAndPartons","bHadrons"), 
