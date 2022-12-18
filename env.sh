@@ -34,7 +34,7 @@ load_env() {
     elif [[ $MODE = "phase2_113X" ]]; then
       local CMSSW_VER=CMSSW_11_3_0
       export SCRAM_ARCH=slc7_amd64_gcc900
-    elif [[ $MODE = "run2" || $MODE = "run3" || $MODE = "hlt"]] ; then
+    elif [[ $MODE = "run2" || $MODE = "run3" || $MODE = "hlt" ]] ; then
       local CMSSW_VER=CMSSW_12_4_10
       if [[ $os_version = "7" ]]; then
         export SCRAM_ARCH=slc7_amd64_gcc10
