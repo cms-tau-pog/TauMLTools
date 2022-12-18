@@ -1,6 +1,6 @@
 import os
-import math
 import json
+import numpy as np
 import pandas as pd
 from collections import defaultdict
 from dataclasses import fields
@@ -8,9 +8,9 @@ from dataclasses import fields
 import mlflow
 import hydra
 from hydra.utils import to_absolute_path
-from omegaconf import OmegaConf, DictConfig, ListConfig
+from omegaconf import OmegaConf, DictConfig
 
-import eval_tools
+import utils.evaluation as eval_tools
 
 @hydra.main(config_path='configs/eval', config_name='run3')
 def main(cfg: DictConfig) -> None:
@@ -36,18 +36,17 @@ def main(cfg: DictConfig) -> None:
     else:
         wp_thresholds = None
     discriminator = eval_tools.Discriminator(**init_params)
-    
-    # init PlotSetup() class from filtered input configuration
-    field_names = set(f_.name for f_ in fields(eval_tools.PlotSetup))
-    init_params = {k:v for k,v in cfg.plot_setup.items() if k in field_names}
-    plot_setup = eval_tools.PlotSetup(**init_params)
 
     # construct branches to be read from input files
     input_branches = OmegaConf.to_object(cfg.input_branches)
     if ((_b:=discriminator.pred_column) is not None) and (cfg.path_to_pred is None):
         input_branches.append(_b)
-    if (_b:=discriminator.wp_column) is not None:
-        input_branches.append(_b)
+    if (discriminator.wp_column) is not None:
+        if 'wp_name_to_index_map' in cfg['discriminator']: # append all branches for multiclass WP models
+            for tau_type in cfg['discriminator']['wp_name_to_index_map'].keys():
+                input_branches.append(cfg['discriminator']['wp_column_prefix'] + tau_type)
+        else: # append only wp_column branch for binary WP model
+            input_branches.append(discriminator.wp_column)
 
     # loop over input samples
     df_list = []
@@ -70,15 +69,20 @@ def main(cfg: DictConfig) -> None:
         df_all = df_all.query(cfg.cuts)
     if cfg['WPs_to_require'] is not None:
         for wp_vs_type, wp_name in cfg['WPs_to_require'].items():
-            if wp_thresholds is not None:
-                wp_thr = wp_thresholds[wp_vs_type][wp_name]
+            if cfg['discriminator']['wp_from']=='wp_column':
+                wp = cfg['discriminator']['wp_name_to_index_map'][wp_vs_type][wp_name]
+                wp_column = f"{cfg['discriminator']['wp_column_prefix']}{wp_vs_type}"
+                flag = 1 << wp
+                df_all = df_all[np.bitwise_and(df_all[wp_column], flag) != 0]
             else:
-                if cfg['discriminator']['wp_thresholds_map'] is not None:
+                if wp_thresholds is not None: # take thresholds from previously loaded json
+                    wp_thr = wp_thresholds[wp_vs_type][wp_name]
+                elif cfg['discriminator']['wp_thresholds_map'] is not None: # take thresholds from discriminator cfg
                     wp_thr = cfg['discriminator']['wp_thresholds_map'][wp_vs_type][wp_name]
                 else:
-                    raise RuntimeError('WP thresholds either via wp_thresholds_map or via input json file are not provided.')
-            wp_cut = f"{cfg['discriminator']['pred_column_prefix']}{wp_vs_type} > {wp_thr}"
-            df_all = df_all.query(wp_cut)
+                    raise RuntimeError('WP thresholds either from wp_column, or wp_thresholds_map, or via input json file are not provided.')
+                wp_cut = f"{cfg['discriminator']['pred_column_prefix']}{wp_vs_type} > {wp_thr}"
+                df_all = df_all.query(wp_cut)
         
 
     # # inverse scaling
@@ -91,7 +95,7 @@ def main(cfg: DictConfig) -> None:
         if json_exists: # read performance data to append additional info 
             performance_data = json.load(json_file)
         else: # create dictionary to fill with data
-            performance_data = {'name': discriminator.name, 'period': cfg.period, 'metrics': defaultdict(list)}
+            performance_data = {'name': discriminator.name, 'metrics': defaultdict(list)}
 
         # loop over pt bins
         print(f'\n{discriminator.name}')
@@ -110,9 +114,7 @@ def main(cfg: DictConfig) -> None:
             roc, wp_roc = discriminator.create_roc_curve(df_cut)
             if roc is not None:
                 # prune the curve
-                lim = getattr(plot_setup,  'xlim')
-                x_range = lim[1] - lim[0] if lim is not None else 1
-                roc = roc.Prune(tpr_decimals=max(0, round(math.log10(1000 / x_range))))
+                roc = roc.prune(tpr_decimals=cfg['roc_prune_decimal'][cfg['vs_type']])
                 if roc.auc_score is not None:
                     print(f'[INFO] ROC curve done, AUC = {roc.auc_score:.6f}')
 
@@ -143,54 +145,6 @@ def main(cfg: DictConfig) -> None:
                     curve_data['false_positive_rate_down'] = eval_tools.FloatList(curve.pr_err[0, 1, :].tolist())
                     curve_data['true_positive_rate_up'] = eval_tools.FloatList(curve.pr_err[1, 0, :].tolist())
                     curve_data['true_positive_rate_down'] = eval_tools.FloatList(curve.pr_err[1, 1, :].tolist())
-
-                # plot setup for the curve
-                curve_data['plot_setup'] = {
-                    'color': curve.color,
-                    'dots_only': curve.dots_only,
-                    'dashed': curve.dashed,
-                    'marker_size': curve.marker_size
-                }
-                # curve_data['plot_setup']['ratio_title'] = 'MVA/DeepTau' if cfg.vs_type != 'mu' else 'cut based/DeepTau'
-                curve_data['plot_setup']['ratio_title'] = "ratio"
-
-                # plot setup for the curve
-                for lim_name in [ 'x', 'y', 'ratio_y' ]:
-                    lim = getattr(plot_setup, lim_name + 'lim')
-                    if lim is not None:
-                        lim = OmegaConf.to_object(lim[eta_index][pt_index]) if isinstance(lim[0], (list, ListConfig)) else lim
-                        curve_data['plot_setup'][lim_name + '_min'] = lim[0]
-                        curve_data['plot_setup'][lim_name + '_max'] = lim[1]
-                for param_name in [ 'ylabel', 'yscale', 'ratio_yscale', 'legend_loc', 'ratio_ylabel_pad']:
-                    val = getattr(plot_setup, param_name)
-                    if val is not None:
-                        curve_data['plot_setup'][param_name] = val
-
-                # plot setup for the curve
-                if cfg.plot_setup.public_plots:
-                    if pt_max == 1000:
-                        pt_text = r'$p_T > {}$ GeV'.format(pt_min)
-                    elif pt_min == 20:
-                        pt_text = r'$p_T < {}$ GeV'.format(pt_max)
-                    else:
-                        pt_text = r'$p_T\in ({}, {})$ GeV'.format(pt_min, pt_max)
-                    curve_data['plot_setup']['pt_text'] = pt_text
-                else:
-                    if cfg.plot_setup.inequality_in_title and (pt_min == 20 or pt_max == 1000) \
-                            and not (pt_min == 20 and pt_max == 1000):
-                        if pt_min == 20:
-                            title_str = 'tau vs {}. pt < {} GeV'.format(cfg.vs_type, pt_max)
-                        else:
-                            title_str = 'tau vs {}. pt > {} GeV'.format(cfg.vs_type, pt_min)
-                    else:
-                        title_str = 'tau vs {}. pt range ({}, {}) GeV'.format(cfg.vs_type, pt_min,
-                                                                                pt_max)
-                    curve_data['plot_setup']['pt_text'] = title_str
-                curve_data['plot_setup']['eta_text'] = r'${} < |\eta| < {}$'.format(eta_min, eta_max)
-                if len(dm_bin)==1:
-                    curve_data['plot_setup']['dm_text'] = r'DM$ = {}$'.format(dm_bin[0])
-                else:
-                    curve_data['plot_setup']['dm_text'] = r'DM$ \in {}$'.format(dm_bin)
 
                 # append data for a given curve_type and pt bin
                 if curve_type not in performance_data['metrics']:

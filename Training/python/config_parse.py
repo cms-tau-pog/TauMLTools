@@ -169,17 +169,24 @@ def create_scaling_input(input_scaling_file: str, training_cfg_data: dict, verbo
 
     def create_scaling(content_scaling: dict, content_cfg: dict) -> str:
         string = "namespace Scaling {\n"
-        for FeatureT in content_scaling:
+        for FeatureT in content_cfg["Features_all"]:
             string += "struct "+FeatureT+"{\n"
             duplicate = FeatureT in content_cfg['CellObjectType'] # whether to duplicate scaling param values across cone_groups
-            for i, subg in enumerate(subgroups):
+            for subg in subgroups:
                 string += "inline static const "
                 string += "std::vector<std::vector<float>> "
                 string += subg + " = "
                 var_string = []
-                for var_i, (var, var_params) in enumerate(content_scaling[FeatureT].items()):
-                    assert var in content_cfg['Features_all'][FeatureT][var_i].keys() # check if there is such feature in training cfg
-                    if var in content_cfg['Features_disable'][FeatureT]: continue
+
+                feature_list_enabled= []
+                for feature_dict in content_cfg["Features_all"][FeatureT]:
+                    assert len(feature_dict) == 1 and type(feature_dict) == dict
+                    if list(feature_dict)[0] in content_cfg["Features_disable"][FeatureT]:
+                        continue
+                    feature_list_enabled.append(list(feature_dict)[0])
+
+                for var in feature_list_enabled:
+                    var_params = content_scaling[FeatureT][var]
                     if len(var_params)==len(cone_groups) and all([g in var_params.keys() for g in cone_groups]):
                         var_string.append(",".join([conv_str(var_params[cone_group][subg]) for cone_group in cone_groups]))
                     elif len(var_params)==1 and global_group in var_params.keys():

@@ -90,14 +90,15 @@ std::ostream& operator<<(std::ostream& os, const TauJetBuilder::MatchResult& mat
 TauJetBuilder::TauJetBuilder(const TauJetBuilderSetup& setup, const pat::TauCollection& taus,
               const pat::TauCollection& boostedTaus, const pat::JetCollection& jets,
               const pat::JetCollection& fatJets, const pat::PackedCandidateCollection& cands,
-              const pat::ElectronCollection& electrons, const pat::MuonCollection& muons,
-              const pat::IsolatedTrackCollection& isoTracks, const pat::PackedCandidateCollection& lostTracks,
+              const pat::ElectronCollection& electrons, const pat::PhotonCollection& photons, const pat::MuonCollection& muons,
+              const pat::IsolatedTrackCollection& isoTracks, const pat::PackedCandidateCollection& lostTracks, 
+	      const std::vector<reco::VertexCompositePtrCandidate>& secondVertices,
               const reco::GenParticleCollection* genParticles, const reco::GenJetCollection* genJets,
               bool requireGenMatch, bool requireGenORRecoTauMatch, bool applyRecoPtSieve) :
     setup_(setup), taus_(taus), boostedTaus_(boostedTaus), jets_(jets), fatJets_(fatJets), cands_(cands),
-    electrons_(electrons), muons_(muons), isoTracks_(isoTracks), lostTracks_(lostTracks), genParticles_(genParticles),
-    genJets_(genJets), requireGenMatch_(requireGenMatch), requireGenORRecoTauMatch_(requireGenORRecoTauMatch),
-    applyRecoPtSieve_(applyRecoPtSieve)
+    electrons_(electrons), photons_(photons), muons_(muons), isoTracks_(isoTracks), lostTracks_(lostTracks), secondVertices_(secondVertices), 
+    genParticles_(genParticles), genJets_(genJets), requireGenMatch_(requireGenMatch), 
+    requireGenORRecoTauMatch_(requireGenORRecoTauMatch), applyRecoPtSieve_(applyRecoPtSieve)
 {
     if(genParticles)
         genLeptons_ = reco_tau::gen_truth::GenLepton::fromGenParticleCollection(*genParticles);
@@ -305,8 +306,16 @@ void TauJetBuilder::Build()
         tauJets_ = prunedTauJets;
     }
 
+   for(TauJet& tauJet : tauJets_) {
 
-    for(TauJet& tauJet : tauJets_) {
+        auto hasSVPFMatch = [&](const reco::VertexCompositePtrCandidate& sv, const reco::Candidate* pfCandPtr) {
+            for(size_t it = 0; it < sv.numberOfSourceCandidatePtrs(); ++it) {
+                const edm::Ptr<reco::Candidate>& recoCandPtr = sv.sourceCandidatePtr(it);
+                if(pfCandPtr == &(*recoCandPtr))
+                    return true;
+            }
+            return false;
+        };
 
         const auto hasMatch = [&](const PolarLorentzVector& p4) {
             if(tauJet.genLepton && deltaR(p4, tauJet.genLepton->visibleP4()) < setup_.genLepton_cone)
@@ -332,29 +341,6 @@ void TauJetBuilder::Build()
             }
         };
 
-        for(size_t pfCandIndex = 0; pfCandIndex < cands_.size(); ++pfCandIndex) {
-            const auto& pfCand = cands_.at(pfCandIndex);
-            if(!hasMatch(pfCand.polarP4())) continue;
-            PFCandDesc pfCandDesc;
-            pfCandDesc.candidate = &pfCand;
-            pfCandDesc.index = static_cast<int>(pfCandIndex);
-            if(tauJet.tau) {
-                pfCandDesc.tauSignal = IsTauSignalCand(*tauJet.tau, pfCand);
-                pfCandDesc.tauLeadChargedHadrCand = IsLeadChargedHadrCand(*tauJet.tau, pfCand);
-                pfCandDesc.tauIso = IsTauIsoCand(*tauJet.tau, pfCand);
-            }
-            if(tauJet.boostedTau) {
-                pfCandDesc.boostedTauSignal = IsTauSignalCand(*tauJet.boostedTau, pfCand);
-                pfCandDesc.boostedTauLeadChargedHadrCand = IsLeadChargedHadrCand(*tauJet.boostedTau, pfCand);
-                pfCandDesc.boostedTauIso = IsTauIsoCand(*tauJet.boostedTau, pfCand);
-            }
-            if(tauJet.jet)
-                pfCandDesc.jetDaughter = IsJetDaughter(*tauJet.jet, pfCand);
-            if(tauJet.fatJet)
-                pfCandDesc.subJetDaughter = GetMatchedSubJetIndex(*tauJet.fatJet, pfCand);
-            tauJet.cands.push_back(pfCandDesc);
-        }
-
         for(size_t pfCandIndex = 0; pfCandIndex < lostTracks_.size(); ++pfCandIndex) {
             const auto& pfCand = lostTracks_.at(pfCandIndex);
             if(!hasMatch(pfCand.polarP4())) continue;
@@ -364,10 +350,70 @@ void TauJetBuilder::Build()
             tauJet.lostTracks.push_back(pfCandDesc);
         }
 
+        std::map<int, PFCandDesc> selCands;
+        std::map<int, const reco::VertexCompositePtrCandidate*> selSVs;
+        size_t nSelCands = 0, nSelSVs = 0;
+        while(true) {
+            for(size_t pfCandIndex = 0; pfCandIndex < cands_.size(); ++pfCandIndex) {
+                const auto& pfCand = cands_.at(pfCandIndex);
+                if(selCands.count(pfCandIndex)) continue;
+                bool belongsToSelectedSV = false;
+                for(const auto& [svIndex, sv] : selSVs) {
+                    if(hasSVPFMatch(*sv, &pfCand)) {
+                        belongsToSelectedSV = true;
+                        break;
+                    }
+                }
+                if(!(belongsToSelectedSV || hasMatch(pfCand.polarP4()))) continue;
+                PFCandDesc pfCandDesc;
+                pfCandDesc.candidate = &pfCand;
+                pfCandDesc.index = static_cast<int>(pfCandIndex);
+                if(tauJet.tau) {
+                    pfCandDesc.tauSignal = IsTauSignalCand(*tauJet.tau, pfCand);
+                    pfCandDesc.tauLeadChargedHadrCand = IsLeadChargedHadrCand(*tauJet.tau, pfCand);
+                    pfCandDesc.tauIso = IsTauIsoCand(*tauJet.tau, pfCand);
+                }
+                if(tauJet.boostedTau) {
+                    pfCandDesc.boostedTauSignal = IsTauSignalCand(*tauJet.boostedTau, pfCand);
+                    pfCandDesc.boostedTauLeadChargedHadrCand = IsLeadChargedHadrCand(*tauJet.boostedTau, pfCand);
+                    pfCandDesc.boostedTauIso = IsTauIsoCand(*tauJet.boostedTau, pfCand);
+                }
+                if(tauJet.jet)
+                    pfCandDesc.jetDaughter = IsJetDaughter(*tauJet.jet, pfCand);
+                if(tauJet.fatJet)
+                    pfCandDesc.subJetDaughter = GetMatchedSubJetIndex(*tauJet.fatJet, pfCand);
+                selCands[pfCandDesc.index] = pfCandDesc;
+            }
+
+            for(size_t svIndex = 0; svIndex < secondVertices_.size(); ++svIndex) {
+                const auto& sv = secondVertices_.at(svIndex);
+                if(selSVs.count(svIndex)) continue;
+                bool hasSelectedPF = false;
+                for(const auto& [pfCandIndex, pfCandDesc] : selCands) {
+                    if(hasSVPFMatch(sv, pfCandDesc.candidate)) {
+                        hasSelectedPF = true;
+                        break;
+                    }
+                }
+                if(!(hasSelectedPF || hasMatch(sv.polarP4()))) continue;
+                selSVs[svIndex] = &sv;
+            }
+            if(nSelCands == selCands.size() && nSelSVs == selSVs.size()) break;
+            nSelCands = selCands.size();
+            nSelSVs = selSVs.size();
+        }
+
+        for(const auto& [pfCandIndex, pfCandDesc] : selCands)
+            tauJet.cands.push_back(pfCandDesc);
+        for(const auto& [svIndex, sv] : selSVs)
+            tauJet.secondVertices.emplace_back(*sv, svIndex);
+
         fillMatched(tauJet.electrons, electrons_);
+        fillMatched(tauJet.photons, photons_);
         fillMatched(tauJet.muons, muons_);
         fillMatched(tauJet.isoTracks, isoTracks_);
     }
+
 }
 
 bool TauJetBuilder::IsTauSignalCand(const pat::Tau& tau, const pat::PackedCandidate& cand)

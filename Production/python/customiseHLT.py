@@ -19,7 +19,7 @@ def customiseGenParticles(process):
     return '( ' + ' || '.join(abs_pdgs) + ' )'
 
   leptons = pdgOR([ 11, 13, 15 ])
-  important_particles = pdgOR([ 6, 23, 24, 25, 35, 39, 9990012, 9900012 ])
+  important_particles = pdgOR([ 6, 23, 24, 25, 35, 39, 9990012, 9900012, 1000015 ])
   process.finalGenParticles.select = [
     'drop *',
     'keep++ statusFlags().isLastCopy() && ' + leptons,
@@ -70,8 +70,7 @@ def customise(process):
   from PhysicsTools.JetMCAlgos.HadronAndPartonSelector_cfi import selectedHadronsAndPartons
   process.selectedHadronsAndPartons = selectedHadronsAndPartons.clone(src = cms.InputTag("genParticlesForJetsNoNu"))
   # set ak4GenJets producer 
-  # process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu")
-  process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu")#, bHadrons= cms.InputTag("selectedHadronsAndPartons","bHadrons"), cHadrons= cms.InputTag("selectedHadronsAndPartons","cHadrons"),partons= cms.InputTag("selectedHadronsAndPartons","physicsPartons"), )
+  process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu")
   process.genJetFlavourInfos = ak4JetFlavourInfos.clone(  
     jets = cms.InputTag( "ak4GenJetsNoNu" ),
     bHadrons= cms.InputTag("selectedHadronsAndPartons","bHadrons"), 
@@ -85,7 +84,6 @@ def customise(process):
     cut = cms.string(""),
     name= cms.string("GenJet"),
     doc = cms.string("HLT ak4 GenJet"),
-    SkipEvent = cms.untracked.vstring('ProductNotFound'),
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table
     variables = cms.PSet(
@@ -217,7 +215,7 @@ def customise(process):
   process.AK4PFJetsTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
     src = cms.InputTag( "hltAK4PFJets" ),
     cut = cms.string(""),
-    name= cms.string("AK4PFJets"),
+    name= cms.string("Jet"),
     doc = cms.string("HLT AK4 PF Jets"),
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table
