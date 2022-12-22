@@ -4,7 +4,7 @@ if (( $# < 1 )) ; then
     cat << EOF
 Setup environment for TauMLTools
 Usage: source env.sh mode [mode_arg_1] [mode_arg_2] ...
-Supported modes: run2 run3 phase2_112X phase2_113X lcg conda
+Supported modes: run2 run3 phase2_112X phase2_113X lcg conda hlt
 Mode-specific arguments:
 conda
   --update [env.yaml]  updates environment from env.yaml (default: tau-ml-env.yaml)
@@ -26,7 +26,7 @@ load_env() {
   local BASE_PATH=$PWD
 
   export TAU_ML_DIR="$(pwd)"
-  if [[ $MODE = "phase2_112X" || $MODE = "phase2_113X" || $MODE = "run2" || $MODE = "run3" ]]; then
+  if [[ $MODE = "phase2_112X" || $MODE = "phase2_113X" || $MODE = "run2" || $MODE = "run3" || $MODE = "hlt" ]]; then
     local os_version=$(cat /etc/os-release | grep VERSION_ID | sed -E 's/VERSION_ID="([0-9]+)"/\1/')
     if [[ $MODE = "phase2_112X" ]]; then
       local CMSSW_VER=CMSSW_11_2_5
@@ -34,7 +34,7 @@ load_env() {
     elif [[ $MODE = "phase2_113X" ]]; then
       local CMSSW_VER=CMSSW_11_3_0
       export SCRAM_ARCH=slc7_amd64_gcc900
-    elif [[ $MODE = "run2" || $MODE = "run3" ]] ; then
+    elif [[ $MODE = "run2" || $MODE = "run3" || $MODE = "hlt" ]] ; then
       local CMSSW_VER=CMSSW_12_4_10
       if [[ $os_version = "7" ]]; then
         export SCRAM_ARCH=slc7_amd64_gcc10
