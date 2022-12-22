@@ -12,3 +12,4 @@ __init__.py
 *.svg
 *.swp
 /soft
+.vscode
