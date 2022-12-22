@@ -125,9 +125,9 @@ public:
         genMETs_token(consumes<edm::View<reco::GenMET>>(cfg.getParameter<edm::InputTag>("genMETs"))),
         triggerResults_token(consumes<edm::TriggerResults>(cfg.getParameter<edm::InputTag>("triggerResults"))),
         triggerObjects_token(consumes<pat::TriggerObjectStandAloneCollection>(cfg.getParameter<edm::InputTag>("triggerObjects"))),
-        tauSpinnerWTEven_token(consumes<double>(cfg.getParameter<edm::InputTag>("tauSpinnerWTEven"))),
-        tauSpinnerWTOdd_token(consumes<double>(cfg.getParameter<edm::InputTag>("tauSpinnerWTOdd"))),
-        tauSpinnerWTMM_token(consumes<double>(cfg.getParameter<edm::InputTag>("tauSpinnerWTMM"))),
+        tauSpinnerWTEven_token(mayConsume<double>(cfg.getParameter<edm::InputTag>("tauSpinnerWTEven"))),
+        tauSpinnerWTOdd_token(mayConsume<double>(cfg.getParameter<edm::InputTag>("tauSpinnerWTOdd"))),
+        tauSpinnerWTMM_token(mayConsume<double>(cfg.getParameter<edm::InputTag>("tauSpinnerWTMM"))),
         tauTuple(*data.tauTuple),
         summaryTuple(*data.summaryTuple),
         selector(selectors::TauJetSelector::Make(cfg.getParameter<std::string>("selector")))
@@ -183,7 +183,7 @@ private:
 
         auto vertices = getHandle(event, vertices_token);
         tauTuple().npv = static_cast<int>(vertices->size());
-	auto secondVertices = getHandle(event, secondVertices_token);
+        auto secondVertices = getHandle(event, secondVertices_token);
         auto rho = getHandle(event, rho_token);
         tauTuple().rho = static_cast<float>(*rho);
 
@@ -218,9 +218,9 @@ private:
         auto isoTracks = getHandle(event, isoTracks_token);
         auto lostTracks = getHandle(event, lostTracks_token);
         auto METs = getHandle(event, METs_token);
-	auto puppiMETs = getHandle(event, puppiMETs_token);
-	auto deepMETs = getHandle(event, deepMETs_token);
-	auto genMETs = getHandle(event, genMETs_token);
+        auto puppiMETs = getHandle(event, puppiMETs_token);
+        auto deepMETs = getHandle(event, deepMETs_token);
+        auto genMETs = getHandle(event, genMETs_token);
         auto triggerResults = getHandle(event, triggerResults_token);
         auto triggerObjects = getHandle(event, triggerObjects_token);
         auto tauSpinnerWTEven = getHandle(event, tauSpinnerWTEven_token);
@@ -233,21 +233,21 @@ private:
 
         tauTuple().met_pt = METs->at(0).pt();
         tauTuple().met_phi = METs->at(0).phi();
-	tauTuple().metcov_00 = METs->at(0).getSignificanceMatrix()[0][0];
+        tauTuple().metcov_00 = METs->at(0).getSignificanceMatrix()[0][0];
         tauTuple().metcov_01 = METs->at(0).getSignificanceMatrix()[0][1];
         tauTuple().metcov_11 = METs->at(0).getSignificanceMatrix()[1][1];
-	tauTuple().puppimet_pt = puppiMETs->at(0).pt();
+        tauTuple().puppimet_pt = puppiMETs->at(0).pt();
         tauTuple().puppimet_phi = puppiMETs->at(0).phi();
         tauTuple().puppimetcov_00 = puppiMETs->at(0).getSignificanceMatrix()[0][0];
         tauTuple().puppimetcov_01 = puppiMETs->at(0).getSignificanceMatrix()[0][1];
         tauTuple().puppimetcov_11 = puppiMETs->at(0).getSignificanceMatrix()[1][1];
-	tauTuple().deepmet_pt = deepMETs->at(0).pt();
-	tauTuple().deepmet_phi = deepMETs->at(0).phi();
+        tauTuple().deepmet_pt = deepMETs->at(0).pt();
+        tauTuple().deepmet_phi = deepMETs->at(0).phi();
         tauTuple().genmet_pt = genMETs->at(0).pt();
         tauTuple().genmet_phi = genMETs->at(0).phi();
-	tauTuple().tauSpinnerWTEven = (*tauSpinnerWTEven);
-        tauTuple().tauSpinnerWTOdd = (*tauSpinnerWTOdd);
-        tauTuple().tauSpinnerWTMM = (*tauSpinnerWTMM);
+        tauTuple().tauSpinnerWTEven = tauSpinnerWTEven.isValid() ? *tauSpinnerWTEven : -1.f;
+        tauTuple().tauSpinnerWTOdd = tauSpinnerWTOdd.isValid() ? *tauSpinnerWTOdd : -1.f;
+        tauTuple().tauSpinnerWTMM = tauSpinnerWTMM.isValid() ? *tauSpinnerWTMM : -1.f;
 
         TauJetBuilder builder(builderSetup, *taus, *boostedTaus, *jets, *fatJets, *cands, *electrons, *photons, *muons,
                               *isoTracks, *lostTracks, *secondVertices, genParticles, genJets, requireGenMatch,
@@ -285,7 +285,7 @@ private:
             FillPhotons(tauJet.photons);
             FillMuons(tauJet.muons, PV);
             FillIsoTracks(tauJet.isoTracks);
-	    FillSV(tauJet.secondVertices, tauJet.cands);
+            FillSV(tauJet.secondVertices, tauJet.cands);
 
             tauTuple.Fill();
         }
@@ -348,17 +348,17 @@ private:
 
                 if(mothers.empty()) return -1;
                 if(mothers.size() > 6) {
-		    std::cout<<"Warning : Gen particle with > 6 mothers, storing only 6 firsts"<<std::endl;
-		}
+                    std::cerr << "Warning : Gen particle with > 6 mothers, storing only 6 firsts." << std::endl;
+                }
                 if(mothers.size() > 1 && genLepton->allParticles().size() > static_cast<size_t>(shift_scale))
                     throw cms::Exception("TauTupleProducer") << "Too many gen particles per gen lepton.";
                 Long64_t pos = 0;
                 Long64_t shift = 1;
                 std::set<int> mother_indices;
                 for(auto mother : mothers) {
-		    if(mother_indices.size() >= 6) break;
+                    if(mother_indices.size() >= 6) break;
                     mother_indices.insert(getIndex(mother));
-		}
+                }
                 for(int mother_idx : mother_indices) {
                     pos = pos + shift * mother_idx;
                     shift *= shift_scale;
@@ -761,9 +761,9 @@ private:
 
     void FillPhotons(const TauJet::PhotonCollection& photons)
     {
-	auto push_back = [&](const std::string& prefix, const std::string& name, float value) {
-	    tauTuple.get<std::vector<float>>(prefix + name).push_back(value);
-	};
+        auto push_back = [&](const std::string& prefix, const std::string& name, float value) {
+            tauTuple.get<std::vector<float>>(prefix + name).push_back(value);
+        };
 
         auto fillShape = [&](const reco::Photon::ShowerShape& shape, const std::string& prefix) {
             push_back(prefix, "sigmaEtaEta", shape.sigmaEtaEta);
@@ -795,7 +795,7 @@ private:
             push_back(prefix, "smMajor", shape.smMajor);
             push_back(prefix, "smMinor", shape.smMinor);
             push_back(prefix, "smAlpha", shape.smAlpha);
-	};
+        };
 
         for(const auto& photon_ptr : photons) {
             const pat::Photon* photon = photon_ptr.obj;
@@ -804,9 +804,9 @@ private:
             tauTuple().photon_eta.push_back(static_cast<float>(photon->polarP4().eta()));
             tauTuple().photon_phi.push_back(static_cast<float>(photon->polarP4().phi()));
             tauTuple().photon_energy.push_back(static_cast<float>(photon->polarP4().energy()));
-	    tauTuple().photon_passElectronVeto.push_back(photon->passElectronVeto());
+            tauTuple().photon_passElectronVeto.push_back(photon->passElectronVeto());
             tauTuple().photon_hasPixelSeed.push_back(photon->hasPixelSeed());
-	    tauTuple().photon_eMax.push_back(photon->eMax());
+            tauTuple().photon_eMax.push_back(photon->eMax());
             tauTuple().photon_e2nd.push_back(photon->e2nd());
             tauTuple().photon_e3x3.push_back(photon->e3x3());
             tauTuple().photon_eTop.push_back(photon->eTop());
@@ -833,8 +833,8 @@ private:
             tauTuple().photon_cryEta.push_back(photon->cryEta());
             tauTuple().photon_iPhi.push_back(photon->iPhi());
             tauTuple().photon_iEta.push_back(photon->iEta());
-	    //
-	    fillShape(photon->showerShapeVariables(), "photon_shape_");
+
+            fillShape(photon->showerShapeVariables(), "photon_shape_");
             fillShape(photon->full5x5_showerShapeVariables(), "photon_full5x5shape_");
         }
     }
@@ -882,69 +882,75 @@ private:
     void FillIsoTracks(const TauJet::IsoTrackCollection& tracks)
     {
         for(const auto& track_ptr : tracks) {
-          const pat::IsolatedTrack* track = track_ptr.obj;
-          tauTuple().isoTrack_index.push_back(track_ptr.index);
-          tauTuple().isoTrack_pt.push_back(static_cast<float>(track->polarP4().pt()));
-          tauTuple().isoTrack_eta.push_back(static_cast<float>(track->polarP4().eta()));
-          tauTuple().isoTrack_phi.push_back(static_cast<float>(track->polarP4().phi()));
-          tauTuple().isoTrack_fromPV.push_back(track->fromPV());
-          tauTuple().isoTrack_charge.push_back(track->charge());
-          tauTuple().isoTrack_dxy.push_back(track->dxy());
-          tauTuple().isoTrack_dxy_error.push_back(track->dxyError());
-          tauTuple().isoTrack_dz.push_back(track->dz());
-          tauTuple().isoTrack_dz_error.push_back(track->dzError());
-          tauTuple().isoTrack_isHighPurityTrack.push_back(track->isHighPurityTrack());
-          tauTuple().isoTrack_isTightTrack.push_back(track->isTightTrack());
-          tauTuple().isoTrack_isLooseTrack.push_back(track->isLooseTrack());
-          tauTuple().isoTrack_dEdxStrip.push_back(track->dEdxStrip());
-          tauTuple().isoTrack_dEdxPixel.push_back(track->dEdxPixel());
-          tauTuple().isoTrack_deltaEta.push_back(track->deltaEta());
-          tauTuple().isoTrack_deltaPhi.push_back(track->deltaPhi());
+            const pat::IsolatedTrack* track = track_ptr.obj;
+            tauTuple().isoTrack_index.push_back(track_ptr.index);
+            tauTuple().isoTrack_pt.push_back(static_cast<float>(track->polarP4().pt()));
+            tauTuple().isoTrack_eta.push_back(static_cast<float>(track->polarP4().eta()));
+            tauTuple().isoTrack_phi.push_back(static_cast<float>(track->polarP4().phi()));
+            tauTuple().isoTrack_fromPV.push_back(track->fromPV());
+            tauTuple().isoTrack_charge.push_back(track->charge());
+            tauTuple().isoTrack_dxy.push_back(track->dxy());
+            tauTuple().isoTrack_dxy_error.push_back(track->dxyError());
+            tauTuple().isoTrack_dz.push_back(track->dz());
+            tauTuple().isoTrack_dz_error.push_back(track->dzError());
+            tauTuple().isoTrack_isHighPurityTrack.push_back(track->isHighPurityTrack());
+            tauTuple().isoTrack_isTightTrack.push_back(track->isTightTrack());
+            tauTuple().isoTrack_isLooseTrack.push_back(track->isLooseTrack());
+            tauTuple().isoTrack_dEdxStrip.push_back(track->dEdxStrip());
+            tauTuple().isoTrack_dEdxPixel.push_back(track->dEdxPixel());
+            tauTuple().isoTrack_deltaEta.push_back(track->deltaEta());
+            tauTuple().isoTrack_deltaPhi.push_back(track->deltaPhi());
 
-          const auto& hitPattern = track->hitPattern();
-          tauTuple().isoTrack_n_ValidHits.push_back(hitPattern.numberOfValidHits());
-          tauTuple().isoTrack_n_InactiveHits.push_back(hitPattern.numberOfInactiveHits());
-          tauTuple().isoTrack_n_ValidPixelHits.push_back(hitPattern.numberOfValidPixelHits());
-          tauTuple().isoTrack_n_ValidStripHits.push_back(hitPattern.numberOfValidStripHits());
+            const auto& hitPattern = track->hitPattern();
+            tauTuple().isoTrack_n_ValidHits.push_back(hitPattern.numberOfValidHits());
+            tauTuple().isoTrack_n_InactiveHits.push_back(hitPattern.numberOfInactiveHits());
+            tauTuple().isoTrack_n_ValidPixelHits.push_back(hitPattern.numberOfValidPixelHits());
+            tauTuple().isoTrack_n_ValidStripHits.push_back(hitPattern.numberOfValidStripHits());
 
-          tauTuple().isoTrack_n_MuonHits.push_back(hitPattern.numberOfMuonHits());
-          tauTuple().isoTrack_n_BadHits.push_back(hitPattern.numberOfBadHits());
-          tauTuple().isoTrack_n_BadMuonHits.push_back(hitPattern.numberOfBadMuonHits());
-          tauTuple().isoTrack_n_BadMuonDTHits.push_back(hitPattern.numberOfBadMuonDTHits());
-          tauTuple().isoTrack_n_BadMuonCSCHits.push_back(hitPattern.numberOfBadMuonCSCHits());
-          tauTuple().isoTrack_n_BadMuonRPCHits.push_back(hitPattern.numberOfBadMuonRPCHits());
-          tauTuple().isoTrack_n_BadMuonGEMHits.push_back(hitPattern.numberOfBadMuonGEMHits());
-          tauTuple().isoTrack_n_BadMuonME0Hits.push_back(hitPattern.numberOfBadMuonME0Hits());
-          tauTuple().isoTrack_n_ValidMuonHits.push_back(hitPattern.numberOfValidMuonHits());
-          tauTuple().isoTrack_n_ValidMuonDTHits.push_back(hitPattern.numberOfValidMuonDTHits());
-          tauTuple().isoTrack_n_ValidMuonCSCHits.push_back(hitPattern.numberOfValidMuonCSCHits());
-          tauTuple().isoTrack_n_ValidMuonRPCHits.push_back(hitPattern.numberOfValidMuonRPCHits());
-          tauTuple().isoTrack_n_ValidMuonGEMHits.push_back(hitPattern.numberOfValidMuonGEMHits());
-          tauTuple().isoTrack_n_ValidMuonME0Hits.push_back(hitPattern.numberOfValidMuonME0Hits());
-          tauTuple().isoTrack_n_LostMuonHits.push_back(hitPattern.numberOfLostMuonHits());
-          tauTuple().isoTrack_n_LostMuonDTHits.push_back(hitPattern.numberOfLostMuonDTHits());
-          tauTuple().isoTrack_n_LostMuonCSCHits.push_back(hitPattern.numberOfLostMuonCSCHits());
-          tauTuple().isoTrack_n_LostMuonRPCHits.push_back(hitPattern.numberOfLostMuonRPCHits());
-          tauTuple().isoTrack_n_LostMuonGEMHits.push_back(hitPattern.numberOfLostMuonGEMHits());
-          tauTuple().isoTrack_n_LostMuonME0Hits.push_back(hitPattern.numberOfLostMuonME0Hits());
+            tauTuple().isoTrack_n_MuonHits.push_back(hitPattern.numberOfMuonHits());
+            tauTuple().isoTrack_n_BadHits.push_back(hitPattern.numberOfBadHits());
+            tauTuple().isoTrack_n_BadMuonHits.push_back(hitPattern.numberOfBadMuonHits());
+            tauTuple().isoTrack_n_BadMuonDTHits.push_back(hitPattern.numberOfBadMuonDTHits());
+            tauTuple().isoTrack_n_BadMuonCSCHits.push_back(hitPattern.numberOfBadMuonCSCHits());
+            tauTuple().isoTrack_n_BadMuonRPCHits.push_back(hitPattern.numberOfBadMuonRPCHits());
+            tauTuple().isoTrack_n_BadMuonGEMHits.push_back(hitPattern.numberOfBadMuonGEMHits());
+            tauTuple().isoTrack_n_BadMuonME0Hits.push_back(hitPattern.numberOfBadMuonME0Hits());
+            tauTuple().isoTrack_n_ValidMuonHits.push_back(hitPattern.numberOfValidMuonHits());
+            tauTuple().isoTrack_n_ValidMuonDTHits.push_back(hitPattern.numberOfValidMuonDTHits());
+            tauTuple().isoTrack_n_ValidMuonCSCHits.push_back(hitPattern.numberOfValidMuonCSCHits());
+            tauTuple().isoTrack_n_ValidMuonRPCHits.push_back(hitPattern.numberOfValidMuonRPCHits());
+            tauTuple().isoTrack_n_ValidMuonGEMHits.push_back(hitPattern.numberOfValidMuonGEMHits());
+            tauTuple().isoTrack_n_ValidMuonME0Hits.push_back(hitPattern.numberOfValidMuonME0Hits());
+            tauTuple().isoTrack_n_LostMuonHits.push_back(hitPattern.numberOfLostMuonHits());
+            tauTuple().isoTrack_n_LostMuonDTHits.push_back(hitPattern.numberOfLostMuonDTHits());
+            tauTuple().isoTrack_n_LostMuonCSCHits.push_back(hitPattern.numberOfLostMuonCSCHits());
+            tauTuple().isoTrack_n_LostMuonRPCHits.push_back(hitPattern.numberOfLostMuonRPCHits());
+            tauTuple().isoTrack_n_LostMuonGEMHits.push_back(hitPattern.numberOfLostMuonGEMHits());
+            tauTuple().isoTrack_n_LostMuonME0Hits.push_back(hitPattern.numberOfLostMuonME0Hits());
 
-          tauTuple().isoTrack_n_TimingHits.push_back(hitPattern.numberOfTimingHits());
-          tauTuple().isoTrack_n_ValidTimingHits.push_back(hitPattern.numberOfValidTimingHits());
-          tauTuple().isoTrack_n_LostTimingHits.push_back(hitPattern.numberOfLostTimingHits());
+            tauTuple().isoTrack_n_TimingHits.push_back(hitPattern.numberOfTimingHits());
+            tauTuple().isoTrack_n_ValidTimingHits.push_back(hitPattern.numberOfValidTimingHits());
+            tauTuple().isoTrack_n_LostTimingHits.push_back(hitPattern.numberOfLostTimingHits());
 
-          using ctgr = reco::HitPattern;
-          tauTuple().isoTrack_n_AllHits_TRACK.push_back(hitPattern.numberOfAllHits(ctgr::TRACK_HITS));
-          tauTuple().isoTrack_n_AllHits_MISSING_INNER.push_back(hitPattern.numberOfAllHits(ctgr::MISSING_INNER_HITS));
-          tauTuple().isoTrack_n_AllHits_MISSING_OUTER.push_back(hitPattern.numberOfAllHits(ctgr::MISSING_OUTER_HITS));
-          tauTuple().isoTrack_n_LostHits_TRACK.push_back(hitPattern.numberOfLostHits(ctgr::TRACK_HITS));
-          tauTuple().isoTrack_n_LostHits_MISSING_INNER.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_INNER_HITS));
-          tauTuple().isoTrack_n_LostHits_MISSING_OUTER.push_back(hitPattern.numberOfLostHits(ctgr::MISSING_OUTER_HITS));
-          tauTuple().isoTrack_n_LostPixelHits_TRACK.push_back(hitPattern.numberOfLostPixelHits(ctgr::TRACK_HITS));
-          tauTuple().isoTrack_n_LostPixelHits_MISSING_INNER.push_back(hitPattern.numberOfLostPixelHits(ctgr::MISSING_INNER_HITS));
-          tauTuple().isoTrack_n_LostPixelHits_MISSING_OUTER.push_back(hitPattern.numberOfLostPixelHits(ctgr::MISSING_OUTER_HITS));
-          tauTuple().isoTrack_n_LostStripHits_TRACK.push_back(hitPattern.numberOfLostStripHits(ctgr::TRACK_HITS));
-          tauTuple().isoTrack_n_LostStripHits_MISSING_INNER.push_back(hitPattern.numberOfLostStripHits(ctgr::MISSING_INNER_HITS));
-          tauTuple().isoTrack_n_LostStripHits_MISSING_OUTER.push_back(hitPattern.numberOfLostStripHits(ctgr::MISSING_OUTER_HITS));
+            using ctgr = reco::HitPattern;
+            tauTuple().isoTrack_n_AllHits_TRACK.push_back(hitPattern.numberOfAllHits(ctgr::TRACK_HITS));
+            tauTuple().isoTrack_n_AllHits_MISSING_INNER.push_back(hitPattern.numberOfAllHits(ctgr::MISSING_INNER_HITS));
+            tauTuple().isoTrack_n_AllHits_MISSING_OUTER.push_back(hitPattern.numberOfAllHits(ctgr::MISSING_OUTER_HITS));
+            tauTuple().isoTrack_n_LostHits_TRACK.push_back(hitPattern.numberOfLostHits(ctgr::TRACK_HITS));
+            tauTuple().isoTrack_n_LostHits_MISSING_INNER.push_back(
+                hitPattern.numberOfLostHits(ctgr::MISSING_INNER_HITS));
+            tauTuple().isoTrack_n_LostHits_MISSING_OUTER.push_back(
+                hitPattern.numberOfLostHits(ctgr::MISSING_OUTER_HITS));
+            tauTuple().isoTrack_n_LostPixelHits_TRACK.push_back(hitPattern.numberOfLostPixelHits(ctgr::TRACK_HITS));
+            tauTuple().isoTrack_n_LostPixelHits_MISSING_INNER.push_back(
+                hitPattern.numberOfLostPixelHits(ctgr::MISSING_INNER_HITS));
+            tauTuple().isoTrack_n_LostPixelHits_MISSING_OUTER.push_back(
+                hitPattern.numberOfLostPixelHits(ctgr::MISSING_OUTER_HITS));
+            tauTuple().isoTrack_n_LostStripHits_TRACK.push_back(hitPattern.numberOfLostStripHits(ctgr::TRACK_HITS));
+            tauTuple().isoTrack_n_LostStripHits_MISSING_INNER.push_back(
+                hitPattern.numberOfLostStripHits(ctgr::MISSING_INNER_HITS));
+            tauTuple().isoTrack_n_LostStripHits_MISSING_OUTER.push_back(
+                hitPattern.numberOfLostStripHits(ctgr::MISSING_OUTER_HITS));
         }
     }
 
@@ -960,41 +966,41 @@ private:
             throw std::runtime_error("No SV <-> pfCand match found");
         };
 
-   	auto collectCands = [&](const reco::VertexCompositePtrCandidate& sv) {
+        auto collectCands = [&](const reco::VertexCompositePtrCandidate& sv) {
             std::set<int> cand_indices;
             for(size_t it = 0; it < sv.numberOfSourceCandidatePtrs(); it++) {
                 const edm::Ptr<reco::Candidate>& recocand = sv.sourceCandidatePtr(it);
                 int match_idx = findMatch(recocand);
                 if(match_idx >= 0)
-                   cand_indices.insert(match_idx);
+                    cand_indices.insert(match_idx);
             }
             return cand_indices;
         };
 
-	int nsv = 0;
+        int nsv = 0;
         for(const auto& sv_ptr : sv_col) {
             const reco::VertexCompositePtrCandidate* SV = sv_ptr.obj;
             auto candsIdx = collectCands(*SV);
             if(candsIdx.size() > 0){
-	        tauTuple().sv_x.push_back(static_cast<float>(SV->position().x()));
+                tauTuple().sv_x.push_back(static_cast<float>(SV->position().x()));
                 tauTuple().sv_y.push_back(static_cast<float>(SV->position().y()));
-           	tauTuple().sv_z.push_back(static_cast<float>(SV->position().z()));
-           	tauTuple().sv_t.push_back(static_cast<float>(SV->t()));
-	   	tauTuple().sv_xE.push_back(static_cast<float>(std::sqrt(SV->vertexCovariance(0,0))));
-           	tauTuple().sv_yE.push_back(static_cast<float>(std::sqrt(SV->vertexCovariance(1,1))));
-           	tauTuple().sv_zE.push_back(static_cast<float>(std::sqrt(SV->vertexCovariance(2,2))));
-           	tauTuple().sv_tE.push_back(static_cast<float>(SV->tError()));
-		tauTuple().sv_pt.push_back(static_cast<float>(SV->pt()));
+                tauTuple().sv_z.push_back(static_cast<float>(SV->position().z()));
+                tauTuple().sv_t.push_back(static_cast<float>(SV->t()));
+                tauTuple().sv_xE.push_back(static_cast<float>(std::sqrt(SV->vertexCovariance(0,0))));
+                tauTuple().sv_yE.push_back(static_cast<float>(std::sqrt(SV->vertexCovariance(1,1))));
+                tauTuple().sv_zE.push_back(static_cast<float>(std::sqrt(SV->vertexCovariance(2,2))));
+                tauTuple().sv_tE.push_back(static_cast<float>(SV->tError()));
+                tauTuple().sv_pt.push_back(static_cast<float>(SV->pt()));
                 tauTuple().sv_eta.push_back(static_cast<float>(SV->eta()));
                 tauTuple().sv_phi.push_back(static_cast<float>(SV->phi()));
                 tauTuple().sv_mass.push_back(static_cast<float>(SV->mass()));
-	   	tauTuple().sv_chi2.push_back(static_cast<float>(SV->vertexChi2()));
-           	tauTuple().sv_ndof.push_back(static_cast<float>(SV->vertexNdof()));
-		for(int cand_idx : candsIdx) {
+                tauTuple().sv_chi2.push_back(static_cast<float>(SV->vertexChi2()));
+                tauTuple().sv_ndof.push_back(static_cast<float>(SV->vertexNdof()));
+                for(int cand_idx : candsIdx) {
                     tauTuple().sv_cands_svIdx.push_back(nsv);
                     tauTuple().sv_cands_pfcandIdx.push_back(cand_idx);
-  		}
-	        ++nsv;
+                }
+                ++nsv;
             }
         }
         tauTuple().nsv = nsv;
