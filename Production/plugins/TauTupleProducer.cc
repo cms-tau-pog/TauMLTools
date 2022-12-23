@@ -245,9 +245,9 @@ private:
         tauTuple().deepmet_phi = deepMETs->at(0).phi();
         tauTuple().genmet_pt = genMETs->at(0).pt();
         tauTuple().genmet_phi = genMETs->at(0).phi();
-        tauTuple().tauSpinnerWTEven = tauSpinnerWTEven.isValid() ? *tauSpinnerWTEven : -1.f;
-        tauTuple().tauSpinnerWTOdd = tauSpinnerWTOdd.isValid() ? *tauSpinnerWTOdd : -1.f;
-        tauTuple().tauSpinnerWTMM = tauSpinnerWTMM.isValid() ? *tauSpinnerWTMM : -1.f;
+        tauTuple().tauSpinnerWTEven = tauSpinnerWTEven.isValid() ? *tauSpinnerWTEven : default_value;
+        tauTuple().tauSpinnerWTOdd = tauSpinnerWTOdd.isValid() ? *tauSpinnerWTOdd : default_value;
+        tauTuple().tauSpinnerWTMM = tauSpinnerWTMM.isValid() ? *tauSpinnerWTMM : default_value;
 
         TauJetBuilder builder(builderSetup, *taus, *boostedTaus, *jets, *fatJets, *cands, *electrons, *photons, *muons,
                               *isoTracks, *lostTracks, *secondVertices, genParticles, genJets, requireGenMatch,
