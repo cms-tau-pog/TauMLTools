@@ -286,6 +286,13 @@ def customise(process):
     precision = cms.int32(7)
   )
 
+  process.pixelTrackTable = cms.EDProducer("PixelTrackTableProducer",
+    tracks = cms.InputTag("hltPixelTracksSoA"),
+    vertices = cms.InputTag("hltPixelVerticesSoA"),
+    beamSpot = cms.InputTag("hltOnlineBeamSpot"),
+    precision = cms.int32(7)
+  )
+
   process.tauTablesTask = cms.Task(process.tauTable, process.tauExtTable)
   process.pfCandTablesTask = cms.Task(process.pfCandTable)
   process.AK4PFJetsTableTask = cms.Task(process.AK4PFJetsTable)
@@ -295,6 +302,7 @@ def customise(process):
   process.GenJetTableTask = cms.Task(process.GenJetTable, process.ak4GenJetsNoNuExtTable)
   process.L1TableTask = cms.Task(process.L1Table)
   process.caloTableTask = cms.Task(process.caloTable)
+  process.pixelTrackTableTask = cms.Task(process.pixelTrackTable)
   process.nanoTableTaskFS = cms.Task(process.genParticleTablesTask,
                                      process.genParticleTask,
                                      process.tauTablesTask,
@@ -305,7 +313,8 @@ def customise(process):
                                      process.recoAllGenJetsNoNuTask,
                                      process.GenJetTableTask,
                                      process.L1TableTask,
-                                     process.caloTableTask)
+                                     process.caloTableTask,
+                                     process.pixelTrackTableTask)
   process.nanoSequenceMC = cms.Sequence(process.nanoTableTaskFS)
   process.finalGenParticles.src = cms.InputTag("genParticles")
 
@@ -328,6 +337,7 @@ def customise(process):
   del process.MessageLogger.FastReport
   del process.MessageLogger.ThroughputService
   process.MessageLogger.cerr.enableStatistics = cms.untracked.bool(False)
+  del process.dqmOutput
 
   process.options.wantSummary = False
 

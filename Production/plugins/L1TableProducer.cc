@@ -22,6 +22,7 @@ public:
     produces<nanoaod::FlatTable>("L1Tau");
   }
 
+private:
   void produce(edm::StreamID id, edm::Event& event, const edm::EventSetup& setup) const override
   {
     FillEgammas(event);

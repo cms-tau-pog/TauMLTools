@@ -29,6 +29,7 @@ public:
     produces<nanoaod::FlatTable>("RecHitEE");
   }
 
+private:
   void produce(edm::StreamID id, edm::Event& event, const edm::EventSetup& setup) const override
   {
     const auto& geometry = setup.getData(geometryToken_);
