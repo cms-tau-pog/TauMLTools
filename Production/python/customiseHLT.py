@@ -278,6 +278,14 @@ def customise(process):
     precision = cms.int32(7)
   )
 
+  process.caloTable = cms.EDProducer("CaloTableProducer",
+    hbhe = cms.InputTag("hltHbhereco"),
+    ho = cms.InputTag("hltHoreco"),
+    eb = cms.InputTag("hltEcalRecHit", "EcalRecHitsEB"),
+    ee = cms.InputTag("hltEcalRecHit", "EcalRecHitsEE"),
+    precision = cms.int32(7)
+  )
+
   process.tauTablesTask = cms.Task(process.tauTable, process.tauExtTable)
   process.pfCandTablesTask = cms.Task(process.pfCandTable)
   process.AK4PFJetsTableTask = cms.Task(process.AK4PFJetsTable)
@@ -286,6 +294,7 @@ def customise(process):
   process.recoAllGenJetsNoNuTask=cms.Task(process.ak4GenJetsNoNu)
   process.GenJetTableTask = cms.Task(process.GenJetTable, process.ak4GenJetsNoNuExtTable)
   process.L1TableTask = cms.Task(process.L1Table)
+  process.caloTableTask = cms.Task(process.caloTable)
   process.nanoTableTaskFS = cms.Task(process.genParticleTablesTask,
                                      process.genParticleTask,
                                      process.tauTablesTask,
@@ -295,7 +304,8 @@ def customise(process):
                                      process.AK4PFJetsTableTask,
                                      process.recoAllGenJetsNoNuTask,
                                      process.GenJetTableTask,
-                                     process.L1TableTask)
+                                     process.L1TableTask,
+                                     process.caloTableTask)
   process.nanoSequenceMC = cms.Sequence(process.nanoTableTaskFS)
   process.finalGenParticles.src = cms.InputTag("genParticles")
 

@@ -31,7 +31,7 @@ public:
   }
 
   template<typename T, typename F>
-  std::unique_ptr<nanoaod::FlatTable> Fill(edm::Event& event, const edm::EDGetTokenT<T>& token,
+  std::unique_ptr<nanoaod::FlatTable> Fill(const edm::Event& event, const edm::EDGetTokenT<T>& token,
                                            const std::string& name, F fn) const
   {
     const auto& collection = event.get(token);
