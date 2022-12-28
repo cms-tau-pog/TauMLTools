@@ -1,5 +1,6 @@
 <use name="FWCore/Framework"/>
 <use name="SimGeneral/HepPDTRecord"/>
 <use name="TauMLTools/Production"/>
+<use name="DataFormats/NanoAOD"/>
 
 <flags EDM_PLUGIN="1"/>

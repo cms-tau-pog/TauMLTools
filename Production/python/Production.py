@@ -45,6 +45,9 @@ options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarPa
                 " If 'reclusterJets' set true a new collection of uncorrected ak4PFJets is built to seed taus (as at RECO), otherwise standard slimmedJets are used")
 options.register('rerunTauReco', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                 "If true, tau reconstruction is re-run on MINIAOD with a larger signal cone and no DM finding filter")
+options.register('runTauSpinner', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                 "Run TauPOGSpinner to store CP weights")
+
 options.parseArguments()
 
 from TauMLTools.Production.sampleConfig import Era, SampleType
@@ -74,14 +77,13 @@ process.load('Configuration.StandardSequences.MagneticField_cff')
 
 # TauSpinner
 process.TauSpinnerReco = cms.EDProducer( "TauPOGSpinner",
-                                 isReco = cms.bool(True),
-                                 isTauolaConfigured = cms.bool(False),
-                                 isLHPDFConfigured = cms.bool(False),
-                                 LHAPDFname = cms.untracked.string('NNPDF30_nlo_as_0118'),
-                                 CMSEnergy = cms.double(13000.0),
-                                 gensrc = cms.InputTag('prunedGenParticles')
-                               )
-
+    isReco = cms.bool(True),
+    isTauolaConfigured = cms.bool(False),
+    isLHPDFConfigured = cms.bool(False),
+    LHAPDFname = cms.untracked.string('NNPDF30_nlo_as_0118'),
+    CMSEnergy = cms.double(13000.0),
+    gensrc = cms.InputTag('prunedGenParticles')
+)
 
 process.RandomNumberGeneratorService = cms.Service('RandomNumberGeneratorService',
                                                    TauSpinnerReco = cms.PSet(
@@ -244,11 +246,12 @@ if isPhase2:
 elif isRun2 or isRun3:
     process.p = cms.Path(
         process.deepMETProducer +
-        process.TauSpinnerReco +
         getattr(process, 'rerunMvaIsolationSequence') +
         getattr(process, updatedTauName) +
         process.tupleProductionSequence
     )
+    if options.runTauSpinner:
+        process.p.insert(0, process.TauSpinnerReco)
 
 if len(options.triggers) > 0:
     hlt_paths = options.triggers.split(',')

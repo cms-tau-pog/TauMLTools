@@ -1,7 +1,7 @@
 /*! Creates tuple for tau analysis.
 */
 
-#include "FWCore/Framework/interface/EDAnalyzer.h"
+#include "FWCore/Framework/interface/one/EDAnalyzer.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/EventSetup.h"
@@ -20,7 +20,7 @@
 
 namespace tau_analysis {
 
-class DeepTauTest : public edm::EDAnalyzer {
+class DeepTauTest : public edm::one::EDAnalyzer<> {
 public:
     DeepTauTest(const edm::ParameterSet& cfg) :
         isMC(cfg.getParameter<bool>("isMC")),
