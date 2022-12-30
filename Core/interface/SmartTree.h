@@ -121,7 +121,7 @@ namespace detail {
     template<typename DataType>
     struct BranchCreator {
         void Create(TTree& tree, const std::string& branch_name, DataType& value, bool readMode,
-                    SmartTreeEntryMap& entries, bool disabledBranch)
+                    SmartTreeEntryMap& entries, bool enabled)
         {
             using FixesMap = std::unordered_map<std::string, std::string>;
 
@@ -148,45 +148,45 @@ namespace detail {
                 throw std::runtime_error("Entry is already defined.");
             entries[branch_name] = entry;
 
-            if(!disabledBranch) {
-
-                TClass *cl = TClass::GetClass(typeid(DataType));
-
-                if(readMode) {
-                    try {
-                        EnableBranch(tree, branch_name);
-
-                        if(cl) {
-                            TBranch* branch = tree.GetBranch(branch_name.c_str());
-                            const std::string fixed_name = get_fixed_name(cl->GetName(), branch->GetClassName());
-                            cl = TClass::GetClass(fixed_name.c_str());
-                            tree.SetBranchAddress(branch_name.c_str(), &entry->value, nullptr, cl, kOther_t, true);
-                        } else
-                            tree.SetBranchAddress(branch_name.c_str(), entry->value);
-                        if(tree.GetReadEntry() >= 0)
-                            tree.GetBranch(branch_name.c_str())->GetEntry(tree.GetReadEntry());
-                    } catch(std::runtime_error& error) {
-                        std::cerr << "ERROR: " << error.what() << std::endl;
-                    }
-                } else {
-
-                    static constexpr Int_t bufferSize = 32 * 1024;
-                    TBranch* branch;
-                    if(cl) {
-                        std::string cl_name = cl->GetName();
-                        if(class_fixes.count(cl_name))
-                            cl_name = class_fixes.at(cl_name);
-                        branch = tree.Branch(branch_name.c_str(), cl_name.c_str(), entry->value, bufferSize);
-                    } else
-                        branch = tree.Branch(branch_name.c_str(), entry->value, bufferSize);
-
-                    const Long64_t n_entries = tree.GetEntries();
-                    for(Long64_t n = 0; n < n_entries; ++n)
-                        branch->Fill();
-                }
-
-            } else
+            if(!enabled) {
                 std::cout << "Warning: Branch " << branch_name << " will be disabled." << std::endl;
+                return;
+            }
+
+            TClass *cl = TClass::GetClass(typeid(DataType));
+
+            if(readMode) {
+                try {
+                    EnableBranch(tree, branch_name);
+
+                    if(cl) {
+                        TBranch* branch = tree.GetBranch(branch_name.c_str());
+                        const std::string fixed_name = get_fixed_name(cl->GetName(), branch->GetClassName());
+                        cl = TClass::GetClass(fixed_name.c_str());
+                        tree.SetBranchAddress(branch_name.c_str(), &entry->value, nullptr, cl, kOther_t, true);
+                    } else
+                        tree.SetBranchAddress(branch_name.c_str(), entry->value);
+                    if(tree.GetReadEntry() >= 0)
+                        tree.GetBranch(branch_name.c_str())->GetEntry(tree.GetReadEntry());
+                } catch(std::runtime_error& error) {
+                    std::cerr << "ERROR: " << error.what() << std::endl;
+                }
+            } else {
+
+                static constexpr Int_t bufferSize = 32 * 1024;
+                TBranch* branch;
+                if(cl) {
+                    std::string cl_name = cl->GetName();
+                    if(class_fixes.count(cl_name))
+                        cl_name = class_fixes.at(cl_name);
+                    branch = tree.Branch(branch_name.c_str(), cl_name.c_str(), entry->value, bufferSize);
+                } else
+                    branch = tree.Branch(branch_name.c_str(), entry->value, bufferSize);
+
+                const Long64_t n_entries = tree.GetEntries();
+                for(Long64_t n = 0; n < n_entries; ++n)
+                    branch->Fill();
+            }
         }
     };
 
@@ -318,20 +318,20 @@ protected:
     void AddBranch(const std::string& branch_name, DataType& value)
     {
         std::lock_guard<Mutex> lock(mutex);
-        auto exp_match = [](std::set<std::string> matching_branches, std::string branch_name) -> bool {
-            for (std::string matching_branch: matching_branches){
+        auto exp_match = [](const std::set<std::string>& matching_branches, const std::string& branch_name) -> bool {
+            for (const std::string& matching_branch : matching_branches){
                 std::regex regex(matching_branch);
                 if(std::regex_match(branch_name, regex)) return true;
             }
             return false;
         };
         detail::BranchCreator<DataType> creator;
-        if ((!disabled_branches.size() || !exp_match(disabled_branches,branch_name)) &&
-            (!enabled_branches.size()  || exp_match(enabled_branches,branch_name))) {
-            creator.Create(*tree, branch_name, value, readMode, entries, false);
+        const bool enabled = (
+            (!disabled_branches.size() || !exp_match(disabled_branches,branch_name)) &&
+            (!enabled_branches.size()  || exp_match(enabled_branches,branch_name)));
+        if(enabled)
             active_branches.insert(branch_name);
-        } else
-            creator.Create(*tree, branch_name, value, readMode, entries, true);
+        creator.Create(*tree, branch_name, value, readMode, entries, enabled);
     }
 
     bool HasBranch(const std::string& branch_name) const

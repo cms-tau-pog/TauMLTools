@@ -32,8 +32,10 @@ options.register('selector', 'None', VarParsing.multiplicity.singleton, VarParsi
                  "Name of the tauJet selector.")
 options.register('triggers', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "Store only events that pass the specified HLT paths.")
-options.register("disableBranches", [], VarParsing.multiplicity.list, VarParsing.varType.string,
+options.register("disabledBranches", [], VarParsing.multiplicity.list, VarParsing.varType.string,
                  "Not store following branches in tupleOutput file.")
+options.register("enabledBranches", [], VarParsing.multiplicity.list, VarParsing.varType.string,
+                 "Branches to store in tupleOutput file (if empty list: stores all the branches).")
 options.register('storeJetsWithoutTau', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Store jets that don't match to any pat::Tau.")
 options.register('requireGenMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
@@ -202,7 +204,8 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     requireGenMatch          = cms.bool(options.requireGenMatch),
     requireGenORRecoTauMatch = cms.bool(options.requireGenORRecoTauMatch),
     applyRecoPtSieve         = cms.bool(options.applyRecoPtSieve),
-    disableBranches          = cms.vstring(options.disableBranches),
+    disabledBranches         = cms.vstring(options.disabledBranches),
+    enabledBranches          = cms.vstring(options.enabledBranches),
     tauJetBuilderSetup       = tauJetBuilderSetup,
     selector		     = cms.string(options.selector),
 
