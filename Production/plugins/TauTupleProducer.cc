@@ -69,13 +69,16 @@ struct TauTupleProducerData {
     std::unique_ptr<tau_tuple::TauTuple> tauTuple;
     std::unique_ptr<tau_tuple::SummaryTuple> summaryTuple;
 
-    TauTupleProducerData() :
+    TauTupleProducerData(const std::vector<std::string>& disabledBranches, const std::vector<std::string>& enabledBranches) :
         start(clock::now())
     {
         TFile& file = edm::Service<TFileService>()->file();
         file.SetCompressionAlgorithm(ROOT::kLZMA);
         file.SetCompressionLevel(9);
-        tauTuple = std::make_unique<tau_tuple::TauTuple>("taus", &file, false);
+        tauTuple = std::make_unique<tau_tuple::TauTuple>("taus", &file, false,
+            std::set<std::string>(disabledBranches.begin(), disabledBranches.end()),
+            std::set<std::string>(enabledBranches.begin(), enabledBranches.end())
+            );
         summaryTuple = std::make_unique<tau_tuple::SummaryTuple>("summary", &file, false);
         (*summaryTuple)().numberOfProcessedEvents = 0;
     }
@@ -100,6 +103,8 @@ public:
         requireGenMatch(cfg.getParameter<bool>("requireGenMatch")),
         requireGenORRecoTauMatch(cfg.getParameter<bool>("requireGenORRecoTauMatch")),
         applyRecoPtSieve(cfg.getParameter<bool>("applyRecoPtSieve")),
+        disabledBranches(cfg.getParameter<std::vector<std::string>>("disabledBranches")),
+        enabledBranches(cfg.getParameter<std::vector<std::string>>("enabledBranches")),
         genEvent_token(mayConsume<GenEventInfoProduct>(cfg.getParameter<edm::InputTag>("genEvent"))),
         genParticles_token(mayConsume<reco::GenParticleCollection>(cfg.getParameter<edm::InputTag>("genParticles"))),
         genJets_token(mayConsume<reco::GenJetCollection>(cfg.getParameter<edm::InputTag>("genJets"))),
@@ -128,6 +133,7 @@ public:
         tauSpinnerWTEven_token(mayConsume<double>(cfg.getParameter<edm::InputTag>("tauSpinnerWTEven"))),
         tauSpinnerWTOdd_token(mayConsume<double>(cfg.getParameter<edm::InputTag>("tauSpinnerWTOdd"))),
         tauSpinnerWTMM_token(mayConsume<double>(cfg.getParameter<edm::InputTag>("tauSpinnerWTMM"))),
+        data(disabledBranches, enabledBranches),
         tauTuple(*data.tauTuple),
         summaryTuple(*data.summaryTuple),
         selector(selectors::TauJetSelector::Make(cfg.getParameter<std::string>("selector")))
@@ -1039,6 +1045,7 @@ private:
 
 private:
     const bool isMC, isEmbedded, requireGenMatch, requireGenORRecoTauMatch, applyRecoPtSieve;
+    const std::vector<std::string> disabledBranches, enabledBranches;
     TauJetBuilderSetup builderSetup;
 
     edm::EDGetTokenT<GenEventInfoProduct> genEvent_token;

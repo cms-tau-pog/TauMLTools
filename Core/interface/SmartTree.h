@@ -11,6 +11,7 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include <unordered_map>
 #include <memory>
 #include <mutex>
+#include <regex>
 
 #include <TFile.h>
 #include <TTree.h>
@@ -120,7 +121,7 @@ namespace detail {
     template<typename DataType>
     struct BranchCreator {
         void Create(TTree& tree, const std::string& branch_name, DataType& value, bool readMode,
-                    SmartTreeEntryMap& entries)
+                    SmartTreeEntryMap& entries, bool enabled)
         {
             using FixesMap = std::unordered_map<std::string, std::string>;
 
@@ -146,6 +147,11 @@ namespace detail {
             if(entries.count(branch_name))
                 throw std::runtime_error("Entry is already defined.");
             entries[branch_name] = entry;
+
+            if(!enabled) {
+                std::cout << "Warning: Branch " << branch_name << " will be disabled." << std::endl;
+                return;
+            }
 
             TClass *cl = TClass::GetClass(typeid(DataType));
 
@@ -312,11 +318,20 @@ protected:
     void AddBranch(const std::string& branch_name, DataType& value)
     {
         std::lock_guard<Mutex> lock(mutex);
-        if (!disabled_branches.count(branch_name) && (!enabled_branches.size() || enabled_branches.count(branch_name))){
-            detail::BranchCreator<DataType> creator;
-            creator.Create(*tree, branch_name, value, readMode, entries);
+        auto exp_match = [](const std::set<std::string>& matching_branches, const std::string& branch_name) -> bool {
+            for (const std::string& matching_branch : matching_branches){
+                std::regex regex(matching_branch);
+                if(std::regex_match(branch_name, regex)) return true;
+            }
+            return false;
+        };
+        detail::BranchCreator<DataType> creator;
+        const bool enabled = (
+            (!disabled_branches.size() || !exp_match(disabled_branches,branch_name)) &&
+            (!enabled_branches.size()  || exp_match(enabled_branches,branch_name)));
+        if(enabled)
             active_branches.insert(branch_name);
-        }
+        creator.Create(*tree, branch_name, value, readMode, entries, enabled);
     }
 
     bool HasBranch(const std::string& branch_name) const
