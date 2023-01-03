@@ -4,7 +4,6 @@ import re
 import importlib
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
-import RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD as tauAtMiniTools
 from RecoMET.METPUSubtraction.deepMETProducer_cfi import deepMETProducer
 import os
 
@@ -47,8 +46,10 @@ options.register('applyRecoPtSieve', False, VarParsing.multiplicity.singleton, V
                  "Randomly drop jet->tau fakes depending on reco tau pt to balance contributions from low and higt pt.")
 options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                 " If 'reclusterJets' set true a new collection of uncorrected ak4PFJets is built to seed taus (as at RECO), otherwise standard slimmedJets are used")
-options.register('rerunTauReco', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
-                "If true, tau reconstruction is re-run on MINIAOD with a larger signal cone and no DM finding filter")
+options.register('rerunTauReco', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                """If not empty, tau reconstruction is re-run on MINIAOD (available modes:
+                   1) signalCone - larger signal cone and no DM finding filter,
+                   2) displacedTau - loose max Impact Parameter and signal quality cuts)""")
 options.register('runTauSpinner', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Run TauPOGSpinner to store CP weights")
 
@@ -133,22 +134,29 @@ tau_collection = 'slimmedTaus'
 if options.rerunTauReco:
     tau_collection = 'selectedPatTaus'
 
-    tauAtMiniTools.addTauReReco(process)
-    tauAtMiniTools.adaptTauToMiniAODReReco(process, options.reclusterJets)
+    tauAtMiniConfig = importlib.import_module('RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD')
+    tauAtMiniTools = tauAtMiniConfig.adaptToRunAtMiniAOD(process, runBoosted=False)
+    tauAtMiniTools.addTauReReco()
+    tauAtMiniTools.adaptTauToMiniAODReReco(reclusterJets = options.reclusterJets)
 
     if isData:
         from PhysicsTools.PatAlgos.tools.coreTools import runOnData
         runOnData(process, names = ['Taus'], outputModules = [])
 
-    process.combinatoricRecoTaus.builders[0].signalConeSize = cms.string('max(min(0.2, 4.528/(pt()^0.8982)), 0.03)') ## change to quantile 0.95
-    process.selectedPatTaus.cut = cms.string('pt > 18.')   ## remove DMFinding filter (was pt > 18. && tauID(\'decayModeFindingNewDMs\')> 0.5)
+    import TauMLTools.Production.setupTauReReco as setupTauReReco
+    if options.rerunTauReco == "signalCone":
+        setupTauReReco.reReco_SigCone(process)
+    elif options.rerunTauReco == "displacedTau":
+        setupTauReReco.reReco_DisTau(process)
+    else:
+        raise RuntimeError('rerunTauReco = "{}" mode is not supported.'.format(options.rerunTauReco))
 
 # include Phase2 specific configuration only after 11_0_X
 if isPhase2:
     tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
     updatedTauName = "slimmedTausNewID"
     tauIdEmbedder = tauIdConfig.TauIDEmbedder(
-        process, cms, updatedTauName = updatedTauName,
+        process, cms, originalTauName = tau_collection, updatedTauName = updatedTauName,
         toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1", "newDMPhase2v1"]
     )
     tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
@@ -156,8 +164,8 @@ elif isRun2 or isRun3:
     tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
     updatedTauName = "slimmedTausNewID"
     tauIdEmbedder = tauIdConfig.TauIDEmbedder(
-        process, cms, updatedTauName = updatedTauName,
-        toKeep = [ "deepTau2018v2p5" ]
+        process, cms, originalTauName = tau_collection, updatedTauName = updatedTauName,
+        toKeep = [ "deepTau2017v2p1", "deepTau2018v2p5" ]
     )
     tauIdEmbedder.runTauID()
 
@@ -258,6 +266,8 @@ elif isRun2 or isRun3:
     )
     if options.runTauSpinner:
         process.p.insert(0, process.TauSpinnerReco)
+    if options.rerunTauReco:
+        process.p.insert(0, getattr(process,'miniAODTausSequence'))
 
 if len(options.triggers) > 0:
     hlt_paths = options.triggers.split(',')
