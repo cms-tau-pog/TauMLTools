@@ -53,6 +53,8 @@ std::shared_ptr<TauJetSelector> TauJetSelector::Make(const std::string& name)
         return std::make_shared<MuTau>();
     if(name == "genTauTau")
         return std::make_shared<genTauTau>();
+    if(name == "TauJetTag")
+        return std::make_shared<TauJetTag>();
     throw analysis::exception("Unknown selector name = '%1%'") % name;
 }
 
@@ -160,6 +162,28 @@ TauJetSelector::Result genTauTau::Select(const edm::Event& event, const std::deq
     return Result(selected, nullptr);
 }
 
+TauJetSelector::Result TauJetTag::Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
+                                     const std::vector<pat::Electron>& electrons,
+                                     const std::vector<pat::Muon>& muons, const pat::MET& met,
+                                     const reco::Vertex& primaryVertex,
+                                     const pat::TriggerObjectStandAloneCollection& triggerObjects,
+                                     const edm::TriggerResults& triggerResults, float rho)
+{
+    std::vector<const TauJet*> selected;
+    for(const TauJet& tauJet :tauJets) {
+      const ObjPtr<reco_tau::gen_truth::GenLepton>& genLepton = tauJet.genLepton;
+      const ObjPtr<const reco::GenJet>& genJet = tauJet.genJet;
+      const ObjPtr<const pat::Jet>& jet = tauJet.jet;
+      const ObjPtr<const pat::Jet>& fatJet = tauJet.fatJet;
+      if((genLepton && jet) || (genLepton && fatJet)) {
+        selected.push_back(&tauJet);
+      } else if((genJet && jet) || (genJet && fatJet)) {
+        selected.push_back(&tauJet);
+      }
+    }
+    if(selected.empty()) return {};
+    return Result(selected, nullptr);
+}
 
 } // namespace selectors
 } // namespace tau_analysis
