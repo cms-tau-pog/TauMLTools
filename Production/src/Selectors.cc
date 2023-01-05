@@ -171,10 +171,7 @@ TauJetSelector::Result TauJetTag::Select(const edm::Event& event, const std::deq
 {
     std::vector<const TauJet*> selected;
     for(const TauJet& tauJet :tauJets) {
-      const ObjPtr<reco_tau::gen_truth::GenLepton>& genLepton = tauJet.genLepton;
-      const ObjPtr<const reco::GenJet>& genJet = tauJet.genJet;
-      const ObjPtr<const pat::Jet>& jet = tauJet.jet;
-      if(genLepton || genJet || jet)
+      if(tauJet.genLepton || tauJet.genJet || tauJet.jet)
         selected.push_back(&tauJet);
     }
     return Result(selected, nullptr);
