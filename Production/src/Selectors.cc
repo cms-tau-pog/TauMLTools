@@ -177,7 +177,6 @@ TauJetSelector::Result TauJetTag::Select(const edm::Event& event, const std::deq
       if(genLepton || genJet || jet)
         selected.push_back(&tauJet);
     }
-    if(selected.empty()) return {};
     return Result(selected, nullptr);
 }
 

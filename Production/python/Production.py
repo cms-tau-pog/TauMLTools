@@ -134,7 +134,7 @@ tau_collection = 'slimmedTaus'
 if options.rerunTauReco:
     tau_collection = 'selectedPatTaus'
 
-    tauAtMiniConfig = importlib.import_module('RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD')
+    import RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD as tauAtMiniConfig
     tauAtMiniTools = tauAtMiniConfig.adaptToRunAtMiniAOD(process, runBoosted=False)
     tauAtMiniTools.addTauReReco()
     tauAtMiniTools.adaptTauToMiniAODReReco(reclusterJets = options.reclusterJets)
