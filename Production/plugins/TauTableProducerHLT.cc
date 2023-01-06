@@ -23,6 +23,7 @@ public:
     produces<nanoaod::FlatTable>("Tau");
   }
 
+private:
   void produce(edm::StreamID id, edm::Event& event, const edm::EventSetup& setup) const override
   {
     const auto tausHandle = event.getHandle(tauToken_);
@@ -51,7 +52,7 @@ public:
     std::vector<float> secondaryVertex_y(tausIP.size());
     std::vector<float> secondaryVertex_z(tausIP.size());
     std::vector<float> secondaryVertex_t(tausIP.size());
-    
+
     // for (size_t tau_index = 0; tau_index < tauScore.size(); tau_index++) {
     //   scores[tau_index] = tauScore.ValueMap(TauCollection.at(tau_index));.output_desc;
     // }
@@ -81,9 +82,9 @@ public:
         secondaryVertex_y[tau_index] = -999.;
         secondaryVertex_z[tau_index] = -999.;
       };
-      
+
       // secondaryVertex_t[tau_index] = tausIP.value(tau_index)->secondaryVertex().t();
-      
+
     }
 
     auto tauTable = std::make_unique<nanoaod::FlatTable>(tausIP.size(), "Tau", false, true);

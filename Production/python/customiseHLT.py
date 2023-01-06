@@ -56,7 +56,7 @@ def customise(process):
   process.load('PhysicsTools.NanoAOD.nano_cff')
   process.load('RecoJets.JetProducers.ak4GenJets_cfi')
   from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeMC
-  from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets 
+  from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
   #call to customisation function nanoAOD_customizeMC imported from PhysicsTools.NanoAOD.nano_cff
   process = nanoAOD_customizeMC(process)
 
@@ -66,17 +66,17 @@ def customise(process):
     + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau \
     + process.nanoSequenceMC)
   process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
-  
+
   from PhysicsTools.JetMCAlgos.HadronAndPartonSelector_cfi import selectedHadronsAndPartons
   process.selectedHadronsAndPartons = selectedHadronsAndPartons.clone(src = cms.InputTag("genParticlesForJetsNoNu"))
-  # set ak4GenJets producer 
+  # set ak4GenJets producer
   process.ak4GenJetsNoNu = ak4GenJets.clone( src = "genParticlesForJetsNoNu")
-  process.genJetFlavourInfos = ak4JetFlavourInfos.clone(  
+  process.genJetFlavourInfos = ak4JetFlavourInfos.clone(
     jets = cms.InputTag( "ak4GenJetsNoNu" ),
-    bHadrons= cms.InputTag("selectedHadronsAndPartons","bHadrons"), 
+    bHadrons= cms.InputTag("selectedHadronsAndPartons","bHadrons"),
     cHadrons= cms.InputTag("selectedHadronsAndPartons","cHadrons"),
     partons= cms.InputTag("selectedHadronsAndPartons","physicsPartons"), )
-  
+
   process.load('RecoJets.Configuration.GenJetParticles_cff')
 
   process.GenJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -188,7 +188,7 @@ def customise(process):
       status = Var("status", int, doc='status word'),
       longLived = Var("longLived", bool, doc='is long lived?'),
       massConstraint = Var("massConstraint", bool, doc='do mass constraint?'),
-      # source: cmssw/PhysicsTools/NanoAOD/plugins/SimpleFlatTableProducerPlugins.cc 
+      # source: cmssw/PhysicsTools/NanoAOD/plugins/SimpleFlatTableProducerPlugins.cc
       trackDz = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dz : -999.", float, doc = "track Dz"),
       trackDxy = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dxy : -999.", float, doc = "track Dxy"),
       trackIsValid = Var("trackRef.isNonnull && trackRef.isAvailable", bool, doc = "track is valid"),
@@ -270,7 +270,29 @@ def customise(process):
     )
   )
 
-      
+  process.L1Table = cms.EDProducer("L1TableProducer",
+    egammas = cms.InputTag("hltGtStage2Digis", "EGamma"),
+    muons = cms.InputTag("hltGtStage2Digis", "Muon"),
+    jets = cms.InputTag("hltGtStage2Digis", "Jet"),
+    taus = cms.InputTag("hltGtStage2Digis", "Tau"),
+    precision = cms.int32(7)
+  )
+
+  process.caloTable = cms.EDProducer("CaloTableProducer",
+    hbhe = cms.InputTag("hltHbhereco"),
+    ho = cms.InputTag("hltHoreco"),
+    eb = cms.InputTag("hltEcalRecHit", "EcalRecHitsEB"),
+    ee = cms.InputTag("hltEcalRecHit", "EcalRecHitsEE"),
+    precision = cms.int32(7)
+  )
+
+  process.pixelTrackTable = cms.EDProducer("PixelTrackTableProducer",
+    tracks = cms.InputTag("hltPixelTracksSoA"),
+    vertices = cms.InputTag("hltPixelVerticesSoA"),
+    beamSpot = cms.InputTag("hltOnlineBeamSpot"),
+    precision = cms.int32(7)
+  )
+
   process.tauTablesTask = cms.Task(process.tauTable, process.tauExtTable)
   process.pfCandTablesTask = cms.Task(process.pfCandTable)
   process.AK4PFJetsTableTask = cms.Task(process.AK4PFJetsTable)
@@ -278,9 +300,21 @@ def customise(process):
   process.genJetFlavourInfosTask =  cms.Task(process.genJetFlavourInfos)
   process.recoAllGenJetsNoNuTask=cms.Task(process.ak4GenJetsNoNu)
   process.GenJetTableTask = cms.Task(process.GenJetTable, process.ak4GenJetsNoNuExtTable)
-  process.nanoTableTaskFS = cms.Task(process.genParticleTablesTask, process.genParticleTask,
-                                     process.tauTablesTask, process.pfCandTablesTask, process.genParticlesForJetsNoNuTask, process.genJetFlavourInfosTask,
-                                     process.AK4PFJetsTableTask, process.recoAllGenJetsNoNuTask,process.GenJetTableTask)#,  )
+  process.L1TableTask = cms.Task(process.L1Table)
+  process.caloTableTask = cms.Task(process.caloTable)
+  process.pixelTrackTableTask = cms.Task(process.pixelTrackTable)
+  process.nanoTableTaskFS = cms.Task(process.genParticleTablesTask,
+                                     process.genParticleTask,
+                                     process.tauTablesTask,
+                                     process.pfCandTablesTask,
+                                     process.genParticlesForJetsNoNuTask,
+                                     process.genJetFlavourInfosTask,
+                                     process.AK4PFJetsTableTask,
+                                     process.recoAllGenJetsNoNuTask,
+                                     process.GenJetTableTask,
+                                     process.L1TableTask,
+                                     process.caloTableTask,
+                                     process.pixelTrackTableTask)
   process.nanoSequenceMC = cms.Sequence(process.nanoTableTaskFS)
   process.finalGenParticles.src = cms.InputTag("genParticles")
 
@@ -302,7 +336,8 @@ def customise(process):
   del process.MessageLogger.HLTrigReport
   del process.MessageLogger.FastReport
   del process.MessageLogger.ThroughputService
-
+  process.MessageLogger.cerr.enableStatistics = cms.untracked.bool(False)
+  del process.dqmOutput
 
   process.options.wantSummary = False
 
