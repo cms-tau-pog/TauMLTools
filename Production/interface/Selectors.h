@@ -52,5 +52,13 @@ struct genTauTau : TauJetSelector {
                           const edm::TriggerResults& triggerResults, float rho) override;
 };
 
+struct TauJetTag : TauJetSelector {
+    virtual Result Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
+                          const std::vector<pat::Electron>& electrons,
+                          const std::vector<pat::Muon>& muons, const pat::MET& met,
+                          const reco::Vertex& primaryVertex,
+                          const pat::TriggerObjectStandAloneCollection& triggerObjects,
+                          const edm::TriggerResults& triggerResults, float rho) override;
+};
 } // namespace selectors
 } // namespace tau_analysis
