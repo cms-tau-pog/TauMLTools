@@ -1,6 +1,0 @@
-/DYJetsToLL_M-50_TuneCP5_13p6TeV-madgraphMLM-pythia8/Run3Winter22DRPremix-ALCARECO_122X_mcRun3_2021_realistic_v9_ext1-v3/GEN-SIM-RAW
-/DYToLL_M-50_TuneCP5_13p6TeV-pythia8/Run3Winter22DR-L1TPU0to99FEVT_122X_mcRun3_2021_realistic_v9-v2/GEN-SIM-DIGI-RAW
-/VBFHToTauTau_M125_TuneCP5_13p6TeV-powheg-pythia8/Run3Winter22DR-L1TPU0to99FEVT_122X_mcRun3_2021_realistic_v9-v2/GEN-SIM-DIGI-RAW
-/QCD_Pt-15to7000_TuneCP5_Flat_13p6TeV-pythia8/Run3Winter22DR-PUForTRK_DIGI_122X_mcRun3_2021_realistic_v9-v2/GEN-SIM-DIGI-RAW
-/TT_TuneCP5_13p6TeV-powheg-pythia8/Run3Winter22DR-PUForTRK_DIGI_122X_mcRun3_2021_realistic_v9-v2/GEN-SIM-DIGI-RAW
-/WJetsToLNu_TuneCP5_13p6TeV-madgraphMLM-pythia8/Run3Winter22DRPremix-TRKALCADesign_design_geometry_122X_mcRun3_2021_design_v9-v2/GEN-SIM-RAW
