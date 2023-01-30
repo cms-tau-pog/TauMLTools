@@ -1,0 +1,3 @@
+maxEvents=-1
+
+EphemeralHLTPhysics0 /EphemeralHLTPhysics0/Run2022G-v1/RAW,run=362616
