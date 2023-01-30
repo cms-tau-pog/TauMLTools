@@ -840,11 +840,14 @@ public:
             fillGrid(Br::ele_deltaPhiEleClusterTrackAtCalo, tau.ele_deltaPhiEleClusterTrackAtCalo.at(idx));
             fillGrid(Br::ele_deltaPhiSuperClusterTrackAtVtx, tau.ele_deltaPhiSuperClusterTrackAtVtx.at(idx));
             fillGrid(Br::ele_deltaPhiSeedClusterTrackAtCalo, tau.ele_deltaPhiSeedClusterTrackAtCalo.at(idx));
-            fillGrid(Br::ele_mvaInput_earlyBrem, tau.ele_mvaInput_earlyBrem.at(idx));
-            fillGrid(Br::ele_mvaInput_lateBrem, tau.ele_mvaInput_lateBrem.at(idx));
-            fillGrid(Br::ele_mvaInput_sigmaEtaEta, tau.ele_mvaInput_sigmaEtaEta.at(idx));
-            fillGrid(Br::ele_mvaInput_hadEnergy, tau.ele_mvaInput_hadEnergy.at(idx));
-            fillGrid(Br::ele_mvaInput_deltaEta, tau.ele_mvaInput_deltaEta.at(idx));
+            const bool cc_mvaInput = tau.ele_mvaInput_sigmaEtaEta.at(idx) >= -1e38;
+            if(cc_mvaInput) {
+              fillGrid(Br::ele_mvaInput_earlyBrem, tau.ele_mvaInput_earlyBrem.at(idx));
+              fillGrid(Br::ele_mvaInput_lateBrem, tau.ele_mvaInput_lateBrem.at(idx));
+              fillGrid(Br::ele_mvaInput_sigmaEtaEta, tau.ele_mvaInput_sigmaEtaEta.at(idx));
+              fillGrid(Br::ele_mvaInput_hadEnergy, tau.ele_mvaInput_hadEnergy.at(idx));
+              fillGrid(Br::ele_mvaInput_deltaEta, tau.ele_mvaInput_deltaEta.at(idx));
+            }
             fillGrid(Br::ele_gsfTrack_normalizedChi2, tau.ele_gsfTrack_normalizedChi2.at(idx));
             fillGrid(Br::ele_gsfTrack_numberOfValidHits, tau.ele_gsfTrack_numberOfValidHits.at(idx));
             fillGrid(Br::ele_rel_gsfTrack_pt, tau.ele_gsfTrack_pt.at(idx) / tau.ele_pt.at(idx));
