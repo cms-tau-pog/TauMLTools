@@ -2,4 +2,10 @@ maxEvents=-1
 
 ZprimeToEE_EE  /ZprimeToEE_M-6000_TuneCP5_13p6TeV-pythia8/Run3Summer22EEDR-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/GEN-SIM-RAW
 ZprimeToEE_DR  /ZprimeToEE_M-6000_TuneCP5_13p6TeV_pythia8/Run3Summer22DRPremix-124X_mcRun3_2022_realistic_v12-v2/GEN-SIM-RAW
+
+ZprimeToMuMu_EE /ZprimeToMuMu_M-6000_TuneCP5_13p6TeV-pythia8/Run3Summer22EEDR-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/GEN-SIM-RAW
+
 ZprimeToTauTau_DR /ZprimeToTauTau_M-4000_TuneCP5_tauola_13p6TeV-_pythia8/Run3Summer22DRPremix-124X_mcRun3_2022_realistic_v12-v2/GEN-SIM-RAW
+
+
+
