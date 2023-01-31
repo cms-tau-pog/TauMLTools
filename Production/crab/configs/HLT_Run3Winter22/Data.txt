@@ -1,3 +1,4 @@
+lumiMask=https://cms-service-dqmdc.web.cern.ch/CAF/certification/Collisions22/Cert_Collisions2022_eraG_362433_362760_Golden.json
 maxEvents=-1
 
-EphemeralHLTPhysics0 /EphemeralHLTPhysics0/Run2022G-v1/RAW,run=362616
+EphemeralHLTPhysics0 /EphemeralHLTPhysics0/Run2022G-v1/RAW
