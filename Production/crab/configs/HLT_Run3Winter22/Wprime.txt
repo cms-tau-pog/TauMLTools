@@ -1,0 +1,3 @@
+maxEvents=-1
+
+WprimeToMuNu_EE   /WprimeToMuNu_M-5000_TuneCP5_13p6TeV-pythia8/Run3Summer22EEDR-Poisson70KeepRAW_124X_mcRun3_2022_realistic_postEE_v1-v1/GEN-SIM-RAW
