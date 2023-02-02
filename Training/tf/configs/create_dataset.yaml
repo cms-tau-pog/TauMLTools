@@ -1,0 +1,8 @@
+defaults:
+  - data@_global_: features
+  - data@data_cfg: input_samples
+  - data@gen_cfg: gen_config
+  - _self_
+
+dataset_name: ???
+path_to_dataset: ??? # directory to store the datasets
