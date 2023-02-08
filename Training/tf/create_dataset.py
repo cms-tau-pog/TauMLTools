@@ -21,10 +21,10 @@ def main(cfg: DictConfig) -> None:
 
     # read from cfg
     tau_type_map = cfg['gen_cfg']['tau_type_map']
-    tree_name = cfg['data_cfg']['tree_name']
-    step_size = cfg['data_cfg']['step_size']
+    tree_name = cfg['tree_name']
+    step_size = cfg['step_size']
     feature_names = cfg['feature_names']
-    input_data = OmegaConf.to_object(cfg['data_cfg']['input_data'])
+    input_data = OmegaConf.to_object(cfg['input_data'])
 
     for dataset_type in input_data.keys():
         dataset_cfg = input_data[dataset_type]
