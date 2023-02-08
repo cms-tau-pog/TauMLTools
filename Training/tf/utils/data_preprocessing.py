@@ -10,20 +10,25 @@ def load_from_file(file_name, tree_name, step_size):
     a = uproot.dask(f'{file_name}:{tree_name}', step_size=step_size, library='ak')
     return a
 
-def awkward_to_tf(a, particle_type, feature_names):
-    if particle_type == 'global':
-        # tf_array = np.squeeze(ak.to_numpy(a[feature_names]))
-        # tf_array = tf.constant(tf_array) # will return pd.DataFrame, convertion to TF happens at `tf.data.Dataset.from_tensor_slices(data)`` step
-        tf_array = np.squeeze(ak.to_pandas(a[feature_names]).values)
-        tf_array = tf.constant(tf_array) 
-    else:
-        pf_lengths = ak.count(a[particle_type, feature_names[0]], axis=1)
-        ragged_pf_features = []
-        for feature in feature_names:
-            pf_a = ak.flatten(a[particle_type, feature])
-            pf_a = ak.values_astype(pf_a, np.float32)
-            ragged_pf_features.append(tf.RaggedTensor.from_row_lengths(pf_a, pf_lengths))
-        tf_array = tf.stack(ragged_pf_features, axis=-1)
+def awkward_to_tf(a, feature_names, is_ragged):
+    if is_ragged:
+        type_lengths = ak.count(a[feature_names[0]], axis=1)
+    
+    tf_array = []
+    for feature_name in feature_names:
+        try:
+            _a = a[feature_name].compute()
+        except AttributeError:
+            _a = a[feature_name]
+        finally:
+            assert not np.any(np.isnan(_a))
+            if is_ragged:
+                _a = ak.flatten(_a)
+                _a = ak.values_astype(_a, np.float32)
+                _a = tf.RaggedTensor.from_row_lengths(_a, type_lengths)
+            tf_array.append(_a)
+            del _a, a[feature_name]; gc.collect()
+    tf_array = tf.stack(tf_array, axis=-1)
     return tf_array
 
 def preprocess_array(a, feature_names, add_feature_names, verbose=False):
