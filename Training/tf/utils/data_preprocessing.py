@@ -3,14 +3,11 @@ import awkward as ak
 import tensorflow as tf
 import numpy as np
 from hydra.utils import to_absolute_path
+import gc
 
-def load_from_file(file_name, tree_name, input_branches):
+def load_from_file(file_name, tree_name, step_size):
     print(f'      - {file_name}')
-    
-    # open ROOT file and retireve awkward arrays
-    with uproot.open(to_absolute_path(file_name)) as f:
-        a = f[tree_name].arrays(input_branches, how='zip')
-
+    a = uproot.dask(f'{file_name}:{tree_name}', step_size=step_size, library='ak')
     return a
 
 def awkward_to_tf(a, particle_type, feature_names):
@@ -29,196 +26,182 @@ def awkward_to_tf(a, particle_type, feature_names):
         tf_array = tf.stack(ragged_pf_features, axis=-1)
     return tf_array
 
-def preprocess_array(a):
-    # remove taus with abnormal phi
-    a = a[np.abs(a['tau_phi'])<2.*np.pi] 
+def preprocess_array(a, feature_names, add_feature_names, verbose=False):
+    # dictionary to store preprocessed features (per feature type)
+    a_preprocessed = {feature_type: {} for feature_type in feature_names.keys()}
+    
+    # fill lazily original features which don't require preprocessing  
+    for feature_type, feature_list in feature_names.items():
+        for feature_name in feature_list:
+            try:
+                f = f'{feature_type}_{feature_name}' if feature_type != 'global' else feature_name
+                a_preprocessed[feature_type][feature_name] = a[f]
+            except:
+                if verbose:
+                    print(f'{f} not found in input ROOT file, will skip it') 
 
     # ------- Global features ------- #
 
-    a['tau_E_over_pt'] = np.sqrt((a['tau_pt']*np.cosh(a['tau_eta']))*(a['tau_pt']*np.cosh(a['tau_eta'])) + a['tau_mass']*a['tau_mass'])/a['tau_pt']
-    a['tau_n_charged_prongs'] = a['tau_decayMode']//5 + 1
-    a['tau_n_neutral_prongs'] = a['tau_decayMode']%5
-    a['tau_chargedIsoPtSumdR03_over_dR05'] = ak.where(a['tau_chargedIsoPtSum']!=0, 
-                                                      a['tau_chargedIsoPtSumdR03']/a['tau_chargedIsoPtSum'], 
+    a_preprocessed['global']['tau_E_over_pt'] = np.sqrt((a['tau_pt']*np.cosh(a['tau_eta']))*(a['tau_pt']*np.cosh(a['tau_eta'])) + a['tau_mass']*a['tau_mass'])/a['tau_pt']
+    a_preprocessed['global']['tau_n_charged_prongs'] = a['tau_decayMode']//5 + 1
+    a_preprocessed['global']['tau_n_neutral_prongs'] = a['tau_decayMode']%5
+    a_preprocessed['global']['tau_chargedIsoPtSumdR03_over_dR05'] = ak.where((a['tau_chargedIsoPtSum']!=0).compute(), 
+                                                      (a['tau_chargedIsoPtSumdR03']/a['tau_chargedIsoPtSum']).compute(), 
                                                       0)
-    a['tau_neutralIsoPtSumWeight_over_neutralIsoPtSum'] = ak.where(a['tau_neutralIsoPtSum']!=0, 
-                                                                   a['tau_neutralIsoPtSumWeight']/a['tau_neutralIsoPtSum'], 
+    a_preprocessed['global']['tau_neutralIsoPtSumWeight_over_neutralIsoPtSum'] = ak.where((a['tau_neutralIsoPtSum']!=0).compute(), 
+                                                                   (a['tau_neutralIsoPtSumWeight']/a['tau_neutralIsoPtSum']).compute(), 
                                                                    0)
-    a['tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum'] = ak.where(a['tau_neutralIsoPtSum']!=0, 
-                                                                       a['tau_neutralIsoPtSumWeightdR03']/a['tau_neutralIsoPtSum'], 
+    a_preprocessed['global']['tau_neutralIsoPtSumWeightdR03_over_neutralIsoPtSum'] = ak.where((a['tau_neutralIsoPtSum']!=0).compute(), 
+                                                                       (a['tau_neutralIsoPtSumWeightdR03']/a['tau_neutralIsoPtSum']).compute(), 
                                                                        0)
-    a['tau_neutralIsoPtSumdR03_over_dR05'] = ak.where(a['tau_neutralIsoPtSum']!=0, 
-                                                      a['tau_neutralIsoPtSumdR03']/a['tau_neutralIsoPtSum'], 
+    a_preprocessed['global']['tau_neutralIsoPtSumdR03_over_dR05'] = ak.where((a['tau_neutralIsoPtSum']!=0).compute(), 
+                                                      (a['tau_neutralIsoPtSumdR03']/a['tau_neutralIsoPtSum']).compute(), 
                                                       0)
 
-    a['tau_sv_minus_pv_x'] = ak.where(a['tau_hasSecondaryVertex'], a['tau_sv_x']-a['pv_x'], 0)
-    a['tau_sv_minus_pv_y'] = ak.where(a['tau_hasSecondaryVertex'], a['tau_sv_y']-a['pv_y'], 0)
-    a['tau_sv_minus_pv_z'] = ak.where(a['tau_hasSecondaryVertex'], a['tau_sv_z']-a['pv_z'], 0)
+    a_preprocessed['global']['tau_sv_minus_pv_x'] = ak.where((a['tau_hasSecondaryVertex']).compute(), (a['tau_sv_x']-a['pv_x']).compute(), 0)
+    a_preprocessed['global']['tau_sv_minus_pv_y'] = ak.where((a['tau_hasSecondaryVertex']).compute(), (a['tau_sv_y']-a['pv_y']).compute(), 0)
+    a_preprocessed['global']['tau_sv_minus_pv_z'] = ak.where((a['tau_hasSecondaryVertex']).compute(), (a['tau_sv_z']-a['pv_z']).compute(), 0)
 
-    tau_dxy_valid = (a['tau_dxy'] > -10) & (a['tau_dxy_error'] > 0)
-    a['tau_dxy_valid'] = ak.values_astype(tau_dxy_valid, np.float32)
-    a['tau_dxy'] = ak.where(tau_dxy_valid, a['tau_dxy'], 0)
-    a['tau_dxy_sig'] = ak.where(tau_dxy_valid, np.abs(a['tau_dxy'])/a['tau_dxy_error'], 0)
+    tau_dxy_valid = ((a['tau_dxy'] > -10) & (a['tau_dxy_error'] > 0)).compute()
+    a_preprocessed['global']['tau_dxy_valid'] = ak.values_astype(tau_dxy_valid, np.float32)
+    a_preprocessed['global']['tau_dxy'] = ak.where(tau_dxy_valid, (a['tau_dxy']).compute(), 0)
+    a_preprocessed['global']['tau_dxy_sig'] = ak.where(tau_dxy_valid, (np.abs(a['tau_dxy'])/a['tau_dxy_error']).compute(), 0)
 
-    tau_ip3d_valid = (a['tau_ip3d'] > -10) & (a['tau_ip3d_error'] > 0)
-    a['tau_ip3d_valid'] = ak.values_astype(tau_ip3d_valid, np.float32)
-    a['tau_ip3d'] = ak.where(tau_ip3d_valid, a['tau_ip3d'], 0)
-    a['tau_ip3d_sig'] = ak.where(tau_ip3d_valid, np.abs(a['tau_ip3d'])/a['tau_ip3d_error'], 0)
+    tau_ip3d_valid = ((a['tau_ip3d'] > -10) & (a['tau_ip3d_error'] > 0)).compute()
+    a_preprocessed['global']['tau_ip3d_valid'] = ak.values_astype(tau_ip3d_valid, np.float32)
+    a_preprocessed['global']['tau_ip3d'] = ak.where(tau_ip3d_valid, (a['tau_ip3d']).compute(), 0)
+    a_preprocessed['global']['tau_ip3d_sig'] = ak.where(tau_ip3d_valid, (np.abs(a['tau_ip3d'])/a['tau_ip3d_error']).compute(), 0)
     
-    tau_dz_sig_valid = a['tau_dz_error'] > 0
-    a['tau_dz_sig_valid'] = ak.values_astype(tau_dz_sig_valid, np.float32)
-    # a['tau_dz'] = ak.where(tau_dz_sig_valid, a['tau_dz'], 0)
-    a['tau_dz_sig'] = ak.where(tau_dz_sig_valid, np.abs(a['tau_dz'])/a['tau_dz_error'], 0)
+    tau_dz_sig_valid = (a['tau_dz_error'] > 0).compute()
+    a_preprocessed['global']['tau_dz_sig_valid'] = ak.values_astype(tau_dz_sig_valid, np.float32)
+    # a_preprocessed['global']['tau_dz'] = ak.where(tau_dz_sig_valid, (a['tau_dz']).compute(), 0)
+    a_preprocessed['global']['tau_dz_sig'] = ak.where(tau_dz_sig_valid, (np.abs(a['tau_dz'])/a['tau_dz_error']).compute(), 0)
     
-    tau_e_ratio_valid = a['tau_e_ratio'] > 0
-    a['tau_e_ratio_valid'] = ak.values_astype(tau_e_ratio_valid, np.float32)
-    a['tau_e_ratio'] = ak.where(tau_e_ratio_valid, a['tau_e_ratio'], 0)
+    tau_e_ratio_valid = (a['tau_e_ratio'] > 0).compute()
+    a_preprocessed['global']['tau_e_ratio_valid'] = ak.values_astype(tau_e_ratio_valid, np.float32)
+    a_preprocessed['global']['tau_e_ratio'] = ak.where(tau_e_ratio_valid, (a['tau_e_ratio']).compute(), 0)
     
-    tau_gj_angle_diff_valid = a['tau_gj_angle_diff'] >= 0
-    a['tau_gj_angle_diff_valid'] = ak.values_astype(tau_gj_angle_diff_valid, np.float32)
-    a['tau_gj_angle_diff'] = ak.where(tau_gj_angle_diff_valid, a['tau_gj_angle_diff'], -1)
+    tau_gj_angle_diff_valid = (a['tau_gj_angle_diff'] >= 0).compute()
+    a_preprocessed['global']['tau_gj_angle_diff_valid'] = ak.values_astype(tau_gj_angle_diff_valid, np.float32)
+    a_preprocessed['global']['tau_gj_angle_diff'] = ak.where(tau_gj_angle_diff_valid, (a['tau_gj_angle_diff']).compute(), -1)
 
-    a['tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta'] = a['tau_leadChargedCand_etaAtEcalEntrance'] - a['tau_eta']
-    a['particle_type'] = 9 # assign unique particle type to a "global" token 
+    a_preprocessed['global']['tau_leadChargedCand_etaAtEcalEntrance_minus_tau_eta'] = a['tau_leadChargedCand_etaAtEcalEntrance'] - a['tau_eta']
+    a_preprocessed['global']['particle_type'] = 9*ak.ones_like(a['tau_pt'].compute()) # assign unique particle type to a "global" token 
 
     # ------- PF candidates ------- #
 
     # shift delta phi into [-pi, pi] range 
-    dphi_array = (a['pfCand', 'phi'] - a['tau_phi'])
-    dphi_array = np.where(dphi_array <= np.pi, dphi_array, dphi_array - 2*np.pi)
-    dphi_array = np.where(dphi_array >= -np.pi, dphi_array, dphi_array + 2*np.pi)
+    pf_dphi = (a['pfCand_phi'] - a['tau_phi']).compute()
+    pf_dphi = np.where(pf_dphi <= np.pi, pf_dphi, pf_dphi - 2*np.pi)
+    pf_dphi = np.where(pf_dphi >= -np.pi, pf_dphi, pf_dphi + 2*np.pi)
+    pf_deta = (a['pfCand_eta'] - a['tau_eta']).compute()
 
-    # add features
-    a['pfCand', 'dphi'] = dphi_array
-    a['pfCand', 'deta'] = a['pfCand', 'eta'] - a['tau_eta']
-    a['pfCand', 'rel_pt'] = a['pfCand', 'pt'] / a['tau_pt']
-    a['pfCand', 'r'] = np.sqrt(np.square(a['pfCand', 'deta']) + np.square(a['pfCand', 'dphi']))
-    a['pfCand', 'theta'] = np.arctan2(a['pfCand', 'dphi'], a['pfCand', 'deta']) # dphi -> y, deta -> x
-    a['pfCand', 'particle_type'] = a['pfCand', 'particleType'] - 1
+    a_preprocessed['pfCand']['dphi'] = pf_dphi
+    a_preprocessed['pfCand']['deta'] = pf_deta
+    a_preprocessed['pfCand']['rel_pt'] = a['pfCand_pt'] / a['tau_pt']
+    a_preprocessed['pfCand']['r'] = np.sqrt(np.square(pf_deta) + np.square(pf_dphi))
+    a_preprocessed['pfCand']['theta'] = np.arctan2(pf_dphi, pf_deta) # dphi -> y, deta -> x
+    a_preprocessed['pfCand']['particle_type'] = a['pfCand_particleType'] - 1
 
-    # vertices
-    a['pfCand', 'vertex_dx'] = a['pfCand', 'vertex_x'] - a['pv_x']
-    a['pfCand', 'vertex_dy'] = a['pfCand', 'vertex_y'] - a['pv_y']
-    a['pfCand', 'vertex_dz'] = a['pfCand', 'vertex_z'] - a['pv_z']
-    a['pfCand', 'vertex_dx_tauFL'] = a['pfCand', 'vertex_x'] - a['pv_x'] - a['tau_flightLength_x']
-    a['pfCand', 'vertex_dy_tauFL'] = a['pfCand', 'vertex_y'] - a['pv_y'] - a['tau_flightLength_y']
-    a['pfCand', 'vertex_dz_tauFL'] = a['pfCand', 'vertex_z'] - a['pv_z'] - a['tau_flightLength_z']
+    a_preprocessed['pfCand']['vertex_dx'] = a['pfCand_vertex_x'] - a['pv_x']
+    a_preprocessed['pfCand']['vertex_dy'] = a['pfCand_vertex_y'] - a['pv_y']
+    a_preprocessed['pfCand']['vertex_dz'] = a['pfCand_vertex_z'] - a['pv_z']
+    a_preprocessed['pfCand']['vertex_dx_tauFL'] = a['pfCand_vertex_x'] - a['pv_x'] - a['tau_flightLength_x']
+    a_preprocessed['pfCand']['vertex_dy_tauFL'] = a['pfCand_vertex_y'] - a['pv_y'] - a['tau_flightLength_y']
+    a_preprocessed['pfCand']['vertex_dz_tauFL'] = a['pfCand_vertex_z'] - a['pv_z'] - a['tau_flightLength_z']
 
-    # IP, track info
-    has_track_details = a['pfCand', 'hasTrackDetails'] == 1
-    has_track_details_track_ndof = has_track_details * (a['pfCand', 'track_ndof'] > 0)
-    a['pfCand', 'dxy'] = ak.where(has_track_details, a['pfCand', 'dxy'], 0)
-    a['pfCand', 'dxy_sig'] = ak.where(has_track_details, np.abs(a['pfCand', 'dxy'])/a['pfCand', 'dxy_error'], 0)
-    a['pfCand', 'dz'] = ak.where(has_track_details, a['pfCand', 'dz'], 0)
-    a['pfCand', 'dz_sig'] = ak.where(has_track_details, np.abs(a['pfCand', 'dz'])/a['pfCand', 'dz_error'], 0)
-    a['pfCand', 'track_ndof'] = ak.where(has_track_details_track_ndof, a['pfCand', 'track_ndof'], 0)
-    a['pfCand', 'chi2_ndof'] = ak.where(has_track_details_track_ndof, a['pfCand', 'track_chi2']/a['pfCand', 'track_ndof'], 0)
+    has_track_details = (a['pfCand_hasTrackDetails'] == 1).compute()
+    has_track_details_track_ndof = has_track_details * (a['pfCand_track_ndof'] > 0).compute()
+    a_preprocessed['pfCand']['dxy'] = ak.where(has_track_details, a['pfCand_dxy'].compute(), 0)
+    a_preprocessed['pfCand']['dxy_sig'] = ak.where(has_track_details, (np.abs(a['pfCand_dxy'])/a['pfCand_dxy_error']).compute(), 0)
+    a_preprocessed['pfCand']['dz'] = ak.where(has_track_details, a['pfCand_dz'].compute(), 0)
+    a_preprocessed['pfCand']['dz_sig'] = ak.where(has_track_details, (np.abs(a['pfCand_dz'])/a['pfCand_dz_error']).compute(), 0)
+    a_preprocessed['pfCand']['track_ndof'] = ak.where(has_track_details_track_ndof, a['pfCand_track_ndof'].compute(), 0)
+    a_preprocessed['pfCand']['chi2_ndof'] = ak.where(has_track_details_track_ndof, (a['pfCand_track_chi2']/a['pfCand_track_ndof']).compute(), 0)
 
     # ------- Electrons ------- #
     
     # shift delta phi into [-pi, pi] range 
-    dphi_array = (a['ele', 'phi'] - a['tau_phi'])
-    dphi_array = np.where(dphi_array <= np.pi, dphi_array, dphi_array - 2*np.pi)
-    dphi_array = np.where(dphi_array >= -np.pi, dphi_array, dphi_array + 2*np.pi)
+    ele_dphi = (a['ele_phi'] - a['tau_phi']).compute()
+    ele_dphi = np.where(ele_dphi <= np.pi, ele_dphi, ele_dphi - 2*np.pi)
+    ele_dphi = np.where(ele_dphi >= -np.pi, ele_dphi, ele_dphi + 2*np.pi)
+    ele_deta = (a['ele_eta'] - a['tau_eta']).compute()
 
-    a['ele', 'dphi'] = dphi_array
-    a['ele', 'deta'] = a['ele', 'eta'] - a['tau_eta']
-    a['ele', 'rel_pt'] = a['ele', 'pt'] / a['tau_pt']
-    a['ele', 'r'] = np.sqrt(np.square(a['ele', 'deta']) + np.square(a['ele', 'dphi']))
-    a['ele', 'theta'] = np.arctan2(a['ele', 'dphi'], a['ele', 'deta']) # dphi -> y, deta -> x
-    a['ele', 'particle_type'] = 7 # assuming PF candidate types are [0..6]
+    a_preprocessed['ele']['dphi'] = ele_dphi
+    a_preprocessed['ele']['deta'] = ele_deta
+    a_preprocessed['ele']['rel_pt'] = a['ele_pt'] / a['tau_pt']
+    a_preprocessed['ele']['r'] = np.sqrt(np.square(ele_deta) + np.square(ele_dphi))
+    a_preprocessed['ele']['theta'] = np.arctan2(ele_dphi, ele_deta) # dphi -> y, deta -> x
+    a_preprocessed['ele']['particle_type'] = 7*ak.ones_like(a['ele_pt'].compute()) # assuming PF candidate types are [0..6]
 
-    ele_cc_valid = a['ele', 'cc_ele_energy'] >= 0
-    a['ele', 'cc_valid'] = ak.values_astype(ele_cc_valid, np.float32)
-    a['ele', 'cc_ele_rel_energy'] = ak.where(ele_cc_valid, a['ele', 'cc_ele_energy']/a['ele', 'pt'], 0)
-    a['ele', 'cc_gamma_rel_energy'] = ak.where(ele_cc_valid, a['ele', 'cc_gamma_energy']/a['ele', 'cc_ele_energy'], 0)
-    a['ele', 'cc_n_gamma'] = ak.where(ele_cc_valid, a['ele', 'cc_n_gamma'], -1)
-    a['ele', 'rel_trackMomentumAtVtx'] = a['ele', 'trackMomentumAtVtx']/a['ele', 'pt']
-    a['ele', 'rel_trackMomentumAtCalo'] = a['ele', 'trackMomentumAtCalo']/a['ele', 'pt']
-    a['ele', 'rel_trackMomentumOut'] = a['ele', 'trackMomentumOut']/a['ele', 'pt']
-    a['ele', 'rel_trackMomentumAtEleClus'] = a['ele', 'trackMomentumAtEleClus']/a['ele', 'pt']
-    a['ele', 'rel_trackMomentumAtVtxWithConstraint'] = a['ele', 'trackMomentumAtVtxWithConstraint']/a['ele', 'pt']
-    a['ele', 'rel_ecalEnergy'] = a['ele', 'ecalEnergy']/a['ele', 'pt']
-    a['ele', 'ecalEnergy_sig'] = a['ele', 'ecalEnergy']/a['ele', 'ecalEnergy_error']
-    a['ele', 'rel_gsfTrack_pt'] = a['ele', 'gsfTrack_pt']/a['ele', 'pt']
-    a['ele', 'gsfTrack_pt_sig'] = a['ele', 'gsfTrack_pt']/a['ele', 'gsfTrack_pt_error']
+    ele_cc_valid = (a['ele_cc_ele_energy'] >= 0).compute()
+    a_preprocessed['ele']['cc_valid'] = ak.values_astype(ele_cc_valid, np.float32)
+    a_preprocessed['ele']['cc_ele_rel_energy'] = ak.where(ele_cc_valid, (a['ele_cc_ele_energy']/a['ele_pt']).compute(), 0)
+    a_preprocessed['ele']['cc_gamma_rel_energy'] = ak.where(ele_cc_valid, (a['ele_cc_gamma_energy']/a['ele_cc_ele_energy']).compute(), 0)
+    a_preprocessed['ele']['cc_n_gamma'] = ak.where(ele_cc_valid, a['ele_cc_n_gamma'].compute(), -1)
+    a_preprocessed['ele']['rel_trackMomentumAtVtx'] = a['ele_trackMomentumAtVtx']/a['ele_pt']
+    a_preprocessed['ele']['rel_trackMomentumAtCalo'] = a['ele_trackMomentumAtCalo']/a['ele_pt']
+    a_preprocessed['ele']['rel_trackMomentumOut'] = a['ele_trackMomentumOut']/a['ele_pt']
+    a_preprocessed['ele']['rel_trackMomentumAtEleClus'] = a['ele_trackMomentumAtEleClus']/a['ele_pt']
+    a_preprocessed['ele']['rel_trackMomentumAtVtxWithConstraint'] = a['ele_trackMomentumAtVtxWithConstraint']/a['ele_pt']
+    a_preprocessed['ele']['rel_ecalEnergy'] = a['ele_ecalEnergy']/a['ele_pt']
+    a_preprocessed['ele']['ecalEnergy_sig'] = a['ele_ecalEnergy']/a['ele_ecalEnergy_error']
+    a_preprocessed['ele']['rel_gsfTrack_pt'] = a['ele_gsfTrack_pt']/a['ele_pt']
+    a_preprocessed['ele']['gsfTrack_pt_sig'] = a['ele_gsfTrack_pt']/a['ele_gsfTrack_pt_error']
 
-    ele_has_closestCtfTrack = a['ele', 'closestCtfTrack_normalizedChi2'] >= 0
-    a['ele', 'has_closestCtfTrack'] = ak.values_astype(ele_has_closestCtfTrack, np.float32)
-    a['ele', 'closestCtfTrack_normalizedChi2'] = ak.where(ele_has_closestCtfTrack, a['ele', 'closestCtfTrack_normalizedChi2'], 0)
-    a['ele', 'closestCtfTrack_numberOfValidHits'] = ak.where(ele_has_closestCtfTrack, a['ele', 'closestCtfTrack_numberOfValidHits'], 0)
+    ele_has_closestCtfTrack = (a['ele_closestCtfTrack_normalizedChi2'] >= 0).compute()
+    a_preprocessed['ele']['has_closestCtfTrack'] = ak.values_astype(ele_has_closestCtfTrack, np.float32)
+    a_preprocessed['ele']['closestCtfTrack_normalizedChi2'] = ak.where(ele_has_closestCtfTrack, a['ele_closestCtfTrack_normalizedChi2'].compute(), 0)
+    a_preprocessed['ele']['closestCtfTrack_numberOfValidHits'] = ak.where(ele_has_closestCtfTrack, a['ele_closestCtfTrack_numberOfValidHits'].compute(), 0)
 
-    a['ele', 'sigmaEtaEta'] = ak.where(a['ele', 'sigmaEtaEta']>-1, a['ele', 'sigmaEtaEta'], -1)
-    a['ele', 'sigmaIetaIeta'] = ak.where(a['ele', 'sigmaIetaIeta']>-1, a['ele', 'sigmaIetaIeta'], -1)
-    a['ele', 'sigmaIphiIphi'] = ak.where(a['ele', 'sigmaIphiIphi']>-1, a['ele', 'sigmaIphiIphi'], -1)
-    a['ele', 'sigmaIetaIphi'] = ak.where(a['ele', 'sigmaIetaIphi']>-1, a['ele', 'sigmaIetaIphi'], -1)
-
-    a['ele', 'e1x5'] = ak.where(a['ele', 'e1x5']>-1, a['ele', 'e1x5'], -1)
-    a['ele', 'e2x5Max'] = ak.where(a['ele', 'e2x5Max']>-1, a['ele', 'e2x5Max'], -1)
-    a['ele', 'e5x5'] = ak.where(a['ele', 'e5x5']>-1, a['ele', 'e5x5'], -1)
-    a['ele', 'r9'] = ak.where(a['ele', 'r9']>-1, a['ele', 'r9'], -1)
-
-    a['ele', 'hcalDepth1OverEcal'] = ak.where(a['ele', 'hcalDepth1OverEcal']>-1, a['ele', 'hcalDepth1OverEcal'], -1)
-    a['ele', 'hcalDepth2OverEcal'] = ak.where(a['ele', 'hcalDepth2OverEcal']>-1, a['ele', 'hcalDepth2OverEcal'], -1)
-    a['ele', 'hcalDepth1OverEcalBc'] = ak.where(a['ele', 'hcalDepth1OverEcalBc']>-1, a['ele', 'hcalDepth1OverEcalBc'], -1)
-    a['ele', 'hcalDepth2OverEcalBc'] = ak.where(a['ele', 'hcalDepth2OverEcalBc']>-1, a['ele', 'hcalDepth2OverEcalBc'], -1)
-    
-    a['ele', 'eLeft'] = ak.where(a['ele', 'eLeft']>-1, a['ele', 'eLeft'], -1)
-    a['ele', 'eRight'] = ak.where(a['ele', 'eRight']>-1, a['ele', 'eRight'], -1)
-    a['ele', 'eBottom'] = ak.where(a['ele', 'eBottom']>-1, a['ele', 'eBottom'], -1)
-    a['ele', 'eTop'] = ak.where(a['ele', 'eTop']>-1, a['ele', 'eTop'], -1)
-    
-    a['ele', 'full5x5_sigmaEtaEta'] = ak.where(a['ele', 'full5x5_sigmaEtaEta']>-1, a['ele', 'full5x5_sigmaEtaEta'], -1)
-    a['ele', 'full5x5_sigmaIetaIeta'] = ak.where(a['ele', 'full5x5_sigmaIetaIeta']>-1, a['ele', 'full5x5_sigmaIetaIeta'], -1)
-    a['ele', 'full5x5_sigmaIphiIphi'] = ak.where(a['ele', 'full5x5_sigmaIphiIphi']>-1, a['ele', 'full5x5_sigmaIphiIphi'], -1)
-    a['ele', 'full5x5_sigmaIetaIphi'] = ak.where(a['ele', 'full5x5_sigmaIetaIphi']>-1, a['ele', 'full5x5_sigmaIetaIphi'], -1)
-    
-    a['ele', 'full5x5_e1x5'] = ak.where(a['ele', 'full5x5_e1x5']>-1, a['ele', 'full5x5_e1x5'], -1)
-    a['ele', 'full5x5_e2x5Max'] = ak.where(a['ele', 'full5x5_e2x5Max']>-1, a['ele', 'full5x5_e2x5Max'], -1)
-    a['ele', 'full5x5_e5x5'] = ak.where(a['ele', 'full5x5_e5x5']>-1, a['ele', 'full5x5_e5x5'], -1)
-    a['ele', 'full5x5_r9'] = ak.where(a['ele', 'full5x5_r9']>-1, a['ele', 'full5x5_r9'], -1)
-    
-    a['ele', 'full5x5_hcalDepth1OverEcal'] = ak.where(a['ele', 'full5x5_hcalDepth1OverEcal']>-1, a['ele', 'full5x5_hcalDepth1OverEcal'], -1)
-    a['ele', 'full5x5_hcalDepth2OverEcal'] = ak.where(a['ele', 'full5x5_hcalDepth2OverEcal']>-1, a['ele', 'full5x5_hcalDepth2OverEcal'], -1)
-    a['ele', 'full5x5_hcalDepth1OverEcalBc'] = ak.where(a['ele', 'full5x5_hcalDepth1OverEcalBc']>-1, a['ele', 'full5x5_hcalDepth1OverEcalBc'], -1)
-    a['ele', 'full5x5_hcalDepth2OverEcalBc'] = ak.where(a['ele', 'full5x5_hcalDepth2OverEcalBc']>-1, a['ele', 'full5x5_hcalDepth2OverEcalBc'], -1)
-    
-    a['ele', 'full5x5_eLeft'] = ak.where(a['ele', 'full5x5_eLeft']>-1, a['ele', 'full5x5_eLeft'], -1)
-    a['ele', 'full5x5_eRight'] = ak.where(a['ele', 'full5x5_eRight']>-1, a['ele', 'full5x5_eRight'], -1)
-    a['ele', 'full5x5_eBottom'] = ak.where(a['ele', 'full5x5_eBottom']>-1, a['ele', 'full5x5_eBottom'], -1)
-    a['ele', 'full5x5_eTop'] = ak.where(a['ele', 'full5x5_eTop']>-1, a['ele', 'full5x5_eTop'], -1)
-    
-    a['ele', 'full5x5_e2x5Left'] = ak.where(a['ele', 'full5x5_e2x5Left']>-1, a['ele', 'full5x5_e2x5Left'], -1)
-    a['ele', 'full5x5_e2x5Right'] = ak.where(a['ele', 'full5x5_e2x5Right']>-1, a['ele', 'full5x5_e2x5Right'], -1)
-    a['ele', 'full5x5_e2x5Bottom'] = ak.where(a['ele', 'full5x5_e2x5Bottom']>-1, a['ele', 'full5x5_e2x5Bottom'], -1)
-    a['ele', 'full5x5_e2x5Top'] = ak.where(a['ele', 'full5x5_e2x5Top']>-1, a['ele', 'full5x5_e2x5Top'], -1)
+    ele_features = ['sigmaEtaEta', 'sigmaIetaIeta', 'sigmaIphiIphi', 'sigmaIetaIphi',
+                    'e1x5', 'e2x5Max', 'e5x5', 'r9', 
+                    'hcalDepth1OverEcal', 'hcalDepth2OverEcal', 'hcalDepth1OverEcalBc', 'hcalDepth2OverEcalBc',
+                    'eLeft', 'eRight', 'eBottom', 'eTop',
+                    'full5x5_sigmaEtaEta', 'full5x5_sigmaIetaIeta', 'full5x5_sigmaIphiIphi', 'full5x5_sigmaIetaIphi',
+                    'full5x5_e1x5', 'full5x5_e2x5Max', 'full5x5_e5x5', 'full5x5_r9',
+                    'full5x5_hcalDepth1OverEcal', 'full5x5_hcalDepth2OverEcal', 'full5x5_hcalDepth1OverEcalBc', 'full5x5_hcalDepth2OverEcalBc',
+                    'full5x5_eLeft', 'full5x5_eRight', 'full5x5_eBottom', 'full5x5_eTop',
+                    'full5x5_e2x5Left', 'full5x5_e2x5Right', 'full5x5_e2x5Bottom', 'full5x5_e2x5Top']
+    for ele_feature in ele_features:
+        _a = a[f'ele_{ele_feature}'].compute()
+        a_preprocessed['ele'][ele_feature] = ak.where(_a > -1, _a, -1)
 
     # ------- Muons ------- #
 
     # shift delta phi into [-pi, pi] range 
-    dphi_array = (a['muon', 'phi'] - a['tau_phi'])
-    dphi_array = np.where(dphi_array <= np.pi, dphi_array, dphi_array - 2*np.pi)
-    dphi_array = np.where(dphi_array >= -np.pi, dphi_array, dphi_array + 2*np.pi)
+    muon_dphi = (a['muon_phi'] - a['tau_phi']).compute()
+    muon_dphi = np.where(muon_dphi <= np.pi, muon_dphi, muon_dphi - 2*np.pi)
+    muon_dphi = np.where(muon_dphi >= -np.pi, muon_dphi, muon_dphi + 2*np.pi)
+    muon_deta = (a['muon_eta'] - a['tau_eta']).compute()
 
-    a['muon', 'dphi'] = dphi_array
-    a['muon', 'deta'] = a['muon', 'eta'] - a['tau_eta']
-    a['muon', 'rel_pt'] = a['muon', 'pt'] / a['tau_pt']
-    a['muon', 'r'] = np.sqrt(np.square(a['muon', 'deta']) + np.square(a['muon', 'dphi']))
-    a['muon', 'theta'] = np.arctan2(a['muon', 'dphi'], a['muon', 'deta']) # dphi -> y, deta -> x
-    a['muon', 'particle_type'] = 8 # assuming PF candidate types are [0..6]
+    a_preprocessed['muon']['dphi'] = muon_dphi
+    a_preprocessed['muon']['deta'] = muon_deta
+    a_preprocessed['muon']['rel_pt'] = a['muon_pt'] / a['tau_pt']
+    a_preprocessed['muon']['r'] = np.sqrt(np.square(muon_deta) + np.square(muon_dphi))
+    a_preprocessed['muon']['theta'] = np.arctan2(muon_dphi, muon_deta) # dphi -> y, deta -> x
+    a_preprocessed['muon']['particle_type'] = 8*ak.ones_like(a['muon_pt'].compute()) # assuming PF candidate types are [0..6]
 
-    a['muon', 'dxy_sig'] =  np.abs(a['muon', 'dxy'])/a['muon', 'dxy_error'] 
+    a_preprocessed['muon']['dxy_sig'] =  np.abs(a['muon_dxy'])/a['muon_dxy_error'] 
 
-    muon_normalizedChi2_valid = a['muon', 'normalizedChi2'] >= 0
-    a['muon', 'normalizedChi2_valid'] = ak.values_astype(muon_normalizedChi2_valid, np.float32)
-    a['muon', 'normalizedChi2'] = ak.where(muon_normalizedChi2_valid, a['muon', 'normalizedChi2'], 0)
-    a['muon', 'numberOfValidHits'] = ak.where(muon_normalizedChi2_valid, a['muon', 'numberOfValidHits'], 0)
+    muon_normalizedChi2_valid = (a['muon_normalizedChi2'] >= 0).compute()
+    a_preprocessed['muon']['normalizedChi2_valid'] = ak.values_astype(muon_normalizedChi2_valid, np.float32)
+    a_preprocessed['muon']['normalizedChi2'] = ak.where(muon_normalizedChi2_valid, a['muon_normalizedChi2'].compute(), 0)
+    a_preprocessed['muon']['numberOfValidHits'] = ak.where(muon_normalizedChi2_valid, a['muon_numberOfValidHits'].compute(), 0)
     
-    muon_pfEcalEnergy_valid = a['muon', 'pfEcalEnergy'] >= 0
-    a['muon', 'pfEcalEnergy_valid'] = ak.values_astype(muon_pfEcalEnergy_valid, np.float32)
-    a['muon', 'rel_pfEcalEnergy'] = ak.where(muon_pfEcalEnergy_valid, a['muon', 'pfEcalEnergy']/a['muon', 'pt'], 0)
+    muon_pfEcalEnergy_valid = (a['muon_pfEcalEnergy'] >= 0).compute()
+    a_preprocessed['muon']['pfEcalEnergy_valid'] = ak.values_astype(muon_pfEcalEnergy_valid, np.float32)
+    a_preprocessed['muon']['rel_pfEcalEnergy'] = ak.where(muon_pfEcalEnergy_valid, (a['muon_pfEcalEnergy']/a['muon_pt']).compute(), 0)
 
-    # preprocess NaNs
-    a = ak.nan_to_num(a, nan=0., posinf=0., neginf=0.)
+    # data for labels
+    label_data = {_f: a[_f].compute() for _f in ['sampleType', 'tauType']}
 
-    return a 
+    # data for gen leve matching
+    gen_data = {_f: a[_f] for _f in ['genLepton_index', 'genJet_index', 'genLepton_kind', 
+                                     'tau_pt', 'tau_eta', 'tau_phi',
+                                     'genLepton_vis_pt', 'genLepton_vis_eta', 'genLepton_vis_phi']} # will be computed on demand later
+
+    # additional features (not used in the training)
+    add_columns = {_f: a[_f] for _f in add_feature_names} if add_feature_names is not None else None
+
+    return a_preprocessed, label_data, gen_data, add_columns

@@ -1,6 +1,7 @@
 import os
 import time
 import shutil
+import gc
 from glob import glob
 from collections import defaultdict
 import hydra
@@ -21,7 +22,8 @@ def main(cfg: DictConfig) -> None:
     # read from cfg
     tau_type_map = cfg['gen_cfg']['tau_type_map']
     tree_name = cfg['data_cfg']['tree_name']
-    input_branches = cfg['data_cfg']['input_branches']
+    step_size = cfg['data_cfg']['step_size']
+    feature_names = cfg['feature_names']
     input_data = OmegaConf.to_object(cfg['data_cfg']['input_data'])
 
     for dataset_type in input_data.keys():
@@ -36,12 +38,14 @@ def main(cfg: DictConfig) -> None:
             time_0 = time.time()
 
             # open ROOT file, read awkward array
-            a = load_from_file(file_name, tree_name, input_branches)
+            a = load_from_file(file_name, tree_name, step_size)
             time_1 = time.time()
-            print(f'        Loading: took {(time_1-time_0):.1f} s.')
+            if cfg['verbose']:
+                print(f'        Loading: took {(time_1-time_0):.1f} s.')
 
             # preprocess awkward array
-            a = preprocess_array(a)
+            a_preprocessed, label_data, gen_data, add_columns = preprocess_array(a, feature_names, dataset_cfg['add_columns'], cfg['verbose'])
+            del a; gc.collect()
 
             # preprocess labels
             if dataset_cfg['recompute_tau_type']:
