@@ -15,6 +15,10 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
     root_ext::AnalyzerDataEntry<type> name{#name, this, ##__VA_ARGS__};
     /**/
 
+#define ANA_DATA_ENTRY_EMPTY(type, name) \
+    root_ext::AnalyzerDataEntry<type> name{#name, this};
+    /**/
+
 #define TH1D_ENTRY(name, nbinsx, xlow, xup) ANA_DATA_ENTRY(TH1D, name, nbinsx, xlow, xup)
 #define TH1D_ENTRY_FIX(name, binsizex, nbinsx, xlow) TH1D_ENTRY(name, nbinsx, xlow, (xlow+binsizex*nbinsx))
 #define TH1D_ENTRY_CUSTOM(name, bins) ANA_DATA_ENTRY(TH1D, name, bins)
@@ -31,6 +35,8 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #define TH2D_ENTRY_FIX(name, binsizex, nbinsx, xlow, binsizey, nbinsy, ylow) \
     TH2D_ENTRY(name, nbinsx, xlow, (xlow+binsizex*nbinsx), nbinsy, ylow, (ylow+binsizey*nbinsy))
 
+#define TH2D_ENTRY_EMPTY(name) \
+    ANA_DATA_ENTRY_EMPTY(TH2D, name)
 #define TH2D_ENTRY_EX(name, nbinsx, xlow, xup, nbinsy, ylow, yup, x_axis_title, y_axis_title, use_log_y, max_y_sf, \
                       store) \
     ANA_DATA_ENTRY(TH2D, name, nbinsx, xlow, xup, nbinsy, ylow, yup, x_axis_title, y_axis_title, use_log_y, max_y_sf, \
