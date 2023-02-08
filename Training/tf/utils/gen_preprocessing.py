@@ -79,9 +79,9 @@ def recompute_tau_type(genLepton_match_map, genLepton_kind_map, sample_type_map,
 
     return tau_types
 
-def compute_genmatch_dR(a):
-    tau_v = vector.Array({'pt': a['tau_pt'], 'eta': a['tau_eta'], 'phi': a['tau_phi']})
-    genlepton_v = vector.Array({'pt': a['genLepton_vis_pt'], 'eta': a['genLepton_vis_eta'], 'phi': a['genLepton_vis_phi']})
+def compute_genmatch_dR(gen_data):
+    tau_v = vector.Array({'pt': gen_data['tau_pt'], 'eta': gen_data['tau_eta'], 'phi': gen_data['tau_phi']})
+    genlepton_v = vector.Array({'pt': gen_data['genLepton_vis_pt'], 'eta': gen_data['genLepton_vis_eta'], 'phi': gen_data['genLepton_vis_phi']})
     dR = tau_v.deltaR(genlepton_v)
     return dR
 

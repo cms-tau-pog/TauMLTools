@@ -49,19 +49,29 @@ def main(cfg: DictConfig) -> None:
 
             # preprocess labels
             if dataset_cfg['recompute_tau_type']:
+                # lazy compute dict with gen data
+                gen_data = {_k: _v.compute() for _k, _v in gen_data.items()}
+                
+                # convert dictionaries to numba dict
                 genLepton_match_map = dict_to_numba(cfg['gen_cfg']['genLepton_match_map'], key_type=types.unicode_type, value_type=types.int32)
                 genLepton_kind_map = dict_to_numba(cfg['gen_cfg']['genLepton_kind_map'], key_type=types.unicode_type, value_type=types.int32)
                 sample_type_map = dict_to_numba(cfg['gen_cfg']['sample_type_map'], key_type=types.unicode_type, value_type=types.int32)
                 tau_type_map = dict_to_numba(tau_type_map, key_type=types.unicode_type, value_type=types.int32)
-                genmatch_dR = compute_genmatch_dR(a)
+                
+                # bool mask with dR gen matching
+                genmatch_dR = compute_genmatch_dR(gen_data)
                 is_dR_matched = genmatch_dR < cfg['gen_cfg']['genmatch_dR']
 
+                # recompute labels
                 tau_type_column = 'tauType_recomputed'
-                a[tau_type_column] = recompute_tau_type(genLepton_match_map, genLepton_kind_map, sample_type_map, tau_type_map,
-                                                            a['sampleType'], is_dR_matched,
-                                                            a['genLepton_index'], a['genJet_index'], a['genLepton_kind'], a['genLepton_vis_pt']) # first execution might be slower due to compilation
-                if sum_:=np.sum(a[tau_type_column]!=a["tauType"]):
-                    print(f'\n        [WARNING] non-zero fraction of recomputed tau types: {sum_/len(a["tauType"])*100:.1f}%\n')
+                recomputed_labels = recompute_tau_type(genLepton_match_map, genLepton_kind_map, sample_type_map, tau_type_map,
+                                                            label_data['sampleType'], is_dR_matched,
+                                                            gen_data['genLepton_index'], gen_data['genJet_index'], gen_data['genLepton_kind'], gen_data['genLepton_vis_pt'])
+                label_data[tau_type_column] = ak.Array(recomputed_labels)
+
+                # check the fraction of recomputed labels comparing to the original
+                if sum_:=np.sum(label_data[tau_type_column]!=label_data["tauType"]):
+                    print(f'\n        [WARNING] non-zero fraction of recomputed tau types: {sum_/len(label_data["tauType"])*100:.1f}%\n')
             else:
                 tau_type_column = 'tauType'
 
