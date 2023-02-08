@@ -1,3 +1,4 @@
+import numpy as np
 from numba.typed import Dict
 from numba import njit
 import vector
@@ -50,32 +51,32 @@ def get_genLepton_match(genLepton_match_map, genLepton_kind_map, genLepton_index
 def recompute_tau_type(genLepton_match_map, genLepton_kind_map, sample_type_map, tau_type_map,
                        sample_type, is_dR_matched,
                        genLepton_index, genJet_index, genLepton_kind, genLepton_vis_pt):
-    tau_types = []
+    tau_types = np.empty(len(genLepton_index), dtype=np.int32)
 
     for i in range(len(genLepton_index)): # loop over taus
         gen_match = get_genLepton_match(genLepton_match_map, genLepton_kind_map, 
                                 genLepton_index[i], genJet_index[i], genLepton_kind[i], genLepton_vis_pt[i], is_dR_matched[i])
 
         if sample_type[i]==sample_type_map['MC'] and (gen_match==genLepton_match_map['Electron'] or gen_match==genLepton_match_map['TauElectron']):
-            tau_types.append(tau_type_map['e'])
+            tau_types[i] = tau_type_map['e']
             
         elif sample_type[i]==sample_type_map['MC'] and (gen_match==genLepton_match_map['Muon'] or gen_match==genLepton_match_map['TauMuon']):
-            tau_types.append(tau_type_map['mu'])
+            tau_types[i] = tau_type_map['mu']
             
         elif gen_match==genLepton_match_map['Tau']:
-            if sample_type[i]==sample_type_map['MC']: tau_types.append(tau_type_map['tau'])
-            if sample_type[i]==sample_type_map['Embedded']:  tau_types.append(tau_type_map['emb_tau'])
+            if sample_type[i]==sample_type_map['MC']: tau_types[i] = tau_type_map['tau']
+            if sample_type[i]==sample_type_map['Embedded']:  tau_types[i] = tau_type_map['emb_tau']
 
         elif gen_match==genLepton_match_map['NoMatch']:
-            if(sample_type[i]==sample_type_map['MC']): tau_types.append(tau_type_map['jet'])
-            if(sample_type[i]==sample_type_map['Data']): tau_types.append(tau_type_map['data'])
-            if(sample_type[i]==sample_type_map['Embedded']): tau_types.append(tau_type_map['emb_jet'])
+            if(sample_type[i]==sample_type_map['MC']): tau_types[i] = tau_type_map['jet']
+            if(sample_type[i]==sample_type_map['Data']): tau_types[i] = tau_type_map['data']
+            if(sample_type[i]==sample_type_map['Embedded']): tau_types[i] = tau_type_map['emb_jet']
 
         elif sample_type[i]==sample_type_map['Embedded']:
-            if(gen_match==genLepton_match_map['TauMuon']): tau_types.append(tau_type_map['emb_mu'])
-            if(gen_match==genLepton_match_map['TauElectron']): tau_types.append(tau_type_map['emb_e'])
+            if(gen_match==genLepton_match_map['TauMuon']): tau_types[i] = tau_type_map['emb_mu']
+            if(gen_match==genLepton_match_map['TauElectron']): tau_types[i] = tau_type_map['emb_e']
         else:
-            tau_types.append(tau_type_map['no_type'])
+            tau_types[i] = tau_type_map['no_type']
 
     return tau_types
 
