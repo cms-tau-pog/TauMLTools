@@ -5,6 +5,9 @@ import numpy as np
 from hydra.utils import to_absolute_path
 import gc
 
+from utils.gen_preprocessing import compute_genmatch_dR, recompute_tau_type, dict_to_numba
+from numba.core import types
+
 def load_from_file(file_name, tree_name, step_size):
     print(f'      - {file_name}')
     a = uproot.dask(f'{file_name}:{tree_name}', step_size=step_size, library='ak')
@@ -43,7 +46,7 @@ def preprocess_array(a, feature_names, add_feature_names, verbose=False):
                 a_preprocessed[feature_type][feature_name] = a[f]
             except:
                 if verbose:
-                    print(f'{f} not found in input ROOT file, will skip it') 
+                    print(f'        {f} not found in input ROOT file, will skip it') 
 
     # ------- Global features ------- #
 
@@ -210,3 +213,29 @@ def preprocess_array(a, feature_names, add_feature_names, verbose=False):
     add_columns = {_f: a[_f] for _f in add_feature_names} if add_feature_names is not None else None
 
     return a_preprocessed, label_data, gen_data, add_columns
+
+def compute_labels(gen_cfg, gen_data, label_data):
+    # lazy compute dict with gen data
+    gen_data = {_k: _v.compute() for _k, _v in gen_data.items()}
+    
+    # convert dictionaries to numba dict
+    genLepton_match_map = dict_to_numba(gen_cfg['genLepton_match_map'], key_type=types.unicode_type, value_type=types.int32)
+    genLepton_kind_map = dict_to_numba(gen_cfg['genLepton_kind_map'], key_type=types.unicode_type, value_type=types.int32)
+    sample_type_map = dict_to_numba(gen_cfg['sample_type_map'], key_type=types.unicode_type, value_type=types.int32)
+    tau_type_map = dict_to_numba(gen_cfg['tau_type_map'], key_type=types.unicode_type, value_type=types.int32)
+    
+    # bool mask with dR gen matching
+    genmatch_dR = compute_genmatch_dR(gen_data)
+    is_dR_matched = genmatch_dR < gen_cfg['genmatch_dR']
+
+    # recompute labels
+    recomputed_labels = recompute_tau_type(genLepton_match_map, genLepton_kind_map, sample_type_map, tau_type_map,
+                                                label_data['sampleType'], is_dR_matched,
+                                                gen_data['genLepton_index'], gen_data['genJet_index'], gen_data['genLepton_kind'], gen_data['genLepton_vis_pt'])
+    recomputed_labels = ak.Array(recomputed_labels)
+
+    # check the fraction of recomputed labels comparing to the original
+    if sum_:=np.sum(recomputed_labels != label_data["tauType"]):
+        print(f'\n        [WARNING] non-zero fraction of recomputed tau types: {sum_/len(label_data["tauType"])*100:.1f}%\n')
+    
+    return recomputed_labels

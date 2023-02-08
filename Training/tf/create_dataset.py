@@ -7,13 +7,11 @@ from collections import defaultdict
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf, open_dict
-from utils.data_preprocessing import load_from_file, preprocess_array, awkward_to_tf
-from utils.gen_preprocessing import compute_genmatch_dR, recompute_tau_type, dict_to_numba
+from utils.data_preprocessing import load_from_file, preprocess_array, awkward_to_tf, compute_labels
 
 import tensorflow as tf
 import awkward as ak
 import numpy as np
-from numba.core import types
 
 @hydra.main(config_path='configs', config_name='create_dataset')
 def main(cfg: DictConfig) -> None:
@@ -26,7 +24,7 @@ def main(cfg: DictConfig) -> None:
     feature_names = cfg['feature_names']
     input_data = OmegaConf.to_object(cfg['input_data'])
 
-    for dataset_type in input_data.keys():
+    for dataset_type in input_data.keys(): # train/val/test
         dataset_cfg = input_data[dataset_type]
         files = dataset_cfg.pop('files')
         if len(files)==1 and "*" in (file_name_regex:=list(files.keys())[0]):
@@ -41,7 +39,7 @@ def main(cfg: DictConfig) -> None:
             a = load_from_file(file_name, tree_name, step_size)
             time_1 = time.time()
             if cfg['verbose']:
-                print(f'        Loading: took {(time_1-time_0):.1f} s.')
+                print(f'\n        Loading: took {(time_1-time_0):.1f} s.')
 
             # preprocess awkward array
             a_preprocessed, label_data, gen_data, add_columns = preprocess_array(a, feature_names, dataset_cfg['add_columns'], cfg['verbose'])
@@ -49,35 +47,13 @@ def main(cfg: DictConfig) -> None:
 
             # preprocess labels
             if dataset_cfg['recompute_tau_type']:
-                # lazy compute dict with gen data
-                gen_data = {_k: _v.compute() for _k, _v in gen_data.items()}
-                
-                # convert dictionaries to numba dict
-                genLepton_match_map = dict_to_numba(cfg['gen_cfg']['genLepton_match_map'], key_type=types.unicode_type, value_type=types.int32)
-                genLepton_kind_map = dict_to_numba(cfg['gen_cfg']['genLepton_kind_map'], key_type=types.unicode_type, value_type=types.int32)
-                sample_type_map = dict_to_numba(cfg['gen_cfg']['sample_type_map'], key_type=types.unicode_type, value_type=types.int32)
-                tau_type_map = dict_to_numba(tau_type_map, key_type=types.unicode_type, value_type=types.int32)
-                
-                # bool mask with dR gen matching
-                genmatch_dR = compute_genmatch_dR(gen_data)
-                is_dR_matched = genmatch_dR < cfg['gen_cfg']['genmatch_dR']
-
-                # recompute labels
-                tau_type_column = 'tauType_recomputed'
-                recomputed_labels = recompute_tau_type(genLepton_match_map, genLepton_kind_map, sample_type_map, tau_type_map,
-                                                            label_data['sampleType'], is_dR_matched,
-                                                            gen_data['genLepton_index'], gen_data['genJet_index'], gen_data['genLepton_kind'], gen_data['genLepton_vis_pt'])
-                label_data[tau_type_column] = ak.Array(recomputed_labels)
-
-                # check the fraction of recomputed labels comparing to the original
-                if sum_:=np.sum(label_data[tau_type_column]!=label_data["tauType"]):
-                    print(f'\n        [WARNING] non-zero fraction of recomputed tau types: {sum_/len(label_data["tauType"])*100:.1f}%\n')
+                _labels = compute_labels(cfg['gen_cfg'], gen_data, label_data)
             else:
-                tau_type_column = 'tauType'
+                _labels = label_data['tauType']
   
             time_2 = time.time()
             if cfg['verbose']:
-                print(f'        Preprocessing: took {(time_2-time_1):.1f} s.')
+                print(f'\n        Preprocessing: took {(time_2-time_1):.1f} s.\n')
 
             # final tuple with elements to be stored into TF dataset
             data = []
@@ -93,7 +69,9 @@ def main(cfg: DictConfig) -> None:
             label_columns = []
             labels = []
             for tau_type, tau_type_value in tau_type_map.items():
-                labels.append(ak.values_astype(label_data[tau_type_column] == tau_type_value, np.int32))
+                _l = ak.values_astype(_labels == tau_type_value, np.int32)
+                labels.append(_l)
+                n_samples[tau_type] = ak.sum(_l)
                 label_columns.append(f'label_{tau_type}')
             labels = tf.stack(labels, axis=-1)
             data.append(labels)
@@ -113,7 +91,7 @@ def main(cfg: DictConfig) -> None:
             dataset = tf.data.Dataset.from_tensor_slices(tuple(data))
             time_3 = time.time()
             if cfg['verbose']:
-                print(f'        Preparing TF datasets: took {(time_3-time_2):.1f} s.')
+                print(f'\n        Preparing TF datasets: took {(time_3-time_2):.1f} s.')
 
             # remove existing datasets
             path_to_dataset = to_absolute_path(f'{cfg["path_to_dataset"]}/{cfg["dataset_name"]}/{dataset_type}/{os.path.splitext(os.path.basename(file_name))[0]}')
