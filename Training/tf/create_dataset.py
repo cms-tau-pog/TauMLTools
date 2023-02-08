@@ -74,67 +74,70 @@ def main(cfg: DictConfig) -> None:
                     print(f'\n        [WARNING] non-zero fraction of recomputed tau types: {sum_/len(label_data["tauType"])*100:.1f}%\n')
             else:
                 tau_type_column = 'tauType'
-
-            # create one-hot encoded labels
-            label_columns = []
-            for tau_type, tau_type_value in tau_type_map.items():
-                a[f'label_{tau_type}'] = ak.values_astype(a[tau_type_column] == tau_type_value, np.int32)
-                label_columns.append(f'label_{tau_type}')
-            with open_dict(cfg):
-                cfg["label_columns"] = label_columns
   
             time_2 = time.time()
-            print(f'        Preprocessing: took {(time_2-time_1):.1f} s.')
+            if cfg['verbose']:
+                print(f'        Preprocessing: took {(time_2-time_1):.1f} s.')
 
-            for tau_type in tau_types:
-                time_2 = time.time()
-                # select only given tau_type
-                a_selected = a[a[f'label_{tau_type}'] == 1]
-                n_selected = len(a_selected)
-                n_samples[tau_type] += n_selected
-                print(f'        Selected: {tau_type}: {n_selected} samples')
+            # final tuple with elements to be stored into TF dataset
+            data = []
 
-                # final tuple with elements to be stored into TF dataset
-                data = ()
+            # add awkward arrays converted to TF ragged arrays
+            for feature_type, feature_list in feature_names.items(): # do this separately for each particle collection
+                is_ragged = feature_type != 'global'
+                X = awkward_to_tf(a_preprocessed[feature_type], feature_list, is_ragged) # will keep only feats from feature_list
+                data.append(X)
+                del a_preprocessed[feature_type], X; gc.collect()
+            
+            # add one-hot encoded labels
+            label_columns = []
+            labels = []
+            for tau_type, tau_type_value in tau_type_map.items():
+                labels.append(ak.values_astype(label_data[tau_type_column] == tau_type_value, np.int32))
+                label_columns.append(f'label_{tau_type}')
+            labels = tf.stack(labels, axis=-1)
+            data.append(labels)
+            del labels, label_data; gc.collect()
 
-                # add awkward arrays converted to TF ragged arrays
-                for particle_type, feature_names in cfg['feature_names'].items(): # do this separately for each particle collection
-                    X = awkward_to_tf(a_selected, particle_type, feature_names) # will keep only feats from feature_names
-                    data += (X,)
-                
-                # all labels to final dataset
-                y = ak.to_pandas(a_selected[cfg["label_columns"]]).values
-                data += (y,)
+            # save label names to the yaml cfg
+            with open_dict(cfg):
+                cfg["label_columns"] = label_columns
 
-                # add additional columns if needed
-                if dataset_cfg['add_columns'] is not None:
-                    add_columns = ak.to_pandas(a_selected[dataset_cfg['add_columns']])
-                    add_columns = np.squeeze(add_columns.values)
-                    data += (add_columns,)
-                
-                # create TF dataset 
-                dataset = tf.data.Dataset.from_tensor_slices(data)
-                time_3 = time.time()
+            # add additional columns if needed
+            if add_columns is not None:
+                add_columns = awkward_to_tf(add_columns, dataset_cfg['add_columns'], False)
+                data.append(add_columns)
+                del add_columns; gc.collect()
+
+            # create TF dataset 
+            dataset = tf.data.Dataset.from_tensor_slices(tuple(data))
+            time_3 = time.time()
+            if cfg['verbose']:
                 print(f'        Preparing TF datasets: took {(time_3-time_2):.1f} s.')
 
-                # remove existing datasets
-                path_to_dataset = to_absolute_path(f'{cfg["path_to_dataset"]}/{cfg["dataset_name"]}/{dataset_type}/{os.path.splitext(os.path.basename(file_name))[0]}/{tau_type}')
-                if os.path.exists(path_to_dataset):
-                    shutil.rmtree(path_to_dataset)
-                else:
-                    os.makedirs(path_to_dataset, exist_ok=True)
+            # remove existing datasets
+            path_to_dataset = to_absolute_path(f'{cfg["path_to_dataset"]}/{cfg["dataset_name"]}/{dataset_type}/{os.path.splitext(os.path.basename(file_name))[0]}')
+            if os.path.exists(path_to_dataset):
+                shutil.rmtree(path_to_dataset)
+            else:
+                os.makedirs(path_to_dataset, exist_ok=True)
 
-                # save
-                tf.data.experimental.save(dataset, path_to_dataset)
-                OmegaConf.save(config=cfg, f=f'{path_to_dataset}/cfg.yaml')
-                time_4 = time.time()
+            # save TF dataset
+            dataset.save(path_to_dataset, compression='GZIP')
+            OmegaConf.save(config=cfg, f=f'{path_to_dataset}/cfg.yaml')
+            time_4 = time.time()
+            if cfg['verbose']:
                 print(f'        Saving TF datasets: took {(time_4-time_3):.1f} s.\n')
 
-        print(f'\n-> Dataset ({dataset_type}) contains:')
-        for k, v in n_samples.items():
-            print(f'    {k}: {v} samples')
+            del dataset, data; gc.collect()
 
-    print(f'\nTotal time: {(time_4-time_start):.1f} s.\n') 
+        if cfg['verbose']:
+            print(f'\n-> Dataset ({dataset_type}) contains:')
+            for k, v in n_samples.items():
+                print(f'    {k}: {v} samples')
+    
+    if cfg['verbose']:
+        print(f'\nTotal time: {(time_4-time_start):.1f} s.\n') 
 
 if __name__ == '__main__':
     main()
