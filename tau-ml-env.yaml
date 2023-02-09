@@ -18,7 +18,6 @@ dependencies:
   - atk-1.0=2.36.0=h3371d22_4
   - attr=2.5.1=h166bdaf_0
   - attrs=21.4.0=pyhd8ed1ab_0
-  - awkward=1.8.0=py38hfa26641_1
   - backcall=0.2.0=pyh9f0ad1d_0
   - backports=1.0=py_2
   - backports.functools_lru_cache=1.6.4=pyhd8ed1ab_0
@@ -33,15 +32,16 @@ dependencies:
   - blosc=1.21.1=h83bc5f7_2
   - boost=1.78.0=py38h514daf8_0
   - boost-cpp=1.78.0=h75c5d50_1
+  - bottleneck=1.3.5=py38h7deecbd_0
   - brotli=1.0.9=h166bdaf_7
   - brotli-bin=1.0.9=h166bdaf_7
   - brotlipy=0.7.0=py38h0a891b7_1004
   - bzip2=1.0.8=h7f98852_4
   - c-ares=1.18.1=h7f98852_0
   - c-compiler=1.4.2=h166bdaf_0
-  - ca-certificates=2021.10.8=ha878542_0
+  - ca-certificates=2023.01.10=h06a4308_0
   - cairo=1.16.0=ha61ee94_1011
-  - certifi=2021.10.8=py38h578d9bd_2
+  - certifi=2022.12.7=py38h06a4308_0
   - cffi=1.15.0=py38h3931269_0
   - cfitsio=4.1.0=hd9d235c_0
   - charset-normalizer=2.0.12=pyhd8ed1ab_0
@@ -116,7 +116,6 @@ dependencies:
   - icu=70.1=h27087fc_0
   - idna=3.3=pyhd8ed1ab_0
   - importlib-metadata=4.11.3=py38h578d9bd_1
-  - importlib_resources=5.7.1=pyhd8ed1ab_1
   - ipykernel=6.13.0=py38h7f3c49e_0
   - ipyparallel=8.3.0=pyhd8ed1ab_0
   - ipython=8.3.0=py38h578d9bd_0
@@ -129,9 +128,6 @@ dependencies:
   - joblib=1.1.0=pyhd8ed1ab_0
   - jpeg=9e=h166bdaf_1
   - json-c=0.15=h98cffda_0
-  - jsonschema=4.5.1=pyhd8ed1ab_0
-  - jupyter_client=7.3.1=pyhd8ed1ab_0
-  - jupyter_core=4.10.0=py38h578d9bd_0
   - jupyterlab_pygments=0.2.2=pyhd8ed1ab_0
   - kernel-headers_linux-64=3.10.0=h4a8ded7_13
   - keyutils=1.6.1=h166bdaf_0
@@ -217,7 +213,6 @@ dependencies:
   - mkl=2022.0.1=h8d4b97c_803
   - mkl-devel=2022.0.1=ha770c72_804
   - mkl-include=2022.0.1=h8d4b97c_803
-  - mlflow=1.25.1=py38he918c71_0
   - munkres=1.1.4=pyh9f0ad1d_0
   - mysql-common=8.0.29=haf5c9bc_0
   - mysql-libs=8.0.29=h28c427c_0
@@ -233,13 +228,13 @@ dependencies:
   - notebook=6.4.11=pyha770c72_0
   - nspr=4.32=h9c3ff4c_1
   - nss=3.77=h2350873_0
-  - numba=0.55.1=py38hdc3674a_1
+  - numba=0.55.1=py38h51133e4_0
   - numexpr=2.7.3=py38h43a58ef_1
   - numpy=1.21.6=py38h1d589f8_0
   - openjpeg=2.4.0=hb52868f_1
-  - openssl=1.1.1o=h166bdaf_0
+  - openssl=1.1.1s=h7f8727e_0
   - packaging=21.3=pyhd8ed1ab_0
-  - pandas=1.4.2=py38h47df419_1
+  - pandas=1.5.2=py38h417a72b_0
   - pandoc=2.18=ha770c72_0
   - pandocfilters=1.5.0=pyhd8ed1ab_0
   - pango=1.50.7=hbd2fdc8_0
@@ -257,7 +252,6 @@ dependencies:
   - prometheus_client=0.5.0=py_0
   - prometheus_flask_exporter=0.20.1=pyhd8ed1ab_0
   - prompt-toolkit=3.0.29=pyha770c72_0
-  - protobuf=3.20.1=py38hfa26641_0
   - psutil=5.9.0=py38h0a891b7_1
   - pthread-stubs=0.4=h36c2ea0_1001
   - ptyprocess=0.7.0=pyhd3deb0d_0
@@ -284,19 +278,16 @@ dependencies:
   - pytorch-mutex=1.0=cpu
   - pytz=2022.1=pyhd8ed1ab_0
   - pyyaml=6.0=py38h0a891b7_4
-  - pyzmq=22.3.0=py38hfc09fa9_2
   - qt-main=5.15.3=hf97cb25_1
   - querystring_parser=1.2.4=py_0
   - readline=8.1=h46c0cb4_0
-  - requests=2.27.1=pyhd8ed1ab_0
   - root=6.26.2=py38h47df419_2
   - root_base=6.26.2=py38h412b378_2
   - rsync=3.2.3=hfa40b15_4
   - ruamel_yaml=0.15.80=py38h497a2fe_1006
   - scikit-learn=1.1.0=py38hf80bbf7_0
-  - scipy=1.8.0=py38h56a6a73_1
   - scitokens-cpp=0.6.3=h00015f2_2
-  - seaborn=0.11.2=hd8ed1ab_0
+  - seaborn=0.12.2=py38h06a4308_0
   - seaborn-base=0.11.2=pyhd8ed1ab_0
   - send2trash=1.8.0=pyhd8ed1ab_0
   - setuptools=62.2.0=py38h578d9bd_0
@@ -319,13 +310,9 @@ dependencies:
   - tinycss2=1.1.1=pyhd8ed1ab_0
   - tk=8.6.12=h27826a3_0
   - toml=0.10.2=pyhd8ed1ab_0
-  - tornado=6.1=py38h0a891b7_3
   - tqdm=4.64.0=pyhd8ed1ab_0
-  - traitlets=5.2.0=pyhd8ed1ab_0
   - typing_extensions=4.2.0=pyha770c72_1
   - unicodedata2=14.0.0=py38h0a891b7_1
-  - uproot=4.2.3=py38h578d9bd_0
-  - uproot-base=4.2.3=pyhd49a682_0
   - urllib3=1.26.9=pyhd8ed1ab_0
   - vdt=0.4.3=h9c3ff4c_0
   - vector-classes=1.4.2=h4bd325d_1
@@ -361,36 +348,90 @@ dependencies:
   - zstandard=0.17.0=py38h0a891b7_1
   - zstd=1.5.2=ha95c52a_0
   - pip:
-    - absl-py==1.0.0
-    - antlr4-python3-runtime==4.8
-    - astunparse==1.6.3
-    - cachetools==5.0.0
-    - flatbuffers==2.0
-    - gast==0.5.3
-    - google-auth==2.6.6
-    - google-auth-oauthlib==0.4.6
-    - google-pasta==0.2.0
-    - grpcio==1.46.1
-    - h5py==3.6.0
-    - hydra-core==1.1.2
-    - importlib-resources==5.2.3
-    - keras==2.8.0
-    - keras-preprocessing==1.1.2
-    - libclang==14.0.1
-    - markdown==3.3.7
-    - oauthlib==3.2.0
-    - omegaconf==2.1.2
-    - opt-einsum==3.3.0
-    - pyasn1==0.4.8
-    - pyasn1-modules==0.2.8
-    - requests-oauthlib==1.3.1
-    - rsa==4.8
-    - tensorboard==2.8.0
-    - tensorboard-data-server==0.6.1
-    - tensorboard-plugin-wit==1.8.1
-    - tensorflow==2.8.0
-    - tensorflow-io-gcs-filesystem==0.25.0
-    - termcolor==1.1.0
-    - tf-estimator-nightly==2.8.0.dev2021122109
-    - wrapt==1.14.1
+      - absl-py==1.0.0
+      - aiofiles==22.1.0
+      - aiosqlite==0.18.0
+      - antlr4-python3-runtime==4.9.3
+      - anyio==3.6.2
+      - arrow==1.2.3
+      - astunparse==1.6.3
+      - awkward==2.0.6
+      - awkward-cpp==7
+      - babel==2.11.0
+      - cachetools==5.0.0
+      - dask==2023.1.1
+      - dask-awkward==2023.1.0
+      - flatbuffers==2.0
+      - fqdn==1.5.1
+      - fsspec==2023.1.0
+      - gast==0.4.0
+      - google-auth==2.6.6
+      - google-auth-oauthlib==0.4.6
+      - google-pasta==0.2.0
+      - grpcio==1.46.1
+      - h5py==3.6.0
+      - hydra-core==1.3.1
+      - importlib-resources==5.2.3
+      - isoduration==20.11.0
+      - json5==0.9.11
+      - jsonpointer==2.3
+      - jsonschema==4.17.3
+      - jupyter-client==8.0.2
+      - jupyter-core==5.2.0
+      - jupyter-events==0.5.0
+      - jupyter-server==2.2.1
+      - jupyter-server-fileid==0.6.0
+      - jupyter-server-terminals==0.4.4
+      - jupyter-server-ydoc==0.6.1
+      - jupyter-ydoc==0.2.2
+      - jupyterlab==3.6.0
+      - jupyterlab-server==2.19.0
+      - keras==2.11.0
+      - keras-preprocessing==1.1.2
+      - libclang==14.0.1
+      - locket==1.0.0
+      - markdown==3.3.7
+      - mlflow==2.1.1
+      - nbclassic==0.5.1
+      - notebook-shim==0.2.2
+      - oauthlib==3.2.0
+      - omegaconf==2.3.0
+      - opt-einsum==3.3.0
+      - partd==1.3.0
+      - pkgutil-resolve-name==1.3.10
+      - platformdirs==2.6.2
+      - protobuf==3.19.6
+      - pyarrow==10.0.1
+      - pyasn1==0.4.8
+      - pyasn1-modules==0.2.8
+      - python-json-logger==2.0.4
+      - pyzmq==25.0.0
+      - requests==2.28.2
+      - requests-oauthlib==1.3.1
+      - rfc3339-validator==0.1.4
+      - rfc3986-validator==0.1.1
+      - rsa==4.8
+      - scipy==1.10.0
+      - shap==0.41.0
+      - slicer==0.0.7
+      - sniffio==1.3.0
+      - tensorboard==2.11.2
+      - tensorboard-data-server==0.6.1
+      - tensorboard-plugin-wit==1.8.1
+      - tensorflow==2.11.0
+      - tensorflow-estimator==2.11.0
+      - tensorflow-io-gcs-filesystem==0.25.0
+      - termcolor==1.1.0
+      - tf-estimator-nightly==2.8.0.dev2021122109
+      - tomli==2.0.1
+      - toolz==0.12.0
+      - tornado==6.2
+      - traitlets==5.9.0
+      - uproot==5.0.2
+      - uri-template==1.2.0
+      - vector==0.11.0
+      - webcolors==1.12
+      - wrapt==1.14.1
+      - y-py==0.5.5
+      - ypy-websocket==0.8.2
 prefix: /usr/local/miniconda3/envs/tau-ml
