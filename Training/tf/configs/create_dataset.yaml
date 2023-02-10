@@ -13,13 +13,14 @@ input_data: # "sample_alias": [list of strings with tau types to be selected]
     recompute_tau_type: False
     add_columns: null
     files:
-      "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_100.root": ["tau", "e", "mu", "jet"]
+     - "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_*.root"
+    #  - "root://eosuser.cern.ch///eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_trainingSamples-2_rerun/" # for xrootd, directory to read all ROOT files from
   
   val:
     recompute_tau_type: False
     add_columns: null
     files: 
-      "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_450.root": ["tau", "e", "mu", "jet"]
+      - "../data/ShuffleMergeSpectral_trainingSamples-2_rerun/ShuffleMergeSpectral_450.root"
   
   # ### for evaluation
   # test:

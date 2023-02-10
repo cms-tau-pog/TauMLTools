@@ -2,6 +2,9 @@ import os
 import time
 import shutil
 import gc
+import re
+from XRootD import client
+from XRootD.client.flags import DirListFlags
 from glob import glob
 from collections import defaultdict
 import hydra
@@ -25,14 +28,29 @@ def main(cfg: DictConfig) -> None:
     input_data = OmegaConf.to_object(cfg['input_data'])
 
     for dataset_type in input_data.keys(): # train/val/test
+        # create list of file names to open
         dataset_cfg = input_data[dataset_type]
-        files = dataset_cfg.pop('files')
-        if len(files)==1 and "*" in (file_name_regex:=list(files.keys())[0]):
-            files = {f: files[file_name_regex] for f in glob(to_absolute_path(file_name_regex))}
+        _files = dataset_cfg.pop('files')
+        files = []
+        for _entry in _files:
+            if _entry.startswith('root://'): # stream with xrootd, assume _entry is a directory to read *all* ROOT files from
+                client_path = re.findall("^(root://.*/)/.*$", _entry)[0]
+                xrootd_client = client.FileSystem(client_path)
+                if cfg['verbose']:
+                    print(f"\nStream input files with client {client_path}\n")
+                data_path = re.findall("^root://.*/(/.*$)", _entry)[0]
+                status, listing = xrootd_client.dirlist(data_path, DirListFlags.STAT)
+                if status.status != 0:
+                    print(f"\nDirList of {data_path} failed.\n")
+                data_files_base = [entry.name for entry in listing if re.search(".*\.root$", entry.name)]
+                files += [os.path.dirname(_entry) + '/' + root_file for root_file in data_files_base]
+            else: # complete the pattern with glob and append file names to the final list
+                files += glob(to_absolute_path(_entry))
+        files = set(files)
 
         print(f'\n-> Processing input files ({dataset_type})')
         n_samples = defaultdict(int)
-        for file_name, tau_types in files.items():
+        for file_name in files:
             time_0 = time.time()
 
             # open ROOT file, read awkward array
@@ -106,7 +124,6 @@ def main(cfg: DictConfig) -> None:
             time_4 = time.time()
             if cfg['verbose']:
                 print(f'        Saving TF datasets: took {(time_4-time_3):.1f} s.\n')
-
             del dataset, data; gc.collect()
 
         if cfg['verbose']:
