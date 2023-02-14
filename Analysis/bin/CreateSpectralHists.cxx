@@ -251,8 +251,8 @@ public:
         // Report:
         std::cout << "All file has been processed." << std::endl
                   << "Number of files = " << input_files.size() << std::endl
-                  << "Number of processed taus = " << total_size << std::endl
-                  << "Number of not Valid taus = " << hists->not_valid().GetEntries() << std::endl;
+                  << "Number of processed " << mode << " = " << total_size << std::endl
+                  << "Number of not valid " << mode << " = " << hists->not_valid().GetEntries() << std::endl;
         
         auto hist_map = hists->GetHistogramsEx<TH2D>();
         double sum_all_types = 0.0;

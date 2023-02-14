@@ -1,0 +1,9 @@
+sampleType=MC_UL18 requireGenORRecoTauMatch=False requireGenMatch=False disabledBranches="boostedTau_.*,fatJet_.*" rerunTauReco="displacedTau" selector="TauJetTag"
+
+STAU_longlived_M100   /SUS-RunIISummer20UL18GEN-stau100_lsp1_ctau1000mm_v4/myshched-MiniAOD-e2b541b9a2622f5ad47ca02585af3f7c/USER
+STAU_longlived_M250   /SUS-RunIISummer20UL18GEN-stau250_lsp1_ctau1000mm_v4/myshched-MiniAOD-e2b541b9a2622f5ad47ca02585af3f7c/USER
+STAU_longlived_M400   /SUS-RunIISummer20UL18GEN-stau400_lsp1_ctau1000mm_v4/myshched-MiniAOD-e2b541b9a2622f5ad47ca02585af3f7c/USER
+
+STAU_longlived_M100_10cm_v6  /SUS-RunIISummer20UL18GEN-stau100_lsp1_ctau100mm_v6/sobhatta-MiniAOD-c15273f0b6812ff053a850f456209388/USER
+STAU_longlived_M250_10cm_v6  /SUS-RunIISummer20UL18GEN-stau250_lsp1_ctau100mm_v6/sobhatta-MiniAOD-c15273f0b6812ff053a850f456209388/USER
+STAU_longlived_M400_10cm_v6  /SUS-RunIISummer20UL18GEN-stau400_lsp1_ctau100mm_v6/sobhatta-MiniAOD-c15273f0b6812ff053a850f456209388/USER
