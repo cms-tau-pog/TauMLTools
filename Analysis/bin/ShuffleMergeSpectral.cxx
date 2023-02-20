@@ -17,36 +17,9 @@
 #include "TauMLTools/Core/interface/ProgressReporter.h"
 #include "TauMLTools/Analysis/interface/TauTuple.h"
 #include "TauMLTools/Analysis/interface/TauSelection.h"
+#include "TauMLTools/Analysis/interface/ShuffleTools.h"
 
 namespace analysis {
-
-void sumBasedSplit(const std::vector<size_t>& files_entries, const size_t job_idx, const size_t n_job, const bool overflowjob,
-                  std::pair<size_t, size_t>& point_entry,  std::pair<size_t, size_t>& point_exit, size_t& step)
-{ 
-  // sumBasedSplit splits files into n_job sub-intervals
-  // the entry events for the job number job_idx are [point_entry, point_exit]...
-  // if sum(files_entries) % n_job != 0 some events will be lost in datagroup
-
-  step = std::accumulate(files_entries.begin(), files_entries.end(), 0) / n_job;
-  auto find_idx = [&](const size_t index, const bool isExit) -> std::pair<size_t, size_t>{
-    size_t sum_accumulate = 0;
-    for(size_t f_i = 0; f_i < files_entries.size(); f_i++) {
-      if(step*(index+isExit) - sum_accumulate - isExit < files_entries[f_i])
-        return std::make_pair(f_i, step*(index+isExit) - sum_accumulate  - isExit);
-      sum_accumulate+=files_entries[f_i];
-    }
-    throw exception("Sum-based splitting error!");
-  };
-
-   // .first - index of file in file list
-   // .second - index of last event
-  point_entry = find_idx(job_idx, false);
-  point_exit = find_idx(job_idx, true);
-  if(overflowjob && job_idx+1 == n_job){
-    step = step + (std::accumulate(files_entries.begin(), files_entries.end(), 0) % n_job);
-    point_exit = std::make_pair(files_entries.size()-1, files_entries[files_entries.size()-1]-1);
-  }
-};
 
 enum class MergeMode { MergeAll = 1 };
 ENUM_NAMES(MergeMode) = {
@@ -92,213 +65,28 @@ struct Arguments {
                                         "(The number of Taus included, instead of being ignored, should be less than the number of jobs.)", false};
 };
 
-struct SourceDesc {
-    using Tau = tau_tuple::Tau;
-    using TauTuple = tau_tuple::TauTuple;
+struct SourceDescTau : SourceDesc<TauType> {
 
-    SourceDesc(const std::string& _name, const size_t _total_entries, const ULong64_t  _group_hash,
-               const std::vector<std::string>& _file_names, const std::vector<ULong64_t>& _name_hashes,
-               const std::pair<size_t, size_t> _point_entry, const std::pair<size_t, size_t> _point_exit,
-               const std::set<TauType>& _tautypes, const std::set<std::string> _disabled_branches = {},
-               const std::set<std::string> _enabled_branches = {}) :
+  using Tau = tau_tuple::Tau;
+  using TauTuple = tau_tuple::TauTuple;
 
-        name(_name), total_entries(_total_entries), group_hash(_group_hash), file_names(_file_names), dataset_hash_arr(_name_hashes),
-        disabled_branches(_disabled_branches), enabled_branches(_enabled_branches), point_entry(_point_entry), point_exit(_point_exit),
-        tau_types(_tautypes), files_n_total(_file_names.size()), entries_end(std::numeric_limits<size_t>::max()),
-        current_entry(0), total_n_processed(0)
-    {
-        if(_file_names.size()!=_name_hashes.size())
-          throw exception("file_names and names vectors have different size.");
-        if(_file_names.empty())
-          throw exception("Empty list of files for the source '%1%'.") % name;
-        if(!files_n_total)
-          throw exception("Empty source '%1%'.") % name;
-    }
+  template<typename... Args>
+  SourceDescTau(Args&&... args) : SourceDesc(std::forward<Args>(args)...) {}
 
-    SourceDesc(const SourceDesc&) = delete;
-    SourceDesc& operator=(const SourceDesc&) = delete;
+  virtual std::optional<TauType> GetObjectType(const Tau& tau) override
+  {
+      const auto gen_match = GetGenLeptonMatch(static_cast<reco_tau::gen_truth::GenLepton::Kind>(tau.genLepton_kind),
+                                              tau.genLepton_index, tau.tau_pt, tau.tau_eta,
+                                              tau.tau_phi, tau.tau_mass, tau.genLepton_vis_pt,
+                                              tau.genLepton_vis_eta, tau.genLepton_vis_phi,
+                                              tau.genLepton_vis_mass, tau.genJet_index);        
+      const auto sample_type = static_cast<SampleType>(tau.sampleType);
+      if(!gen_match)
+        return std::nullopt;
+      else
+        return GenMatchToTauType(*gen_match, sample_type);
+  }
 
-    bool DoNextStep()
-    {
-      do {
-        if(current_file_index == point_exit.first && current_entry > entries_end ) return false;
-        while(!current_file_index || current_entry > entries_end) {
-            if(!current_file_index)
-                current_file_index = point_entry.first;
-            else
-                ++(*current_file_index);
-            if(*current_file_index >= file_names.size())
-                throw exception("File index: %1% is out of file_names array '%2%', DataGroup: '%3%'")
-                      % current_file_index % file_names.size() % name;
-            const std::string& file_name = file_names.at(*current_file_index);
-            std::cout << "Opening: " << name << " " << file_name << std::endl;
-            dataset_hash = dataset_hash_arr.at(*current_file_index);
-            current_tuple.reset();
-            if(current_file) current_file->Close();
-            current_file = root_ext::OpenRootFile(file_name);
-            current_tuple = std::make_shared<TauTuple>("taus", current_file.get(), true, disabled_branches, enabled_branches);
-            entries_file = current_tuple->GetEntries();
-            current_entry = current_file_index == point_entry.first ? point_entry.second : 0; 
-            entries_end = current_file_index == point_exit.first ? point_exit.second : entries_file - 1;
-            if(!entries_file)
-              throw exception("Root file %1% is empty.") % file_name;
-        }
-        current_tuple->GetEntry(current_entry++);
-        ++total_n_processed;
-
-        current_tau_type = boost::none;
-        const auto gen_match = GetGenLeptonMatch(static_cast<reco_tau::gen_truth::GenLepton::Kind>((*current_tuple)().genLepton_kind), 
-                                                  (*current_tuple)().genLepton_index, (*current_tuple)().tau_pt, (*current_tuple)().tau_eta, 
-                                                  (*current_tuple)().tau_phi, (*current_tuple)().tau_mass, (*current_tuple)().genLepton_vis_pt, 
-                                                  (*current_tuple)().genLepton_vis_eta, (*current_tuple)().genLepton_vis_phi, 
-                                                   (*current_tuple)().genLepton_vis_mass, (*current_tuple)().genJet_index);                                           
-        const auto sample_type = static_cast<SampleType>((*current_tuple)().sampleType);
-
-        if (!gen_match) continue;
-
-        current_tau_type = GenMatchToTauType(*gen_match, sample_type);
-
-        } while (!current_tau_type || tau_types.find(current_tau_type.get()) == tau_types.end());
-
-      (*current_tuple)().tauType = static_cast<Int_t>(current_tau_type.get());
-      (*current_tuple)().dataset_id = dataset_hash;
-      (*current_tuple)().dataset_group_id = group_hash;
-      return true;
-    }
-
-    const Tau& GetNextTau() { return current_tuple->data(); }
-    const size_t GetNumberOfProcessed() const { return total_n_processed; }
-    const size_t GetTotalEntries() const { return total_entries; }
-    const TauType GetType() { return current_tau_type.get(); }
-
-  private:
-    const std::string name;
-    const size_t total_entries;
-    const ULong64_t group_hash;
-    std::vector<std::string> file_names;
-    std::vector<ULong64_t> dataset_hash_arr;
-    const std::set<std::string> disabled_branches;
-    const std::set<std::string> enabled_branches;
-    const std::pair<size_t, size_t> point_entry;
-    const std::pair<size_t, size_t> point_exit;
-    const std::set<TauType> tau_types;
-    std::shared_ptr<TFile> current_file;
-    std::shared_ptr<TauTuple> current_tuple;
-    boost::optional<size_t> current_file_index;
-    size_t files_n_total;;
-    size_t entries_file;
-    size_t entries_end;
-    size_t current_entry;
-    size_t total_n_processed;
-    boost::optional<TauType> current_tau_type;
-    ULong64_t dataset_hash;
-  };
-
-struct EntryDesc {
-
-    std::string name;
-    ULong64_t name_hash;
-    std::vector<std::string> data_files;
-    std::vector<std::string> data_set_names;
-    std::vector<ULong64_t> data_set_names_hashes;
-    std::set<std::string> spectrum_files;
-    std::set<TauType> tau_types;
-
-    // <file idx, event> for entry and exit point
-    std::pair<size_t, size_t> point_entry;
-    std::pair<size_t, size_t> point_exit;
-    size_t total_entries;
-
-    EntryDesc(const PropertyConfigReader::Item& item,
-              const std::string& base_spectrum_dir,
-              const std::string& input_paths,
-              const std::string& prefix,
-              const size_t job_idx, const size_t n_jobs,
-              const bool refill_spectrum, const bool overflow_job)
-    {
-        using boost::regex;
-        using boost::regex_match;
-        using boost::filesystem::is_regular_file;
-
-        name = item.name;
-        name_hash = std::hash<std::string>{}(name);
-
-        const std::string dir_pattern_str  = item.Get<std::string>("dir");
-        const std::string file_pattern_str = item.Get<std::string>("file");
-        const std::string tau_types_str    = item.Get<std::string>("types");
-
-        const regex dir_pattern (dir_pattern_str );
-        const regex file_pattern(file_pattern_str);
-
-        tau_types = SplitValueListT<TauType, std::set<TauType>>(tau_types_str, false, ",");
-
-        std::ifstream input_files (input_paths, std::ifstream::in);
-        if (!input_files){
-          throw exception("The input file %1% could not be opened")
-            %input_paths;
-        }
-
-        bool is_matching = false;
-
-        std::string ifile;
-        std::string dir_name, file_name, spectrum_file, file_path;
-        std::vector<size_t> files_entries;
-
-        // For every datagroup in cfg file EntryDesc iterates
-        // through filelist.txt and for matched (to datagroup):
-        // 1) fill an array of pathes to data_files
-        // 2) fill an array of pathes spectrum_files 
-        // 3) fill an array with number of entries per file
-        while(std::getline(input_files, ifile)){
-	      
-          size_t n_entries = analysis::Parse<double>(ifile.substr(ifile.rfind(" ")));
-
-          file_name = ifile.substr(ifile.find_last_of("/") + 1,
-                                   ifile.rfind(" ")-ifile.find_last_of("/")-1);
-          dir_name = ifile.substr(0,ifile.find_last_of("/"));
-          dir_name  = dir_name.substr(dir_name.find_last_of("/")+1);
-
-          if(!regex_match(dir_name , dir_pattern )) continue;
-          if(!regex_match(file_name, file_pattern)) continue;
-
-          is_matching = true; //at least one file is found
-
-          file_path = prefix + "/" + dir_name + "/" + file_name;
-          data_files.push_back(file_path);
-          files_entries.push_back(n_entries);
-          data_set_names.push_back(dir_name);
-          data_set_names_hashes.push_back(std::hash<std::string>{}(dir_name));
-
-          if(!refill_spectrum){
-            spectrum_file = base_spectrum_dir + "/" + dir_name + ".root";
-            spectrum_files.insert(spectrum_file);
-          }
-        }
-
-        if(!is_matching){
-          throw exception("No files are found for entry '%1%' with pattern '%2%'")
-              % name % file_pattern_str;
-        }
-
-        if(!refill_spectrum){
-          std::cout << name << std::endl;
-          for (const auto spectrum_file : spectrum_files){
-            if(!is_regular_file(spectrum_file))
-              throw exception("No spectrum file are found: '%1%'") % spectrum_file;
-            std::cout << spectrum_file << " - spectrum" << std::endl;
-          }
-        }
-
-        if(job_idx >= n_jobs)
-          throw exception("Wrong job_idx! The index should be > 0 and < n_jobs");
-        
-        sumBasedSplit(files_entries, job_idx, n_jobs, overflow_job, point_entry, point_exit, total_entries);
-        
-        std::cout <<  name << ": " <<
-                     "Entry point-> " << point_entry.first << " " << point_entry.second << ", " <<
-                     "Exit point-> " << point_exit.first << " " << point_exit.second << ", " <<
-                     "Total entries-> " << total_entries << std::endl; 
-    }
 };
 
 class SpectrumHists {
@@ -351,7 +139,7 @@ public:
       }
     }
 
-    void AddHist_refill(const std::shared_ptr<SourceDesc>& SpectrumSource)
+    void AddHist_refill(const std::shared_ptr<SourceDescTau>& SpectrumSource)
     {
       while(SpectrumSource->DoNextStep()) {
         const Tau& tuple = SpectrumSource->GetNextTau();
@@ -511,7 +299,7 @@ public:
     using Uniform = std::uniform_real_distribution<double>;
     using Discret = std::discrete_distribution<int>;
 
-    DataSetProcessor(const std::vector<EntryDesc>& entries, const std::vector<double>& pt_bins,
+    DataSetProcessor(const std::vector<EntryDesc<TauType>>& entries, const std::vector<double>& pt_bins,
                      const std::vector<double>& eta_bins, Generator& _gen,
                      const std::set<std::string>& disabled_branches, bool verbose,
                      const std::map<TauType, Double_t>& tau_ratio, const Double_t exp_disbalance,
@@ -580,7 +368,7 @@ public:
 
 private:
     void WriteHashTables(const std::string& output,
-                         const std::vector<EntryDesc>& entries)
+                         const std::vector<EntryDesc<TauType>>& entries)
     {
       if(!boost::filesystem::exists(output)) boost::filesystem::create_directory(output);
       boost::property_tree::ptree set, group;
@@ -590,7 +378,7 @@ private:
       if(boost::filesystem::is_regular_file(output+"/datagroup_hash.json"))
         boost::property_tree::read_json(output+"/datagroup_hash.json", group);
 
-      for(const EntryDesc& desc: entries){
+      for(const EntryDesc<TauType>& desc: entries){
         group.put(desc.name, desc.name_hash);
         for(UInt_t i=0; i<desc.data_set_names.size(); i++)
           set.put(desc.data_set_names[i],
@@ -619,14 +407,14 @@ private:
       return false;
     }
 
-    void LoadDataGroups(const std::vector<EntryDesc>& entries,
+    void LoadDataGroups(const std::vector<EntryDesc<TauType>>& entries,
                         const std::vector<double>& pt_bins, const std::vector<double>& eta_bins,
                         const std::set<std::string>& disabled_branches, const double exp_disbalance,
                         const bool refill_spectrum, const bool enable_emptybin)
     {
-      for(const EntryDesc& dsc: entries) {
+      for(const EntryDesc<TauType>& dsc: entries) {
 
-        std::shared_ptr<SourceDesc> source = std::make_shared<SourceDesc>(dsc.name,
+        std::shared_ptr<SourceDescTau> source = std::make_shared<SourceDescTau>(dsc.name,
                             dsc.total_entries, dsc.name_hash,
                             dsc.data_files, dsc.data_set_names_hashes,
                             dsc.point_entry, dsc.point_exit, dsc.tau_types,
@@ -645,7 +433,7 @@ private:
                                         "genLepton_vis_phi", "genLepton_vis_mass",
                                         "tau_pt", "tau_eta", "tau_phi",
                                         "tau_mass", "evt"};
-          std::shared_ptr<SourceDesc> spectrum_source = std::make_shared<SourceDesc>(dsc.name,
+          std::shared_ptr<SourceDescTau> spectrum_source = std::make_shared<SourceDescTau>(dsc.name,
                     dsc.total_entries, dsc.name_hash,
                     dsc.data_files, dsc.data_set_names_hashes,
                     dsc.point_entry, dsc.point_exit, dsc.tau_types,
@@ -725,7 +513,7 @@ private:
 
 private:
     std::string current_datagroup;
-    std::map<std::string, std::shared_ptr<SourceDesc>> sources; // pair<datagroup_name, source>
+    std::map<std::string, std::shared_ptr<SourceDescTau>> sources; // pair<datagroup_name, source>
     std::map<std::string, std::shared_ptr<SpectrumHists>> spectrums; // pair<datagroup_name, histogram>
     std::vector<Double_t> datagroup_probs; // probability of getting datagroup
     std::vector<std::string> datagroup_names; // corresponding datagroup name
@@ -792,7 +580,7 @@ public:
 
       for(const auto& e : entries) {
         const std::string& file_name = e.first;
-        const std::vector<EntryDesc>& entry_list = e.second;
+        const std::vector<EntryDesc<TauType>>& entry_list = e.second;
         std::cout << "Processing:";
         for(const auto& entry : entry_list)
           std::cout << ' ' << entry.name;
@@ -830,9 +618,9 @@ public:
     }
 
 private:
-    std::vector<EntryDesc> LoadEntries(const std::string& cfg_file_name)
+    std::vector<EntryDesc<TauType>> LoadEntries(const std::string& cfg_file_name)
     {
-        std::vector<EntryDesc> entries;
+        std::vector<EntryDesc<TauType>> entries;
         PropertyConfigReader reader;
         std::cout << cfg_file_name << std::endl;
         reader.Parse(cfg_file_name);
@@ -895,7 +683,7 @@ private:
 
 private:
     Arguments args;
-    std::map<std::string, std::vector<EntryDesc>> entries;
+    std::map<std::string, std::vector<EntryDesc<TauType>>> entries;
     const std::vector<double> pt_bins, eta_bins;
     std::map<TauType, Double_t> tau_ratio;
     std::set<std::string> disabled_branches;

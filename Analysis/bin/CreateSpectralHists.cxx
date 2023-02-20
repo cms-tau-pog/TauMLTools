@@ -57,7 +57,6 @@ struct HistSpectrum : public root_ext::AnalyzerData {
       hargs.pt_bins, hargs.pt_min, hargs.pt_max);
   };
 
-  virtual ~HistSpectrum() {};
   virtual std::set<std::string> getEnabledBranches();
   virtual void fillHist(const Tau& tau);
   static std::shared_ptr<HistSpectrum> getHist(const std::string& name,
