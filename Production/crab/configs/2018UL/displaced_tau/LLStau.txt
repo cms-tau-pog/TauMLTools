@@ -1,4 +1,4 @@
-sampleType=MC_UL18 requireGenORRecoTauMatch=False requireGenMatch=False disabledBranches="boostedTau_.*,fatJet_.*" rerunTauReco="displacedTau" selector="TauJetTag"
+sampleType=MC era=Run2_2018 requireGenORRecoTauMatch=False requireGenMatch=False disabledBranches=boostedTau_.*,fatJet_.* selector=TauJetTag
 
 STAU_longlived_M100   /SUS-RunIISummer20UL18GEN-stau100_lsp1_ctau1000mm_v4/myshched-MiniAOD-e2b541b9a2622f5ad47ca02585af3f7c/USER
 STAU_longlived_M250   /SUS-RunIISummer20UL18GEN-stau250_lsp1_ctau1000mm_v4/myshched-MiniAOD-e2b541b9a2622f5ad47ca02585af3f7c/USER

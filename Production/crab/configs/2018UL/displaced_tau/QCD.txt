@@ -1,4 +1,4 @@
-sampleType=MC_UL18 requireGenORRecoTauMatch=False requireGenMatch=True disabledBranches="boostedTau_.*,fatJet_.*" selector="TauJetTag"
+sampleType=MC era=Run2_2018 requireGenORRecoTauMatch=False requireGenMatch=True disabledBranches=boostedTau_.*,fatJet_.* selector=TauJetTag
 
 # QCD_Pt_15to30    /QCD_Pt_15to30_TuneCP5_13TeV_pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM
 # QCD_Pt_30to50    /QCD_Pt_30to50_TuneCP5_13TeV_pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM
