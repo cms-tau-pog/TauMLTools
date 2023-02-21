@@ -1,5 +1,12 @@
 # TauMLTools
 
+## Supplementary development
+
+Additional documentation on parallel developments that are sunducted under this framework can be found here:
+
+- [Adversarial Machine Learning](Documentation/adversarial.md)
+- [Displaced Tau tagging](Documentation/displaced.md)
+
 ## Introduction
 
 Tools to perform machine learning studies for tau lepton reconstruction and identification at CMS.

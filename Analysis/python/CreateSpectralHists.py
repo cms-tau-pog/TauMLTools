@@ -14,6 +14,8 @@ parser.add_argument('--output', required=True, type=str, help="output directory"
 parser.add_argument('--n-threads', required=False, type=int, default=1, help="number of threads")
 parser.add_argument('--filter', required=False, type=str, default='.*', help="regex filter for dataset names")
 parser.add_argument('--rewrite',required=False, action='store_true', default=False, help="rewrite existing histograms")
+parser.add_argument('--mode',required=False, type=str, default="tau",
+    help="eta phi of the following object will be recorded. Currently available: 1)boostedTau 2)tau 3)jet")
 args = parser.parse_args()
 
 if not os.path.isdir(args.input):
@@ -65,8 +67,8 @@ for dir_path in input_path:
 
     print("Added {}...".format(dir_path))
 
-    cmd = 'CreateSpectralHists --outputfile "{}" --output_entries "{}" --input-dir "{}" --pt-hist "{}" --eta-hist "{}" --n-threads {}' \
-        .format(output_root, output_entries, dir_path, pt_hist, eta_hist, args.n_threads)
+    cmd = 'CreateSpectralHists --outputfile "{}" --output_entries "{}" --input-dir "{}" --pt-hist "{}" --eta-hist "{}" --n-threads {} --mode {}' \
+        .format(output_root, output_entries, dir_path, pt_hist, eta_hist, args.n_threads, args.mode)
     result = subprocess.call([cmd], shell=True)
 
     if result != 0:
