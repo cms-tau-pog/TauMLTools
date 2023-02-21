@@ -1,0 +1,19 @@
+defaults:
+  - .@kwargs.encoder.embedding_kwargs: embedding
+  - _self_
+  
+type: taco_net
+name: taco_test
+kwargs:
+  encoder:
+    hidden_dim_radial: 100
+    n_freqs: 5
+    n_filters: 15
+    n_rotations: 45
+  decoder:
+    n_conv_blocks: 1
+    n_conv_layers: 2
+    n_conv_filters: ${model.kwargs.encoder.n_filters}
+    kernel_size: 3
+    hidden_dim: 256
+    n_outputs: 2
