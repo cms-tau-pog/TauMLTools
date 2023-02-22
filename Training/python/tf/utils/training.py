@@ -10,8 +10,10 @@ import numpy as np
 import mlflow
 
 def compose_datasets(datasets, tf_dataset_cfg):
-    datasets_for_training, sample_probas = _combine_for_sampling(datasets)
-    assert round(sum(sample_probas), 5) == 1
+    # datasets_for_training, sample_probas = _combine_for_sampling(datasets)
+    # assert round(sum(sample_probas), 5) == 1
+    
+    datasets_for_training, sample_probas = _combine_datasets(datasets), None
 
     # final dataset is a sampling from `datasets_for_training`
     train_data = tf.data.Dataset.sample_from_datasets(datasets=datasets_for_training['train'], weights=sample_probas, seed=1234, stop_on_empty_dataset=False) # True so that the last batches are not purely of one class
@@ -39,7 +41,7 @@ def compose_datasets(datasets, tf_dataset_cfg):
     for dataset_type in ['train', 'val']:
         dataset_name = list(datasets[dataset_type].keys())[0] # assume that label structure is the same in all datasets, so retrieve from the first one
         path_to_dataset = datasets[dataset_type][dataset_name]["path_to_dataset"]
-        p = glob(to_absolute_path(f'{path_to_dataset}/{dataset_name}/{dataset_type}/*/tau'))[0] # load one dataset cfg
+        p = glob(to_absolute_path(f'{path_to_dataset}/{dataset_name}/{dataset_type}/*/'))[0] # load one dataset cfg
         with open(f'{p}/cfg.yaml', 'r') as f:
             data_cfg = yaml.safe_load(f)
         class_idx[dataset_type] = [data_cfg["label_columns"].index(f'label_{c}') for c in tf_dataset_cfg["classes"]] # fetch label indices which correspond to specified classes
@@ -56,6 +58,18 @@ def compose_datasets(datasets, tf_dataset_cfg):
     val_data = val_data.with_options(options)
 
     return train_data, val_data
+
+def _combine_datasets(datasets):
+    datasets_for_training = {'train': [], 'val': []} # to accumulate final datasets
+    for dataset_type in datasets_for_training.keys():
+        if dataset_type not in datasets:
+            raise RuntimeError(f'key ({dataset_type}) should be present in dataset yaml configuration')
+        for dataset_name, dataset_cfg in datasets[dataset_type].items(): # loop over specified train/val datasets
+            for p in glob(to_absolute_path(f'{dataset_cfg["path_to_dataset"]}/{dataset_name}/{dataset_type}/*/')): # loop over all globbed files in the dataset
+                _dataset = tf.data.Dataset.load(p, compression='GZIP') 
+                datasets_for_training[dataset_type].append(_dataset)    
+    
+    return datasets_for_training
 
 def _combine_for_sampling(datasets):
     sample_probas = [] # to store sampling probabilites on training datasets
