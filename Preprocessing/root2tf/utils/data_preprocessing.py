@@ -24,7 +24,8 @@ def awkward_to_tf(a, feature_names, is_ragged):
         except AttributeError:
             _a = a[feature_name]
         finally:
-            assert not np.any(np.isnan(_a))
+            assert not np.any(np.isnan(_a)), f'Found NaN in {feature_name}'
+            assert np.all(np.isfinite(_a)), f'Found not finite value in {feature_name}'
             if is_ragged:
                 _a = ak.flatten(_a)
                 _a = ak.values_astype(_a, np.float32)
@@ -192,7 +193,7 @@ def preprocess_array(a, feature_names, add_feature_names, verbose=False):
 
     a_preprocessed['muon']['dxy_sig'] =  np.abs(a['muon_dxy'])/a['muon_dxy_error'] 
 
-    muon_normalizedChi2_valid = (a['muon_normalizedChi2'] >= 0).compute()
+    muon_normalizedChi2_valid = ((a['muon_normalizedChi2'] > 0) * np.isfinite(a['muon_normalizedChi2'])).compute()
     a_preprocessed['muon']['normalizedChi2_valid'] = ak.values_astype(muon_normalizedChi2_valid, np.float32)
     a_preprocessed['muon']['normalizedChi2'] = ak.where(muon_normalizedChi2_valid, a['muon_normalizedChi2'].compute(), 0)
     a_preprocessed['muon']['numberOfValidHits'] = ak.where(muon_normalizedChi2_valid, a['muon_numberOfValidHits'].compute(), 0)
