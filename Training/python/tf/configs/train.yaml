@@ -1,7 +1,6 @@
 
 defaults:
   - model@model: ???
-  - data@_global_: features
   - _self_
 
 # mlflow
@@ -17,6 +16,8 @@ datasets:
   val:
     ???: # will take all files from "val" subfolder of this dataset
       path_to_dataset: ./datasets
+
+input_dataset_cfg: "../../../Preprocessing/root2tf/datasets/${dataset_name}/cfg.yaml" # will fetch feature names and labels from here
 
 # TF dataset formation
 tf_dataset_cfg:

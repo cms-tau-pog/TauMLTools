@@ -1,4 +1,5 @@
 import shutil
+import yaml
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig
@@ -40,13 +41,17 @@ def main(cfg: DictConfig) -> None:
     with mlflow.start_run(**run_kwargs) as active_run:
         run_id = active_run.info.run_id
         
+        # load cfg used for the dataset composition
+        with open(to_absolute_path(cfg['input_dataset_cfg']), "r") as f:
+            input_dataset_cfg = yaml.safe_load(f)
+
         # load datasets 
-        train_data, val_data = compose_datasets(cfg["datasets"], cfg["tf_dataset_cfg"])
+        train_data, val_data = compose_datasets(cfg["datasets"], cfg["tf_dataset_cfg"], input_dataset_cfg)
 
         # define model
         feature_name_to_idx = {}
-        for particle_type, names in cfg["feature_names"].items():
-            feature_name_to_idx[particle_type] = {name: i for i, name in enumerate(names)}
+        for feature_type, feature_names in input_dataset_cfg['feature_names'].items():
+            feature_name_to_idx[feature_type] = {name: i for i, name in enumerate(feature_names)}
         if cfg["model"]["type"] == 'taco_net':
             model = TacoNet(feature_name_to_idx, cfg["model"]["kwargs"]["encoder"], cfg["model"]["kwargs"]["decoder"])
         elif cfg["model"]["type"] == 'transformer':

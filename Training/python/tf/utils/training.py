@@ -9,7 +9,7 @@ from tensorflow.python.ops import math_ops, array_ops
 import numpy as np
 import mlflow
 
-def compose_datasets(datasets, tf_dataset_cfg):
+def compose_datasets(datasets, tf_dataset_cfg, input_dataset_cfg):
     # datasets_for_training, sample_probas = _combine_for_sampling(datasets)
     # assert round(sum(sample_probas), 5) == 1
     
@@ -36,19 +36,11 @@ def compose_datasets(datasets, tf_dataset_cfg):
     train_data = train_data.prefetch(tf.data.experimental.AUTOTUNE)
     val_data = val_data.prefetch(tf.data.experimental.AUTOTUNE)
 
-    # select from stored labels only those classes which are specified in the cfg 
-    class_idx = {}
-    for dataset_type in ['train', 'val']:
-        dataset_name = list(datasets[dataset_type].keys())[0] # assume that label structure is the same in all datasets, so retrieve from the first one
-        path_to_dataset = datasets[dataset_type][dataset_name]["path_to_dataset"]
-        p = glob(to_absolute_path(f'{path_to_dataset}/{dataset_name}/{dataset_type}/*/'))[0] # load one dataset cfg
-        with open(f'{p}/cfg.yaml', 'r') as f:
-            data_cfg = yaml.safe_load(f)
-        class_idx[dataset_type] = [data_cfg["label_columns"].index(f'label_{c}') for c in tf_dataset_cfg["classes"]] # fetch label indices which correspond to specified classes
-
-    train_data = train_data.map(lambda *inputs: (inputs[:-1], tf.gather(inputs[-1], indices=class_idx['train'], axis=-1)),
+    # select from stored labels only those classes which are specified in the training cfg 
+    class_idx = [input_dataset_cfg['label_columns'].index(f'label_{c}') for c in tf_dataset_cfg["classes"]]
+    train_data = train_data.map(lambda *inputs: (inputs[:-1], tf.gather(inputs[-1], indices=class_idx, axis=-1)),
                                 num_parallel_calls=tf.data.AUTOTUNE) # assume that labels tensor is yielded last
-    val_data = val_data.map(lambda *inputs: (inputs[:-1], tf.gather(inputs[-1], indices=class_idx['val'], axis=-1)),  
+    val_data = val_data.map(lambda *inputs: (inputs[:-1], tf.gather(inputs[-1], indices=class_idx, axis=-1)),  
                                 num_parallel_calls=tf.data.AUTOTUNE) 
 
     # limit number of threads, otherwise (n_threads=-1) error pops up (tf.__version__ == 2.9.1)
