@@ -26,7 +26,7 @@ def _get_xrootd_filenames(prompt, verbose=False):
 
 def load_from_file(file_name, tree_name, step_size):
     print(f'      - {file_name}')
-    a = uproot.dask(f'{file_name}:{tree_name}', step_size=step_size, library='ak')
+    a = uproot.dask(f'{file_name}:{tree_name}', step_size=step_size, library='ak', timeout=300)
     return a
 
 def awkward_to_tf(a, feature_names, is_ragged):
