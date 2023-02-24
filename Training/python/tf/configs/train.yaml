@@ -1,10 +1,13 @@
+hydra: # disable usage of hydra log directory as cwd
+  job:
+    chdir: False
 
 defaults:
   - model@model: ???
   - _self_
 
 # mlflow
-path_to_mlflow: mlruns
+path_to_mlflow: ./mlruns
 experiment_name: ???
 
 # datasets
@@ -21,10 +24,10 @@ input_dataset_cfg: "../../../Preprocessing/root2tf/datasets/${dataset_name}/cfg.
 
 # TF dataset formation
 tf_dataset_cfg:
-  n_threads: 5 # without controlling it may throw thread limit exception
-  smart_batching_step: 10
-  sequence_length_dist_start: 0
-  sequence_length_dist_end: 300 
+  n_threads: 10 # without controlling it may throw thread limit exception
+  smart_batching_step: 10 # null to disable smart batching and use a standard one
+  sequence_length_dist_start: 0 # for smart batching
+  sequence_length_dist_end: 300 # for smart batching
   shuffle_buffer_size: 40000 # null to not shuffle
   shuffle_smart_buffer_size: 1000
   cache: null # null to not cache the training dataset

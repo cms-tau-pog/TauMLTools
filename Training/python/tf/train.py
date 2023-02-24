@@ -1,7 +1,7 @@
+import os
 import shutil
 import yaml
 import hydra
-from hydra.utils import to_absolute_path
 from omegaconf import DictConfig
 from sklearn.metrics import roc_auc_score
 
@@ -29,7 +29,7 @@ def main(cfg: DictConfig) -> None:
     print(len(physical_devices), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
 
     # set up mlflow experiment id
-    mlflow.set_tracking_uri(f'file://{to_absolute_path(cfg["path_to_mlflow"])}')
+    mlflow.set_tracking_uri(f'file://{os.path.abspath(cfg["path_to_mlflow"])}')
     experiment = mlflow.get_experiment_by_name(cfg["experiment_name"])
     if experiment is not None: # fetch existing experiment id
         run_kwargs = {'experiment_id': experiment.experiment_id}
@@ -42,7 +42,7 @@ def main(cfg: DictConfig) -> None:
         run_id = active_run.info.run_id
         
         # load cfg used for the dataset composition
-        with open(to_absolute_path(cfg['input_dataset_cfg']), "r") as f:
+        with open(os.path.abspath(cfg['input_dataset_cfg']), "r") as f:
             input_dataset_cfg = yaml.safe_load(f)
 
         # load datasets 
@@ -106,18 +106,6 @@ def main(cfg: DictConfig) -> None:
                     loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False), 
                     metrics=['accuracy', tf.keras.metrics.AUC(from_logits=False)])
         model.fit(train_data, validation_data=val_data, epochs=cfg["n_epochs"], callbacks=callbacks, verbose=1)  #  steps_per_epoch=1000, 
-
-        # save model
-        print("\n-> Saving model")
-        model.save((f'{cfg["model"]["name"]}.tf'), save_format="tf")
-        mlflow.log_artifacts(f'{cfg["model"]["name"]}.tf', 'model')
-        if cfg["model"]["type"] == 'taco_net':
-            print(model.wave_encoder.summary())
-            print(model.wave_decoder.summary())
-        elif cfg["model"]["type"] == 'transformer':
-            print(model.summary())
-        elif cfg['model']['type'] == 'particle_net':
-            print(model.summary())
 
         # log info
         log_to_mlflow(model, cfg)

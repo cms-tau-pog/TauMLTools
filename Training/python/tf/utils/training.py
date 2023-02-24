@@ -1,8 +1,7 @@
-import yaml
 from glob import glob
 from collections import defaultdict
-from hydra.utils import to_absolute_path
 from omegaconf import OmegaConf
+from hydra.core.hydra_config import HydraConfig
 
 import tensorflow as tf
 from tensorflow.python.ops import math_ops, array_ops
@@ -57,7 +56,7 @@ def _combine_datasets(datasets):
         if dataset_type not in datasets:
             raise RuntimeError(f'key ({dataset_type}) should be present in dataset yaml configuration')
         for dataset_name, dataset_cfg in datasets[dataset_type].items(): # loop over specified train/val datasets
-            for p in glob(to_absolute_path(f'{dataset_cfg["path_to_dataset"]}/{dataset_name}/{dataset_type}/*/')): # loop over all globbed files in the dataset
+            for p in glob(f'{dataset_cfg["path_to_dataset"]}/{dataset_name}/{dataset_type}/*/'): # loop over all globbed files in the dataset
                 _dataset = tf.data.Dataset.load(p, compression='GZIP') 
                 datasets_for_training[dataset_type].append(_dataset)    
     
@@ -72,7 +71,7 @@ def _combine_for_sampling(datasets):
             raise RuntimeError(f'key ({dataset_type}) should be present in dataset yaml configuration')
         for dataset_name, dataset_cfg in datasets[dataset_type].items(): # loop over specified train/val datasets
             for tau_type in dataset_cfg["tau_types"]: # loop over tau types specified for this dataset
-                for p in glob(to_absolute_path(f'{dataset_cfg["path_to_dataset"]}/{dataset_name}/{dataset_type}/*/{tau_type}')): # loop over all globbed files in the dataset
+                for p in glob(f'{dataset_cfg["path_to_dataset"]}/{dataset_name}/{dataset_type}/*/{tau_type}'): # loop over all globbed files in the dataset
                     dataset = tf.data.experimental.load(p) 
                     ds_per_tau_type[tau_type].append(dataset) # add TF dataset (1 input file, 1 tau type) to the map  
         
@@ -131,6 +130,25 @@ def create_padding_mask(seq):
     return mask
 
 def log_to_mlflow(model, cfg):
+    # save model & print summary
+    print("\n-> Saving model")
+    path_to_hydra_logs = HydraConfig.get().run.dir
+    model.save((f'{path_to_hydra_logs}/{cfg["model"]["name"]}.tf'), save_format="tf") # save to hydra logs
+    mlflow.log_artifacts(f'{path_to_hydra_logs}/{cfg["model"]["name"]}.tf', 'model') # and also to mlflow artifacts
+    if cfg["model"]["type"] == 'taco_net':
+        print(model.wave_encoder.summary())
+        print(model.wave_decoder.summary())
+        summary_list_encoder, summary_list_decoder = [], []
+        model.wave_encoder.summary(print_fn=summary_list_encoder.append)
+        model.wave_decoder.summary(print_fn=summary_list_decoder.append)
+        summary_encoder, summary_decoder = "\n".join(summary_list_encoder), "\n".join(summary_list_decoder)
+        mlflow.log_text(summary_encoder, artifact_file="encoder_summary.txt")
+        mlflow.log_text(summary_decoder, artifact_file="decoder_summary.txt") 
+    elif cfg["model"]["type"] == 'transformer':
+        print(model.summary())
+    elif cfg['model']['type'] == 'particle_net':
+        print(model.summary())
+
     # log data params
     mlflow.log_param('dataset_name', cfg["dataset_name"])
     mlflow.log_param('datasets_train', cfg["datasets"]["train"].keys())
@@ -159,12 +177,3 @@ def log_to_mlflow(model, cfg):
     for l in summary_list:
         if (s:='Trainable params: ') in l:
             mlflow.log_param('n_train_params', int(l.split(s)[-1].replace(',', '')))
-    
-    # log encoder & decoder summaries
-    if cfg["model"]["type"] == 'taco_net':
-        summary_list_encoder, summary_list_decoder = [], []
-        model.wave_encoder.summary(print_fn=summary_list_encoder.append)
-        model.wave_decoder.summary(print_fn=summary_list_decoder.append)
-        summary_encoder, summary_decoder = "\n".join(summary_list_encoder), "\n".join(summary_list_decoder)
-        mlflow.log_text(summary_encoder, artifact_file="encoder_summary.txt")
-        mlflow.log_text(summary_decoder, artifact_file="decoder_summary.txt") 
