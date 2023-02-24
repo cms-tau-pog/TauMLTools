@@ -2,15 +2,14 @@ import os
 import time
 import shutil
 import gc
-import re
-from XRootD import client
-from XRootD.client.flags import DirListFlags
 from glob import glob
 from collections import defaultdict
+
 import hydra
 from hydra.utils import to_absolute_path
 from omegaconf import DictConfig, OmegaConf, open_dict
-from utils.data_preprocessing import load_from_file, preprocess_array, awkward_to_tf, compute_labels
+
+from utils.data_preprocessing import load_from_file, preprocess_array, awkward_to_tf, compute_labels, _get_xrootd_filenames
 
 import tensorflow as tf
 import awkward as ak
@@ -34,16 +33,7 @@ def main(cfg: DictConfig) -> None:
         files = []
         for _entry in _files:
             if _entry.startswith('root://'): # stream with xrootd, assume _entry is a directory to read *all* ROOT files from
-                client_path = re.findall("^(root://.*/)/.*$", _entry)[0]
-                xrootd_client = client.FileSystem(client_path)
-                if cfg['verbose']:
-                    print(f"\nStream input files with client {client_path}\n")
-                data_path = re.findall("^root://.*/(/.*$)", _entry)[0]
-                status, listing = xrootd_client.dirlist(data_path, DirListFlags.STAT)
-                if status.status != 0:
-                    print(f"\nDirList of {data_path} failed.\n")
-                data_files_base = [entry.name for entry in listing if re.search(".*\.root$", entry.name)]
-                files += [os.path.dirname(_entry) + '/' + root_file for root_file in data_files_base]
+                files += _get_xrootd_filenames(_entry, verbose=cfg['verbose'])
             else: # complete the pattern with glob and append file names to the final list
                 files += glob(to_absolute_path(_entry))
         files = set(files)

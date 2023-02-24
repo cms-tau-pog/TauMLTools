@@ -2,11 +2,27 @@ import uproot
 import awkward as ak
 import tensorflow as tf
 import numpy as np
-from hydra.utils import to_absolute_path
+
+import os
 import gc
+import re
+from XRootD import client
+from XRootD.client.flags import DirListFlags
 
 from utils.gen_preprocessing import compute_genmatch_dR, recompute_tau_type, dict_to_numba
 from numba.core import types
+
+def _get_xrootd_filenames(prompt, verbose=False):
+    client_path = re.findall("^(root://.*/)/.*$", prompt)[0]
+    xrootd_client = client.FileSystem(client_path)
+    if verbose:
+        print(f"\nStream input files with client {client_path}\n")
+    data_path = re.findall("^root://.*/(/.*$)", prompt)[0]
+    status, listing = xrootd_client.dirlist(data_path, DirListFlags.STAT)
+    if status.status != 0:
+        print(f"\nDirList of {data_path} failed.\n")
+    data_files_base = [entry.name for entry in listing if re.search(".*\.root$", entry.name)]
+    return [os.path.dirname(prompt) + '/' + root_file for root_file in data_files_base]
 
 def load_from_file(file_name, tree_name, step_size):
     print(f'      - {file_name}')
