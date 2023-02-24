@@ -128,12 +128,13 @@ def preprocess_array(a, feature_names, add_feature_names, verbose=False):
     a_preprocessed['pfCand']['theta'] = np.arctan2(pf_dphi, pf_deta) # dphi -> y, deta -> x
     a_preprocessed['pfCand']['particle_type'] = a['pfCand_particleType'] - 1
 
+    vertex_z_valid = np.isfinite( a['pfCand_vertex_z']).compute()
     a_preprocessed['pfCand']['vertex_dx'] = a['pfCand_vertex_x'] - a['pv_x']
     a_preprocessed['pfCand']['vertex_dy'] = a['pfCand_vertex_y'] - a['pv_y']
-    a_preprocessed['pfCand']['vertex_dz'] = a['pfCand_vertex_z'] - a['pv_z']
+    a_preprocessed['pfCand']['vertex_dz'] = ak.where(vertex_z_valid, (a['pfCand_vertex_z'] - a['pv_z']).compute(), -10)
     a_preprocessed['pfCand']['vertex_dx_tauFL'] = a['pfCand_vertex_x'] - a['pv_x'] - a['tau_flightLength_x']
     a_preprocessed['pfCand']['vertex_dy_tauFL'] = a['pfCand_vertex_y'] - a['pv_y'] - a['tau_flightLength_y']
-    a_preprocessed['pfCand']['vertex_dz_tauFL'] = a['pfCand_vertex_z'] - a['pv_z'] - a['tau_flightLength_z']
+    a_preprocessed['pfCand']['vertex_dz_tauFL'] = ak.where(vertex_z_valid, (a['pfCand_vertex_z'] - a['pv_z'] - a['tau_flightLength_z']).compute(), -10)
 
     has_track_details = (a['pfCand_hasTrackDetails'] == 1).compute()
     has_track_details_track_ndof = has_track_details * (a['pfCand_track_ndof'] > 0).compute()
