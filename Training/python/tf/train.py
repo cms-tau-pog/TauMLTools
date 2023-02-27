@@ -2,6 +2,7 @@ import os
 import shutil
 import yaml
 import hydra
+from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig
 from sklearn.metrics import roc_auc_score
 
@@ -101,7 +102,14 @@ def main(cfg: DictConfig) -> None:
             mode='min',
             save_freq='epoch',
             save_best_only=False)
-        callbacks = [early_stopping, model_checkpoint] if cfg['schedule']!='descrease' else [early_stopping, model_checkpoint, lr_scheduler]
+
+        path_to_hydra_logs = HydraConfig.get().run.dir
+        tensorboard_logdir = f'{path_to_hydra_logs}/custom_tensorboard_logs'
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tensorboard_logdir, profile_batch = (100, 300))
+
+        callbacks = [early_stopping, model_checkpoint, tensorboard_callback] 
+        if cfg['schedule']=='descrease':
+            callbacks.append(lr_scheduler)
         model.compile(optimizer=opt,
                     loss=tf.keras.losses.CategoricalCrossentropy(from_logits=False), 
                     metrics=['accuracy', tf.keras.metrics.AUC(from_logits=False)])
@@ -109,6 +117,7 @@ def main(cfg: DictConfig) -> None:
 
         # log info
         log_to_mlflow(model, cfg)
+        mlflow.log_artifacts(tensorboard_logdir, 'custom_tensorboard_logs')
         mlflow.log_param('run_id', run_id)
         mlflow.log_artifacts(checkpoint_path, "checkpoints")
         shutil.rmtree(checkpoint_path)
