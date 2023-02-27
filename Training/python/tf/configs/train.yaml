@@ -24,6 +24,7 @@ input_dataset_cfg: "../../../Preprocessing/root2tf/datasets/${dataset_name}/cfg.
 
 # TF dataset formation
 tf_dataset_cfg:
+  combine_via: interleave # options: interleave, sampling
   n_threads: 10 # without controlling it may throw thread limit exception
   smart_batching_step: 10 # null to disable smart batching and use a standard one
   sequence_length_dist_start: 0 # for smart batching

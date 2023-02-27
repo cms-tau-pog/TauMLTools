@@ -9,14 +9,23 @@ import numpy as np
 import mlflow
 
 def compose_datasets(datasets, tf_dataset_cfg, input_dataset_cfg):
-    # datasets_for_training, sample_probas = _combine_for_sampling(datasets)
-    # assert round(sum(sample_probas), 5) == 1
-    
-    datasets_for_training, sample_probas = _combine_datasets(datasets), None
+    if tf_dataset_cfg['combine_via'] == 'sampling': # compose final dataset as sampling from the set of loaded input TF datasets
+        datasets_for_training, sample_probas = _combine_datasets(datasets, load=True), None
+        train_data = tf.data.Dataset.sample_from_datasets(datasets=datasets_for_training['train'], weights=sample_probas, seed=1234, stop_on_empty_dataset=False) # True so that the last batches are not purely of one class
+        val_data = tf.data.Dataset.sample_from_datasets(datasets=datasets_for_training['val'], seed=1234, stop_on_empty_dataset=False)
+    elif tf_dataset_cfg['combine_via'] == 'interleave': # compose final dataset as consecutive (cycle_length=1) loading of input TF datasets
+        datasets_for_training = _combine_datasets(datasets, load=False)
+        element_spec = tf.data.Dataset.load(datasets_for_training['train'][0], compression='GZIP').element_spec
 
-    # final dataset is a sampling from `datasets_for_training`
-    train_data = tf.data.Dataset.sample_from_datasets(datasets=datasets_for_training['train'], weights=sample_probas, seed=1234, stop_on_empty_dataset=False) # True so that the last batches are not purely of one class
-    val_data = tf.data.Dataset.sample_from_datasets(datasets=datasets_for_training['val'], seed=1234, stop_on_empty_dataset=False)
+        train_data = tf.data.Dataset.from_tensor_slices(datasets_for_training['train'])
+        train_data = train_data.interleave(lambda x: tf.data.Dataset.load(x, element_spec=element_spec, compression='GZIP'),
+                                                cycle_length=1, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False)
+
+        val_data = tf.data.Dataset.from_tensor_slices(datasets_for_training['val'])
+        val_data = val_data.interleave(lambda x: tf.data.Dataset.load(x, element_spec=element_spec, compression='GZIP'),
+                                                cycle_length=1, num_parallel_calls=tf.data.AUTOTUNE, deterministic=False)
+    else:
+        raise ValueError("`combine_via` should be either 'sampling' or 'interleave'")
 
     # shuffle/cache
     if tf_dataset_cfg["shuffle_buffer_size"] is not None:
@@ -50,19 +59,23 @@ def compose_datasets(datasets, tf_dataset_cfg, input_dataset_cfg):
 
     return train_data, val_data
 
-def _combine_datasets(datasets):
+def _combine_datasets(datasets, load=False):
     datasets_for_training = {'train': [], 'val': []} # to accumulate final datasets
     for dataset_type in datasets_for_training.keys():
         if dataset_type not in datasets:
             raise RuntimeError(f'key ({dataset_type}) should be present in dataset yaml configuration')
         for dataset_name, dataset_cfg in datasets[dataset_type].items(): # loop over specified train/val datasets
             for p in glob(f'{dataset_cfg["path_to_dataset"]}/{dataset_name}/{dataset_type}/*/'): # loop over all globbed files in the dataset
-                _dataset = tf.data.Dataset.load(p, compression='GZIP') 
-                datasets_for_training[dataset_type].append(_dataset)    
-    
+                if load:
+                    _dataset = tf.data.Dataset.load(p, compression='GZIP')
+                    datasets_for_training[dataset_type].append(_dataset) 
+                else:   
+                    datasets_for_training[dataset_type].append(p)    
     return datasets_for_training
 
 def _combine_for_sampling(datasets):
+    # NB: this is a deprecated function
+    # keeping it as an example of uniform sampling across training classes
     sample_probas = [] # to store sampling probabilites on training datasets
     datasets_for_training = {'train': [], 'val': []} # to accumulate final datasets
     for dataset_type in datasets_for_training.keys():
