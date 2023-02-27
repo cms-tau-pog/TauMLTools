@@ -97,7 +97,7 @@ dependencies:
   - gfortran_linux-64=10.3.0=hb09a455_9
   - giflib=5.2.1=h36c2ea0_2
   - gitdb=4.0.9=pyhd8ed1ab_0
-  - gitpython=3.1.27=pyhd8ed1ab_0
+  - gitpython=3.1.31=pyhd8ed1ab_0
   - gl2ps=1.4.2=h0708190_0
   - glew=2.1.0=h9c3ff4c_2
   - graphite2=1.3.13=h58526e2_1001
@@ -117,11 +117,11 @@ dependencies:
   - hdf5=1.12.1=nompi_h2386368_104
   - icu=70.1=h27087fc_0
   - idna=3.3=pyhd8ed1ab_0
-  - importlib-metadata=4.11.3=py38h578d9bd_1
-  - importlib_metadata=4.11.3=hd3eb1b0_0
+  - importlib_metadata=6.0.0=hd8ed1ab_0
+  - importlib_resources=5.2.0=pyhd3eb1b0_1
   - ipykernel=6.13.0=py38h7f3c49e_0
   - ipyparallel=8.3.0=pyhd8ed1ab_0
-  - ipython=8.3.0=py38h578d9bd_0
+  - ipython=8.8.0=pyh41d4057_0
   - ipython_genutils=0.2.0=py_1
   - itsdangerous=2.1.2=pyhd8ed1ab_0
   - jack=1.9.18=hfd4fe87_1001
@@ -282,11 +282,10 @@ dependencies:
   - pytables=3.7.0=py38hdb04529_0
   - pythia8=8.305=py38h709712a_0
   - python=3.8.13=h582c2e5_0_cpython
-  - python-daemon=2.3.0=pyhd8ed1ab_1
-  - python-dateutil=2.8.2=pyhd8ed1ab_0
-  - python-fastjsonschema=2.15.3=pyhd8ed1ab_0
-  - python-xxhash=3.0.0=py38h0a891b7_1
-  - python_abi=3.8=2_cp38
+  - python-daemon=2.3.1=py38h06a4308_0
+  - python-dateutil=2.8.2=pyhd3eb1b0_0
+  - python-fastjsonschema=2.16.2=py38h06a4308_0
+  - python_abi=3.8=3_cp38
   - pytorch=1.11.0=py3.8_cpu_0
   - pytorch-mutex=1.0=cpu
   - pytz=2022.1=pyhd8ed1ab_0
@@ -339,7 +338,7 @@ dependencies:
   - unicodedata2=14.0.0=py38h0a891b7_1
   - urllib3=1.26.9=pyhd8ed1ab_0
   - vdt=0.4.3=h9c3ff4c_0
-  - vector=0.11.0=pyhd8ed1ab_0
+  - vector=1.0.0=pyhd8ed1ab_0
   - vector-classes=1.4.2=h4bd325d_1
   - wcwidth=0.2.5=pyh9f0ad1d_2
   - webencodings=0.5.1=py_1
@@ -379,8 +378,8 @@ dependencies:
       - awkward==2.0.8
       - awkward-cpp==9
       - cachetools==5.0.0
-      - dask==2023.2.0
-      - dask-awkward==2023.1.0
+      - dask==2023.2.1
+      - dask-awkward==2023.2.0
       - flatbuffers==2.0
       - fsspec==2023.1.0
       - gast==0.4.0
@@ -388,10 +387,11 @@ dependencies:
       - google-auth-oauthlib==0.4.6
       - google-pasta==0.2.0
       - grpcio==1.46.1
+      - gviz-api==1.10.0
       - h5py==3.6.0
-      - hydra-core==1.3.1
-      - importlib-resources==5.2.3
-      - keras==2.11.0
+      - hydra-core==1.3.2
+      - importlib-metadata==5.2.0
+      - keras==2.10.0
       - keras-preprocessing==1.1.2
       - libclang==14.0.1
       - locket==1.0.0
@@ -409,14 +409,17 @@ dependencies:
       - rsa==4.8
       - shap==0.41.0
       - slicer==0.0.7
-      - tensorboard==2.11.2
+      - tensorboard==2.10.1
       - tensorboard-data-server==0.6.1
+      - tensorboard-plugin-profile==2.11.1
       - tensorboard-plugin-wit==1.8.1
-      - tensorflow==2.11.0
-      - tensorflow-estimator==2.11.0
-      - tensorflow-io-gcs-filesystem==0.25.0
+      - tensorflow==2.10.1
+      - tensorflow-addons==0.19.0
+      - tensorflow-estimator==2.10.0
+      - tensorflow-io-gcs-filesystem==0.31.0
       - termcolor==1.1.0
       - tf-estimator-nightly==2.8.0.dev2021122109
+      - typeguard==2.13.3
       - uproot==5.0.3
       - wrapt==1.14.1
 prefix: /usr/local/miniconda3/envs/tau-ml
