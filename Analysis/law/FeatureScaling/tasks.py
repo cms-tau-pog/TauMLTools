@@ -9,7 +9,7 @@ import glob
 import shutil
 import yaml
 
-from framework import Task, HTCondorWorkflow
+from Analysis.law.framework import Task, HTCondorWorkflow
 import luigi
 sys.path.append('{}/../../../Training/python'.format(os.path.dirname(os.path.abspath(__file__))))
 from feature_scaling import run_scaling as run_job
@@ -59,9 +59,9 @@ class FeatureScaling(Task, HTCondorWorkflow, law.LocalWorkflow):
     if not os.path.exists(destination_folder):
       os.makedirs(destination_folder)
     temp_output_folder = os.path.abspath('./temp/'+'job{}'.format(self.branch))
-    result = run_job( cfg = self.cfg                        , 
-                      var_types = self.var_types.split(' ') , 
-                      file_list = self.branch_data          , 
+    result = run_job( cfg = self.cfg                        ,
+                      var_types = self.var_types.split(' ') ,
+                      file_list = self.branch_data          ,
                       output_folder = temp_output_folder    )
 
     if not result:

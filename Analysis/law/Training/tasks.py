@@ -9,7 +9,7 @@ import sys
 import shutil
 import math
 
-from framework import Task, HTCondorWorkflow
+from Analysis.law.framework import Task, HTCondorWorkflow
 import luigi
 
 class Training(Task, HTCondorWorkflow, law.LocalWorkflow):
@@ -78,7 +78,7 @@ class Training(Task, HTCondorWorkflow, law.LocalWorkflow):
         return self.local_target("empty_file_{}.txt".format(self.branch))
 
     def run(self):
-        
+
         if not os.path.exists(os.path.abspath(self.working_dir)):
             raise Exception('Working folder {} does not exist'.format(job_folder))
 

@@ -8,7 +8,7 @@ import re
 import sys
 import shutil
 
-from framework import Task, HTCondorWorkflow
+from Analysis.law.framework import Task, HTCondorWorkflow
 import luigi
 
 class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
@@ -68,7 +68,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
       raise Exception('Only --mode MergeAll is supported by the law tool')
 
     quote = lambda x: str('\"{}\"'.format(str(x)))
-    command = ' '.join(['ShuffleMergeSpectral',
+    command = ['ShuffleMergeSpectral',
       '--cfg'               , str(self.cfg)             ,
       '--input'             , str(self.input_path)      ,
       '--output'            , output_name               ,
@@ -77,23 +77,28 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
       '--input-spec'        , str(self.input_spec)      ,
       '--n-jobs'            , str(self.n_jobs)          ,
       '--job-idx'           , str(self.branch_data)     ,
-      '--tau-ratio'         , quote(str(self.tau_ratio))] +\
-      ## optional arguments
-      ['--mode'             , str(self.mode)                    ] * (not self.mode               is '') +\
-      ['--seed'             , str(self.seed)                    ] * (not self.seed               is '') +\
-      ['--prefix'           , str(self.prefix)                  ] * (not self.prefix             is '') +\
-      ['--n-threads'        , str(self.n_threads)               ] * (not self.n_threads          is '') +\
-      ['--disabled-branches', quote(str(self.disabled_branches))] * (not self.disabled_branches  is '') +\
-      ['--lastbin-disbalance',str(self.lastbin_disbalance)      ] * (not self.lastbin_disbalance is '') +\
-      ['--lastbin-takeall'  , str(self.lastbin_takeall)         ] * (not self.lastbin_takeall    is '') +\
-      ['--compression-algo' , str(self.compression_algo)        ] * (not self.compression_algo   is '') +\
-      ['--compression-level', str(self.compression_level)       ] * (not self.compression_level  is '') +\
-      ['--parity'           , str(self.parity)                  ] * (not self.parity             is '') +\
-      ['--max-entries'      , str(self.max_entries)             ] * (not self.max_entries        is '') +\
-      ['--enable-emptybin'  , str(self.enable_emptybin)         ] * (not self.enable_emptybin    is '') +\
-      ['--refill-spectrum'  , str(self.refill_spectrum)         ] * (not self.refill_spectrum    is '') +\
-      ['--overflow-job'     , str(self.overflow_job)            ] * (not self.overflow_job       is '')  )
+      '--tau-ratio'         , quote(str(self.tau_ratio))]
+    optional_arguments = [
+      ['--mode'              , str(self.mode)                    ],
+      ['--seed'              , str(self.seed)                    ],
+      ['--prefix'            , str(self.prefix)                  ],
+      ['--n-threads'         , str(self.n_threads)               ],
+      ['--disabled-branches' , quote(str(self.disabled_branches))],
+      ['--lastbin-disbalance', str(self.lastbin_disbalance)      ],
+      ['--lastbin-takeall'   , str(self.lastbin_takeall)         ],
+      ['--compression-algo'  , str(self.compression_algo)        ],
+      ['--compression-level' , str(self.compression_level)       ],
+      ['--parity'            , str(self.parity)                  ],
+      ['--max-entries'       , str(self.max_entries)             ],
+      ['--enable-emptybin'   , str(self.enable_emptybin)         ],
+      ['--refill-spectrum'   , str(self.refill_spectrum)         ],
+      ['--overflow-job'      , str(self.overflow_job)            ],
+    ]
+    for arg in optional_arguments:
+      if len(arg[1]) > 0:
+        command += arg
 
+    command = ' '.join(command)
     print ('>> {}'.format(command))
     proc = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
     stdout, stderr = proc.communicate()

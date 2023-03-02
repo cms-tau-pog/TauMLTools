@@ -55,7 +55,7 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
     description = 'maximum RAM usage')
   batch_name  = luigi.Parameter(default = 'TauML_law',
     description = 'HTCondor batch name')
-  environment = luigi.ChoiceParameter(default = "CMSSW", choices = ['CMSSW', 'conda'], var_type = str,
+  environment = luigi.ChoiceParameter(default = "cmssw", choices = ['cmssw', 'conda', 'cmssw_conda'], var_type = str,
     description = "Environment used to run the job")
 
   def htcondor_output_directory(self):
@@ -65,7 +65,7 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
   def htcondor_bootstrap_file(self):
     # each job can define a bootstrap file that is executed prior to the actual job
     # in order to setup software and environment variables
-    return law.util.rel_path(__file__, "bootstrap.sh")
+    return law.util.rel_path(os.getenv("ANALYSIS_PATH"), "bootstrap.sh")
 
   def htcondor_job_config(self, config, job_num, branches):
     main_dir = os.getenv("ANALYSIS_PATH")
