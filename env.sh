@@ -77,8 +77,7 @@ action() {
 
   export PYTHONPATH="$this_dir:$PYTHONPATH"
   export LAW_HOME="$this_dir/.law"
-  export LAW_CONFIG_FILE="$this_dir/Analysis/law/law.cfg"
-
+  export LAW_CONFIG_FILE="$this_dir/law/law.cfg"
 
   run_cmd mkdir -p "$ANALYSIS_DATA_PATH"
 

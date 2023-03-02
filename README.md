@@ -15,24 +15,25 @@ Tools to perform machine learning studies for tau lepton reconstruction and iden
 
 1. Clone package from the github without loading any additional environment (like CMSSW):
    ```sh
-   git clone -o cms-tau-pog -b master git@github.com:cms-tau-pog/TauMLTools.git
+   git clone --recursive -o cms-tau-pog -b master git@github.com:cms-tau-pog/TauMLTools.git
    ```
 2. Go to `TauMLTools` directory and load appropriate environment by running `env.sh`:
    ```sh
-   source env.sh ENV_NAME
+   source env.sh [ ENV_NAME ]
    ```
    where supported `ENV_NAME` are:
-   - `prod2018`: for production of root-tuples for 2018 pre-UL datasets and pre-processing steps up to Shuffle&Merge
-   - `prod2018UL`: for production of root-tuples for 2018 UL datasets and pre-processing steps up to Shuffle&Merge
-   - `phase2`: for production of root-tuples for Phase 2 datasets and pre-processing steps up to Shuffle&Merge
-   - `lcg`: using LCG environment, if it is available (e.g. lxplus)
-   - `conda`: using tau-ml conda environment -- this is the recommended environment to perform an actual NN training
+   - by default using LCG environment
+   - if `ENV_NAME` contains `cmssw` - cmssw package
+   - if `ENV_NAME` contains `conda` - using tau-ml conda environment -- this is the recommended environment to perform an actual NN training
 
    N.B. If you want to use existing `conda` installation, make sure that it is activated and the path to the `conda` executable is included in `PATH` variable. If `conda` installation not found, `env.sh` will make install it from the official web site and configure it to work with the current TauMLTools installation.
+
+   N.B. If cmssw environment was specified when sourcing env.sh, to run a command in the CMSSW environment, one should add `cmsEnv`, `cmsEnv11_2` or `cmsEnv11_3` before the command.
 
 The second step (`source env.sh ENV_NAME`) should be repeated each time you open a new shell session.
 
 ### Installing law
+Law is part of conda installation. Standalone installation without conda environment is available on lxplus. This installation step is only required if you running with LCG environment on sites that are not yet supported by TauMLTools.
 Some parts of the ntuple production and network training can be split into different jobs and run on the HTCondor cluster. To do so, we use the [law](https://github.com/riga/law) package. Law can be installed via conda's pip (reccommended if running jobs which run in a conda environent) using the [environment yaml file](https://github.com/cms-tau-pog/TauMLTools/blob/master/tau-ml-env.yaml), or via standard pip (recommended when running jobs in the CMSSW environment) running the command
 ```bash
 python -m pip install law
@@ -58,7 +59,7 @@ These branches are filled in CMSSW module [Production/plugins/TauTupleProducer.c
 [Production/python/Production.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Production/python/Production.py) contains the configuration that allows to run `TauTupleProducer` with `cmsRun`.
 Here is an example how to run `TauTupleProducer` on 1000 DY events using one MiniAOD file as an input:
 ```sh
-cmsRun TauMLTools/Production/python/Production.py sampleType=MC_18 inputFiles=/store/mc/RunIIAutumn18MiniAOD/DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8/MINIAODSIM/102X_upgrade2018_realistic_v15-v1/00000/A788C40A-03F7-4547-B5BA-C1E01CEBB8D8.root maxEvents=1000
+cmsEnv cmsRun TauMLTools/Production/python/Production.py sampleType=MC_18 inputFiles=/store/mc/RunIIAutumn18MiniAOD/DYJetsToLL_M-50_TuneCP5_13TeV-madgraphMLM-pythia8/MINIAODSIM/102X_upgrade2018_realistic_v15-v1/00000/A788C40A-03F7-4547-B5BA-C1E01CEBB8D8.root maxEvents=1000
 ```
 
 In order to run a large-scale production for the entire datasets, the CMS computing grid should be used via CRAB interface.
@@ -99,7 +100,7 @@ This step represents a Shuffle and Merge procedure that aims to minimize usage o
 
 Spectrum of the initial data is needed to calculate the probability to take tau candidate of some genuine tau-type and from some pt-eta bin. To generate the specturum histograms for a dataset and lists with number of entries per datafile, run:
 ```sh
-CreateSpectralHists --output "spectrum_file.root" \
+cmsEnv CreateSpectralHists --output "spectrum_file.root" \
                     --output_entries "entires_file.txt" \
                     --input-dir "path/to/dataset/dir" \
                     --pt-hist "n_bins_pt, pt_min, pt_max" \
@@ -131,7 +132,7 @@ Mixing is needed to have shuffled files within one data group. After this step, 
 #### Shuffling & Merging
 After spectrums are created for all datasets, the final procedure of Shuffle and Merge can be performed with:
 ```sh
-ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
+cmsEnv ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
                      --input filelist_mix.txt
                      --prefix prefix_string
                      --output <path_to_output_file.root>
@@ -164,10 +165,6 @@ In order to find appropriate binning and `--tau-ratio` in correspondence to the 
 #### Submission with HTCondor
 ShuffleMergeSpectral can be executed on condor through the [law](https://github.com/riga/law) package. To run it, first install law following the instructions in the first section. Then, set up the environment
 ```sh
-cd $CMSSW_BASE/src
-cmsenv
-cd TauMLTools/Analysis/law
-source setup.sh
 law index
 ```
 Jobs can be submitted running
@@ -260,7 +257,7 @@ The path to the output file has to be specified in the yaml configuration file d
 During the loading of data into the model, values for each feature in the input grid tensor will undergo a sequential transformation with a following order: subtract `mean`, divide by `std`, clamp to a range `[lim_min, lim_max]` (see [`Scale()`](https://github.com/cms-tau-pog/TauMLTools/blob/45babb742f1a15f96950e84d60c95acc9b65f7e9/Training/interface/DataLoader_main.h#L314) function in `DataLoader_main.h`). Here, `mean`, `std`, `lim_min`, `lim_max` are parameters unique for each input feature and they have to be precomputed for a given input data set prior to running the training. This can be done with a script [`Training/python/feature_scaling.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/feature_scaling.py), for example, as follows:
 ```python
 python feature_scaling.py --cfg ../configs/training_v1.yaml --var_types TauFlat
-```     
+```
 - `--cfg` (str, required) is a relative path to a main yaml configuration file used for the training
 - `--var_types` (list of str, optional, default: -1) is a list of variable types to be run computation on. Should be the ones from field `Features_all` in the main training cfg file.
 
@@ -291,7 +288,7 @@ Also note that `lim_params` (for both linear and normal cases) can be a dictiona
 
 As one may notice, it is "normal" features which require actual computation, since for other types scaling parameters can be derived easily based on specified `lim_params`. The computation of means and stds in that case is performed in an iterative manner, where the input files are opened one after another and for each variable the sum of its values, squared sum of values and counts of entries are being aggregated as the files are being read. Then, every `log_step` number of files, means/stds are computed based on so far aggregated sums and counts and together with other scaling parameters are logged into a json file. This cumulative nature of the approach also allows for a more flexible scan of the data for its validation (e.g. by comparison of aggregated statistics, not necessarily mean/std across file ranges). Moreover, for every file every variable's quantiles are stored, allowing for a validation of the scaling procedure (see section below).
 
-The result of running the scaling script will be a set of log json files further referred to as *snapshots* (e.g. `scaling_params_v*_log_i.json`), where each file corresponds to computation of mean/std/lim_min/lim_max *after* having accumulated sums/sums2/counts for `i*log_step` files; the json file (`scaling_params_v*.json`) which corresponds to processing of all given files; json file storing variables' quantiles per file (`quantile_params_v*.json`). `scaling_params_v*.json` should be further provided to `DataLoader` in the training step to perform the scaling of inputs.  
+The result of running the scaling script will be a set of log json files further referred to as *snapshots* (e.g. `scaling_params_v*_log_i.json`), where each file corresponds to computation of mean/std/lim_min/lim_max *after* having accumulated sums/sums2/counts for `i*log_step` files; the json file (`scaling_params_v*.json`) which corresponds to processing of all given files; json file storing variables' quantiles per file (`quantile_params_v*.json`). `scaling_params_v*.json` should be further provided to `DataLoader` in the training step to perform the scaling of inputs.
 
 #### Validation
 Since the feature scaling computation follows a cumulative approach, one can be interested to see how the estimates of mean/std are converging to stable values from one snapshot to another as more data is being added. The convergence of the approach can be validated with [`Training/python/plot_scaling_convergence.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/plot_scaling_convergence.py), e.g. for TauFlat variable type:
@@ -333,31 +330,31 @@ then run the job submission
 ```bash
 law run FeatureScaling --version version_tag --environment conda --cfg /path/to/yaml/cfg.yaml --output-path /path/to/dir/ --file-per-job M --n-jobs N
 ```
-where ```--version``` specifies the job submission version (used by law to monitor the status of the jobs), ```--environment``` specifies the shell environment to be used (*conda* in this case, see [TauMLTools/Analysis/law/bootstrap.sh](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/law/bootstrap.sh)), ```--cfg``` is the yaml configuration file (the same used in interactive mode), ```--files-per-job``` specifies the number of files processed by each job, ```--n-jobs``` specifies the number of jobs to run, and ```--output-path``` specifies the path to the output directory, used to save the results. 
+where ```--version``` specifies the job submission version (used by law to monitor the status of the jobs), ```--environment``` specifies the shell environment to be used (*conda* in this case, see [TauMLTools/Analysis/law/bootstrap.sh](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/law/bootstrap.sh)), ```--cfg``` is the yaml configuration file (the same used in interactive mode), ```--files-per-job``` specifies the number of files processed by each job, ```--n-jobs``` specifies the number of jobs to run, and ```--output-path``` specifies the path to the output directory, used to save the results.
 The law task run by the code above (stored in [TauMLTools/Analysis/law/FeatureScaling/task.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/law/FeatureScaling/tasks.py)) implements the same script used locally, with the following caveat:
 
 - the number of files per job is specified by the ```--files-per-job``` argument
 - the total number of jobs is defined by the ```--n-jobs``` argument, which, together with the ```--files-per-job``` argument, determines the total number of files read from the input path. Leave this to the default value (0) to run on all the input files with ```--files-per-job``` files per job
 - the yaml configuration parameters ```Scaling_setup/file_range``` and ```Scaling_setup/log_step``` are ignored when running on law
-- the output directory is specified using an argument, so the configuration in the .yaml file if ignored.    
+- the output directory is specified using an argument, so the configuration in the .yaml file if ignored.
 
 The results from each single job can be merged together to obtain the final set of scaling parameters, using the interactive python script [TauMLTools/Training/python/merge_feature_scaling_jobs.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/merge_feature_scaling_jobs.py), as follows:
 ```bash
 python merge_feature_scaling_jobs.py --output /path/to/dir --input "job*/scaling_params_v5.json"
 ```
-where ```--output``` determines the output directory which stores the merged results and ```--input``` is a string pointing to the results of the single jobs (using a glob pattern, as in the example above. **NOTE** use the quotation marks!).  
-In order to create convergence plots using the [`Training/python/plot_scaling_convergence.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/plot_scaling_convergence.py) script described in the main section above, *merge_feature_scaling_jobs.py* accepts the ```--step``` *int* argument. If this value is specified, the script will create intermediate output files merging an increasing number of jobs with step equal to ```--step``` (e.g., if ```--step``` is equal to 10, the first intermediate output file will merge 10 jobs, the second 20, the third 30 and so on). 
+where ```--output``` determines the output directory which stores the merged results and ```--input``` is a string pointing to the results of the single jobs (using a glob pattern, as in the example above. **NOTE** use the quotation marks!).
+In order to create convergence plots using the [`Training/python/plot_scaling_convergence.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/plot_scaling_convergence.py) script described in the main section above, *merge_feature_scaling_jobs.py* accepts the ```--step``` *int* argument. If this value is specified, the script will create intermediate output files merging an increasing number of jobs with step equal to ```--step``` (e.g., if ```--step``` is equal to 10, the first intermediate output file will merge 10 jobs, the second 20, the third 30 and so on).
 
 ### Single run
-In order to have organized storage of models and its associated files, [mlflow](https://mlflow.org/docs/latest/index.html) is used from the training step onwards. At the training step, it takes care of logging necessary configuration parameters used to run the given training, plus additional artifacts, i.e. associated files like model/cfg files or output logs). Conceptually, mlflow augments the training code with additional logging of requested parameters/files whenever it is requested. Please note that hereafter mlflow notions of __run__ (a single training) and __experiment__ (a group of runs) will be used. 
+In order to have organized storage of models and its associated files, [mlflow](https://mlflow.org/docs/latest/index.html) is used from the training step onwards. At the training step, it takes care of logging necessary configuration parameters used to run the given training, plus additional artifacts, i.e. associated files like model/cfg files or output logs). Conceptually, mlflow augments the training code with additional logging of requested parameters/files whenever it is requested. Please note that hereafter mlflow notions of __run__ (a single training) and __experiment__ (a group of runs) will be used.
 
-The script to perform the training is [TauMLTools/Training/python/Training_CNN.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/Training_CNN.py). It is supplied with a corresponding [TauMLTools/Training/python/train.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/train.yaml) configuration file which specifies input configuration parameters. Here, [hydra](https://hydra.cc/docs/intro/) is used to compose the final configuration given the specification inside of `train.yaml` and, optionally, from a command line (see below), which is then passed as [OmegaConf](https://omegaconf.readthedocs.io/) dictionary to `main()` function. 
+The script to perform the training is [TauMLTools/Training/python/Training_CNN.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/Training_CNN.py). It is supplied with a corresponding [TauMLTools/Training/python/train.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/train.yaml) configuration file which specifies input configuration parameters. Here, [hydra](https://hydra.cc/docs/intro/) is used to compose the final configuration given the specification inside of `train.yaml` and, optionally, from a command line (see below), which is then passed as [OmegaConf](https://omegaconf.readthedocs.io/) dictionary to `main()` function.
 
 The specification consists of:
 * the main training configuration file [`TauMLTools/Training/configs/training_v1.yaml`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/configs/training_v1.yaml) describing `DataLoader` and model configurations, which is "imported" by hydra as a [defaults list](https://hydra.cc/docs/advanced/defaults_list/)
 * mlflow parameters, specifically `path_to_mlflow` (to the folder storing mlflow runs, usually its default name is `mlruns`) and `experiment_name`.  These two parameters are needed to either create an mlflow experiment with a given `experiment_name` (if it doesn't exist) or to find the experiment to which attribute the current run
 * `scaling_cfg` which specifies the path to the json file with feature scaling parameters
-* `gpu_cfg` which sets the gpu related parameters 
+* `gpu_cfg` which sets the gpu related parameters
 * `log_suffix` used as a postfix in output directory names
 
 Also note that one can conveniently [add/remove/override](https://hydra.cc/docs/advanced/override_grammar/basic/) __any__ configuration items from the command line. Otherwise, running `python Training_CNN.py` will use default values as they are composed by hydra based on `train.yaml`.
@@ -369,7 +366,7 @@ python Training_CNN.py experiment_name=run3_cnn_ho2 'training_cfg.SetupNN.tau_ne
 
 Here, a new mlflow run will be created under the "run3_cnn_ho2" experiment (if the experiment doesn't exist, it will be created). Then, the model is composed and compiled and the training proceeds via a usual `fit()` method with `DataLoader` class instance used as a batch yielder. Several callbacks are also implemented to monitor the training process, specifically `CSVLogger`, `TimeCheckpoint` and `TensorBoard` callback. Lastly, note that the parameters related to the NN setup and initially specified in `training_v1.yaml` are overriden via the command line (`training_cfg.SetupNN.{param}=...`)
 
-Furthermore, for the sake of convenience, submission of multiple trainings in parallel to the batch system is implemented as a dedicated law task. As an example, running the following commands will set up law and submit the trainings specified in `TauMLTools/Training/configs/input_run3_cnn_ho1.txt` to `htcondor`: 
+Furthermore, for the sake of convenience, submission of multiple trainings in parallel to the batch system is implemented as a dedicated law task. As an example, running the following commands will set up law and submit the trainings specified in `TauMLTools/Training/configs/input_run3_cnn_ho1.txt` to `htcondor`:
 
 ```sh
 source setup.sh
@@ -388,7 +385,7 @@ These points are not a problem if the end goal is a simple file storage. However
 For the purpose of preparing individual's `mlruns` folder for merging, [`set_mlflow_paths.py`](https://github.com/cms-tau-pog/TauMLTools/blob/master/Training/python/set_mlflow_paths.py) script was written. What it does is:
 1. recursively going through the folders in user-specified `path_to_mlflow` and corresponding experiment `exp_id` therein, opening firstly the experiment-related `meta.yaml` and resetting there `artifact_location` to `new_path_to_exp`, which is defined as a concatenation of user-specified `new_path_to_mlflow` and `exp_id` or `new_exp_id` (if passed)
 1. opening run-related `meta.yaml` files and resetting `artifact_uri` key to `new_path_to_exp`, plus resetting `experiment_id` to `new_exp_id` (if passed)
-1. in case `new_exp_id` argument is provided, the whole experiment folder is renamed to this new ID  
+1. in case `new_exp_id` argument is provided, the whole experiment folder is renamed to this new ID
 
 It has the following input arguments:
 * `-p`, `--path-to-mlflow`: (required) Path to local folder with mlflow experiments
@@ -415,7 +412,7 @@ Therefore, the following workflow is suggested:
    mlflow ui -p 5000 # 5000 is the default port
    # forward this port to a machine with graphics
    ```
-### Additional helping commands 
+### Additional helping commands
 
 In order to check the learning process stability and convergence, tensorboard monitoring is utilized in the training script. In order to compare all existing runs in the `mlruns` folder, the following command can be used:
 
@@ -432,9 +429,9 @@ In order to check the final training/validation loss function and corresponding 
 
 ### Producing predictions
 
-The first step in the performance evaluation pipeline is producing predictions for a given model and a given data sample. This can be achieved with [Evaluation/apply_training.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/apply_training.py) script, where its input arguments are configured in [Evaluation/configs/apply_training.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/apply_training.yaml). It is important to mention that at this step `DataLoader` class is also used to yield batches for the model, therefore there are few parameters which configure its behaviour: 
+The first step in the performance evaluation pipeline is producing predictions for a given model and a given data sample. This can be achieved with [Evaluation/apply_training.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/apply_training.py) script, where its input arguments are configured in [Evaluation/configs/apply_training.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/apply_training.yaml). It is important to mention that at this step `DataLoader` class is also used to yield batches for the model, therefore there are few parameters which configure its behaviour:
 
-* `training_cfg_upd` describes parameters which will be overriden in the `DataLoader` class initialisation. For example, for evaluation all taus should be included in batches, hence `include_mismatched=True`. Or, train/val split is not needed comparing to the train step, so `validation_split=0.`. Note that the base configuration by default is taken from mlflow logs and therefore is the one which was used for the training (`path_to_training_cfg` key).  
+* `training_cfg_upd` describes parameters which will be overriden in the `DataLoader` class initialisation. For example, for evaluation all taus should be included in batches, hence `include_mismatched=True`. Or, train/val split is not needed comparing to the train step, so `validation_split=0.`. Note that the base configuration by default is taken from mlflow logs and therefore is the one which was used for the training (`path_to_training_cfg` key).
 
 * `scaling_cfg` describes the path to a file with json scaling parameters and by default points to mlflow logs, i.e. the file which used for the training.
 
@@ -452,7 +449,7 @@ python apply_training.py path_to_mlflow=../Training/python/2018v1/mlruns experim
 ```
 
 ### Evaluating metrics
-The second step in the evaluation pipeline is [Evaluation/evaluate_performance.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/evaluate_performance.py) with the corresponding main hydra cfg file being [Evaluation/configs/eval/run3.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/eval/run3.yaml). This step involves complex configuration setting in order to cover the variety of use cases in a generalised way. For a history of its developments and more details please refer to these presentations [[1]](https://indico.cern.ch/event/1066000/contributions/4482034/attachments/2293019/3898990/DeepTau_eval.pdf), [[2]](https://indico.cern.ch/event/1067541/contributions/4489002/attachments/2295081/3903198/DeepTau_eval_1.pdf), [[3]](https://indico.cern.ch/event/1068999/contributions/4495448/attachments/2297277/3907278/DeepTau_eval_2.pdf). 
+The second step in the evaluation pipeline is [Evaluation/evaluate_performance.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/evaluate_performance.py) with the corresponding main hydra cfg file being [Evaluation/configs/eval/run3.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/eval/run3.yaml). This step involves complex configuration setting in order to cover the variety of use cases in a generalised way. For a history of its developments and more details please refer to these presentations [[1]](https://indico.cern.ch/event/1066000/contributions/4482034/attachments/2293019/3898990/DeepTau_eval.pdf), [[2]](https://indico.cern.ch/event/1067541/contributions/4489002/attachments/2295081/3903198/DeepTau_eval_1.pdf), [[3]](https://indico.cern.ch/event/1068999/contributions/4495448/attachments/2297277/3907278/DeepTau_eval_2.pdf).
 
 #### Configuration description
 
@@ -462,23 +459,23 @@ As usual, the next section in `run3.yaml` describes mlflow parameters (`path_to_
 
 Then there is a section defining a so-called "phase space region". Conceptually, what `evaluate_performance.py` step does is takes a given model and computes the metrics (currently, ROC curves only) for a specified region of parameters. These are at the moment `vs_type`, `dataset_alias` and `pt_bins` / `eta_bins` / `dm_bins`:
 
-* `vs_type` conventionally is used to defined tau types against which ROC curve should be constructed, e.g. tau vs jet (`vs_type=jet`). Based on this label, different selection/plotting criteria will be triggered across the module, please check them throughout discriminator/plotting/ROC curve composition steps. Moreover, as described below, in principle a mixture of particle types is also possible to be served as a "vs leg". 
+* `vs_type` conventionally is used to defined tau types against which ROC curve should be constructed, e.g. tau vs jet (`vs_type=jet`). Based on this label, different selection/plotting criteria will be triggered across the module, please check them throughout discriminator/plotting/ROC curve composition steps. Moreover, as described below, in principle a mixture of particle types is also possible to be served as a "vs leg".
 
 * `dataset_alias` defines how to refer to a mixture of `input_samples` at the downstream plotting steps.
 
-* `pt_bins` / `eta_bins` / `dm_bins` specifies in which bins (of pt, eta, and HPS decay mode) the ROC curve should be computed, which will internally apply a corresponding cut on a combined mixed dataframe. This bin definition will also be used as an alias to retrieve corresponding ROC curve for plotting. 
+* `pt_bins` / `eta_bins` / `dm_bins` specifies in which bins (of pt, eta, and HPS decay mode) the ROC curve should be computed, which will internally apply a corresponding cut on a combined mixed dataframe. This bin definition will also be used as an alias to retrieve corresponding ROC curve for plotting.
 
-As was mentioned before, one can also apply the selection to the events before producing ROC curves. This is specified in `cuts` as a string, passed then to the events DataFrame `query()` method. Also, option to require events to pass specified working points (WPs) is available (`WPs_to_require`, dictionary `tau_type -> wp_name`), where the working point configuration (either thresholds or WP column) is taken as specified in the discriminator yaml file. 
+As was mentioned before, one can also apply the selection to the events before producing ROC curves. This is specified in `cuts` as a string, passed then to the events DataFrame `query()` method. Also, option to require events to pass specified working points (WPs) is available (`WPs_to_require`, dictionary `tau_type -> wp_name`), where the working point configuration (either thresholds or WP column) is taken as specified in the discriminator yaml file.
 
 The last important section is dedicated to I/O. There are three ingredients to it: inputs, predictions and targets, which can differ depending on the use case.
 
 * In order to compute ROC curves a dataset containing genuine taus and e/mu/jet fakes is needed. The idea behind construction of such a dataset is to combine together various sources with selecting specific tau types from each of those. `input_samples` dictionary describes exactly this kind of mapping in a form `sample_alias` -> `['tau_type_1', 'tau_type_2', ...]`. It assumes by default that `sample_alias` is an alias defined at `apply_training.py` step (to refer to mlflow logged predictions automatically), but this don't have to be necessarily the case. `tau_type_*` specified in the mapping are used to apply matching to a feature with a name `gen_{tau_type}`. If `path_to_target` is provided, this will be taken from there (see `add_group()` function in `eval_tools.py`), otherwise it is assumed that this branch is already present in the input files (and added via `input_branches` argument in `run3.yaml`).
 
-* Having defined a sample mixture, in `evaluate_performance.py` there is a loop over those samples and then for each `sample_alias` file lists with input/prediction/target files are constructed. The common template for file paths per `sample_alias` are specified via `path_to_input/path_to_pred/path_to_target` which has the option of filling placeholders in its name (`{sample_alias}`) and support for "*" asterisk. 
+* Having defined a sample mixture, in `evaluate_performance.py` there is a loop over those samples and then for each `sample_alias` file lists with input/prediction/target files are constructed. The common template for file paths per `sample_alias` are specified via `path_to_input/path_to_pred/path_to_target` which has the option of filling placeholders in its name (`{sample_alias}`) and support for "*" asterisk.
 
 * These file lists are constructed in function `prepare_filelists()` of `eval_tools.py`. Conceptually, if present, it will expand `path_to_*` to a file list via `glob` and sort it according to a number id present in the file name (see `path_splitter()` function). The only non-trivial exception is the case when `path_to_pred` points to mlflow artifacts. Here, a mapping input<-> prediction from `artifacts/predictions/{sample_alias}/pred_input_filemap.json` will be used to fetch input samples corresponding to specified `path_to_pred` (and hence `path_to_input` is ignored).
 
-Given all the information above, the metrics (e.g. ROC curve) are computed within `Discriminator` and `RocCurve` classes (see `Evaluation/utils/evaluation.py`) for a specified phase space region (`vs_type/dataset_alias/pt_bins/eta_bins/dm_bins`). They are then represented as a dictionary and dumped into `.../artifacts/performance.json` file which is used to collect all the "snapshots" of model evaluation across various input configurations, e.g. ROC curve TPR/FPR, discriminator info. It is this file where the dowstream plotting modules will search for entries to be retrieved and visualised.    
+Given all the information above, the metrics (e.g. ROC curve) are computed within `Discriminator` and `RocCurve` classes (see `Evaluation/utils/evaluation.py`) for a specified phase space region (`vs_type/dataset_alias/pt_bins/eta_bins/dm_bins`). They are then represented as a dictionary and dumped into `.../artifacts/performance.json` file which is used to collect all the "snapshots" of model evaluation across various input configurations, e.g. ROC curve TPR/FPR, discriminator info. It is this file where the dowstream plotting modules will search for entries to be retrieved and visualised.
 
 #### Examples
 
@@ -494,7 +491,7 @@ Then, since there are three models in total which are moreover fundamentally dif
 
 Finally, given that `run3_cnn_ho2` -> `experiment_id=2` and input samples cfg in `run3.yaml` are set as:
 ```yaml
-input_samples: 
+input_samples:
   GluGluHToTauTau_M125: ['tau']
   TTToSemiLeptonic: ["jet"]
 ```
@@ -521,7 +518,7 @@ The third step in the evaluation pipeline is [Evaluation/plot_roc.py](https://gi
 
 * mlflow `experiment_id`, which assumes that all run IDs below belong to this experiment ID
 * `discriminators`: a dictionary mapping `run_id` -> `disc_cfg` (see example below) with `curve_types` being a list of either `roc_curve` or `roc_wp` (or both), describing which types of ROC curves should be plotted.
-* `reference`: a pair `run_id`: `curve_type` which will be used as the reference curve to plot the ratio for other discriminants. 
+* `reference`: a pair `run_id`: `curve_type` which will be used as the reference curve to plot the ratio for other discriminants.
 * `vs_type/dataset_alias/pt_bin/eta_bin/dm_bin`: parameters identifying the region of interest. These are used to retrieve the corresponding entries in `performance.json` file for each of the runs to be plotted, see `Evaluation/utils/evaluation.select_curve()` function which does that.
 * `output_dir`, `output_name`: the folder name (within mlflow artifacts) and the file name of the output pdf respectively.
 
@@ -534,7 +531,7 @@ experiment_id: 2
 discriminators:
   06f9305d6e0b478a88af8ea234bcec20:
       name: "DeepTau (v2.5)"
-      curve_types: ['roc_curve', 'roc_wp'] 
+      curve_types: ['roc_curve', 'roc_wp']
       plot_cfg:
          color: black
          dashed: false
@@ -543,7 +540,7 @@ discriminators:
          with_errors: true
   90c83841fe224d48b1581061eba46e86:
       name: "DeepTau (v2.1)"
-      curve_types: ['roc_curve', 'roc_wp'] 
+      curve_types: ['roc_curve', 'roc_wp']
       plot_cfg:
          color: grey
          dashed: false
@@ -552,14 +549,14 @@ discriminators:
          with_errors: true
   d2ec6115624d44c9bf60f88460b09b54:
       name: "MVA vs. jet (JINST)"
-      curve_types: ['roc_wp'] 
+      curve_types: ['roc_wp']
       plot_cfg:
          color: silver
          dashed: false
          alpha: 1.
          dots_only: true
          with_errors: true
-reference: 
+reference:
   06f9305d6e0b478a88af8ea234bcec20: 'roc_curve'
 ```
 
@@ -574,13 +571,13 @@ will produce the plot with specified models plotted side-by-side and will store 
 
 For a given model, one usually has to define working points (WPs): that is, to derive thresholds on the model output scores yielding classification with predefined genuine tau efficiency, in the specified region of the phase space. This can be done with the script [Evaluation/derive_wp.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/derive_wp.py) and the corresponding cfg file [Evaluation/configs/derive_wp.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/derive_wp.yaml). The script contains the definition of a `WPMaker` class which takes care of the computation procedure + the code to run it, while the yaml file specifies the arguments to the class and to `create_df()` function defined in [Evaluation/utils/data_processing.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/utils/data_processing.py). The computation follows the logic:
 
-* Take genuine taus (`create_df.tau_type_to_select=tau`) from all the samples in the dictionary `create_df.pred_samples` (will read files based on `create_df.pred_samples.{sample_name}.filename_pattern`) within `create_df.path_to_preds` (by default assumed to be within mlflow artifacts, but can be specified differently) which pass `create_df.selection`. Feature values for selection (e.g. `tau_pt`) will be taken from either the input file corresponding to every prediction file (`create_df.add_columns_from: inputs`) using the mapping from `pred_input_filemap.json`, or from the prediction file itself (`create_df.add_columns_from: predictions`). The name of the object to select from the input file (either TTree or hdf group) is specified via `create_df.group_or_tree_name`. The group names and column prefixes, needed to extract predictions and labels from the input files, can also be configured via the corresponding keys in `create_df` entry. 
+* Take genuine taus (`create_df.tau_type_to_select=tau`) from all the samples in the dictionary `create_df.pred_samples` (will read files based on `create_df.pred_samples.{sample_name}.filename_pattern`) within `create_df.path_to_preds` (by default assumed to be within mlflow artifacts, but can be specified differently) which pass `create_df.selection`. Feature values for selection (e.g. `tau_pt`) will be taken from either the input file corresponding to every prediction file (`create_df.add_columns_from: inputs`) using the mapping from `pred_input_filemap.json`, or from the prediction file itself (`create_df.add_columns_from: predictions`). The name of the object to select from the input file (either TTree or hdf group) is specified via `create_df.group_or_tree_name`. The group names and column prefixes, needed to extract predictions and labels from the input files, can also be configured via the corresponding keys in `create_df` entry.
 
 * `score_vs_{type}` is computed for each tau as usual `score_tau / (score_tau + score_vs_type)`. If `reweight_to_lumi` isn't set to `null`, will also assign a weight to taus from the sample according to the fraction of luminosity `sample_lumi` assigned to it (i.e. `lumi_weight = sample_lumi / (reweight_to_lumi * N_taus_in_sample)`).
 
 * Function `WPMaker.update_thrs()` for each `score_vs_{type}` computes thresholds corresponding to its weighted quantiles given by `tpr` values. `tpr` is defined as a grid of evenly-spaced values with `step=wp_maker.tpr_step`. Thresholds which yield efficiencies closest to the values specified in `wp_maker.wp_definitions.{type}.wp_eff` are selected.
 
-* The procedure is repeated until convergence of threshold values within `wp_maker.epsilon` for all `vs_types`. If `wp_maker.require_wp_vs_others=False`, it should take only 2 iterations (no self-dependancy). Otherwise, the dependancy on passing the loosest WPs vs remaining tau types is introduced in the definition of WP vs current_type, so convergence will require >2 iterations (usually, it takes 5-8 iterations). 
+* The procedure is repeated until convergence of threshold values within `wp_maker.epsilon` for all `vs_types`. If `wp_maker.require_wp_vs_others=False`, it should take only 2 iterations (no self-dependancy). Otherwise, the dependancy on passing the loosest WPs vs remaining tau types is introduced in the definition of WP vs current_type, so convergence will require >2 iterations (usually, it takes 5-8 iterations).
 
 * Resulting json file with thresholds is logged to mlflow artifacts of the specified `run_id`.
 
@@ -592,11 +589,11 @@ python derive_wp.py 'create_df.path_to_mlflow=../Training/python/2018v1/mlruns/'
 
 ### Plotting working point efficiencies
 
-Once working points are derived, it is important to understand how tau/fake efficiency look like as a function of tau-related variables for each of the working points. Such plots can be produced with a script [Evaluation/plot_wp_eff.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/plot_wp_eff.py) + config [Evaluation/configs/plot_wp_eff.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/plot_wp_eff.yaml). 
+Once working points are derived, it is important to understand how tau/fake efficiency look like as a function of tau-related variables for each of the working points. Such plots can be produced with a script [Evaluation/plot_wp_eff.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/plot_wp_eff.py) + config [Evaluation/configs/plot_wp_eff.yaml](https://github.com/cms-tau-pog/TauMLTools/blob/master/Evaluation/configs/plot_wp_eff.yaml).
 
 What it does is firstly composes two datasets, one with genuine taus and the other with `vs_type` fakes. This uses the same `create_df()` function from `Evaluation/utils/data_processing.py`, which in this case however is called in a [partial manner](https://docs.python.org/3/library/functools.html#functools.partial). For that, the core arguments `create_df.*` in the config, specifying general paths/selection, are shared for each `tau_type`, while `pred_samples` argument (dictionary of dictionaries, `tau_type -> samples -> sample_cfg`) is factorised from it, allowing for a flexible separate calls per `tau_type`. If `from_skims=False`, those datasets will be logged to mlflow artifacts for the specified run, in order to remove the need in producing the datasets each time (hence, for `from_skims=True` it will instead search for such datasets in `output_skim_folder` within the mlflow artifacts).
 
-Then, WP thresholds are retrieved from the json file from mlflow artifacts and `differential_efficiency()` function from `Evaluation/utils/wp_eff.py` is called. It computes separately for both genuine taus and fakes the efficiency of passing WPs in `var_bins` of `wp_eff_var`. Note that this parameter in the main `plot_wp_eff.yaml` is itself the name of another yaml config to be imported into the final hydra configuration from `Evaluation/configs/wp_eff_var` folder. This folder contains a template set of yaml files where each describes binning & plotting parameters for a corresponding variable.  
+Then, WP thresholds are retrieved from the json file from mlflow artifacts and `differential_efficiency()` function from `Evaluation/utils/wp_eff.py` is called. It computes separately for both genuine taus and fakes the efficiency of passing WPs in `var_bins` of `wp_eff_var`. Note that this parameter in the main `plot_wp_eff.yaml` is itself the name of another yaml config to be imported into the final hydra configuration from `Evaluation/configs/wp_eff_var` folder. This folder contains a template set of yaml files where each describes binning & plotting parameters for a corresponding variable.
 
 It is `efficiency()` function which counts tau/fake objects passing WPs and returns the corresponding efficiency with a confidence interval (`eff, eff_down, eff_up`). It should be mentioned that this computation can be done both with and without assumption of passing some user-defined WPs. So it is the arguments `require_WPs_in_numerator`/ `require_WPs_in_denominator` which set if objects entering numerator/denominator of the efficiency formula should be required to pass `WPs_to_require`.
 
