@@ -1,3 +1,4 @@
+#if __has_include ("CUDADataFormats/Track/interface/PixelTrackHeterogeneous.h")
 #include "FWCore/Framework/interface/global/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -190,3 +191,4 @@ private:
 
 #include "FWCore/Framework/interface/MakerMacros.h"
 DEFINE_FWK_MODULE(PixelTrackTableProducer);
+#endif

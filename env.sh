@@ -42,9 +42,9 @@ do_install_cmssw() {
     run_cmd eval `scramv1 runtime -sh`
     run_cmd mkdir TauMLTools
     run_cmd cd TauMLTools
-    run_cmd ln -s "$TAU_ML_DIR/Analysis" Analysis
-    run_cmd ln -s "$TAU_ML_DIR/Core" Core
-    run_cmd ln -s "$TAU_ML_DIR/Production" Production
+    run_cmd ln -s "$this_dir/Analysis" Analysis
+    run_cmd ln -s "$this_dir/Core" Core
+    run_cmd ln -s "$this_dir/Production" Production
     run_cmd scram b -j8
     run_cmd touch "$this_dir/soft/CentOS$os_version/$CMSSW_VER/.installed"
   fi
@@ -56,13 +56,25 @@ install_cmssw() {
   local scram_arch=$1
   local cmssw_version=$2
   local os_version=$3
-  if [[ $os_version < 8 ]] ; then
-    local env_cmd=cmssw-cc$os_version
+  local target_os_version=$4
+  if [[ $os_version == $target_os_version ]]; then
+    local env_cmd=""
+    local env_cmd_args=""
   else
-    local env_cmd=cmssw-el$os_version
+    if [[ $target_os_version < 8 ]] ; then
+      local os_type="cc"
+    else
+      local os_type="el"
+    fi
+    local env_cmd="cmssw-$os_type$target_os_version"
+    if ! command -v $env_cmd &> /dev/null; then
+      echo "Unable to do a cross-platform installation for $cmssw_version SCRAM_ARCH=$scram_arch. $env_cmd is not available."
+      return 1
+    fi
+    local env_cmd_args="--command-to-run"
   fi
-  if ! [ -f "$this_dir/soft/CentOS$os_version/$CMSSW_VER/.installed" ]; then
-    run_cmd $env_cmd --command-to-run /usr/bin/env -i HOME=$HOME bash "$this_file" install_cmssw $scram_arch $cmssw_version $os_version
+  if ! [ -f "$this_dir/soft/CentOS$target_os_version/$CMSSW_VER/.installed" ]; then
+    run_cmd $env_cmd $env_cmd_args /usr/bin/env -i HOME=$HOME bash "$this_file" install_cmssw $scram_arch $cmssw_version $target_os_version
   fi
 }
 
@@ -77,31 +89,31 @@ action() {
 
   export PYTHONPATH="$this_dir:$PYTHONPATH"
   export LAW_HOME="$this_dir/.law"
-  export LAW_CONFIG_FILE="$this_dir/law/law.cfg"
+  export LAW_CONFIG_FILE="$this_dir/LawWorkflows/law.cfg"
 
   run_cmd mkdir -p "$ANALYSIS_DATA_PATH"
 
   local os_version=$(cat /etc/os-release | grep VERSION_ID | sed -E 's/VERSION_ID="([0-9]+)"/\1/')
-  local default_cmssw_ver=CMSSW_12_4_10
+  local default_cmssw_ver=CMSSW_12_4_13
   export DEFAULT_CMSSW_BASE="$ANALYSIS_PATH/soft/CentOS$os_version/$default_cmssw_ver"
 
   if [[ $MODE = *"cmssw"* ]]; then
-    run_cmd install_cmssw slc7_amd64_gcc10 $default_cmssw_ver 7
-    run_cmd install_cmssw el8_amd64_gcc10 $default_cmssw_ver 8
+    run_cmd install_cmssw slc7_amd64_gcc10 $default_cmssw_ver $os_version 7
+    run_cmd install_cmssw el8_amd64_gcc10 $default_cmssw_ver $os_version 8
 
     #for phase2
-    run_cmd install_cmssw slc7_amd64_gcc900 CMSSW_11_2_5 7
-    run_cmd install_cmssw slc7_amd64_gcc900 CMSSW_11_3_0 7
+    #run_cmd install_cmssw slc7_amd64_gcc900 CMSSW_11_2_5 $os_version 7
+    #run_cmd install_cmssw slc7_amd64_gcc900 CMSSW_11_3_0 $os_version 7
 
     alias cmsEnv="env -i HOME=$HOME ANALYSIS_PATH=$ANALYSIS_PATH ANALYSIS_DATA_PATH=$ANALYSIS_DATA_PATH X509_USER_PROXY=$X509_USER_PROXY DEFAULT_CMSSW_BASE=$DEFAULT_CMSSW_BASE $ANALYSIS_PATH/RunKit/cmsEnv.sh"
-    alias cmsEnv11_2="env -i HOME=$HOME ANALYSIS_PATH=$ANALYSIS_PATH ANALYSIS_DATA_PATH=$ANALYSIS_DATA_PATH X509_USER_PROXY=$X509_USER_PROXY DEFAULT_CMSSW_BASE=$ANALYSIS_PATH/soft/CentOS$os_version/CMSSW_11_2_5 $ANALYSIS_PATH/RunKit/cmsEnv.sh"
-    alias cmsEnv11_3="env -i HOME=$HOME ANALYSIS_PATH=$ANALYSIS_PATH ANALYSIS_DATA_PATH=$ANALYSIS_DATA_PATH X509_USER_PROXY=$X509_USER_PROXY DEFAULT_CMSSW_BASE=$ANALYSIS_PATH/soft/CentOS$os_version/CMSSW_11_3_0 $ANALYSIS_PATH/RunKit/cmsEnv.sh"
+    #alias cmsEnv11_2="env -i HOME=$HOME ANALYSIS_PATH=$ANALYSIS_PATH ANALYSIS_DATA_PATH=$ANALYSIS_DATA_PATH X509_USER_PROXY=$X509_USER_PROXY DEFAULT_CMSSW_BASE=$ANALYSIS_PATH/soft/CentOS$os_version/CMSSW_11_2_5 $ANALYSIS_PATH/RunKit/cmsEnv.sh"
+    #alias cmsEnv11_3="env -i HOME=$HOME ANALYSIS_PATH=$ANALYSIS_PATH ANALYSIS_DATA_PATH=$ANALYSIS_DATA_PATH X509_USER_PROXY=$X509_USER_PROXY DEFAULT_CMSSW_BASE=$ANALYSIS_PATH/soft/CentOS$os_version/CMSSW_11_3_0 $ANALYSIS_PATH/RunKit/cmsEnv.sh"
   fi
 
   if [[ $MODE == *"conda"* ]]; then
     local CONDA=$(which conda 2>/dev/null)
     if [[ $CONDA = "" || $CONDA = "/usr/bin/conda" ]]; then
-      local PRIVATE_CONDA_INSTALL_DEFAULT="$BASE_PATH/soft/conda"
+      local PRIVATE_CONDA_INSTALL_DEFAULT="$ANALYSIS_PATH/soft/conda"
       local PRIVATE_CONDA_INSTALL="$PRIVATE_CONDA_INSTALL_DEFAULT"
       if [ -f "$PRIVATE_CONDA_INSTALL_DEFAULT.ref" ]; then
         local PRIVATE_CONDA_INSTALL=$(cat "$PRIVATE_CONDA_INSTALL.ref")
@@ -157,7 +169,7 @@ action() {
     tau_env_found=$(conda env list | grep -E '^tau-ml .*' | wc -l)
     if (( $tau_env_found != 1 )); then
       echo "Creating tau-ml environment..."
-      run_cmd conda env create -f $BASE_PATH/tau-ml-env.yaml
+      run_cmd conda env create -f $ANALYSIS_PATH/tau-ml-env.yaml
     fi
     run_cmd conda activate tau-ml
     ARG="$2"
@@ -191,6 +203,8 @@ action() {
   if [ $? -eq 0 ]; then
     eosfusebind -g
   fi
+
+  alias run_cxx="python $ANALYSIS_PATH/Core/python/run_cxx.py"
 
   echo "TauMLTools environment is successfully loaded."
 }

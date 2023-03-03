@@ -9,10 +9,9 @@ import glob
 import shutil
 import yaml
 
-from Analysis.law.framework import Task, HTCondorWorkflow
+from .framework import Task, HTCondorWorkflow
 import luigi
-sys.path.append('{}/../../../Training/python'.format(os.path.dirname(os.path.abspath(__file__))))
-from feature_scaling import run_scaling as run_job
+from Training.python.feature_scaling import run_scaling as run_job
 
 class FeatureScaling(Task, HTCondorWorkflow, law.LocalWorkflow):
   ## '_' will be converted to '-' for the shell command invocation

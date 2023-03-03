@@ -1,15 +1,16 @@
 ## see https://github.com/riga/law/tree/master/examples/htcondor_at_cern
 
 import six
-import law
 import subprocess
 import os
 import re
 import sys
 import shutil
 
-from Analysis.law.framework import Task, HTCondorWorkflow
+import law
 import luigi
+from .framework import Task, HTCondorWorkflow
+from RunKit.sh_tools import sh_call
 
 class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   ## '_' will be converted to '-' for the shell command invocation
@@ -40,18 +41,29 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   overflow_job      = luigi.Parameter(default = '', description = 'to consider remaining taus in last job')
 
   def create_branch_map(self):
-    self.output_dir = '/'.join([self.output_path, 'tmp'])
-    ## create the .root file output directory
-    if not os.path.exists(os.path.abspath(self.output_dir)):
-      os.makedirs(os.path.abspath(self.output_dir))
-    ## this directory will store the json has dictionaries
-    if not os.path.exists(os.path.abspath('/'.join([self.output_dir, '..', 'hashes']))):
-      os.makedirs(os.path.abspath('/'.join([self.output_dir, '..', 'hashes'])))
+    if not (self.mode == 'MergeAll' or self.mode == ''):
+      raise Exception('Only --mode MergeAll is supported by the law tool')
+    if os.path.isabs(self.output_path):
+      output = self.output_path
+    else:
+      output = os.path.join(os.environ['ANALYSIS_PATH'], self.output_path)
 
-    return {i: i for i in range(self.n_jobs)}
+    tmp_output = os.path.join(output, 'tmp')
+    hash_output = os.path.join(output, 'hashes')
+    os.makedirs(tmp_output, exist_ok = True)
+    os.makedirs(hash_output, exist_ok = True)
+    branches = {}
+    for i in range(self.n_jobs):
+      branches[i] = (output, tmp_output, hash_output)
+    return branches
 
   def output(self):
-    return self.local_target("empty_file_{}.txt".format(self.branch))
+    output, tmp_output, hash_output = self.branch_data
+    file_name = self.getFileName()
+    return law.LocalFileTarget(os.path.join(output, file_name))
+
+  def getFileName(self):
+    return f'ShuffleMergeSpectral_{self.branch}.root'
 
   def move(self, src, dest):
     if os.path.exists(dest):
@@ -60,30 +72,29 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     shutil.move(src, dest)
 
   def run(self):
-    self.output_dir = '/'.join([self.output_path, 'tmp'])
-    file_name   = '_'.join(['ShuffleMergeSpectral', str(self.branch)]) + '.root'
-    output_name = '/'.join([self.output_dir, file_name])
+    output, tmp_output, hash_output = self.branch_data
+    file_name   = self.getFileName()
+    tmp_file = os.path.join(tmp_output, file_name)
 
-    if not (self.mode == 'MergeAll' or self.mode == ''):
-      raise Exception('Only --mode MergeAll is supported by the law tool')
-
-    quote = lambda x: str('\"{}\"'.format(str(x)))
-    command = ['ShuffleMergeSpectral',
-      '--cfg'               , str(self.cfg)             ,
-      '--input'             , str(self.input_path)      ,
-      '--output'            , output_name               ,
-      '--pt-bins'           , quote(str(self.pt_bins))  ,
-      '--eta-bins'          , quote(str(self.eta_bins)) ,
-      '--input-spec'        , str(self.input_spec)      ,
-      '--n-jobs'            , str(self.n_jobs)          ,
-      '--job-idx'           , str(self.branch_data)     ,
-      '--tau-ratio'         , quote(str(self.tau_ratio))]
+    run_cxx_path = os.path.join(os.environ['ANALYSIS_PATH'], 'Core', 'python', 'run_cxx.py')
+    sm_path = os.path.join(os.environ['ANALYSIS_PATH'], 'Preprocessing', 'ShuffleMergeSpectral.cxx')
+    command = [ 'python', '-u', run_cxx_path, sm_path,
+      '--cfg'               , str(self.cfg),
+      '--input'             , str(self.input_path),
+      '--output'            , tmp_file,
+      '--pt-bins'           , str(self.pt_bins),
+      '--eta-bins'          , str(self.eta_bins),
+      '--input-spec'        , str(self.input_spec),
+      '--n-jobs'            , str(self.n_jobs),
+      '--job-idx'           , str(self.branch),
+      '--tau-ratio'         , str(self.tau_ratio),
+    ]
     optional_arguments = [
       ['--mode'              , str(self.mode)                    ],
       ['--seed'              , str(self.seed)                    ],
       ['--prefix'            , str(self.prefix)                  ],
       ['--n-threads'         , str(self.n_threads)               ],
-      ['--disabled-branches' , quote(str(self.disabled_branches))],
+      ['--disabled-branches' , str(self.disabled_branches)       ],
       ['--lastbin-disbalance', str(self.lastbin_disbalance)      ],
       ['--lastbin-takeall'   , str(self.lastbin_takeall)         ],
       ['--compression-algo'  , str(self.compression_algo)        ],
@@ -97,22 +108,8 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     for arg in optional_arguments:
       if len(arg[1]) > 0:
         command += arg
+    sh_call(command, verbose=1)
 
-    command = ' '.join(command)
-    print ('>> {}'.format(command))
-    proc = subprocess.Popen(command, shell = True, stdout = subprocess.PIPE, stderr = subprocess.PIPE)
-    stdout, stderr = proc.communicate()
-
-    sys.stdout.write(str(stdout) + '\n')
-    sys.stderr.write(str(stderr) + '\n')
-
-    retcode = proc.returncode
-
-    if retcode != 0:
-      raise Exception('job {} return code is {}'.format(self.branch, retcode))
-    else:
-      self.move(os.path.abspath(output_name), os.path.abspath('/'.join([self.output_dir, '..', file_name])))
-      self.move(os.path.abspath('./out'    ), os.path.abspath('/'.join([self.output_dir, '..', 'hashes', 'out_{}'.format(self.branch)])))
-      print('Output file and hash tables moved to {}\n'.format(os.path.abspath('/'.join([self.output_dir, '..']))))
-      taskout = self.output()
-      taskout.dump('Task ended with code %s\n' %retcode)
+    self.move(tmp_file, self.output().path)
+    self.move('out', os.path.join(hash_output, f'out_{self.branch}'))
+    print(f'Output file and hash tables moved to {self.output().path}')

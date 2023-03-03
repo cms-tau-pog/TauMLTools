@@ -9,7 +9,7 @@ import sys
 import shutil
 import math
 
-from Analysis.law.framework import Task, HTCondorWorkflow
+from .framework import Task, HTCondorWorkflow
 import luigi
 
 class Training(Task, HTCondorWorkflow, law.LocalWorkflow):

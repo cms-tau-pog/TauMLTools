@@ -69,52 +69,6 @@ ClassInheritance FindClassInheritance(const std::string& class_name)
     return inheritance;
 }
 
-void RebinAndFill(TH2& new_hist, const TH2& old_hist)
-{
-    static const auto check_range = [](const TAxis* old_axis, const TAxis* new_axis) {
-        const double old_min = old_axis->GetBinLowEdge(1);
-        const double old_max = old_axis->GetBinUpEdge(old_axis->GetNbins());
-        const double new_min = new_axis->GetBinLowEdge(1);
-        const double new_max = new_axis->GetBinUpEdge(new_axis->GetNbins());
-        return old_min <= new_min && old_max >= new_max;
-    };
-
-    static const auto get_new_bin = [](const TAxis* old_axis, const TAxis* new_axis, int bin_id_old) {
-        const double old_low_edge = old_axis->GetBinLowEdge(bin_id_old);
-        const double old_up_edge = old_axis->GetBinUpEdge(bin_id_old);
-        const int bin_low_new = new_axis->FindFixBin(old_low_edge);
-        const int bin_up_new = new_axis->FindFixBin(old_up_edge);
-
-        const double new_up_edge = new_axis->GetBinUpEdge(bin_low_new);
-        if(bin_low_new != bin_up_new
-                && !(std::abs(old_up_edge-new_up_edge) <= std::numeric_limits<double>::epsilon() * std::abs(old_up_edge+new_up_edge) * 2))
-            throw analysis::exception("Uncompatible bin edges");
-        return bin_low_new;
-    };
-
-    if(!check_range(old_hist.GetXaxis(), new_hist.GetXaxis()))
-        throw analysis::exception("x ranges not compatible");
-
-    if(!check_range(old_hist.GetYaxis(), new_hist.GetYaxis()))
-        throw analysis::exception("y ranges not compatible");
-
-    for(int x_bin_old = 0; x_bin_old <= old_hist.GetNbinsX() + 1; ++x_bin_old) {
-        const int x_bin_new = get_new_bin(old_hist.GetXaxis(), new_hist.GetXaxis(), x_bin_old);
-        for(int y_bin_old = 0; y_bin_old <= old_hist.GetNbinsY() + 1; ++y_bin_old) {
-            const int y_bin_new = get_new_bin(old_hist.GetYaxis(), new_hist.GetYaxis(), y_bin_old);
-            const int bin_old = old_hist.GetBin(x_bin_old, y_bin_old);
-            const int bin_new = new_hist.GetBin(x_bin_new, y_bin_new);
-
-            const double cnt_old = old_hist.GetBinContent(bin_old);
-            const double err_old = old_hist.GetBinError(bin_old);
-            const double cnt_new = new_hist.GetBinContent(bin_new);
-            const double err_new = new_hist.GetBinError(bin_new);
-
-            new_hist.SetBinContent(bin_new, cnt_new + cnt_old);
-            new_hist.SetBinError(bin_new, std::hypot(err_new, err_old));
-        }
-    }
-}
 } // namespace root_ext
 
 

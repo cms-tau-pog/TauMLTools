@@ -37,28 +37,6 @@ std::string GetFileNameWithoutPath(const std::string& file_name)
         return file_name.substr(lastindex+1);
 }
 
-std::vector<std::string> SplitValueList(const std::string& _values_str, bool allow_duplicates,
-                                        const std::string& separators, bool enable_token_compress)
-{
-    std::string values_str = _values_str;
-    std::vector<std::string> result;
-    if(enable_token_compress)
-        boost::trim_if(values_str, boost::is_any_of(separators));
-    if(!values_str.size()) return result;
-    const auto token_compress = enable_token_compress ? boost::algorithm::token_compress_on
-                                                      : boost::algorithm::token_compress_off;
-    boost::split(result, values_str, boost::is_any_of(separators), token_compress);
-    if(!allow_duplicates) {
-        std::unordered_set<std::string> set_result;
-        for(const std::string& value : result) {
-            if(set_result.count(value))
-                throw exception("Value '%1%' listed more than once in the value list '%2%'.") % value % values_str;
-            set_result.insert(value);
-        }
-    }
-    return result;
-}
-
 std::vector<std::string> ReadValueList(std::istream& stream, size_t number_of_items, bool allow_duplicates,
                                        const std::string& separators, bool enable_token_compress)
 {

@@ -7,7 +7,7 @@ import os
 import re
 import sys
 
-from Analysis.law.framework import Task, HTCondorWorkflow
+from .framework import Task, HTCondorWorkflow
 import luigi
 
 class HaddFiles(Task, HTCondorWorkflow, law.LocalWorkflow):

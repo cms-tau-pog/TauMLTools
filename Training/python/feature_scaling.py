@@ -2,6 +2,7 @@ import uproot
 import numpy as np
 
 import os
+import sys
 import time
 import gc
 import argparse
@@ -10,15 +11,22 @@ from glob import glob
 # from tqdm import tqdm
 from collections import defaultdict
 
-from scaling_utils import dR, dR_signal_cone, mask_inf, mask_nan, fill_aggregators, get_quantiles
-from scaling_utils import init_dictionaries, dump_to_json
+if __name__ == "__main__":
+  file_dir = os.path.dirname(os.path.abspath(__file__))
+  base_dir = os.path.dirname(file_dir)
+  if base_dir not in sys.path:
+    sys.path.append(base_dir)
+  __package__ = file_dir
+
+from .scaling_utils import dR, dR_signal_cone, mask_inf, mask_nan, fill_aggregators, get_quantiles
+from .scaling_utils import init_dictionaries, dump_to_json
 
 def run_scaling(cfg, var_types, file_list=None, output_folder=None):
     with open(cfg) as f:
         scaling_dict = yaml.load(f, Loader=(yaml.FullLoader))
-    
+
     assert type(var_types) == list, "--var-types should be a list"
-    
+
     setup_dict                  = scaling_dict['Scaling_setup']
     features_dict               = scaling_dict['Features_all']
     var_types                   = features_dict.keys() if (var_types[0] == '-1' and len(var_types) == 1) else var_types
@@ -38,7 +46,7 @@ def run_scaling(cfg, var_types, file_list=None, output_folder=None):
         os.makedirs(output_json_folder)
 
     assert log_step > 0 and type(log_step) == int
-    
+
     if file_list is None:
         if file_range==-1:
             file_names = sorted(glob(file_path))
@@ -65,7 +73,7 @@ def run_scaling(cfg, var_types, file_list=None, output_folder=None):
     inf_counter = defaultdict(list) # counter of features with inf values and their fraction
     nan_counter = defaultdict(list) # counter of features with nan values and their fraction
     processed_last_file = time.time()
-    
+
     # loop over input files
     for file_i, (file_name_i, file_name) in enumerate(zip(file_names_ix, file_names)): # file_i used internally to count number of processed files
         print("Processing file:",file_i,",",file_name)
