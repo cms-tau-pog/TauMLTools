@@ -3,7 +3,6 @@ This file is part of https://github.com/hh-italian-group/h-tautau. */
 
 #pragma once
 
-#include "TauMLTools/Core/interface/PhysicalValue.h"
 #include "TauMLTools/Core/interface/EnumNameMap.h"
 
 namespace analysis {

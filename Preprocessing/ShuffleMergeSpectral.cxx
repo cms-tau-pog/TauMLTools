@@ -13,8 +13,6 @@
 
 #include "TauMLTools/Core/interface/program_main.h"
 #include "TauMLTools/Core/interface/RootExt.h"
-#include "TauMLTools/Core/interface/PropertyConfigReader.h"
-#include "TauMLTools/Core/interface/ProgressReporter.h"
 #include "TauMLTools/Analysis/interface/TauTuple.h"
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 #include "TauMLTools/Analysis/interface/ShuffleTools.h"
@@ -51,7 +49,7 @@ struct Arguments {
     run::Argument<unsigned> job_idx{"job-idx", "index of the job (starts from 0)"};
     run::Argument<unsigned> n_jobs{"n-jobs", "the number by which to divide all files"};
     run::Argument<double> lastbin_disbalance{"lastbin-disbalance", "maximal acceptable disbalance between low pt (all bins up to last one)"
-                                             "and high pt region (last pt bin) " 
+                                             "and high pt region (last pt bin) "
                                              "(option is relevant only for the case of `--lastbin-takeall True`)",1.0};
     run::Argument<bool> lastbin_takeall{"lastbin-takeall", "to take all events from the last bin up to acceptable disbalance,"
                                         "specified with `--lastbin-disbalance`",false};
@@ -79,7 +77,7 @@ struct SourceDescTau : SourceDesc<TauType> {
                                               tau.genLepton_index, tau.tau_pt, tau.tau_eta,
                                               tau.tau_phi, tau.tau_mass, tau.genLepton_vis_pt,
                                               tau.genLepton_vis_eta, tau.genLepton_vis_phi,
-                                              tau.genLepton_vis_mass, tau.genJet_index);        
+                                              tau.genLepton_vis_mass, tau.genJet_index);
       const auto sample_type = static_cast<SampleType>(tau.sampleType);
       if(!gen_match)
         return std::nullopt;
@@ -111,8 +109,8 @@ public:
 
         // option 1: last pt bin will be taken into account for probability calculations (exp_disbalance==0)
         // option 2: all events from the last bin will be taken up to acceptable disbalance
-        ttype_prob[type] = 
-          std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0], 
+        ttype_prob[type] =
+          std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0],
           lastbin_takeall==false ? pt_bins.size()-1 : pt_bins.size()-2, &pt_bins[0]);
 
         ttype_entries[type] = std::make_shared<TH2D>(name,name,eta_bins.size()-1,&eta_bins[0],
@@ -126,8 +124,8 @@ public:
     SpectrumHists& operator=(const SpectrumHists&) = delete;
 
     void AddHist(const std::string& path_spectrum_file)
-    { 
-      // Following  
+    {
+      // Following
       std::shared_ptr<TFile> current_file = std::make_shared<TFile>(path_spectrum_file.c_str());
       for (TauType type: ttypes){
         std::shared_ptr<TH2D> hist_ttype((TH2D*)current_file->Get(("eta_pt_hist_"+ToString(type)).c_str()));
@@ -256,7 +254,7 @@ private:
   {
     // option 1: last pt bin will be taken into account for probability calculations (lastbin_takeall==0)
     // option 2: all events from the last bin will be taken up to acceptable disbalance
-    std::shared_ptr<TH2D> tartget_hist = 
+    std::shared_ptr<TH2D> tartget_hist =
       std::make_shared<TH2D>("tartget","tartget", eta_bins.size()-1,&eta_bins[0],
                               lastbin_takeall==false ? pt_bins.size()-1 : pt_bins.size()-2,
                               &pt_bins[0]);
@@ -465,7 +463,7 @@ private:
       for(auto tauR_: tau_ratio){
         if (accumulated_entries.find(tauR_.first) == accumulated_entries.end()){
           throw exception("Tau type %1% was specified in tau ratios, but no %1% is present in the input")
-            %tauR_.first; 
+            %tauR_.first;
         }
       }
 
@@ -476,14 +474,14 @@ private:
           else if(tauR_.second<0)
             throw exception("Available --tau_ratio arguments should be > 0 or -1");
 
-          std::cout << "tau type: " << ToString(tauR_.first) << ", Entries: " 
+          std::cout << "tau type: " << ToString(tauR_.first) << ", Entries: "
                     << accumulated_entries.at(tauR_.first) << "\n";
           probab[tauR_.first] = tauR_.second/accumulated_entries.at(tauR_.first);
         }
       }
       // Step 2: if we have for non-"-1"(take all) types
       // to take maximum possible number of taus
-      // max[<expected ration>/<entries_per_type>] 
+      // max[<expected ration>/<entries_per_type>]
       // should be normalized to 1.0 (means take all taus of the type)
       if(!probab.empty()) {
         auto pr = std::max_element(std::begin(probab), std::end(probab),

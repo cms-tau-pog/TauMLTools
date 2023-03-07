@@ -1,5 +1,5 @@
 /*! Parse configuration file that contains list of properties.
-This file is part of https://github.com/hh-italian-group/TauMLTools. */
+This file is part of https://github.com/cms-tau-pog/TauMLTools. */
 
 #pragma once
 
@@ -81,7 +81,6 @@ public:
             str.erase(str.size() - 1);
         return str;
     }
-
     static bool TryParse(const std::string& line, PropertyList& p_list, std::string& msg)
     {
         p_list.properties.clear();

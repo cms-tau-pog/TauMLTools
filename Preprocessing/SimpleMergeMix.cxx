@@ -15,7 +15,6 @@
 #include "TauMLTools/Core/interface/RootExt.h"
 #include "TauMLTools/Core/interface/RootFilesMerger.h"
 #include "TauMLTools/Core/interface/PropertyConfigReader.h"
-#include "TauMLTools/Core/interface/ProgressReporter.h"
 #include "TauMLTools/Analysis/interface/TauTuple.h"
 #include "TauMLTools/Analysis/interface/GenLepton.h"
 #include "TauMLTools/Analysis/interface/DisTauTagSelection.h"
@@ -76,14 +75,14 @@ public:
 
       for(auto entry: entries){
         sources.push_back(std::make_unique<SourceDescJet>(entry.name, entry.total_entries, entry.name_hash,
-                                                          entry.data_files, entry.data_set_names_hashes, entry.point_entry, 
+                                                          entry.data_files, entry.data_set_names_hashes, entry.point_entry,
                                                           entry.point_exit, entry.tau_types, disabled_branches));
         datagroup_probs.push_back(entry.mixing_coefficient);
       }
       dist_dataset = Discret(datagroup_probs.begin(), datagroup_probs.end());
     }
 
-    bool Step() { 
+    bool Step() {
       dg_idx=dist_dataset(*gen);
       return sources.at(dg_idx)->DoNextStep();
     }
@@ -196,7 +195,7 @@ public:
             //     std::string file_name = file_name_temp + "_" + std::to_string(file_n++) + ".root";
             //     output_file = root_ext::CreateRootFile(file_name, compression, args.compression_level());
             //     output_tuple = std::make_shared<TauTuple>("taus", output_file.get(), false);
-            // } 
+            // }
         }
         output_tuple->Write();
         output_tuple.reset();
@@ -212,7 +211,7 @@ private:
         std::cout << cfg_file_name << std::endl;
         reader.Parse(cfg_file_name);
         for(const auto& item : reader.GetItems()){
-            entries.emplace_back(item.second, args.path_spectrum(), args.input(), 
+            entries.emplace_back(item.second, args.path_spectrum(), args.input(),
                                  args.prefix(), args.job_idx(), args.n_jobs(), false, false);
         }
         return entries;
