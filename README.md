@@ -22,13 +22,13 @@ Tools to perform machine learning studies for tau lepton reconstruction and iden
    source env.sh [ ENV_NAME ]
    ```
    where supported `ENV_NAME` are:
-   - by default using LCG environment
-   - if `ENV_NAME` contains `cmssw` - cmssw package
+   - if no `ENV_NAME` is specified, the LCG environment is used by default;
+   - if `ENV_NAME` contains `cmssw` - enable to CMSSW-dependent environment package is enabled;
    - if `ENV_NAME` contains `conda` - using tau-ml conda environment -- this is the recommended environment to perform an actual NN training
 
    N.B. If you want to use existing `conda` installation, make sure that it is activated and the path to the `conda` executable is included in `PATH` variable. If `conda` installation not found, `env.sh` will make install it from the official web site and configure it to work with the current TauMLTools installation.
 
-   N.B. If cmssw environment was specified when sourcing env.sh, to run a command in the CMSSW environment, one should add `cmsEnv`, `cmsEnv11_2` or `cmsEnv11_3` before the command.
+   N.B. If cmssw environment was specified when sourcing env.sh, to run a command in the CMSSW environment, one should add `cmsEnv` before the command.
 
 The second step (`source env.sh ENV_NAME`) should be repeated each time you open a new shell session.
 
@@ -100,21 +100,23 @@ This step represents a Shuffle and Merge procedure that aims to minimize usage o
 
 Spectrum of the initial data is needed to calculate the probability to take tau candidate of some genuine tau-type and from some pt-eta bin. To generate the specturum histograms for a dataset and lists with number of entries per datafile, run:
 ```sh
-cmsEnv CreateSpectralHists --output "spectrum_file.root" \
-                    --output_entries "entires_file.txt" \
-                    --input-dir "path/to/dataset/dir" \
-                    --pt-hist "n_bins_pt, pt_min, pt_max" \
-                    --eta-hist "n_bins_eta, |eta|_min, |eta|_max" \
-                    --n-threads 1
+run_cxx $ANALYSIS_PATH/Preprocessing/CreateSpectralHists \
+    --output "spectrum_file.root" \
+    --output_entries "entires_file.txt" \
+    --input-dir "path/to/dataset/dir" \
+    --pt-hist "n_bins_pt, pt_min, pt_max" \
+    --eta-hist "n_bins_eta, |eta|_min, |eta|_max" \
+    --n-threads 1
 ```
 on this step it is important to have high granularity binning to be able later to re-bin into custom, non-uniform pt-eta bins on the next step.
 
 Alternatively, if one wants to process several datasets the following python script can be used (parameters of pt and eta binning to be hardcoded in the script):
 ```sh
-python Analysis/python/CreateSpectralHists.py --input /path/to/input/dir/ \
-                                              --output /path/to/output/dir/ \
-                                              --filter ".*(DY).*" \
-                                              --rewrite
+python $ANALYSIS_PATH/Preprocessing/CreateSpectralHists.py \
+    --input /path/to/input/dir/ \
+    --output /path/to/output/dir/ \
+    --filter ".*(DY).*" \
+    --rewrite
 ```
 After the following step spectrums and .txt files with the number of entries will be created in the output folder. To merge all the .txt files into one and mix the lines:
 ```
@@ -132,7 +134,7 @@ Mixing is needed to have shuffled files within one data group. After this step, 
 #### Shuffling & Merging
 After spectrums are created for all datasets, the final procedure of Shuffle and Merge can be performed with:
 ```sh
-cmsEnv ShuffleMergeSpectral --cfg Analysis/config/2018/training_inputs_MC.cfg
+run_cxx Preprocessing/ShuffleMergeSpectral.cxx --cfg Analysis/config/2018/training_inputs_MC.cfg
                      --input filelist_mix.txt
                      --prefix prefix_string
                      --output <path_to_output_file.root>
@@ -171,7 +173,7 @@ Jobs can be submitted running
 ```
 law run ShuffleMergeSpectral --version vx --params --n-jobs N
 ```
-where *--params* are the [ShuffleMergeSpectral](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/bin/ShuffleMergeSpectral.cxx#L28-L52) parameters. In particular
+where *--params* are the [ShuffleMergeSpectral](https://github.com/cms-tau-pog/TauMLTools/blob/master/Preprocessing/ShuffleMergeSpectral.cxx#L28-L52) parameters. In particular
 
    - *--input* has been renamed to *--input-path*
    - *--output* has been renamed to *--output-path*
@@ -322,16 +324,14 @@ This will produce a plot of the clamped range plotted side-by-side with quantile
 As an alternative to the interactive mode described above, the scaling parameter computation can be distributed to multiple jobs and run on HTCondor. The code run on HTCondor is the same that would be run interactivelly.
 To run with law, first activate the right conda environment (note: it's recommended to have law installed via conda's pip), then:
 ```bash
-cd TauMLTools/Analysis/law
-source setup.sh
 law index
 ```
 then run the job submission
 ```bash
 law run FeatureScaling --version version_tag --environment conda --cfg /path/to/yaml/cfg.yaml --output-path /path/to/dir/ --file-per-job M --n-jobs N
 ```
-where ```--version``` specifies the job submission version (used by law to monitor the status of the jobs), ```--environment``` specifies the shell environment to be used (*conda* in this case, see [TauMLTools/Analysis/law/bootstrap.sh](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/law/bootstrap.sh)), ```--cfg``` is the yaml configuration file (the same used in interactive mode), ```--files-per-job``` specifies the number of files processed by each job, ```--n-jobs``` specifies the number of jobs to run, and ```--output-path``` specifies the path to the output directory, used to save the results.
-The law task run by the code above (stored in [TauMLTools/Analysis/law/FeatureScaling/task.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/Analysis/law/FeatureScaling/tasks.py)) implements the same script used locally, with the following caveat:
+where ```--version``` specifies the job submission version (used by law to monitor the status of the jobs), ```--environment``` specifies the shell environment to be used (*conda* in this case, see [TauMLTools/bootstrap.sh](https://github.com/cms-tau-pog/TauMLTools/blob/master/bootstrap.sh)), ```--cfg``` is the yaml configuration file (the same used in interactive mode), ```--files-per-job``` specifies the number of files processed by each job, ```--n-jobs``` specifies the number of jobs to run, and ```--output-path``` specifies the path to the output directory, used to save the results.
+The law task run by the code above (stored in [TauMLTools/LawWorkflows/FeatureScaling.py](https://github.com/cms-tau-pog/TauMLTools/blob/master/LawWorkflows/FeatureScaling.py)) implements the same script used locally, with the following caveat:
 
 - the number of files per job is specified by the ```--files-per-job``` argument
 - the total number of jobs is defined by the ```--n-jobs``` argument, which, together with the ```--files-per-job``` argument, determines the total number of files read from the input path. Leave this to the default value (0) to run on all the input files with ```--files-per-job``` files per job

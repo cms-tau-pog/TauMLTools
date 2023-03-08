@@ -3,10 +3,9 @@
 import os
 import re
 import argparse
-import shutil
-import random
 from glob import glob
-import subprocess
+
+from RunKit.sh_tools import sh_call, ShCallError
 
 parser = argparse.ArgumentParser(description='Creating histograms for shuffle and merge.')
 parser.add_argument('--input', required=True, type=str, help="input directory")
@@ -48,7 +47,7 @@ for dir_path in input_path:
                 + split_path[-1] + ".root"
     output_entries = args.output + "/" \
                 + split_path[-1] + ".txt"
-                
+
 
     if os.path.exists(output_root):
         print("{} was already processed.".format(dir_path))
@@ -67,13 +66,23 @@ for dir_path in input_path:
 
     print("Added {}...".format(dir_path))
 
-    cmd = 'CreateSpectralHists --outputfile "{}" --output_entries "{}" --input-dir "{}" --pt-hist "{}" --eta-hist "{}" --n-threads {} --mode {}' \
-        .format(output_root, output_entries, dir_path, pt_hist, eta_hist, args.n_threads, args.mode)
-    result = subprocess.call([cmd], shell=True)
+    ana_path = os.environ['ANALYSIS_PATH']
 
-    if result != 0:
+    cmd = [ 'python', os.path.join(ana_path, 'Core', 'python', 'run_cxx.py'),
+        os.path.join(ana_path, 'PreProcessing', 'CreateSpectralHists.cxx'),
+        '--outputfile', output_root,
+        '--output_entries', output_entries,
+        '--input-dir', dir_path,
+        '--pt-hist', pt_hist,
+        '--eta-hist', eta_hist,
+        '--n-threads', str(args.n_threads),
+        '--mode', args.mode,
+    ]
+    try:
+        sh_call(cmd)
+    except ShCallError as e:
         if os.path.exists(output_root):
             os.remove(output_root)
-        raise RuntimeError("MergeTuples has failed.")
+        raise RuntimeError("CreateSpectralHists has failed.") from e
     print("{} has been successfully processed".format(dir_path))
 
