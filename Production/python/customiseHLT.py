@@ -363,7 +363,6 @@ def customise(process, is_data = False):
   process.schedule.insert(1000000, process.nanoAOD_step)
   process.schedule.insert(1000000, process.NANOAODSIMoutput_step)
   
-  print(process.dumpPython())
 
   return process
 
