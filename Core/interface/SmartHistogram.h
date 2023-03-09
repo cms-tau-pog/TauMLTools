@@ -1,5 +1,5 @@
 /*! Definition of class SmartHistogram that allows to create ROOT-compatible histograms.
-This file is part of https://github.com/hh-italian-group/TauMLTools. */
+This file is part of https://github.com/cms-tau-pog/TauMLTools. */
 
 #pragma once
 
@@ -20,7 +20,6 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include "RootExt.h"
 #include "TextIO.h"
 #include "NumericPrimitives.h"
-#include "PropertyConfigReader.h"
 
 namespace root_ext {
 
@@ -264,50 +263,6 @@ public:
         : TH1D(other), AbstractHistogram(other.GetName()), store(false), use_log_y(_use_log_y), max_y_sf(_max_y_sf),
           divide_by_bin_width(_divide_by_bin_width) {}
 
-    SmartHistogram(const std::string& name, const analysis::PropertyConfigReader::Item& p_config)
-        : AbstractHistogram(name)
-    {
-        static constexpr int DefaultNumberOfBins = 100;
-        static constexpr int DefaultBufferSize = 1000;
-        try {
-            TH1D::SetName(name.c_str());
-            TH1D::SetTitle(name.c_str());
-            if(p_config.Has("x_range")) {
-                const auto x_range = p_config.Get<analysis::RangeWithStep<double>>("x_range");
-                TH1D::SetBins(static_cast<int>(x_range.n_bins()), x_range.min(), x_range.max());
-                divide_by_bin_width = false;
-            } else if(p_config.Has("x_bins")){
-                const std::vector<std::string> bin_values =
-                        analysis::SplitValueList(p_config.Get<std::string>("x_bins"), false, ", \t", true);
-                std::vector<double> bins;
-                for(const auto& bin_str : bin_values)
-                    bins.push_back(analysis::Parse<double>(bin_str));
-                TH1D::SetBins(static_cast<int>(bins.size()) - 1, bins.data());
-                divide_by_bin_width = true;
-            } else{
-                SetBins(DefaultNumberOfBins, 0, 0);
-                GetXaxis()->SetCanExtend(true);
-                SetBuffer(DefaultBufferSize);
-            }
-
-            std::string x_title, y_title;
-            if(p_config.Read("x_title", x_title))
-                SetXTitle(x_title.c_str());
-            if(p_config.Read("y_title", y_title))
-                SetYTitle(y_title.c_str());
-            p_config.Read("log_x", use_log_x);
-            p_config.Read("log_y", use_log_y);
-            p_config.Read("max_y_sf", max_y_sf);
-            p_config.Read("min_y_sf", min_y_sf);
-            p_config.Read("div_bw", divide_by_bin_width);
-            p_config.Read("blind_ranges", blind_ranges);
-            if(p_config.Has("y_min"))
-                y_min = p_config.Get<double>("y_min");
-        } catch(analysis::exception& e) {
-            throw analysis::exception("Invalid property set for histogram '%1%'. %2%") % Name() % e.message();
-        }
-    }
-
     virtual void SetName(const char* _name) override
     {
         std::lock_guard<Mutex> lock(GetMutex());
@@ -524,79 +479,6 @@ public:
 
 private:
     DataVector x_vector, y_vector;
-};
-
-
-template<typename ValueType>
-struct HistogramFactory {
-    template<typename ...Args>
-    static SmartHistogram<ValueType>* Make(const std::string& name, Args... args)
-    {
-        return new SmartHistogram<ValueType>(name, args...);
-    }
-};
-
-template<>
-struct HistogramFactory<TH1D> {
-private:
-    using HistogramParameters = analysis::PropertyConfigReader::Item;
-    using HistogramParametersMap = analysis::PropertyConfigReader::ItemCollection;
-
-    static HistogramParametersMap& ParametersMap_RW()
-    {
-        static const auto parameters = std::make_unique<HistogramParametersMap>();
-        return *parameters;
-    }
-
-    static const HistogramParametersMap& ParametersMap()
-    {
-        return ParametersMap_RW();
-    }
-
-    static std::string& ConfigName()
-    {
-        static const auto configName = std::make_unique<std::string>("histograms.cfg");
-        return *configName;
-    }
-
-    static const HistogramParameters& GetParameters(const std::string& name, const std::string& selection_label = "")
-    {
-        static const HistogramParameters default_params;
-        const HistogramParametersMap& parameters = ParametersMap();
-        std::string best_name = name;
-        if(!selection_label.empty())
-        {
-            const std::string sl_plus_name = selection_label + "/" + name;
-            if(parameters.count(sl_plus_name))
-                best_name = sl_plus_name;
-        }
-
-        if(!parameters.count(best_name)) {
-            std::cerr << "Not found default parameters for histogram '" << name
-                      << "'. Please, define it in '" << ConfigName() << "'." << std::endl;
-            return default_params;
-        }
-        return parameters.at(best_name);
-    }
-
-public:
-    static void LoadConfig(const std::string& config_path)
-    {
-        static std::mutex m;
-        std::lock_guard<std::mutex> lock(m);
-        ConfigName() = config_path;
-        HistogramParametersMap& parameters = ParametersMap_RW();
-
-        analysis::PropertyConfigReader reader;
-        reader.Parse(config_path);
-        parameters = reader.GetItems();
-    }
-
-    static SmartHistogram<TH1D>* Make(const std::string& name, const std::string& selection_label)
-    {
-        const HistogramParameters& params = GetParameters(name, selection_label);
-        return new SmartHistogram<TH1D>(name, params);
-    }
 };
 
 } // root_ext

@@ -11,7 +11,6 @@
 #include "TauMLTools/Core/interface/program_main.h"
 #include "TauMLTools/Core/interface/RootExt.h"
 #include "TauMLTools/Core/interface/PropertyConfigReader.h"
-#include "TauMLTools/Core/interface/ProgressReporter.h"
 #include "TauMLTools/Analysis/interface/TauTuple.h"
 #include "TauMLTools/Analysis/interface/TauSelection.h"
 #include "TauMLTools/Core/interface/exception.h"
@@ -21,7 +20,7 @@ namespace analysis {
 
 void sumBasedSplit(const std::vector<size_t>& files_entries, const size_t job_idx, const size_t n_job, const bool overflowjob,
                   std::pair<size_t, size_t>& point_entry,  std::pair<size_t, size_t>& point_exit, size_t& step)
-{ 
+{
   // sumBasedSplit splits files into n_job sub-intervals
   // the entry events for the job number job_idx are [point_entry, point_exit]...
   // if sum(files_entries) % n_job != 0 some events will be lost in datagroup
@@ -107,10 +106,10 @@ struct EntryDesc {
         // For every datagroup in cfg file EntryDesc iterates
         // through filelist.txt and for matched (to datagroup):
         // 1) fill an array of pathes to data_files
-        // 2) fill an array of pathes spectrum_files 
+        // 2) fill an array of pathes spectrum_files
         // 3) fill an array with number of entries per file
         while(std::getline(input_files, ifile)){
-	      
+
           size_t n_entries = analysis::Parse<double>(ifile.substr(ifile.rfind(" ")));
 
           file_name = ifile.substr(ifile.find_last_of("/") + 1,
@@ -151,13 +150,13 @@ struct EntryDesc {
 
         if(job_idx >= n_jobs)
           throw exception("Wrong job_idx! The index should be > 0 and < n_jobs");
-        
+
         sumBasedSplit(files_entries, job_idx, n_jobs, overflow_job, point_entry, point_exit, total_entries);
-        
+
         std::cout <<  name << ": " <<
                      "Entry point-> " << point_entry.first << " " << point_entry.second << ", " <<
                      "Exit point-> " << point_exit.first << " " << point_exit.second << ", " <<
-                     "Total entries-> " << total_entries << std::endl; 
+                     "Total entries-> " << total_entries << std::endl;
     }
 };
 
@@ -209,7 +208,7 @@ struct SourceDesc {
             current_file = root_ext::OpenRootFile(file_name);
             current_tuple = std::make_shared<TauTuple>("taus", current_file.get(), true, disabled_branches, enabled_branches);
             entries_file = current_tuple->GetEntries();
-            current_entry = current_file_index == point_entry.first ? point_entry.second : 0; 
+            current_entry = current_file_index == point_entry.first ? point_entry.second : 0;
             entries_end = current_file_index == point_exit.first ? point_exit.second : entries_file - 1;
             if(!entries_file)
               throw exception("Root file %1% is empty.") % file_name;
@@ -229,7 +228,7 @@ struct SourceDesc {
     }
 
     virtual ~SourceDesc() {};
-    
+
     virtual std::optional<ObjectType> GetObjectType(const Tau& tau) {return std::nullopt;}
 
     const Tau& GetNextTau() { return current_tuple->data(); }
