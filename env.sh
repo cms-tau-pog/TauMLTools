@@ -185,7 +185,7 @@ action() {
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TAU_ML_LIB_DIR/lib
   else
     source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_102 x86_64-centos${os_version}-gcc11-opt
-    for law_location in /afs/cern.ch/user/m/mrieger/public/law_sw/setup.sh ; do
+    for law_location in /afs/cern.ch/user/m/mrieger/public/law_sw/setup.sh /afs/desy.de/user/r/riegerma/public/law_sw/setup.sh; do
       if [ -f $law_location ]; then
         source $law_location
         break
