@@ -138,10 +138,14 @@ def preprocess_array(a, feature_names, add_feature_names, verbose=False):
 
     has_track_details = (a['pfCand_hasTrackDetails'] == 1).compute()
     has_track_details_track_ndof = has_track_details * (a['pfCand_track_ndof'] > 0).compute()
-    a_preprocessed['pfCand']['dxy'] = ak.where(has_track_details, a['pfCand_dxy'].compute(), 0)
-    a_preprocessed['pfCand']['dxy_sig'] = ak.where(has_track_details, (np.abs(a['pfCand_dxy'])/a['pfCand_dxy_error']).compute(), 0)
-    a_preprocessed['pfCand']['dz'] = ak.where(has_track_details, a['pfCand_dz'].compute(), 0)
-    a_preprocessed['pfCand']['dz_sig'] = ak.where(has_track_details, (np.abs(a['pfCand_dz'])/a['pfCand_dz_error']).compute(), 0)
+    has_track_details_dxy_finite = has_track_details * np.isfinite(a['pfCand_dxy']).compute()
+    has_track_details_dxy_sig_finite = has_track_details * np.isfinite(np.abs(a['pfCand_dxy'])/a['pfCand_dxy_error']).compute()
+    has_track_details_dz_finite = has_track_details * np.isfinite(a['pfCand_dz']).compute()
+    has_track_details_dz_sig_finite = has_track_details * np.isfinite(np.abs(a['pfCand_dz'])/a['pfCand_dz_error']).compute()
+    a_preprocessed['pfCand']['dxy'] = ak.where(has_track_details_dxy_finite, a['pfCand_dxy'].compute(), 0)
+    a_preprocessed['pfCand']['dxy_sig'] = ak.where(has_track_details_dxy_sig_finite, (np.abs(a['pfCand_dxy'])/a['pfCand_dxy_error']).compute(), 0)
+    a_preprocessed['pfCand']['dz'] = ak.where(has_track_details_dz_finite, a['pfCand_dz'].compute(), 0)
+    a_preprocessed['pfCand']['dz_sig'] = ak.where(has_track_details_dz_sig_finite, (np.abs(a['pfCand_dz'])/a['pfCand_dz_error']).compute(), 0)
     a_preprocessed['pfCand']['track_ndof'] = ak.where(has_track_details_track_ndof, a['pfCand_track_ndof'].compute(), 0)
     a_preprocessed['pfCand']['chi2_ndof'] = ak.where(has_track_details_track_ndof, (a['pfCand_track_chi2']/a['pfCand_track_ndof']).compute(), 0)
 
@@ -208,7 +212,8 @@ def preprocess_array(a, feature_names, add_feature_names, verbose=False):
     a_preprocessed['muon']['theta'] = np.arctan2(muon_dphi, muon_deta) # dphi -> y, deta -> x
     a_preprocessed['muon']['particle_type'] = 8*ak.ones_like(a['muon_pt'].compute()) # assuming PF candidate types are [0..6]
 
-    a_preprocessed['muon']['dxy_sig'] =  np.abs(a['muon_dxy'])/a['muon_dxy_error'] 
+    muon_dxy_sig_finite = np.isfinite(np.abs(a['muon_dxy'])/a['muon_dxy_error']).compute()
+    a_preprocessed['muon']['dxy_sig'] = ak.where(muon_dxy_sig_finite, (np.abs(a['muon_dxy'])/a['muon_dxy_error']).compute(), 0)
 
     muon_normalizedChi2_valid = ((a['muon_normalizedChi2'] > 0) * np.isfinite(a['muon_normalizedChi2'])).compute()
     a_preprocessed['muon']['normalizedChi2_valid'] = ak.values_astype(muon_normalizedChi2_valid, np.float32)
