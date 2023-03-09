@@ -13,7 +13,7 @@ public:
   // TauCollection = deeptau.TauCollection;
   // using TauDeepTauVector = edm::AssociationVector<reco::PFTauRefProd, std::vector<reco::TauDiscriminatorContainer>>;
   TauTableProducerHLT(const edm::ParameterSet& cfg) :
-      tauToken_(mayConsume<TauCollection>(cfg.getParameter<edm::InputTag>("taus"))),
+      tauToken_(consumes<TauCollection>(cfg.getParameter<edm::InputTag>("taus"))), // for taus we can keep consumes because it should always be present
       tauIPToken_(mayConsume<TauIPVector>(cfg.getParameter<edm::InputTag>("tauTransverseImpactParameters"))),
       deepTauVSeToken_(mayConsume<TauDiscrMap>(cfg.getParameter<edm::InputTag>("deepTauVSe"))),
       deepTauVSmuToken_(mayConsume<TauDiscrMap>(cfg.getParameter<edm::InputTag>("deepTauVSmu"))),
@@ -29,32 +29,32 @@ private:
     const auto tausHandle = event.getHandle(tauToken_);
     const auto& tausProductId = tausHandle.id();
     const auto& taus = *tausHandle;
-    
+    static  constexpr float default_value = std::numeric_limits<float>::quiet_NaN();
 
     const auto& tausIPHandle = event.getHandle(tauIPToken_);
     const auto& deepTauVSeMapHandle = event.getHandle(deepTauVSeToken_);
     const auto& deepTauVSmuMapHandle = event.getHandle(deepTauVSmuToken_);
     const auto& deepTauVSjetMapHandle = event.getHandle(deepTauVSjetToken_);
-    std::vector<float> deepTauVSe(taus.size());
-    std::vector<float> deepTauVSmu(taus.size());
-    std::vector<float> deepTauVSjet(taus.size());
+    std::vector<float> deepTauVSe(taus.size(), default_value );
+    std::vector<float> deepTauVSmu(taus.size(), default_value );
+    std::vector<float> deepTauVSjet(taus.size(), default_value );
     // source: RecoTauTag/RecoTau/plugins/PFTauTransverseImpactParameters.cc
     
-    std::vector<float> dxy(taus.size());
-    std::vector<float> dxy_error(taus.size());
-    std::vector<float> dxy_Sig(taus.size());
-    std::vector<float> ip3d(taus.size());
-    std::vector<float> ip3d_error(taus.size());
-    std::vector<float> ip3d_Sig(taus.size());
-    std::vector<float> hasSecondaryVertex(taus.size());
-    std::vector<float> flightLength_x(taus.size());
-    std::vector<float> flightLength_y(taus.size());
-    std::vector<float> flightLength_z(taus.size());
-    std::vector<float> flightLengthSig(taus.size());
-    std::vector<float> secondaryVertex_x(taus.size());
-    std::vector<float> secondaryVertex_y(taus.size());
-    std::vector<float> secondaryVertex_z(taus.size());
-    std::vector<float> secondaryVertex_t(taus.size());
+    std::vector<float> dxy(taus.size(), default_value );
+    std::vector<float> dxy_error(taus.size(), default_value );
+    std::vector<float> dxy_Sig(taus.size(), default_value );
+    std::vector<float> ip3d(taus.size(), default_value );
+    std::vector<float> ip3d_error(taus.size(), default_value );
+    std::vector<float> ip3d_Sig(taus.size(), default_value );
+    std::vector<float> hasSecondaryVertex(taus.size(), default_value );
+    std::vector<float> flightLength_x(taus.size(), default_value );
+    std::vector<float> flightLength_y(taus.size(), default_value );
+    std::vector<float> flightLength_z(taus.size(), default_value );
+    std::vector<float> flightLengthSig(taus.size(), default_value );
+    std::vector<float> secondaryVertex_x(taus.size(), default_value );
+    std::vector<float> secondaryVertex_y(taus.size(), default_value );
+    std::vector<float> secondaryVertex_z(taus.size(), default_value );
+    std::vector<float> secondaryVertex_t(taus.size(), default_value );
 
 
     for(size_t tau_index = 0; tau_index < taus.size(); ++tau_index) {
