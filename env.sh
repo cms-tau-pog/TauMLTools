@@ -40,6 +40,8 @@ do_install_cmssw() {
     run_cmd scramv1 project CMSSW $CMSSW_VER
     run_cmd cd $CMSSW_VER/src
     run_cmd eval `scramv1 runtime -sh`
+    git cms-init
+    git cms-merge-topic silviodonato:customizeHLTFor2023 # to download customisation function for 2023 PFCluster thresholds at HLT
     run_cmd mkdir TauMLTools
     run_cmd cd TauMLTools
     run_cmd ln -s "$this_dir/Analysis" Analysis
