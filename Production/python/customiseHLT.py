@@ -11,8 +11,6 @@ from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
 # from PhysicsTools.NanoAOD.jetMC_cff import Var, P4Vars
 from PhysicsTools.JetMCAlgos.AK4PFJetsMCFlavourInfos_cfi import ak4JetFlavourInfos
 
-
-
 def customiseGenParticles(process):
   def pdgOR(pdgs):
     abs_pdgs = [ f'abs(pdgId) == {pdg}' for pdg in pdgs ]
@@ -38,8 +36,7 @@ def customiseGenParticles(process):
 
   return process
 
-
-def customise(process):
+def customise(process, output='nano.root'):
   process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",
       compressionAlgorithm = cms.untracked.string('LZMA'),
       compressionLevel = cms.untracked.int32(9),
@@ -47,7 +44,7 @@ def customise(process):
           dataTier = cms.untracked.string('NANOAODSIM'),
           filterName = cms.untracked.string('')
       ),
-      fileName = cms.untracked.string('file:nano.root'),
+      fileName = cms.untracked.string(f'file:{output}'),
       outputCommands  = cms.untracked.vstring(
           'drop *',
           'keep nanoaodFlatTable_*Table_*_*',
@@ -55,15 +52,17 @@ def customise(process):
   )
   process.load('PhysicsTools.NanoAOD.nano_cff')
   process.load('RecoJets.JetProducers.ak4GenJets_cfi')
-  from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeMC
+  from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeCommon
   from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
   #call to customisation function nanoAOD_customizeMC imported from PhysicsTools.NanoAOD.nano_cff
-  process = nanoAOD_customizeMC(process)
+  process = nanoAOD_customizeCommon(process)
 
-  process.nanoAOD_step = cms.Path(process.HLTBeginSequence \
-    + process.HLTL2TauTagNNSequence \
-    + process.HLTGlobalPFTauHPSSequence \
-    + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau \
+  process.nanoAOD_step = cms.Path(#
+    process.HLTBeginSequence
+    + process.HLTL2TauTagNNSequence
+    + process.HLTGlobalPFTauHPSSequence
+    + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau
+    + process.HLTAK4PFJetsSequence
     + process.nanoSequenceMC)
   process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
 
@@ -274,7 +273,9 @@ def customise(process):
     egammas = cms.InputTag("hltGtStage2Digis", "EGamma"),
     muons = cms.InputTag("hltGtStage2Digis", "Muon"),
     jets = cms.InputTag("hltGtStage2Digis", "Jet"),
-    taus = cms.InputTag("hltGtStage2Digis", "Tau"),
+    #taus = cms.InputTag("hltGtStage2Digis", "Tau"),
+    taus = cms.InputTag("simCaloStage2Digis"),
+    caloTowers = cms.InputTag("simCaloStage2Digis", "MP"),
     precision = cms.int32(7)
   )
 
@@ -300,7 +301,7 @@ def customise(process):
   process.genJetFlavourInfosTask =  cms.Task(process.genJetFlavourInfos)
   process.recoAllGenJetsNoNuTask=cms.Task(process.ak4GenJetsNoNu)
   process.GenJetTableTask = cms.Task(process.GenJetTable, process.ak4GenJetsNoNuExtTable)
-  process.L1TableTask = cms.Task(process.L1Table)
+  process.L1TableTask = cms.Task(process.simCaloStage2Digis, process.L1Table)
   process.caloTableTask = cms.Task(process.caloTable)
   process.pixelTrackTableTask = cms.Task(process.pixelTrackTable)
   process.nanoTableTaskFS = cms.Task(process.genParticleTablesTask,
@@ -341,6 +342,7 @@ def customise(process):
 
   process.options.wantSummary = False
 
+  #process.schedule = cms.Schedule(process.nanoAOD_step, process.NANOAODSIMoutput_step)
   process.schedule.insert(1000000, process.nanoAOD_step)
   process.schedule.insert(1000000, process.NANOAODSIMoutput_step)
   return process
