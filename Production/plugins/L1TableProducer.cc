@@ -161,8 +161,6 @@ private:
     std::vector<l1t::CaloCluster> tauClusters;
     tauClusterAlgo_->processEvent(towers, tauClusters);
 
-    const auto& taus = event.get(tausToken_);
-
     // adapted from https://github.com/cms-sw/cmssw/blob/17b3781658ba5a652d1d3e0cc74c31915b708235/L1Trigger/L1TCalorimeter/src/CaloTools.cc#LL125-L151C2
     const auto fillTowers = [&](int tau_idx, int iEta, int iPhi, int localEtaMin, int localEtaMax, int localPhiMin,
                                 int localPhiMax, int iEtaAbsMax) {

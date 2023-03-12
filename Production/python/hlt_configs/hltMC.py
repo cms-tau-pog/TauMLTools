@@ -82925,7 +82925,27 @@ modifyHLTforEras(process)
 from HLTrigger.Configuration.customizeHLTFor2023 import customizeHCALFor2023
 process = customizeHCALFor2023(process)
 
-from TauMLTools.Production.customiseHLT import customise
-process = customise(process, options.output)
+import importlib
+import os
+import sys
+
+def load(module_file, default_path):
+  module_path = os.path.join(default_path, module_file)
+  if not os.path.exists(module_path):
+    module_path = os.path.join(os.path.dirname(__file__), module_file)
+    if not os.path.exists(module_path):
+      module_path = os.path.join(os.getenv("CMSSW_BASE"), 'src', module_file)
+      if not os.path.exists(module_path):
+        raise RuntimeError(f"Cannot find path to {module_file}.")
+
+  module_name, module_ext = os.path.splitext(module_file)
+  spec = importlib.util.spec_from_file_location(module_name, module_path)
+  module = importlib.util.module_from_spec(spec)
+  sys.modules[module_name] = module
+  spec.loader.exec_module(module)
+  return module
+
+customiseHLT = load('customiseHLT.py', os.path.join(os.getenv("CMSSW_BASE"), 'src/TauMLTools/Production/python'))
+process = customiseHLT.customise(process, options.output)
 
 # print(process.dumpPython())
