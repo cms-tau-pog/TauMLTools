@@ -36,7 +36,8 @@ def customiseGenParticles(process):
 
   return process
 
-def customise(process, output='nano.root'):
+
+def customise(process, output='nano.root', is_data=False):
   process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",
       compressionAlgorithm = cms.untracked.string('LZMA'),
       compressionLevel = cms.untracked.int32(9),
@@ -178,7 +179,7 @@ def customise(process, output='nano.root'):
     jetFlavourInfos = cms.InputTag( "genJetFlavourInfos" ),
   )
   process.pfCandTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
-    src = cms.InputTag( "hltParticleFlowForTaus" ),
+    src = cms.InputTag( "hltParticleFlow" ),
     cut = cms.string(""),
     name= cms.string("PFCand"),
     doc = cms.string("HLT PF candidates for taus"),
@@ -303,7 +304,8 @@ def customise(process, output='nano.root'):
     precision = cms.int32(7)
   )
 
-  process.tauTablesTask = cms.Task(process.tauTable, process.tauExtTable)
+  process.tauTablesTask = cms.Task(process.tauTable)
+  process.tauTablesExtTask = cms.Task(process.tauExtTable)
   process.pfCandTablesTask = cms.Task(process.pfCandTable)
   process.AK4PFJetsTableTask = cms.Task(process.AK4PFJetsTable)
   process.genParticlesForJetsNoNuTask = cms.Task(process.genParticlesForJetsNoNu, process.selectedHadronsAndPartons)
@@ -313,9 +315,10 @@ def customise(process, output='nano.root'):
   process.L1TableTask = cms.Task(process.simCaloStage2Digis, process.L1Table)
   process.caloTableTask = cms.Task(process.caloTable)
   process.pixelTrackTableTask = cms.Task(process.pixelTrackTable)
-  process.nanoTableTaskFS = cms.Task(process.genParticleTablesTask,
+  process.nanoTableTaskFS_MC = cms.Task(process.genParticleTablesTask,
                                      process.genParticleTask,
                                      process.tauTablesTask,
+                                     process.tauTablesExtTask,
                                      process.pfCandTablesTask,
                                      process.genParticlesForJetsNoNuTask,
                                      process.genJetFlavourInfosTask,
@@ -325,15 +328,32 @@ def customise(process, output='nano.root'):
                                      process.L1TableTask,
                                      process.caloTableTask,
                                      process.pixelTrackTableTask)
-  process.nanoSequenceMC = cms.Sequence(process.nanoTableTaskFS)
-  process.finalGenParticles.src = cms.InputTag("genParticles")
+  process.nanoTableTaskFS_data = cms.Task(
+                                     process.tauTablesTask,
+                                     process.tauTablesExtTask,
+                                     process.pfCandTablesTask,
+                                     process.AK4PFJetsTableTask,
+                                     process.recoAllGenJetsNoNuTask,
+                                     process.L1TableTask,
+                                     process.caloTableTask,
+                                     process.pixelTrackTableTask)
+
+  is_data =  True
+  if is_data:
+    process.nanoSequenceMC = cms.Sequence(process.nanoTableTaskFS_data)
+
+  else:
+    process.nanoSequenceMC = cms.Sequence(process.nanoTableTaskFS_MC)
+    process.finalGenParticles.src = cms.InputTag("genParticles")
+    process = customiseGenParticles(process)
+    process.genParticleTable.variables.mass.expr = cms.string('mass')
+    process.genParticleTable.variables.mass.doc = cms.string('mass')
 
 
   process.MessageLogger.cerr.FwkReport.reportEvery = 100
-  process = customiseGenParticles(process)
 
-  process.genParticleTable.variables.mass.expr = cms.string('mass')
-  process.genParticleTable.variables.mass.doc = cms.string('mass')
+
+
 
   process.FastTimerService.printEventSummary = False
   process.FastTimerService.printRunSummary = False
@@ -354,4 +374,12 @@ def customise(process, output='nano.root'):
   #process.schedule = cms.Schedule(process.nanoAOD_step, process.NANOAODSIMoutput_step)
   process.schedule.insert(1000000, process.nanoAOD_step)
   process.schedule.insert(1000000, process.NANOAODSIMoutput_step)
+  #  print(process.dumpPython())
+
   return process
+
+def customiseMC(process):
+  return customise(process, is_data=False)
+
+def customiseData(process):
+  return customise(process, is_data=True)
