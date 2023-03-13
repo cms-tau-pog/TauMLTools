@@ -48,6 +48,7 @@ def customise(process, output='nano.root'):
       outputCommands  = cms.untracked.vstring(
           'drop *',
           'keep nanoaodFlatTable_*Table_*_*',
+          'keep edmTriggerResults_*_*_HLTX',
       )
   )
   process.load('PhysicsTools.NanoAOD.nano_cff')
@@ -57,12 +58,20 @@ def customise(process, output='nano.root'):
   #call to customisation function nanoAOD_customizeMC imported from PhysicsTools.NanoAOD.nano_cff
   process = nanoAOD_customizeCommon(process)
 
+
+  process.l1bits=cms.EDProducer("L1TriggerResultsConverter",
+                       src=cms.InputTag("hltGtStage2Digis"),
+                       legacyL1=cms.bool(False),
+                       storeUnprefireableBit=cms.bool(True),
+                       src_ext=cms.InputTag("simGtExtUnprefireable"))
+
   process.nanoAOD_step = cms.Path(#
     process.HLTBeginSequence
     + process.HLTL2TauTagNNSequence
     + process.HLTGlobalPFTauHPSSequence
     + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau
     + process.HLTAK4PFJetsSequence
+    + process.l1bits
     + process.nanoSequenceMC)
   process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
 
