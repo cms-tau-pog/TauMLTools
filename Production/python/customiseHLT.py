@@ -170,7 +170,7 @@ def customise(process, is_data = False):
     jetFlavourInfos = cms.InputTag( "genJetFlavourInfos" ),
   )
   process.pfCandTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
-    src = cms.InputTag( "hltParticleFlowForTaus" ),
+    src = cms.InputTag( "hltParticleFlow" ),
     cut = cms.string(""),
     name= cms.string("PFCand"),
     doc = cms.string("HLT PF candidates for taus"),
