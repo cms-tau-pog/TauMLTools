@@ -32,19 +32,30 @@ RVecB DeltaRMatch(const RVecF& eta1, const RVecF& phi1,
 
 def skim(df):
   columns = [ str(c) for c in df.GetColumnNames() ]
-  ref_objects = [ 'L1Tau', 'Tau', 'Jet' ]
+  ref_objects = [ 'Tau', 'Jet' ]
   for obj in ref_objects:
     df = df.Define(f'{obj}_sel', f'{obj}_pt > 15 && abs({obj}_eta) < 2.5')
+    sample_c = None
     for c in columns:
       if c.startswith(obj + '_'):
         df = df.Redefine(c, f'{c}[{obj}_sel]')
+        sample_c = c
+    counter = 'n' + obj
+    if sample_c and counter in columns:
+        df = df.Redefine(c, f'static_cast<int>({sample_c}.size())')
+  ref_objects.append('L1Tau')
   ref_eta = [ f'&{obj}_eta' for obj in ref_objects ]
   ref_phi = [ f'&{obj}_phi' for obj in ref_objects ]
   ref_eta_str = '{' + ', '.join(ref_eta) + '}'
   ref_phi_str = '{' + ', '.join(ref_phi) + '}'
   for obj in [ 'PixelTrack', 'PFCand', 'RecHitHBHE', 'RecHitEB', 'RecHitEE' ]:
     df = df.Define(f'{obj}_sel', f'DeltaRMatch({obj}_eta, {obj}_phi, {ref_eta_str}, {ref_phi_str}, 0.5f)')
+    sample_c = None
     for c in columns:
       if c.startswith(obj + '_'):
         df = df.Redefine(c, f'{c}[{obj}_sel]')
+        sample_c = c
+    counter = 'n' + obj
+    if sample_c and counter in columns:
+        df = df.Redefine(c, f'static_cast<int>({sample_c}.size())')
   return df
