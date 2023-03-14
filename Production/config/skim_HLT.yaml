@@ -1,8 +1,8 @@
-column_filters:
-  - drop ^.*_sel$
-
-input_tree: Events
-
-processing_module:
-  file: Production/python/skimHLT.py
-  function: skim
+skim_setup:
+  input_tree: Events
+  column_filters:
+    - drop ^.*_sel$
+    - drop ^.*_tmp$
+  processing_module:
+    file: Production/python/skimHLT.py
+    function: skim
