@@ -82946,6 +82946,6 @@ def load(module_file, default_path):
   return module
 
 customiseHLT = load('customiseHLT.py', os.path.join(os.getenv("CMSSW_BASE"), 'src/TauMLTools/Production/python'))
-process = customiseHLT.customise(process, options.output)
+process = customiseHLT.customise(process, output=options.output, is_data=False)
 
 # print(process.dumpPython())

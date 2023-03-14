@@ -1,14 +1,8 @@
-# How to run:
-# hltGetConfiguration /dev/CMSSW_12_4_0/GRun --globaltag auto:phase1_2022_realistic --mc --unprescale --no-output --max-events 100 --eras Run3 --l1-emulator FullMC --l1 L1Menu_Collisions2022_v1_3_0-d1_xml --customise TauMLTools/Production/customiseHLT.customise --input file:00c642d1-bf7e-477d-91e1-4dd9ce2c8099.root > hltRun3Summer21MC.py
-# hltGetConfiguration /dev/CMSSW_12_4_0/GRun --globaltag auto:phase1_2022_realistic --mc --unprescale --no-output --max-events 100 --eras Run3 --l1-emulator FullMC --l1 L1Menu_Collisions2022_v1_3_0-d1_xml --customise TauMLTools/Production/customiseHLT.customise --input /store/mc/Run3Summer21DRPremix/TT_TuneCP5_14TeV-powheg-pythia8/GEN-SIM-DIGI-RAW/120X_mcRun3_2021_realistic_v6-v2/2540000/b354245e-d8bc-424d-b527-58815586a6a5.root > hltRun3Summer21MC.py
+# How to run: see hlt_configs/README.md
 
-# cmsRun hltRun3Summer21MC.py
-# file dataset=/store/mc/Run3Summer21DRPremix/TT_TuneCP5_14TeV-powheg-pythia8/GEN-SIM-DIGI-RAW/120X_mcRun3_2021_realistic_v6-v2/2540000/00c642d1-bf7e-477d-91e1-4dd9ce2c8099.root
-# file dataset=/TT_TuneCP5_14TeV-powheg-pythia8/Run3Summer21DRPremix-120X_mcRun3_2021_realistic_v6-v2/GEN-SIM-DIGI-RAW
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import Var, P4Vars
 from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
-# from PhysicsTools.NanoAOD.jetMC_cff import Var, P4Vars
 from PhysicsTools.JetMCAlgos.AK4PFJetsMCFlavourInfos_cfi import ak4JetFlavourInfos
 
 def customiseGenParticles(process):
@@ -31,50 +25,19 @@ def customiseGenParticles(process):
     setattr(process.genParticleTable.variables, 'v'+ coord,
             Var(f'vertex().{coord}', float, precision=10,
                 doc=f'{coord} coordinate of the gen particle production vertex'))
-  process.genParticleTable.variables.mass.expr = cms.string('mass')
-  process.genParticleTable.variables.mass.doc = cms.string('mass')
+  # process.genParticleTable.variables.mass.expr = cms.string('mass')
+  # process.genParticleTable.variables.mass.doc = cms.string('mass')
 
   return process
 
 
 def customise(process, output='nano.root', is_data=False):
-  process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",
-      compressionAlgorithm = cms.untracked.string('LZMA'),
-      compressionLevel = cms.untracked.int32(9),
-      dataset = cms.untracked.PSet(
-          dataTier = cms.untracked.string('NANOAODSIM'),
-          filterName = cms.untracked.string('')
-      ),
-      fileName = cms.untracked.string(f'file:{output}'),
-      outputCommands  = cms.untracked.vstring(
-          'drop *',
-          'keep nanoaodFlatTable_*Table_*_*',
-          'keep edmTriggerResults_*_*_HLTX',
-      )
-  )
   process.load('PhysicsTools.NanoAOD.nano_cff')
   process.load('RecoJets.JetProducers.ak4GenJets_cfi')
   from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeCommon
   from RecoJets.JetProducers.ak4GenJets_cfi import ak4GenJets
   #call to customisation function nanoAOD_customizeMC imported from PhysicsTools.NanoAOD.nano_cff
   process = nanoAOD_customizeCommon(process)
-
-
-  process.l1bits=cms.EDProducer("L1TriggerResultsConverter",
-                       src=cms.InputTag("hltGtStage2Digis"),
-                       legacyL1=cms.bool(False),
-                       storeUnprefireableBit=cms.bool(True),
-                       src_ext=cms.InputTag("simGtExtUnprefireable"))
-
-  process.nanoAOD_step = cms.Path(#
-    process.HLTBeginSequence
-    + process.HLTL2TauTagNNSequence
-    + process.HLTGlobalPFTauHPSSequence
-    + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau
-    + process.HLTAK4PFJetsSequence
-    + process.l1bits
-    + process.nanoSequenceMC)
-  process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
 
   from PhysicsTools.JetMCAlgos.HadronAndPartonSelector_cfi import selectedHadronsAndPartons
   process.selectedHadronsAndPartons = selectedHadronsAndPartons.clone(src = cms.InputTag("genParticlesForJetsNoNu"))
@@ -315,45 +278,63 @@ def customise(process, output='nano.root', is_data=False):
   process.L1TableTask = cms.Task(process.simCaloStage2Digis, process.L1Table)
   process.caloTableTask = cms.Task(process.caloTable)
   process.pixelTrackTableTask = cms.Task(process.pixelTrackTable)
-  process.nanoTableTaskFS_MC = cms.Task(process.genParticleTablesTask,
-                                     process.genParticleTask,
-                                     process.tauTablesTask,
-                                     process.tauTablesExtTask,
-                                     process.pfCandTablesTask,
-                                     process.genParticlesForJetsNoNuTask,
-                                     process.genJetFlavourInfosTask,
-                                     process.AK4PFJetsTableTask,
-                                     process.recoAllGenJetsNoNuTask,
-                                     process.GenJetTableTask,
-                                     process.L1TableTask,
-                                     process.caloTableTask,
-                                     process.pixelTrackTableTask)
-  process.nanoTableTaskFS_data = cms.Task(
-                                     process.tauTablesTask,
-                                     process.tauTablesExtTask,
-                                     process.pfCandTablesTask,
-                                     process.AK4PFJetsTableTask,
-                                     process.recoAllGenJetsNoNuTask,
-                                     process.L1TableTask,
-                                     process.caloTableTask,
-                                     process.pixelTrackTableTask)
+  process.nanoTableTask = cms.Task(
+    process.tauTablesTask,
+    process.tauTablesExtTask,
+    process.pfCandTablesTask,
+    process.AK4PFJetsTableTask,
+    process.recoAllGenJetsNoNuTask,
+    process.L1TableTask,
+    process.caloTableTask,
+    process.pixelTrackTableTask
+  )
 
-  is_data =  True
   if is_data:
-    process.nanoSequenceMC = cms.Sequence(process.nanoTableTaskFS_data)
-
+    process.nanoTableTask.add(
+      process.genParticleTablesTask,
+      process.genParticleTask,
+      process.genParticlesForJetsNoNuTask,
+      process.genJetFlavourInfosTask,
+      process.GenJetTableTask
+    )
   else:
-    process.nanoSequenceMC = cms.Sequence(process.nanoTableTaskFS_MC)
     process.finalGenParticles.src = cms.InputTag("genParticles")
     process = customiseGenParticles(process)
-    process.genParticleTable.variables.mass.expr = cms.string('mass')
-    process.genParticleTable.variables.mass.doc = cms.string('mass')
 
+  process.nanoSequence = cms.Sequence(process.nanoTableTask)
+  process.l1bits=cms.EDProducer("L1TriggerResultsConverter",
+                       src=cms.InputTag("hltGtStage2Digis"),
+                       legacyL1=cms.bool(False),
+                       storeUnprefireableBit=cms.bool(True),
+                       src_ext=cms.InputTag("simGtExtUnprefireable"))
+
+  process.nanoAOD_step = cms.Path(
+    process.HLTBeginSequence
+    + process.HLTL2TauTagNNSequence
+    + process.HLTGlobalPFTauHPSSequence
+    + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau
+    + process.HLTAK4PFJetsSequence
+    + process.l1bits
+    + process.nanoSequence
+  )
+
+  process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",
+    compressionAlgorithm = cms.untracked.string('LZMA'),
+    compressionLevel = cms.untracked.int32(9),
+    dataset = cms.untracked.PSet(
+      dataTier = cms.untracked.string('NANOAODSIM'),
+      filterName = cms.untracked.string('')
+    ),
+    fileName = cms.untracked.string(f'file:{output}'),
+    outputCommands  = cms.untracked.vstring(
+      'drop *',
+      'keep nanoaodFlatTable_*Table_*_*',
+      'keep edmTriggerResults_*_*_HLTX',
+    )
+  )
+  process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
 
   process.MessageLogger.cerr.FwkReport.reportEvery = 100
-
-
-
 
   process.FastTimerService.printEventSummary = False
   process.FastTimerService.printRunSummary = False
