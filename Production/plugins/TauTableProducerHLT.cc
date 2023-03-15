@@ -42,10 +42,8 @@ private:
     // source: RecoTauTag/RecoTau/plugins/PFTauTransverseImpactParameters.cc
     std::vector<float> dxy(taus.size(), default_value);
     std::vector<float> dxy_error(taus.size(), default_value);
-    std::vector<float> dxy_Sig(taus.size(), default_value);
     std::vector<float> ip3d(taus.size(), default_value);
     std::vector<float> ip3d_error(taus.size(), default_value);
-    std::vector<float> ip3d_Sig(taus.size(), default_value);
     std::vector<float> hasSecondaryVertex(taus.size(), default_value);
     std::vector<float> flightLength_x(taus.size(), default_value);
     std::vector<float> flightLength_y(taus.size(), default_value);
@@ -68,10 +66,8 @@ private:
       if(tausIPHandle.isValid()) {
         dxy[tau_index] = tausIPHandle->value(tau_index)->dxy();
         dxy_error[tau_index] =tausIPHandle->value(tau_index)->dxy_error();
-        dxy_Sig[tau_index] =tausIPHandle->value(tau_index)->dxy_Sig();
         ip3d[tau_index] =tausIPHandle->value(tau_index)->ip3d();
         ip3d_error[tau_index] =tausIPHandle->value(tau_index)->ip3d_error();
-        ip3d_Sig[tau_index] =tausIPHandle->value(tau_index)->ip3d_Sig();
         hasSecondaryVertex[tau_index] = tausIPHandle->value(tau_index)->hasSecondaryVertex();
         flightLength_x[tau_index] = tausIPHandle->value(tau_index)->flightLength().x();
         flightLength_y[tau_index] = tausIPHandle->value(tau_index)->flightLength().y();
@@ -89,10 +85,8 @@ private:
     auto tauTable = std::make_unique<nanoaod::FlatTable>(taus.size(), "Tau", false, true);
     tauTable->addColumn<float>("dxy", dxy, "tau transverse impact parameter", precision_);
     tauTable->addColumn<float>("dxy_error", dxy_error, " dxy_error ", precision_);
-    tauTable->addColumn<float>("dxy_Sig", dxy_Sig, " dxy_Sig ", precision_);
     tauTable->addColumn<float>("ip3d", ip3d, " ip3d ", precision_);
     tauTable->addColumn<float>("ip3d_error", ip3d_error, " ip3d_error ", precision_);
-    tauTable->addColumn<float>("ip3d_Sig", ip3d_Sig, " ip3d_Sig ", precision_);
     tauTable->addColumn<float>("hasSecondaryVertex", hasSecondaryVertex, " hasSecondaryVertex ", precision_);
     tauTable->addColumn<float>("flightLength_x", flightLength_x, "flightLength_x", precision_);
     tauTable->addColumn<float>("flightLength_y", flightLength_y, "flightLength_y", precision_);

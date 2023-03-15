@@ -93,24 +93,17 @@ def customise(process, output='nano.root', is_data=False):
       dz = Var("? leadPFCand.trackRef.isNonnull && leadPFCand.trackRef.isAvailable ? leadPFCand.trackRef.dz : -999 ", float, doc='lead PF Candidate dz'),
       dzError = Var("? leadPFCand.trackRef.isNonnull && leadPFCand.trackRef.isAvailable ? leadPFCand.trackRef.dzError : -999 ", float, doc='lead PF Candidate dz Error'),
       decayMode = Var("decayMode", int, doc='tau decay mode'),
-      tauIsValid = Var("jetRef.isNonnull && jetRef.isAvailable", bool, doc = "tau is valid"),
+      jetIsValid = Var("jetRef.isNonnull && jetRef.isAvailable", bool, doc = "jet is valid"),
       # variables available in PF jets
       # source: DataFormats/JetReco/interface/PFJet.h
       chargedHadronEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.chargedHadronEnergy : -999.", float, doc = "chargedHadronEnergy"),
       neutralHadronEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.neutralHadronEnergy : -999.", float, doc = "neutralHadronEnergy"),
       photonEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.photonEnergy : -999.", float, doc = "photonEnergy"),
-      electronEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.electronEnergy : -999.", float, doc = "electronEnergy"),
       muonEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.muonEnergy : -999.", float, doc = "muonEnergy"),
-      HFHadronEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.HFHadronEnergy : -999.", float, doc = "HFHadronEnergy"),
-      HFEMEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.HFEMEnergy : -999.", float, doc = "HFEMEnergy"),
       chargedHadronMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.chargedHadronMultiplicity : -999.", float, doc = "chargedHadronMultiplicity"),
       neutralHadronMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.neutralHadronMultiplicity : -999.", float, doc = "neutralHadronMultiplicity"),
       photonMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.photonMultiplicity : -999.", float, doc = "photonMultiplicity"),
-      electronMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.electronMultiplicity : -999.", float, doc = "electronMultiplicity"),
       muonMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.muonMultiplicity : -999.", float, doc = "muonMultiplicity"),
-      HFHadronMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.HFHadronMultiplicity : -999.", float, doc = "HFHadronMultiplicity"),
-      HFEMMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.HFEMMultiplicity : -999.", float, doc = "HFEMMultiplicity"),
-      chargedEmEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.chargedEmEnergy : -999.", float, doc = "chargedEmEnergy"),
       chargedMuEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.chargedMuEnergy : -999.", float, doc = "chargedMuEnergy"),
       neutralEmEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.neutralEmEnergy : -999.", float, doc = "neutralEmEnergy"),
       chargedMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.chargedMultiplicity : -999.", float, doc = "chargedMultiplicity"),
@@ -120,9 +113,6 @@ def customise(process, output='nano.root', is_data=False):
       emFraction = Var("emFraction", float, doc = " Ecal/Hcal Cluster Energy"),
       hcalTotOverPLead = Var("hcalTotOverPLead", float, doc = " total Hcal Cluster E / leadPFChargedHadron P"),
       signalConeSize = Var("signalConeSize", float, doc = "Size of signal cone"),
-      # lepton decision variables
-      electronPreIDDecision = Var("electronPreIDDecision", bool, doc = " Decision from Electron PreID"),
-      muonDecision = Var("muonDecision", bool, doc = "muonDecision"),
     )
   )
   # cms.EDProducer : an object that produces a new data object
@@ -145,7 +135,7 @@ def customise(process, output='nano.root', is_data=False):
     src = cms.InputTag( "hltParticleFlow" ),
     cut = cms.string(""),
     name= cms.string("PFCand"),
-    doc = cms.string("HLT PF candidates for taus"),
+    doc = cms.string("HLT PF candidates"),
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table
     variables = cms.PSet(
@@ -154,12 +144,8 @@ def customise(process, output='nano.root', is_data=False):
       vx = Var("vx", float, doc='x coordinate of vertex position'),
       vy = Var("vy", float, doc='y coordinate of vertex position'),
       vz = Var("vz", float, doc='z coordinate of vertex position'),
-      vertexChi2 = Var("vertexChi2", float, doc='chi-squares'),
-      vertexNdof = Var("vertexNdof", float, doc='Number of degrees of freedom,  Meant to be Double32_t for soft-assignment fitters'),
       pdgId = Var("pdgId", int, doc='PDG identifier'),
-      status = Var("status", int, doc='status word'),
       longLived = Var("longLived", bool, doc='is long lived?'),
-      massConstraint = Var("massConstraint", bool, doc='do mass constraint?'),
       # source: cmssw/PhysicsTools/NanoAOD/plugins/SimpleFlatTableProducerPlugins.cc
       trackDz = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dz : -999.", float, doc = "track Dz"),
       trackDxy = Var("? trackRef.isNonnull && trackRef.isAvailable ? trackRef.dxy : -999.", float, doc = "track Dxy"),
@@ -192,12 +178,6 @@ def customise(process, output='nano.root', is_data=False):
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table
     variables = cms.PSet(
-      # these variables are 0
-      # AK4PFJets_chargedEmEnergyFraction
-      # AK4PFJets_chargedEmEnergy
-      # AK4PFJets_electronEnergy
-      # AK4PFJets_electronEnergyFraction
-      # AK4PFJets_electronMultiplicity
       P4Vars,
       chargedHadronEnergy = Var("chargedHadronEnergy", float, doc = "chargedHadronEnergy"),
       chargedHadronEnergyFraction = Var("chargedHadronEnergyFraction", float, doc = "chargedHadronEnergyFraction"),
@@ -205,8 +185,6 @@ def customise(process, output='nano.root', is_data=False):
       neutralHadronEnergyFraction = Var("neutralHadronEnergyFraction", float, doc = "neutralHadronEnergyFraction"),
       photonEnergy = Var("photonEnergy", float, doc = "photonEnergy"),
       photonEnergyFraction = Var("photonEnergyFraction", float, doc = "photonEnergyFraction"),
-      electronEnergy = Var("electronEnergy", float, doc = "electronEnergy"),
-      electronEnergyFraction = Var("electronEnergyFraction", float, doc = "electronEnergyFraction"),
       muonEnergy = Var("muonEnergy", float, doc = "muonEnergy"),
       muonEnergyFraction = Var("muonEnergyFraction", float, doc = "muonEnergyFraction"),
       HFHadronEnergy = Var("HFHadronEnergy", float, doc = "HFHadronEnergy"),
@@ -216,20 +194,15 @@ def customise(process, output='nano.root', is_data=False):
       chargedHadronMultiplicity = Var("chargedHadronMultiplicity", float, doc = "chargedHadronMultiplicity"),
       neutralHadronMultiplicity = Var("neutralHadronMultiplicity", float, doc = "neutralHadronMultiplicity"),
       photonMultiplicity = Var("photonMultiplicity", float, doc = "photonMultiplicity"),
-      electronMultiplicity = Var("electronMultiplicity", float, doc = "electronMultiplicity"),
       muonMultiplicity = Var("muonMultiplicity", float, doc = "muonMultiplicity"),
       HFHadronMultiplicity = Var("HFHadronMultiplicity", float, doc = "HFHadronMultiplicity"),
       HFEMMultiplicity = Var("HFEMMultiplicity", float, doc = "HFEMMultiplicity"),
-      chargedEmEnergy = Var("chargedEmEnergy", float, doc = "chargedEmEnergy"),
-      chargedEmEnergyFraction = Var("chargedEmEnergyFraction", float, doc = "chargedEmEnergyFraction"),
       chargedMuEnergy = Var("chargedMuEnergy", float, doc = "chargedMuEnergy"),
       chargedMuEnergyFraction = Var("chargedMuEnergyFraction", float, doc = "chargedMuEnergyFraction"),
       neutralEmEnergy = Var("neutralEmEnergy", float, doc = "neutralEmEnergy"),
       neutralEmEnergyFraction = Var("neutralEmEnergyFraction", float, doc = "neutralEmEnergyFraction"),
       chargedMultiplicity = Var("chargedMultiplicity", float, doc = "chargedMultiplicity"),
       neutralMultiplicity = Var("neutralMultiplicity", float, doc = "neutralMultiplicity"),
-      hoEnergy = Var("hoEnergy", float, doc = "hoEnergy"),
-      hoEnergyFraction = Var("hoEnergyFraction", float, doc = "hoEnergyFraction"),
       nConstituents = Var("nConstituents", int, doc = "nConstituents"),
       etaetaMoment =  Var("etaetaMoment", float, doc = " eta-eta second moment, ET weighted " ),
       phiphiMoment =  Var("phiphiMoment", float, doc = " phi-phi second moment, ET weighted " ),
@@ -237,8 +210,7 @@ def customise(process, output='nano.root', is_data=False):
       maxDistance =  Var("maxDistance", float, doc = " maximum distance from jet to constituent " ),
       constituentPtDistribution =  Var("constituentPtDistribution", float, doc = " jet structure variables: constituentPtDistribution is the pT distribution among the jet constituents (ptDistribution = 1 if jet made by one constituent carrying all its momentum,  ptDistribution = 0 if jet made by infinite constituents carrying an infinitesimal fraction of pt) "    ),
       constituentEtaPhiSpread =  Var("constituentEtaPhiSpread", float, doc = " the rms of the eta-phi spread of the jet's constituents wrt the jet axis " ),
-      jetArea =  Var("jetArea", float, doc = " get jet area " ),
-      pileup =  Var("pileup", float, doc = "  pileup energy contribution as calculated by algorithm " ),
+      jetArea =  Var("jetArea", float, doc = " get jet area " )
     )
   )
 
@@ -267,9 +239,18 @@ def customise(process, output='nano.root', is_data=False):
     precision = cms.int32(7)
   )
 
+  process.pfVertexTable = cms.EDProducer("VertexTableProducerHLT",
+    src = cms.InputTag("hltVerticesPFFilter"),
+    name = cms.string("PFPrimaryVertex")
+  )
+  process.svCandidateTable.src = 'hltDeepInclusiveSecondaryVerticesPF'
+  process.svCandidateTable.name = 'PFSecondaryVertex'
+  process.svCandidateTable.extension = False
+
   process.tauTablesTask = cms.Task(process.tauTable)
   process.tauTablesExtTask = cms.Task(process.tauExtTable)
   process.pfCandTablesTask = cms.Task(process.pfCandTable)
+  process.vertexTablesTask = cms.Task(process.pfVertexTable, process.svCandidateTable)
   process.AK4PFJetsTableTask = cms.Task(process.AK4PFJetsTable)
   process.genParticlesForJetsNoNuTask = cms.Task(process.genParticlesForJetsNoNu, process.selectedHadronsAndPartons)
   process.genJetFlavourInfosTask =  cms.Task(process.genJetFlavourInfos)
@@ -282,6 +263,7 @@ def customise(process, output='nano.root', is_data=False):
     process.tauTablesTask,
     process.tauTablesExtTask,
     process.pfCandTablesTask,
+    process.vertexTablesTask,
     process.AK4PFJetsTableTask,
     process.recoAllGenJetsNoNuTask,
     process.L1TableTask,
@@ -289,7 +271,7 @@ def customise(process, output='nano.root', is_data=False):
     process.pixelTrackTableTask
   )
 
-  if is_data:
+  if not is_data:
     process.nanoTableTask.add(
       process.genParticleTablesTask,
       process.genParticleTask,
@@ -297,23 +279,39 @@ def customise(process, output='nano.root', is_data=False):
       process.genJetFlavourInfosTask,
       process.GenJetTableTask
     )
-  else:
     process.finalGenParticles.src = cms.InputTag("genParticles")
     process = customiseGenParticles(process)
 
   process.nanoSequence = cms.Sequence(process.nanoTableTask)
   process.l1bits=cms.EDProducer("L1TriggerResultsConverter",
-                       src=cms.InputTag("hltGtStage2Digis"),
-                       legacyL1=cms.bool(False),
-                       storeUnprefireableBit=cms.bool(True),
-                       src_ext=cms.InputTag("simGtExtUnprefireable"))
+    src=cms.InputTag("hltGtStage2Digis"),
+    legacyL1=cms.bool(False),
+    storeUnprefireableBit=cms.bool(True),
+    src_ext=cms.InputTag("simGtExtUnprefireable")
+  )
 
+  process.HLTTauVertexSequencePF = cms.Sequence(
+    process.hltVerticesPF
+    + process.hltVerticesPFSelector
+    + cms.ignore(process.hltVerticesPFFilter)
+    + process.hltDeepInclusiveVertexFinderPF
+    + process.hltDeepInclusiveSecondaryVerticesPF
+  )
+
+  process.hltHpsPFTauTrack.MinN = 0
+  process.hltTauJet5.MinN = 0
   process.nanoAOD_step = cms.Path(
-    process.HLTBeginSequence
+    process.SimL1Emulator
+    + cms.ignore(process.hltTriggerType)
+    + process.HLTL1UnpackerSequence
+    + process.HLTBeamSpot
+#    + process.hltGtStage2Digis
+#    + process.HLTBeginSequence
     + process.HLTL2TauTagNNSequence
     + process.HLTGlobalPFTauHPSSequence
     + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau
     + process.HLTAK4PFJetsSequence
+    + process.HLTTauVertexSequencePF
     + process.l1bits
     + process.nanoSequence
   )
@@ -339,18 +337,18 @@ def customise(process, output='nano.root', is_data=False):
   process.FastTimerService.printEventSummary = False
   process.FastTimerService.printRunSummary = False
   process.FastTimerService.printJobSummary = False
-  process.hltL1TGlobalSummary.DumpTrigSummary = False
+  # process.hltL1TGlobalSummary.DumpTrigSummary = False
 
-  del process.MessageLogger.TriggerSummaryProducerAOD
-  del process.MessageLogger.L1GtTrigReport
-  del process.MessageLogger.L1TGlobalSummary
-  del process.MessageLogger.HLTrigReport
+  # del process.MessageLogger.TriggerSummaryProducerAOD
+  # del process.MessageLogger.L1GtTrigReport
+  # del process.MessageLogger.L1TGlobalSummary
+  # del process.MessageLogger.HLTrigReport
   del process.MessageLogger.FastReport
-  del process.MessageLogger.ThroughputService
-  process.MessageLogger.cerr.enableStatistics = cms.untracked.bool(False)
+  # del process.MessageLogger.ThroughputService
+  # process.MessageLogger.cerr.enableStatistics = cms.untracked.bool(False)
   del process.dqmOutput
 
-  process.options.wantSummary = False
+  # process.options.wantSummary = False
 
   #process.schedule = cms.Schedule(process.nanoAOD_step, process.NANOAODSIMoutput_step)
   process.schedule.insert(1000000, process.nanoAOD_step)

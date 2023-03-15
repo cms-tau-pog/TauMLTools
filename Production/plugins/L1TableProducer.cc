@@ -77,14 +77,12 @@ private:
   {
     const auto& collection = event.get(token);
     std::vector<float> pt, eta, phi;
-    std::vector<int> hwQual;
 
     for(auto it = collection.begin(0); it != collection.end(0); ++it) {
       if(it->pt() <= 0) continue;
       pt.push_back(it->pt());
       eta.push_back(it->eta());
       phi.push_back(it->phi());
-      hwQual.push_back(it->hwQual());
       fn(it);
     }
 
@@ -92,7 +90,6 @@ private:
     table->addColumn<float>("pt", pt, "transverse momentum", precision_);
     table->addColumn<float>("eta", eta, "pseudorapidity", precision_);
     table->addColumn<float>("phi", phi, "azimuthal angle", precision_);
-    table->addColumn<int>("hwQual", hwQual, "hardware quality");
     return table;
   }
 
@@ -111,16 +108,18 @@ private:
   {
     static const std::string name = "L1Muon";
     std::vector<float> ptUnconstrained;
-    std::vector<int> charge, hwIso, hwDXY;
+    std::vector<int> charge, hwIso, hwQual, hwDXY;
     auto table = Fill(event, muonsToken_, name, [&](const auto& it) {
       ptUnconstrained.push_back(it->ptUnconstrained());
       charge.push_back(it->charge());
       hwIso.push_back(it->hwIso());
+      hwQual.push_back(it->hwQual());
       hwDXY.push_back(it->hwDXY());
     });
     table->addColumn<float>("ptUnconstrained", ptUnconstrained, "unconstrained transverse momentum", precision_);
     table->addColumn<int>("charge", charge, "charge");
     table->addColumn<int>("hwIso", hwIso, "hardware isolation");
+    table->addColumn<int>("hwQual", hwQual, "hardware quality");
     table->addColumn<int>("hwDXY", hwDXY, "hardware transverse impact parameter");
     event.put(std::move(table), name);
   }
@@ -128,15 +127,11 @@ private:
   void FillJets(edm::Event& event) const
   {
     static const std::string name = "L1Jet";
-    std::vector<int> rawEt, seedEt, puEt;
+    std::vector<int> hwQual;
     auto table = Fill(event, jetsToken_, name, [&](const auto& it) {
-      rawEt.push_back(it->rawEt());
-      seedEt.push_back(it->seedEt());
-      puEt.push_back(it->puEt());
+      hwQual.push_back(it->hwQual());
     });
-    table->addColumn<int>("rawEt", rawEt, "raw (uncalibrated) cluster sum");
-    table->addColumn<int>("seedEt", seedEt, "transverse energy of the seed");
-    table->addColumn<int>("puEt", puEt, "transverse energy of the pile-up");
+    table->addColumn<int>("hwQual", hwQual, "hardware quality");
     event.put(std::move(table), name);
   }
 

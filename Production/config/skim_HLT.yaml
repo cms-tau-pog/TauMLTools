@@ -3,6 +3,7 @@ skim_setup:
   column_filters:
     - drop ^.*_sel$
     - drop ^.*_tmp$
+    - drop ^HLTrigger.*$
   processing_module:
     file: Production/python/skimHLT.py
     function: skim

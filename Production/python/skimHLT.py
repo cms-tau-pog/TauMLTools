@@ -34,7 +34,7 @@ def skim(df):
   columns = [ str(c) for c in df.GetColumnNames() ]
   ref_objects = [ ('L1Tau', '_tmp'), ('Tau', ''), ('Jet', '') ]
   for obj, suffix in ref_objects:
-    df = df.Define(f'{obj}_sel', f'{obj}_pt > 15 && abs({obj}_eta) < 2.5')
+    df = df.Define(f'{obj}_sel', f'{obj}_pt > 15 && abs({obj}_eta) < 2.7')
     sample_c = None
     for c in columns:
       if c.startswith(obj + '_'):
@@ -45,7 +45,7 @@ def skim(df):
         sample_c = c
     counter = 'n' + obj
     if len(suffix) == 0 and sample_c and counter in columns:
-        df = df.Redefine(c, f'static_cast<int>({sample_c}.size())')
+        df = df.Redefine(counter, f'static_cast<int>({sample_c}.size())')
   ref_eta = [ f'&{obj}_eta{suffix}' for obj, suffix in ref_objects ]
   ref_phi = [ f'&{obj}_phi{suffix}' for obj, suffix in ref_objects ]
   ref_eta_str = '{' + ', '.join(ref_eta) + '}'
@@ -59,5 +59,5 @@ def skim(df):
         sample_c = c
     counter = 'n' + obj
     if sample_c and counter in columns:
-        df = df.Redefine(c, f'static_cast<int>({sample_c}.size())')
+        df = df.Redefine(counter, f'static_cast<int>({sample_c}.size())')
   return df
