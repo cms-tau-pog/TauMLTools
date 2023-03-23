@@ -11,6 +11,8 @@ namespace tau_analysis {
 namespace selectors {
 
 struct TagObject {
+    enum class Kind{ Muon = 1, Electron = 2 };
+    Kind kind; 
     pat::PackedCandidate::PolarLorentzVector p4;
     int charge;
     unsigned id;
@@ -53,6 +55,14 @@ struct genTauTau : TauJetSelector {
 };
 
 struct TauJetTag : TauJetSelector {
+    virtual Result Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
+                          const std::vector<pat::Electron>& electrons,
+                          const std::vector<pat::Muon>& muons, const pat::MET& met,
+                          const reco::Vertex& primaryVertex,
+                          const pat::TriggerObjectStandAloneCollection& triggerObjects,
+                          const edm::TriggerResults& triggerResults, float rho) override;
+};
+struct TagAndProbe : TauJetSelector {
     virtual Result Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
                           const std::vector<pat::Electron>& electrons,
                           const std::vector<pat::Muon>& muons, const pat::MET& met,
