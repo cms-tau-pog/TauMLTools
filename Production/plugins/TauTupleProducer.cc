@@ -261,6 +261,7 @@ private:
         const auto [tauJets, tagObj] = selector->Select(event, builder.GetTauJets(), *electrons, *muons,
                                                            METs->at(0), PV, *triggerObjects, *triggerResults, *rho);
         tauTuple().tagObj_valid = tagObj != nullptr;
+        tauTuple().tagObj_kind = tagObj ? static_cast<int>(tagObj->kind) : default_int_value;
         tauTuple().tagObj_pt = tagObj ? tagObj->p4.pt() : default_value;
         tauTuple().tagObj_eta = tagObj ? tagObj->p4.eta() : default_value;
         tauTuple().tagObj_phi = tagObj ? tagObj->p4.phi() : default_value;

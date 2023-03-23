@@ -137,6 +137,7 @@
     VAR(Int_t, genJet_partonFlavour) /* parton-based flavour */ \
     /* Tag object variables (for tag-and-probe data) */ \
     VAR(Int_t, tagObj_valid) /* indicates presence of the tag object */ \
+    VAR(Int_t, tagObj_kind) /* 1 Muon 2 Electron */ \
     VAR4(Float_t, tagObj_pt, tagObj_eta, tagObj_phi, tagObj_mass) /* 4-momentum of the tag object */ \
     VAR(Int_t, tagObj_charge) /* charge of the tag object */ \
     VAR(UInt_t, tagObj_id) /* ID of the tag object */ \

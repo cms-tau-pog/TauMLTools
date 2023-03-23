@@ -55,6 +55,8 @@ std::shared_ptr<TauJetSelector> TauJetSelector::Make(const std::string& name)
         return std::make_shared<genTauTau>();
     if(name == "TauJetTag")
         return std::make_shared<TauJetTag>();
+    if(name == "TagAndProbe") 
+        return std::make_shared<TagAndProbe>();
     throw analysis::exception("Unknown selector name = '%1%'") % name;
 }
 
@@ -273,7 +275,7 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
     //
     else { // No mu or ele tag nor high MET 
         for(const TauJet& tauJet : tauJets) {
-            if(!((tauJet.genLepton && tauJet.genJet) && !(std::abs(tauJet.genLepton->visibleP4().eta()) < 2.8 || std::abs(tauJet.genJet->eta()) < 2.8)) continue;
+            if(!(tauJet.genLepton && tauJet.genJet) && !(std::abs(tauJet.genLepton->visibleP4().eta()) < 2.8 || std::abs(tauJet.genJet->eta()) < 2.8)) continue;
 	    selectedTauJets.push_back(&tauJet); //Fill with jets passing selection
 	}
 	if(selectedTauJets.size() <= 2)
