@@ -199,7 +199,7 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
     }
     if(!ref_muon) {
     	for(const pat::Electron& electron : electrons) { // Start looking for an ele tag if no muon was found
-            if(!(electron.pt() > 34 && std::abs(electron.eta()) < 2.3 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && PFRelIsolation(electron,rho)
+            if(!(electron.pt() > 34 && std::abs(electron.eta()) < 2.3 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && PFRelIsolation(electron,rho) < 0.15
                      && std::abs(electron.bestTrack()->dz(primaryVertex.position())) < 0.2
                      && std::abs(electron.bestTrack()->dxy(primaryVertex.position())) < 0.045))
             	 continue;
