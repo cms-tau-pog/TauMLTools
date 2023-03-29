@@ -4,6 +4,23 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback, ModelCheckpoint, CSVLogger
 
+class LossLogCallback(Callback):
+
+    def __init__(self, log_dir, period = 1, metrics_names=[]):
+        self.period = period
+        self.metrics_names = metrics_names
+        self.global_step = 0
+        self.writer = tf.summary.create_file_writer(log_dir+"/steps/")
+
+    def on_batch_end(self, batch, logs):
+        if self.period == 0: return
+        if batch % self.period != 0: return
+        with self.writer.as_default():
+          for name in self.metrics_names:
+            # print('\nbatch_'+name, logs[name], batch)
+            tf.summary.scalar('batch_'+name, data=logs[name], step=self.global_step)
+        self.global_step = self.global_step + self.period
+
 class TimeCheckpoint(Callback):
     def __init__(self, time_interval, file_name_prefix):
         self.time_interval = time_interval
