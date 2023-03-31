@@ -12,10 +12,9 @@ import yaml
 from hydra import initialize, compose
 from .framework import Task, HTCondorWorkflow
 from omegaconf import DictConfig, OmegaConf, open_dict
-sys.path.append('Preprocessing/root2tf/')
+sys.path.append(os.environ['ANALYSIS_PATH']+'/Preprocessing/root2tf/')
 from create_dataset import fetch_file_list, process_files as run_job
 import luigi
-#from ??? as preselect_files
 
 class RootToTF(Task, HTCondorWorkflow, law.LocalWorkflow):
   ## '_' will be converted to '-' for the shell command invocation
@@ -23,6 +22,7 @@ class RootToTF(Task, HTCondorWorkflow, law.LocalWorkflow):
   files_per_job = luigi.IntParameter(default=1, description='number of files to run a single job.')
   n_jobs        = luigi.IntParameter(default=0, description='number of jobs to run. Together with --files-per-job determines the total number of files processed. Default=0 run on all files.')
   dataset_type  = luigi.Parameter(description="which samples to read (train/validation/test)")
+  output_path   = luigi.Parameter(description="output path. Overrides 'path_to_dataset' in the cfg")
 
   def __init__(self, *args, **kwargs):
     ''' run the conversion of .root files to tensorflow datasets
@@ -37,7 +37,11 @@ class RootToTF(Task, HTCondorWorkflow, law.LocalWorkflow):
     
     input_data  = OmegaConf.to_object(self.cfg_dict['input_data'])
     self.dataset_cfg = input_data[self.dataset_type]
-    self.output_path = os.path.abspath(self.cfg_dict['path_to_dataset'])
+#    self.output_path = os.path.abspath(self.cfg_dict['path_to_dataset'])
+    self.output_path = os.path.abspath(self.output_path)
+    if not os.path.exists(self.output_path):
+      os.makedirs(self.output_path)
+    self.cfg_dict['path_to_dataset'] = self.output_path
 
   def move(self, src, dest):
     #if os.path.exists(dest):
@@ -46,9 +50,10 @@ class RootToTF(Task, HTCondorWorkflow, law.LocalWorkflow):
     shutil.move(src, dest)
 
   def create_branch_map(self):
-    files       = sorted([os.path.abspath(f) for f in self.dataset_cfg.pop('files')])
-    files       = list(fetch_file_list(files))
-    assert len(files), "Input file list is empty from cfg {}".format(self.cfg)
+    _files  = self.dataset_cfg.pop('files')
+    files   = sorted([os.path.abspath(f) for f in _files])
+    files   = list(fetch_file_list(files))
+    assert len(files), "Input file list is empty: {}".format(_files)
 
     batches = [files[j:j+self.files_per_job] for j in range(0, len(files), self.files_per_job)]
     if self.n_jobs:
