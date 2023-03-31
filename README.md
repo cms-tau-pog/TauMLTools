@@ -316,6 +316,19 @@ where:
 
 The path to the output file has to be specified in the yaml configuration file described in the following sections.
 
+### TensorFlow dataset creation
+
+To speedup dataloading, tensorflow datasets should be created from S&M root files before running the training. This step is done by the [create_dataset.py](Preprocessing/root2tf/create_dataset.py) script.
+
+#### On HTCondor
+The production of TF datasets can be parallelized (over input files) with law on HTCondor. The corresponding law task is [RootToTF.py](LawWorkflows/RootToTF.py). This task imports the needed function from [create_dataset.py](Preprocessing/root2tf/create_dataset.py). To start the conversion, run
+
+```bash
+law run RootToTF --cfg CFG --dataset-type DTYPE --version VERSION --environment conda --output-path OUTPUT
+```
+where *CFG* is the path to a yaml file such as [create_dataset.yaml](Preprocessing/root2tf/configs/create_dataset.yaml), *DTYPE* is the dataset type (validation, training) as specified in the *CFG* file, *VERSION* is the job batch identifier and *OUTPUT* is the destination folder.  
+**NOTE**: *OUTPUT* overwrites the yaml configuration. This is needed to bypass the different filesystem on the HTCondor machine.
+
 ## Training NN
 
 ### Feature scaling
