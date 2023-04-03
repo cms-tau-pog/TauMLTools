@@ -73,8 +73,9 @@ def create_settings(data: dict, verbose=False) -> str:
         for features in content["Features_all"]:
             number = len(content["Features_all"][features]) -  len(content["Features_disable"][features])
             string += "const inline size_t n_" + str(features) + " = " + str(number) + ";\n"
-            if "SequenceLength" in  content: # sequence length
-                string += "const inline size_t nSeq_" + str(features) + " = " + str(content["SequenceLength"][features]) + ";\n"
+            if "SequenceLength" in content:
+                if features in content["SequenceLength"]: # sequence length
+                    string += "const inline size_t nSeq_" + str(features) + " = " + str(content["SequenceLength"][features]) + ";\n"
 
         string += "const inline std::vector<std::string> CellObjectTypes {\"" + \
                   "\",\"".join(content["CellObjectType"]) + \
