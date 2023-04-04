@@ -1,0 +1,99 @@
+input_root: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v1
+spectrum_root: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v1_spectrum/L1Tau
+n_batches: 100000
+tree_name: Events
+
+inputs:
+  Higgs:
+    - GluGluHToTauTau_M-125
+    - GluGluHToTauTau_M-125_ext1
+    - GluGlutoHHto2B2Tau_kl-0p00_kt-1p00_c2-0p00
+    - GluGlutoHHto2B2Tau_kl-0p00_kt-1p00_c2-1p00
+    - GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-0p00
+    - GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-0p35
+    - GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-3p00
+    - GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-m2p00
+    - GluGlutoHHto2B2Tau_kl-2p45_kt-1p00_c2-0p00
+    - VBFHHto2B2Tau_CV-1_C2V-1_C3-1
+    - VBFHHto2B2Tau_CV-1_C2V-1_C3-2
+    - VBFHHto2B2Tau_CV-1_C2V-2_C3-1
+    - VBFHToTauTau_M125
+    - VBFHToTauTau_M125_ext1
+  Zprime:
+    - ZprimeToTauTau_M-4000
+    - ZprimeToEE_M-6000
+  DY:
+    - DYTo2L_MLL-50
+    - DYTo2L_MLL-4to50
+  TT:
+    - TT
+    - TT_ext1
+  QCD:
+    - QCD_PT-600toInf
+    - QCD_PT-470to600
+    - QCD_PT-300to470
+    - QCD_PT-170to300
+    - QCD_PT-120to170
+    - QCD_PT-80to120
+    - QCD_PT-50to80
+    - QCD_PT-30to50
+
+bin_selection: "
+  L1Tau_gen_pt >= {pt_low} && L1Tau_gen_pt < {pt_high}
+  && L1Tau_gen_abs_eta >= {eta_low} && L1Tau_gen_abs_eta < {eta_high}
+"
+
+bin_edges:
+  pt: [ 20.0, 25.0, 30.0, 40.0, 60.0, 80.0, 100.0, 1000.0 ]
+  eta: [ 0.0, 0.7, 1.4, 2.1 ]
+
+bins:
+  - input_setups: [ Zprime, Higgs, DY, TT ]
+    tau_type: tau
+    eta_bin: 0
+    counts: [ 5, 4, 8, 10, 4, 2, 3 ]
+  - input_setups: [ Zprime, Higgs, DY, TT ]
+    tau_type: tau
+    eta_bin: 1
+    counts: [ 4, 4, 7, 9, 3, 1, 2 ]
+  - input_setups: [ Zprime, Higgs, DY, TT ]
+    tau_type: tau
+    eta_bin: 2
+    counts: [ 3, 3, 5, 6, 2, 1, 1 ]
+  - input_setups: [ TT ]
+    tau_type: jet
+    eta_bin: 0
+    counts: [ 5, 5, 5, 5, 5, 5, 5 ]
+  - input_setups: [ TT ]
+    tau_type: jet
+    eta_bin: 1
+    counts: [ 5, 5, 5, 5, 5, 5, 5 ]
+  - input_setups: [ TT ]
+    tau_type: jet
+    eta_bin: 2
+    counts: [ 4, 4, 4, 4, 4, 4, 4 ]
+  - input_setups: [ QCD ]
+    tau_type: jet
+    eta_bin: 0
+    counts: [ 5, 5, 5, 5, 5, 5, 5 ]
+  - input_setups: [ QCD ]
+    tau_type: jet
+    eta_bin: 1
+    counts: [ 5, 5, 5, 5, 5, 5, 5 ]
+  - input_setups: [ QCD ]
+    tau_type: jet
+    eta_bin: 2
+    counts: [ 3, 3, 3, 3, 3, 3, 3 ]
+  - input_setups: [ Zprime, DY, TT ]
+    tau_type: e
+    eta_bin: 0
+    counts: [ 2, 2, 2, 2, 2, 1, 1 ]
+  - input_setups: [ Zprime, DY, TT ]
+    tau_type: e
+    eta_bin: 1
+    counts: [ 1, 1, 2, 2, 1, 0, 0 ]
+  - input_setups: [ Zprime, DY, TT ]
+    tau_type: e
+    eta_bin: 2
+    counts: [ 1, 1, 1, 1, 1, 0, 0 ]
+
