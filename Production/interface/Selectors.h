@@ -20,9 +20,13 @@ struct TagObject {
     bool has_extramuon;
     bool has_extraelectron;
     bool has_dimuon;
+    bool has_dielectron;
 };
 
 struct TauJetSelector {
+    enum class Type { MuonTag = 1, ElectronTag = 2, HighMET = 3, GenBased = 4 };
+    Type selectionType;
+
     using Result = std::tuple<std::vector<const TauJet*>, std::shared_ptr<TagObject>>;
 
     virtual ~TauJetSelector() {}

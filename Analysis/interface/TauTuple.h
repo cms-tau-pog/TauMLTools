@@ -145,6 +145,9 @@
     VAR(Int_t, has_extramuon) /* Extra muon present */ \
     VAR(Int_t, has_extraelectron) /* Extra electron present */ \
     VAR(Int_t, has_dimuon) /* Extra muon pair present */ \
+    VAR(Int_t, has_dielectron) /* Extra electron pair present */ \
+    /* Selection type of TagAndProbe selector */ \
+    VAR (Int_t, selectionType) /* 1 Muon tag, 2 Ele tag, 3 High MET, 4 gen based */ \
     /* Jet variables (for both AK4 and AK8 (aka "fat") jets) */ \
     JET_VAR(Int_t, index) /* index of the jet */ \
     JET_VAR4(Float_t, pt, eta, phi, mass) /* 4-momentum of the jet */ \

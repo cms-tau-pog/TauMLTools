@@ -272,6 +272,8 @@ private:
         tauTuple().has_extramuon = tagObj ? tagObj->has_extramuon : default_value;
         tauTuple().has_extraelectron = tagObj ? tagObj->has_extraelectron : default_value;
         tauTuple().has_dimuon = tagObj ? tagObj->has_dimuon : default_value;
+        tauTuple().has_dielectron = tagObj ? tagObj->has_dielectron : default_value;
+        tauTuple().selectionType = static_cast<int>(selector->selectionType);
 
         tauTuple().total_entries = static_cast<int>(tauJets.size());
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {

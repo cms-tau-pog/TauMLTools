@@ -8,16 +8,16 @@ namespace {
 bool hasExtraMuon (const std::vector<pat::Muon>& muons, const pat::Muon *ref_muon, const reco::Vertex& primaryVertex){
     for(const pat::Muon& muon : muons) {
         if(muon.pt() > 10 && std::abs(muon.eta()) < 2.4 && muon.isMediumMuon() && tau_analysis::PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.2
-                && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.0045 && &muon != ref_muon){
+                && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.045 && &muon != ref_muon){
             return true;
         }
     }
     return false;
 }
 
-bool hasExtraElectron (const std::vector<pat::Electron>& electrons, float rho){
+bool hasExtraElectron (const std::vector<pat::Electron>& electrons, const pat::Electron *ref_electron, float rho){
     for(const pat::Electron& electron : electrons) {
-        if(electron.pt() > 10 && std::abs(electron.eta()) < 2.5 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && tau_analysis::PFRelIsolation(electron, rho)<0.3){
+        if(electron.pt() > 10 && std::abs(electron.eta()) < 2.5 && electron.electronID("mvaEleID-Fall17-noIso-V2-wp90") > 0.5f && tau_analysis::PFRelIsolation(electron, rho)<0.3 && &electron != ref_electron){
             return true;
         }
     }
@@ -28,12 +28,27 @@ bool hasExtraDimuon (const std::vector<pat::Muon>& muons, const reco::Vertex& pr
     std::vector<const pat::Muon*> dimuon_cands; // vector of all muons that pass selection
     for(const pat::Muon& muon : muons) {
         if(muon.pt() > 15 && std::abs(muon.eta()) < 2.4 && muon.isLooseMuon() && tau_analysis::PFRelIsolation(muon) < 0.30 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.2
-                && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.0045)
+                && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.045)
                     dimuon_cands.push_back(&muon);
     }
     for(size_t m1 = 0; m1 < dimuon_cands.size(); ++m1) {
         for(size_t m2 = m1 + 1; m2 < dimuon_cands.size(); ++m2){
             if (reco::deltaR(dimuon_cands.at(m1)->polarP4(), dimuon_cands.at(m2)->polarP4()) > 0.15 && (dimuon_cands.at(m1)->charge() + dimuon_cands.at(m2)->charge()) == 0 )
+                return true;
+        }   
+    }
+    return false;
+}
+
+bool hasExtraDielectron (const std::vector<pat::Electron>& electrons, float rho){
+    std::vector<const pat::Electron*> dielectron_cands; // vector of all electrons that pass selection
+    for(const pat::Electron& electron : electrons) {
+        if(electron.pt() > 15 && std::abs(electron.eta()) < 2.5 && electron.electronID("cutBasedElectronID-Fall17-94X-V2-veto") > 0.5f && tau_analysis::PFRelIsolation(electron, rho)<0.3)
+                    dielectron_cands.push_back(&electron);
+    }
+    for(size_t m1 = 0; m1 < dielectron_cands.size(); ++m1) {
+        for(size_t m2 = m1 + 1; m2 < dielectron_cands.size(); ++m2){
+            if (reco::deltaR(dielectron_cands.at(m1)->polarP4(), dielectron_cands.at(m2)->polarP4()) > 0.15 && (dielectron_cands.at(m1)->charge() + dielectron_cands.at(m2)->charge()) == 0 )
                 return true;
         }   
     }
@@ -90,7 +105,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
     for(const pat::Muon& muon : muons) {
         if(!(muon.pt() > 25 && std::abs(muon.eta()) < 2.1 && muon.isMediumMuon() && PFRelIsolation(muon) < 0.15
                 && std::abs(muon.muonBestTrack()->dz(primaryVertex.position())) < 0.2
-                && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.0045))
+                && std::abs(muon.muonBestTrack()->dxy(primaryVertex.position())) < 0.045))
             continue;
         if(!ref_muon || PFRelIsolation(*ref_muon) > PFRelIsolation(muon) || (PFRelIsolation(*ref_muon) == PFRelIsolation(muon) && ref_muon->pt() < muon.pt())){
             ref_muon = &muon;
@@ -136,8 +151,9 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
                     + unsigned(ref_muon->isTightMuon(primaryVertex)) * 4;
     tagObject->isolation = PFRelIsolation(*ref_muon);
     tagObject->has_extramuon = hasExtraMuon(muons, ref_muon, primaryVertex);
-    tagObject->has_extraelectron = hasExtraElectron(electrons, rho);
+    tagObject->has_extraelectron = hasExtraElectron(electrons, nullptr, rho);
     tagObject->has_dimuon = hasExtraDimuon(muons, primaryVertex);
+    tagObject->has_dielectron = hasExtraDielectron(electrons, rho);
     return Result(selectedTauJets, tagObject);
 }
 
@@ -220,8 +236,10 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
                           	+ unsigned(ref_muon->isTightMuon(primaryVertex)) * 4;
         	tagObject->isolation = PFRelIsolation(*ref_muon);
         	tagObject->has_extramuon = hasExtraMuon(muons, ref_muon, primaryVertex);
-        	tagObject->has_extraelectron = hasExtraElectron(electrons, rho);
+        	tagObject->has_extraelectron = hasExtraElectron(electrons, ref_electron, rho);
         	tagObject->has_dimuon = hasExtraDimuon(muons, primaryVertex);
+		tagObject->has_dielectron = hasExtraDielectron(electrons, rho);
+		TauJetSelector::selectionType = tau_analysis::selectors::TauJetSelector::Type::MuonTag;
     	}
     	//	
     	else if(ref_electron) { // Fill tag with ele if ele found rather than muon
@@ -231,11 +249,14 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
         	tagObject->id = ref_electron->electronID("mvaEleID-Fall17-noIso-V2-wp90"); //Not sure what to put here 
         	tagObject->isolation = PFRelIsolation(*ref_electron,rho);
         	tagObject->has_extramuon = hasExtraMuon(muons, ref_muon, primaryVertex);
-        	tagObject->has_extraelectron = hasExtraElectron(electrons, rho);
+        	tagObject->has_extraelectron = hasExtraElectron(electrons, ref_electron, rho);
         	tagObject->has_dimuon = hasExtraDimuon(muons, primaryVertex);	
+		tagObject->has_dielectron = hasExtraDielectron(electrons, rho);
+                TauJetSelector::selectionType = tau_analysis::selectors::TauJetSelector::Type::ElectronTag;
     	}
     	else { // high MET case
         	tagObject = nullptr;   
+                TauJetSelector::selectionType = tau_analysis::selectors::TauJetSelector::Type::HighMET;
     	}
         const TauJet* selected = nullptr;
         for(const TauJet& tauJet : tauJets) { //Look for highest pT jet
@@ -251,6 +272,7 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
     }
     else { // No mu or ele tag nor high MET 
         tagObject = nullptr;
+        TauJetSelector::selectionType = tau_analysis::selectors::TauJetSelector::Type::GenBased;
         for(const TauJet& tauJet : tauJets) {
             if(!(tauJet.genLepton) || !(std::abs(tauJet.genLepton->visibleP4().eta()) < 2.8) || !(tauJet.genJet && std::abs(tauJet.genJet->eta()) < 2.8)) continue;
 	    selectedTauJets.push_back(&tauJet); //Fill with jets passing selection
@@ -261,7 +283,7 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
    
     // Add true taus to selectedTauJets for all cases
     for(const TauJet& tauJet : tauJets) {
-       if(!(tauJet.genLepton) || !(std::abs(tauJet.genLepton->visibleP4().eta()) < 2.8 && tauJet.genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToHadrons)) continue;
+       if(!(tauJet.genLepton) || !(std::abs(tauJet.genLepton->visibleP4().eta()) < 2.8 && tauJet.genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToHadrons) || (selectedTauJets.size()!=0 && &tauJet == selectedTauJets.at(0))) continue;
          selectedTauJets.push_back(&tauJet); //Fill with jets passing selection
     }
     //
