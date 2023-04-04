@@ -1,6 +1,6 @@
 cmsswPython: RunKit/cmsRunWrapper.py
 params:
-  copyInputsToLocal: false
+  copyInputsToLocal: true
   maxEvents: -1
   skimCfg: skim_HLT.yaml
 splitting: FileBased
@@ -23,7 +23,7 @@ site: T2_CH_CERN
 crabOutput: /store/group/phys_tau/kandroso/Run3_HLT/prod_v1_crab
 finalOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v1
 localCrabOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v1_crab
-maxMemory: 2500
+maxMemory: 4000
 numCores: 1
 inputDBS: global
 allowNonValid: False
@@ -34,6 +34,7 @@ localProcessing:
   lawTask: ProdTask
   workflow: htcondor
   bootstrap: bootstrap.sh
+  nCPU: 2
 #  requirements: ( (OpSysAndVer =?= "CentOS7") || (OpSysAndVer =?= "CentOS8") )
 targetOutputFileSize: 2048
 renewKerberosTicket: True

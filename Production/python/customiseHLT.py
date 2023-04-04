@@ -305,8 +305,6 @@ def customise(process, output='nano.root', is_data=False):
     + cms.ignore(process.hltTriggerType)
     + process.HLTL1UnpackerSequence
     + process.HLTBeamSpot
-#    + process.hltGtStage2Digis
-#    + process.HLTBeginSequence
     + process.HLTL2TauTagNNSequence
     + process.HLTGlobalPFTauHPSSequence
     + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau
@@ -314,6 +312,15 @@ def customise(process, output='nano.root', is_data=False):
     + process.HLTTauVertexSequencePF
     + process.l1bits
     + process.nanoSequence
+  )
+
+  process.pickEventsPath = cms.Path(
+    process.SimL1Emulator
+    + cms.ignore(process.hltTriggerType)
+    + process.HLTL1UnpackerSequence
+    + process.HLTBeamSpot
+    + process.hltStripTrackerHVOn
+    + process.hltPixelTrackerHVOn
   )
 
   process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",
@@ -328,10 +335,15 @@ def customise(process, output='nano.root', is_data=False):
       'drop *',
       'keep nanoaodFlatTable_*Table_*_*',
       'keep edmTriggerResults_*_*_HLTX',
-    )
+    ),
+    SelectEvents = cms.untracked.PSet(
+      SelectEvents = cms.vstring('pickEventsPath')
+    ),
   )
+
   process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
 
+  process.options.numberOfThreads = 2
   process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
   process.FastTimerService.printEventSummary = False
@@ -350,8 +362,9 @@ def customise(process, output='nano.root', is_data=False):
 
   # process.options.wantSummary = False
 
-  #process.schedule = cms.Schedule(process.nanoAOD_step, process.NANOAODSIMoutput_step)
+  #process.schedule = cms.Schedule(process.nanoAOD_step, process.pickEventsPath, process.NANOAODSIMoutput_step)
   process.schedule.insert(1000000, process.nanoAOD_step)
+  process.schedule.insert(1000000, process.pickEventsPath)
   process.schedule.insert(1000000, process.NANOAODSIMoutput_step)
   #  print(process.dumpPython())
 

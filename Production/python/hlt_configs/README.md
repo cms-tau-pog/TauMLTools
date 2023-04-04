@@ -8,5 +8,7 @@ cmsEnv hltGetConfiguration /dev/CMSSW_13_0_0/GRun/V24 --globaltag 126X_mcRun3_20
 
 For data
 ```sh
-cmsEnv hltGetConfiguration /dev/CMSSW_13_0_0/GRun/V24 --globaltag 126X_dataRun3_HLT_v1 --data --unprescale --output none --max-events 100 --eras Run3 --l1-emulator Full --l1 L1Menu_Collisions2022_v1_4_0-d1_xml --input /store/data/Run2022G/EphemeralHLTPhysics3/RAW/v1/000/362/720/00000/850a6b3c-6eef-424c-9dad-da1e678188f3.root > hltData_L1.py
+cmsEnv hltGetConfiguration /dev/CMSSW_13_0_0/GRun/V24 --globaltag 126X_dataRun3_HLT_v1 --data --unprescale --output none --max-events 100 --eras Run3 --l1-emulator Full --l1 L1Menu_Collisions2022_v1_4_0-d1_xml --input /store/data/Run2022G/EphemeralHLTPhysics3/RAW/v1/000/362/720/00000/850a6b3c-6eef-424c-9dad-da1e678188f3.root > hltData.py
 ```
+
+New recommendations: https://github.com/silviodonato/cmssw/tree/customizeHLTFor2023/HLTrigger/Configuration/python#hlt-customization-functions-for-2023-run-3-studies
