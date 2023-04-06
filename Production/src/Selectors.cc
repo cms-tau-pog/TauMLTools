@@ -87,7 +87,7 @@ TauJetSelector::Result TauJetSelector::Select(const edm::Event& event, const std
     std::vector<const TauJet*> selected;
     for(const TauJet& tauJet :tauJets)
         selected.push_back(&tauJet);
-    return Result(selected, nullptr);
+    return Result(selected, nullptr, {});
 }
 
 TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
@@ -154,7 +154,7 @@ TauJetSelector::Result MuTau::Select(const edm::Event& event, const std::deque<T
     tagObject->has_extraelectron = hasExtraElectron(electrons, nullptr, rho);
     tagObject->has_dimuon = hasExtraDimuon(muons, primaryVertex);
     tagObject->has_dielectron = hasExtraDielectron(electrons, rho);
-    return Result(selectedTauJets, tagObject);
+    return Result(selectedTauJets, tagObject, {});
 }
 
 TauJetSelector::Result genTauTau::Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
@@ -177,7 +177,7 @@ TauJetSelector::Result genTauTau::Select(const edm::Event& event, const std::deq
       }
     }
     if(!(selected.size()==2)) return {};
-    return Result(selected, nullptr);
+    return Result(selected, nullptr, {});
 }
 
 TauJetSelector::Result TauJetTag::Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
@@ -192,7 +192,7 @@ TauJetSelector::Result TauJetTag::Select(const edm::Event& event, const std::deq
       if(tauJet.genLepton || tauJet.genJet || tauJet.jet)
         selected.push_back(&tauJet);
     }
-    return Result(selected, nullptr);
+    return Result(selected, nullptr, {});
 }
 
 TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
@@ -227,6 +227,7 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
     //
     auto tagObject = std::make_shared<TagObject>();
     std::vector<const TauJet*> selectedTauJets;
+    std::vector<Type> selectedTypes;
     if(ref_muon || ref_electron || met.pt() > 180) {
     	if(ref_muon) { // Fill tag object with muon if muon found
         	tagObject->kind = tau_analysis::selectors::TagObject::Kind::Muon; //new tag object member 
@@ -239,7 +240,6 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
         	tagObject->has_extraelectron = hasExtraElectron(electrons, ref_electron, rho);
         	tagObject->has_dimuon = hasExtraDimuon(muons, primaryVertex);
 		tagObject->has_dielectron = hasExtraDielectron(electrons, rho);
-		TauJetSelector::selectionType = tau_analysis::selectors::TauJetSelector::Type::MuonTag;
     	}
     	//	
     	else if(ref_electron) { // Fill tag with ele if ele found rather than muon
@@ -252,11 +252,9 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
         	tagObject->has_extraelectron = hasExtraElectron(electrons, ref_electron, rho);
         	tagObject->has_dimuon = hasExtraDimuon(muons, primaryVertex);	
 		tagObject->has_dielectron = hasExtraDielectron(electrons, rho);
-                TauJetSelector::selectionType = tau_analysis::selectors::TauJetSelector::Type::ElectronTag;
     	}
     	else { // high MET case
         	tagObject = nullptr;   
-                TauJetSelector::selectionType = tau_analysis::selectors::TauJetSelector::Type::HighMET;
     	}
         const TauJet* selected = nullptr;
         for(const TauJet& tauJet : tauJets) { //Look for highest pT jet
@@ -267,15 +265,18 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
             if(!selected || selected->jet->pt() < jet.pt()) {
                     selected = &tauJet;
                     selectedTauJets = { selected };
+                    if(ref_muon) selectedTypes = { tau_analysis::selectors::TauJetSelector::Type::MuonTag };
+                    else if(ref_electron) selectedTypes = { tau_analysis::selectors::TauJetSelector::Type::ElectronTag };
+                    else selectedTypes = { tau_analysis::selectors::TauJetSelector::Type::HighMET };
             }
         }
     }
     else { // No mu or ele tag nor high MET 
         tagObject = nullptr;
-        TauJetSelector::selectionType = tau_analysis::selectors::TauJetSelector::Type::GenBased;
         for(const TauJet& tauJet : tauJets) {
             if(!(tauJet.genLepton) || !(std::abs(tauJet.genLepton->visibleP4().eta()) < 2.8) || !(tauJet.genJet && std::abs(tauJet.genJet->eta()) < 2.8)) continue;
 	    selectedTauJets.push_back(&tauJet); //Fill with jets passing selection
+            selectedTypes.push_back(tau_analysis::selectors::TauJetSelector::Type::PtOrdered);
 	}
         std::sort(selectedTauJets.begin(), selectedTauJets.end(), [](auto &i, auto &j){return i->genLepton->visibleP4().pt() < j->genLepton->visibleP4().pt();});
         selectedTauJets.resize(std::min(static_cast<int>(selectedTauJets.size()), 2));
@@ -285,9 +286,10 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
     for(const TauJet& tauJet : tauJets) {
        if(!(tauJet.genLepton) || !(std::abs(tauJet.genLepton->visibleP4().eta()) < 2.8 && tauJet.genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToHadrons) || (selectedTauJets.size()!=0 && &tauJet == selectedTauJets.at(0))) continue;
          selectedTauJets.push_back(&tauJet); //Fill with jets passing selection
+         selectedTypes.push_back(tau_analysis::selectors::TauJetSelector::Type::GenBased);
     }
     //
-    return Result(selectedTauJets, tagObject);
+    return Result(selectedTauJets, tagObject, selectedTypes);
 }
 
 } // namespace selectors

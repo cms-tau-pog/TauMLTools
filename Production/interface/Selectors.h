@@ -24,10 +24,9 @@ struct TagObject {
 };
 
 struct TauJetSelector {
-    enum class Type { MuonTag = 1, ElectronTag = 2, HighMET = 3, GenBased = 4 };
-    Type selectionType;
+    enum class Type { MuonTag = 1, ElectronTag = 2, HighMET = 3, PtOrdered = 4, GenBased = 5 };
 
-    using Result = std::tuple<std::vector<const TauJet*>, std::shared_ptr<TagObject>>;
+    using Result = std::tuple<std::vector<const TauJet*>, std::shared_ptr<TagObject>, std::vector<Type>>;
 
     virtual ~TauJetSelector() {}
     virtual Result Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
