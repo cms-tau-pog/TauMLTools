@@ -260,7 +260,7 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
         for(const TauJet& tauJet : tauJets) { //Look for highest pT jet
             if(!tauJet.jet) continue;
             const pat::Jet& jet = *tauJet.jet;
-            if(!(std::abs(jet.eta()) < 2.8) || ((ref_muon || ref_electron) && !(reco::deltaR(jet.p4(), tagObject->p4) > 0.8)))
+            if(!(std::abs(jet.eta()) < 2.8) || ((ref_muon || ref_electron) && !(reco::deltaR(jet.p4(), tagObject->p4) > 0.4)))
                     continue;
             if(!selected || selected->jet->pt() < jet.pt()) {
                     selected = &tauJet;
@@ -278,15 +278,25 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
 	    selectedTauJets.push_back(&tauJet); //Fill with jets passing selection
             selectedTypes.push_back(tau_analysis::selectors::TauJetSelector::Type::PtOrdered);
 	}
-        std::sort(selectedTauJets.begin(), selectedTauJets.end(), [](auto &i, auto &j){return i->genLepton->visibleP4().pt() < j->genLepton->visibleP4().pt();});
+        std::sort(selectedTauJets.begin(), selectedTauJets.end(), [](auto &i, auto &j){return i->genLepton->visibleP4().pt() > j->genLepton->visibleP4().pt();});
         selectedTauJets.resize(std::min(static_cast<int>(selectedTauJets.size()), 2));
+        selectedTypes.resize(std::min(static_cast<int>(selectedTypes.size()), 2));
     }
    
     // Add true taus to selectedTauJets for all cases
     for(const TauJet& tauJet : tauJets) {
-       if(!(tauJet.genLepton) || !(std::abs(tauJet.genLepton->visibleP4().eta()) < 2.8 && tauJet.genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToHadrons) || (selectedTauJets.size()!=0 && &tauJet == selectedTauJets.at(0))) continue;
-         selectedTauJets.push_back(&tauJet); //Fill with jets passing selection
-         selectedTypes.push_back(tau_analysis::selectors::TauJetSelector::Type::GenBased);
+       if(!(tauJet.genLepton) || !(std::abs(tauJet.genLepton->visibleP4().eta()) < 2.8 && tauJet.genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToHadrons)) continue;
+       bool sameJet = false;
+       for(const TauJet* selectedTauJet : selectedTauJets) {
+           if(&tauJet == selectedTauJet) {
+	       sameJet = true;
+	       break;
+           }
+       }
+       if(!sameJet) {
+           selectedTauJets.push_back(&tauJet); //Fill with jets passing selection
+           selectedTypes.push_back(tau_analysis::selectors::TauJetSelector::Type::GenBased);
+       }
     }
     //
     return Result(selectedTauJets, tagObject, selectedTypes);

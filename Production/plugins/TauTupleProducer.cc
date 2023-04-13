@@ -278,7 +278,7 @@ private:
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {
             const TauJet& tauJet = *tauJets.at(tauJetIndex);
             tauTuple().entry_index = static_cast<int>(tauJetIndex);
-	    tauTuple().tau_selectionType = static_cast<int>(selectedTypes.at(static_cast<int>(tauJetIndex)));
+	    tauTuple().selectionType = tauJetIndex < selectedTypes.size() ? static_cast<int>(selectedTypes.at(static_cast<int>(tauJetIndex))) : -1;
 
             FillGenLepton(tauJet.genLepton);
             FillGenJet(tauJet.genJet, genJetFlavourInfos);
