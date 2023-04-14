@@ -13,3 +13,5 @@ __init__.py
 *.swp
 /soft
 .vscode
+/.law
+/data

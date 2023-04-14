@@ -1,4 +1,3 @@
-<use name="TauMLTools/Core"/>
 <use name="DataFormats/PatCandidates"/>
 <use name="RecoTauTag/RecoTau"/>
 <use name="GeneratorInterface/TauolaInterface"/>

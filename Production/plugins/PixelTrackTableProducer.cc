@@ -3,8 +3,8 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/NanoAOD/interface/FlatTable.h"
 
-#include "CUDADataFormats/Track/interface/PixelTrackHeterogeneous.h"
-#include "CUDADataFormats/Track/interface/TrackSoAHeterogeneousT.h"
+#include "CUDADataFormats/Track/interface/PixelTrackUtilities.h"
+#include "CUDADataFormats/Track/interface/TrackSoAHeterogeneousHost.h"
 #include "CUDADataFormats/Vertex/interface/ZVertexSoA.h"
 #include "CUDADataFormats/Vertex/interface/ZVertexHeterogeneous.h"
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
@@ -18,11 +18,14 @@
 
 class PixelTrackTableProducer : public edm::global::EDProducer<> {
 public:
-  using TrackSoA = pixelTrack::TrackSoA;
+  using TrackSoAHost = pixelTrack::TrackSoAHostPhase1;
+  using TrackSoAConstView = TrackSoAHost::ConstView;
+  using TrackHelpers = TracksUtilities<pixelTopology::Phase1>;
+
   PixelTrackTableProducer(const edm::ParameterSet& cfg) :
-      tracksToken_(consumes<>(cfg.getParameter<edm::InputTag>("tracks"))),
-      verticesToken_(consumes<ZVertexHeterogeneous>(cfg.getParameter<edm::InputTag>("vertices"))),
-      beamSpotToken_(consumes<reco::BeamSpot>(cfg.getParameter<edm::InputTag>("beamSpot"))),
+      tracksToken_(consumes(cfg.getParameter<edm::InputTag>("tracks"))),
+      verticesToken_(consumes(cfg.getParameter<edm::InputTag>("vertices"))),
+      beamSpotToken_(consumes(cfg.getParameter<edm::InputTag>("beamSpot"))),
       bFieldToken_(esConsumes<MagneticField, IdealMagneticFieldRecord>()),
       precision_(cfg.getParameter<int>("precision"))
   {
@@ -33,18 +36,18 @@ public:
 private:
   void produce(edm::StreamID id, edm::Event& event, const edm::EventSetup& setup) const override
   {
-    const auto& tracks = *event.get(tracksToken_);
+    const auto& tracks = event.get(tracksToken_);
     const auto& vertices = *event.get(verticesToken_);
     const auto& beamSpot = event.get(beamSpotToken_);
     const auto& bField = setup.getData(bFieldToken_);
 
-    const auto [trkGood, vtxGood] = selectGoodTracksAndVertices(tracks, vertices);
+    const auto [trkGood, vtxGood] = selectGoodTracksAndVertices(tracks.const_view(), vertices);
 
-    FillTracks(event, tracks, vertices, beamSpot, bField, trkGood, vtxGood);
+    FillTracks(event, tracks.const_view(), vertices, beamSpot, bField, trkGood, vtxGood);
     FillVertices(event, vertices, vtxGood);
   }
 
-  void FillTracks(edm::Event& event, const TrackSoA& tracks, const ZVertexSoA& vertices,
+  void FillTracks(edm::Event& event, const TrackSoAConstView& tracks, const ZVertexSoA& vertices,
                   const reco::BeamSpot& beamSpot, const MagneticField& bField,
                   const std::vector<int>& trkGood, const std::vector<int>& vtxGood) const
   {
@@ -58,14 +61,14 @@ private:
       const int trk_idx = trkGood[trk_outIdx];
       pt[trk_outIdx] = tracks.pt(trk_idx);
       eta[trk_outIdx] = tracks.eta(trk_idx);
-      phi[trk_outIdx] = tracks.phi(trk_idx);
-      tip[trk_outIdx] = tracks.tip(trk_idx);
-      zip[trk_outIdx] = tracks.zip(trk_idx);
-      chi2[trk_outIdx] = tracks.chi2(trk_idx);
-      charge[trk_outIdx] = tracks.charge(trk_idx);
+      phi[trk_outIdx] = TrackHelpers::phi(tracks, trk_idx);
+      tip[trk_outIdx] = TrackHelpers::tip(tracks, trk_idx);
+      zip[trk_outIdx] = TrackHelpers::zip(tracks, trk_idx);
+      chi2[trk_outIdx] = tracks[trk_idx].chi2();
+      charge[trk_outIdx] = TrackHelpers::charge(tracks, trk_idx);
       quality[trk_outIdx] = static_cast<int>(tracks.quality(trk_idx));
       nLayers[trk_outIdx] = tracks.nLayers(trk_idx);
-      nHits[trk_outIdx] = tracks.nHits(trk_idx);
+      nHits[trk_outIdx] = TrackHelpers::nHits(tracks, trk_idx);
 
       const auto [trk_dxy, trk_dz] = computeImpactParameters(tracks, trk_idx, beamSpot, bField);
       dxy[trk_outIdx] = trk_dxy;
@@ -125,15 +128,16 @@ private:
     event.put(std::move(table), name);
   }
 
-  std::pair<std::vector<int>, std::vector<int>> selectGoodTracksAndVertices(const TrackSoA& tracks,
+  std::pair<std::vector<int>, std::vector<int>> selectGoodTracksAndVertices(const TrackSoAConstView& tracks,
                                                                             const ZVertexSoA& vertices) const
   {
     const uint32_t nv = vertices.nvFinal;
     std::vector<int> trkGood, vtxGood;
+    const auto max_tracks = tracks.metadata().size();
 
     std::vector<size_t> nTrkAssociated(nv, 0);
-    for(int32_t trk_idx = 0; trk_idx < tracks.stride(); ++trk_idx) {
-      const auto nHits = tracks.nHits(trk_idx);
+    for(int32_t trk_idx = 0; trk_idx < max_tracks; ++trk_idx) {
+      const auto nHits = TrackHelpers::nHits(tracks, trk_idx);
       if(nHits == 0) break;
       if(nHits > 0 && tracks.quality(trk_idx) >= pixelTrack::Quality::loose) {
         trkGood.push_back(trk_idx);
@@ -152,16 +156,16 @@ private:
     return std::make_pair(std::move(trkGood), std::move(vtxGood));
   }
 
-  std::pair<float, float> computeImpactParameters(const TrackSoA& tracks, int trk_idx,
+  std::pair<float, float> computeImpactParameters(const TrackSoAConstView& tracks, int trk_idx,
                                                   const reco::BeamSpot& beamspot, const MagneticField& magfi) const
   {
     riemannFit::Vector5d ipar, opar;
     riemannFit::Matrix5d icov, ocov;
-    tracks.stateAtBS.copyToDense(ipar, icov, trk_idx);
+    TrackHelpers::copyToDense(tracks, ipar, icov, trk_idx);
     riemannFit::transformToPerigeePlane(ipar, icov, opar, ocov);
     const LocalTrajectoryParameters lpar(opar(0), opar(1), opar(2), opar(3), opar(4), 1.);
-    const float sp = std::sin(tracks.phi(trk_idx));
-    const float cp = std::cos(tracks.phi(trk_idx));
+    const float sp = std::sin(TrackHelpers::phi(tracks, trk_idx));
+    const float cp = std::cos(TrackHelpers::phi(tracks, trk_idx));
     const Surface::RotationType rotation(sp, -cp, 0, 0, 0, -1.f, cp, sp, 0);
     const GlobalPoint beamSpotPoint(beamspot.x0(), beamspot.y0(), beamspot.z0());
     const Plane impPointPlane(beamSpotPoint, rotation);
@@ -181,7 +185,7 @@ private:
   }
 
 private:
-  const edm::EDGetTokenT<PixelTrackHeterogeneous> tracksToken_;
+  const edm::EDGetTokenT<TrackSoAHost> tracksToken_;
   const edm::EDGetTokenT<ZVertexHeterogeneous> verticesToken_;
   const edm::EDGetTokenT<reco::BeamSpot> beamSpotToken_;
   const edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> bFieldToken_;
