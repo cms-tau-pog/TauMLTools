@@ -92,6 +92,70 @@ Submission and status control can be performed using [crab_submit.py](https://gi
 1. If some jobs are failed: try to understand the reason and use standard crab tools to solve the problem (e.g. `crab resubmit` with additional arguments). In very problematic cases a recovery task could be created.
 1. Once production is over, all produced `TauTuples` will be moved in `/eos/cms/store/group/phys_tau/TauML/prod_2018_v2/full_tuples`.
 
+### Big tuples for online trainings
+Production should be run on the server that have the crab stageout area mounted to the file system.
+
+1. Load environment on CentOS8 machine
+   ```sh
+   source $PWD/env.sh cmssw
+   voms-proxy-init -voms cms -rfc -valid 192:00
+   ```
+
+1. Check that all datasets are present and valid (replace path to `yaml`s accordingly):
+   ```sh
+   cat Production/crab/Run3Winter23_HLT/*.yaml | grep -v -E '^( +| *#)' | grep -E ' /' | sed -E 's/.*: (.*)/\1/' | xargs python RunKit/checkDatasetExistance.py
+   ```
+   If all ok, there should be no output.
+1. Modify output and other site-specific settings in `NanoProd/crab/overseer_cfg_HLT.yaml`. In particular:
+   - site
+   - crabOutput
+   - localCrabOutput
+   - finalOutput
+   - renewKerberosTicket
+
+1. Test that the code works locally (take one of the RAW files as an input). E.g.
+   ```sh
+   mkdir -p tmp && cd tmp
+   cmsEnv python3 $ANALYSIS_PATH/RunKit/cmsRunWrapper.py cmsRunCfg=$ANALYSIS_PATH/Production/python/hlt_configs/hltMC.py maxEvents=10 inputFiles=/store/mc/Run3Winter23Digi/TT_TuneCP5_13p6TeV_powheg-pythia8/GEN-SIM-RAW/126X_mcRun3_2023_forPU65_v1_ext1-v2/40002/cbcb2b23-174a-4e7f-a385-152d9c5c5b87.root output=nano_mc_tmp.root writePSet=True copyInputsToLocal=False skimCfg=$ANALYSIS_PATH/Production/config/skim_HLT.yaml skimSetup=skim_setup
+   cmsEnv $ANALYSIS_PATH/RunKit/crabJob.sh
+   ```
+   Check that output file `nano_0.root` is created correctly. After that, you can remove `tmp` directory:
+   ```sh
+   cd $ANALYSIS_PATH
+   rm -r tmp
+   ```
+
+1. Test a dryrun crab submission
+   ```sh
+   python RunKit/crabOverseer.py --work-area crab_test --cfg Production/crab/overseer_cfg_HLT.yaml --no-loop Production/crab/crab_test_HLT.yaml
+   ```
+   - If successful, the last line output to the terminal should be
+     ```
+     Tasks: 1 Total, 1 Submitted
+     ```
+   - NB. Crab estimates of processing time will not be accurate, ignore them.
+   - After the test, remove `crab_test` directory:
+     ```sh
+     rm -r crab_test
+     ```
+
+1. Test that post-processing task is known to law:
+   ```sh
+   law index
+   law run ProdTask --help
+   ```
+
+1. Submit tasks using `RunKit/crabOverseer.py` and monitor the process.
+   It is recommended to run `crabOverseer` in `screen`.
+   ```sh
+   python RunKit/crabOverseer.py --cfg Production/crab/overseer_cfg_HLT.yaml Production/crab/Run3Winter23_HLT/FILE1.yaml Production/crab/Run3Winter23_HLT/FILE2.yaml ...
+   ```
+   - Use `Production/crab/Run3Winter23_HLT/*.yaml` to submit all the tasks
+   - For more information about available command line arguments run `python3 RunKit/crabOverseer.py --help`
+   - For consecutive runs, if there are no modifications in the configs, it is enough to run `crabOverseer` without any arguments:
+     ```sh
+     python RunKit/crabOverseer.py
+     ```
 
 ### ShuffleMergeSpectral
 
