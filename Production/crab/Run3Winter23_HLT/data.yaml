@@ -1,0 +1,15 @@
+config:
+  params:
+    cmsRunCfg: hltData.py
+
+EphemeralHLTPhysics0_Run2022G: /EphemeralHLTPhysics0/Run2022G-v1/RAW
+EphemeralHLTPhysics1_Run2022G: /EphemeralHLTPhysics1/Run2022G-v1/RAW
+EphemeralHLTPhysics2_Run2022G: /EphemeralHLTPhysics2/Run2022G-v1/RAW
+EphemeralHLTPhysics3_Run2022G: /EphemeralHLTPhysics3/Run2022G-v1/RAW
+EphemeralHLTPhysics4_Run2022G: /EphemeralHLTPhysics4/Run2022G-v1/RAW
+EphemeralHLTPhysics5_Run2022G: /EphemeralHLTPhysics5/Run2022G-v1/RAW
+EphemeralHLTPhysics6_Run2022G: /EphemeralHLTPhysics6/Run2022G-v1/RAW
+EphemeralHLTPhysics7_Run2022G: /EphemeralHLTPhysics7/Run2022G-v1/RAW
+EphemeralHLTPhysics8_Run2022G: /EphemeralHLTPhysics8/Run2022G-v1/RAW
+ZeroBias_Run2022G: /ZeroBias/Run2022G-v1/RAW
+

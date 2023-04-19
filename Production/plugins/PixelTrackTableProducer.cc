@@ -5,8 +5,8 @@
 
 #include "CUDADataFormats/Track/interface/PixelTrackUtilities.h"
 #include "CUDADataFormats/Track/interface/TrackSoAHeterogeneousHost.h"
-#include "CUDADataFormats/Vertex/interface/ZVertexSoA.h"
-#include "CUDADataFormats/Vertex/interface/ZVertexHeterogeneous.h"
+#include "CUDADataFormats/Vertex/interface/ZVertexSoAHeterogeneousHost.h"
+#include "CUDADataFormats/Vertex/interface/ZVertexSoAHeterogeneousDevice.h"
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "DataFormats/GeometrySurface/interface/Plane.h"
 #include "DataFormats/Math/interface/Vector3D.h"
@@ -21,6 +21,7 @@ public:
   using TrackSoAHost = pixelTrack::TrackSoAHostPhase1;
   using TrackSoAConstView = TrackSoAHost::ConstView;
   using TrackHelpers = TracksUtilities<pixelTopology::Phase1>;
+  using ZVertexSoAConstView = ZVertexSoAHost::ConstView;
 
   PixelTrackTableProducer(const edm::ParameterSet& cfg) :
       tracksToken_(consumes(cfg.getParameter<edm::InputTag>("tracks"))),
@@ -36,18 +37,18 @@ public:
 private:
   void produce(edm::StreamID id, edm::Event& event, const edm::EventSetup& setup) const override
   {
-    const auto& tracks = event.get(tracksToken_);
-    const auto& vertices = *event.get(verticesToken_);
+    const auto& tracks = event.get(tracksToken_).const_view();
+    const auto& vertices = event.get(verticesToken_).const_view();
     const auto& beamSpot = event.get(beamSpotToken_);
     const auto& bField = setup.getData(bFieldToken_);
 
-    const auto [trkGood, vtxGood] = selectGoodTracksAndVertices(tracks.const_view(), vertices);
+    const auto [trkGood, vtxGood] = selectGoodTracksAndVertices(tracks, vertices);
 
-    FillTracks(event, tracks.const_view(), vertices, beamSpot, bField, trkGood, vtxGood);
+    FillTracks(event, tracks, vertices, beamSpot, bField, trkGood, vtxGood);
     FillVertices(event, vertices, vtxGood);
   }
 
-  void FillTracks(edm::Event& event, const TrackSoAConstView& tracks, const ZVertexSoA& vertices,
+  void FillTracks(edm::Event& event, const TrackSoAConstView& tracks, const ZVertexSoAConstView& vertices,
                   const reco::BeamSpot& beamSpot, const MagneticField& bField,
                   const std::vector<int>& trkGood, const std::vector<int>& vtxGood) const
   {
@@ -74,7 +75,7 @@ private:
       dxy[trk_outIdx] = trk_dxy;
       dz[trk_outIdx] = trk_dz;
 
-      const int vtx_idx = vertices.idv[trk_idx];
+      const int vtx_idx = vertices[trk_idx].idv();
       auto iter = std::find(vtxGood.begin(), vtxGood.end(), vtx_idx);
       int vtx_outIdx = -1;
       if(iter != vtxGood.end())
@@ -101,7 +102,7 @@ private:
     event.put(std::move(table), name);
   }
 
-  void FillVertices(edm::Event& event, const ZVertexSoA& vertices, const std::vector<int>& vtxGood) const
+  void FillVertices(edm::Event& event, const ZVertexSoAConstView& vertices, const std::vector<int>& vtxGood) const
   {
     static const std::string name = "PixelVertex";
     const size_t nVtx = vtxGood.size();
@@ -111,11 +112,11 @@ private:
 
     for(size_t vtx_outIdx = 0; vtx_outIdx < nVtx; ++vtx_outIdx) {
       const int vtx_idx = vtxGood[vtx_outIdx];
-      zv[vtx_outIdx] = vertices.zv[vtx_idx];
-      wv[vtx_outIdx] = vertices.wv[vtx_idx];
-      chi2[vtx_outIdx] = vertices.chi2[vtx_idx];
-      ptv2[vtx_outIdx] = vertices.ptv2[vtx_idx];
-      ndof[vtx_outIdx] = vertices.ndof[vtx_idx];
+      zv[vtx_outIdx] = vertices[vtx_idx].zv();
+      wv[vtx_outIdx] = vertices[vtx_idx].wv();
+      chi2[vtx_outIdx] = vertices[vtx_idx].chi2();
+      ptv2[vtx_outIdx] = vertices[vtx_idx].ptv2();
+      ndof[vtx_outIdx] = vertices[vtx_idx].ndof();
     }
 
     auto table = std::make_unique<nanoaod::FlatTable>(nVtx, name, false, false);
@@ -129,9 +130,9 @@ private:
   }
 
   std::pair<std::vector<int>, std::vector<int>> selectGoodTracksAndVertices(const TrackSoAConstView& tracks,
-                                                                            const ZVertexSoA& vertices) const
+                                                                            const ZVertexSoAConstView& vertices) const
   {
-    const uint32_t nv = vertices.nvFinal;
+    const uint32_t nv = vertices.nvFinal();
     std::vector<int> trkGood, vtxGood;
     const auto max_tracks = tracks.metadata().size();
 
@@ -141,13 +142,13 @@ private:
       if(nHits == 0) break;
       if(nHits > 0 && tracks.quality(trk_idx) >= pixelTrack::Quality::loose) {
         trkGood.push_back(trk_idx);
-        const int16_t vtx_idx = vertices.idv[trk_idx];
+        const int16_t vtx_idx = vertices[trk_idx].idv();
         if(vtx_idx >= 0 && vtx_idx < static_cast<int16_t>(nv))
           ++nTrkAssociated[vtx_idx];
       }
     }
     for (int j = nv - 1; j >= 0; --j) {
-      const uint16_t vtx_idx = vertices.sortInd[j];
+      const uint16_t vtx_idx = vertices[j].sortInd();
       assert(vtx_idx < nv);
       if (nTrkAssociated[vtx_idx] >= 2) {
         vtxGood.push_back(vtx_idx);
@@ -186,7 +187,7 @@ private:
 
 private:
   const edm::EDGetTokenT<TrackSoAHost> tracksToken_;
-  const edm::EDGetTokenT<ZVertexHeterogeneous> verticesToken_;
+  const edm::EDGetTokenT<ZVertexSoAHost> verticesToken_;
   const edm::EDGetTokenT<reco::BeamSpot> beamSpotToken_;
   const edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> bFieldToken_;
   const unsigned int precision_;
