@@ -1,0 +1,33 @@
+config:
+  params:
+    cmsRunCfg: hltMC.py
+
+DYTo2L_MLL-4to50: /DYTo2L_MLL-4to50_TuneCP5_13p6TeV_pythia8/Run3Winter23Digi-RnD_126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+DYTo2L_MLL-50: /DYTo2L_MLL-50_TuneCP5_13p6TeV_pythia8/Run3Winter23Digi-RnD_126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+GluGluHToTauTau_M-125: /GluGluHToTauTau_M-125_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+GluGluHToTauTau_M-125_ext1: /GluGluHToTauTau_M-125_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1_ext1-v2/GEN-SIM-RAW
+QCD_PT-30to50: /QCD_PT-30to50_TuneCP5_13p6TeV_pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+QCD_PT-50to80: /QCD_PT-50to80_TuneCP5_13p6TeV_pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+QCD_PT-80to120: /QCD_PT-80to120_TuneCP5_13p6TeV_pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+QCD_PT-120to170: /QCD_PT-120to170_TuneCP5_13p6TeV_pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+QCD_PT-170to300: /QCD_PT-170to300_TuneCP5_13p6TeV_pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+QCD_PT-300to470: /QCD_PT-300to470_TuneCP5_13p6TeV_pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+QCD_PT-470to600: /QCD_PT-470to600_TuneCP5_13p6TeV_pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+QCD_PT-600toInf: /QCD_PT-600toInf_TuneCP5_13p6TeV_pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+TT: /TT_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+TT_ext1: /TT_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1_ext1-v2/GEN-SIM-RAW
+VBFHToTauTau_M125: /VBFHToTauTau_M125_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+VBFHToTauTau_M125_ext1: /VBFHToTauTau_M125_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1_ext1-v2/GEN-SIM-RAW
+ZprimeToEE_M-6000: /ZprimeToEE_M-6000_TuneCP5_13p6TeV_pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+ZprimeToMuMu_M-6000: /ZprimeToMuMu_M-6000_TuneCP5_13p6TeV_pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+ZprimeToTauTau_M-4000: /ZprimeToTauTau_M-4000_TuneCP5_tauola_13p6TeV-_pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+GluGlutoHHto2B2Tau_kl-0p00_kt-1p00_c2-0p00: /GluGlutoHHto2B2Tau_kl-0p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+GluGlutoHHto2B2Tau_kl-0p00_kt-1p00_c2-1p00: /GluGlutoHHto2B2Tau_kl-0p00_kt-1p00_c2-1p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-0p00: /GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-0p35: /GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-0p35_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-3p00: /GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-3p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-m2p00: /GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-m2p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+GluGlutoHHto2B2Tau_kl-2p45_kt-1p00_c2-0p00: /GluGlutoHHto2B2Tau_kl-2p45_kt-1p00_c2-0p00_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+VBFHHto2B2Tau_CV-1_C2V-1_C3-1: /VBFHHto2B2Tau_CV-1_C2V-1_C3-1_TuneCP5_13p6TeV_madgraph-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+VBFHHto2B2Tau_CV-1_C2V-1_C3-2: /VBFHHto2B2Tau_CV-1_C2V-1_C3-2_TuneCP5_13p6TeV_madgraph-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
+VBFHHto2B2Tau_CV-1_C2V-2_C3-1: /VBFHHto2B2Tau_CV-1_C2V-2_C3-1_TuneCP5_13p6TeV_madgraph-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1-v2/GEN-SIM-RAW
