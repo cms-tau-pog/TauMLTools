@@ -258,9 +258,10 @@ private:
         TauJetBuilder builder(builderSetup, *taus, *boostedTaus, *jets, *fatJets, *cands, *electrons, *photons, *muons,
                               *isoTracks, *lostTracks, *secondVertices, genParticles, genJets, requireGenMatch,
                               requireGenORRecoTauMatch, applyRecoPtSieve);
-        const auto [tauJets, tagObj] = selector->Select(event, builder.GetTauJets(), *electrons, *muons,
+        const auto [tauJets, tagObj, selectedTypes] = selector->Select(event, builder.GetTauJets(), *electrons, *muons,
                                                            METs->at(0), PV, *triggerObjects, *triggerResults, *rho);
         tauTuple().tagObj_valid = tagObj != nullptr;
+        tauTuple().tagObj_kind = tagObj ? static_cast<int>(tagObj->kind) : default_int_value;
         tauTuple().tagObj_pt = tagObj ? tagObj->p4.pt() : default_value;
         tauTuple().tagObj_eta = tagObj ? tagObj->p4.eta() : default_value;
         tauTuple().tagObj_phi = tagObj ? tagObj->p4.phi() : default_value;
@@ -271,11 +272,13 @@ private:
         tauTuple().has_extramuon = tagObj ? tagObj->has_extramuon : default_value;
         tauTuple().has_extraelectron = tagObj ? tagObj->has_extraelectron : default_value;
         tauTuple().has_dimuon = tagObj ? tagObj->has_dimuon : default_value;
+        tauTuple().has_dielectron = tagObj ? tagObj->has_dielectron : default_value;
 
         tauTuple().total_entries = static_cast<int>(tauJets.size());
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {
             const TauJet& tauJet = *tauJets.at(tauJetIndex);
             tauTuple().entry_index = static_cast<int>(tauJetIndex);
+	    tauTuple().selectionType = tauJetIndex < selectedTypes.size() ? static_cast<int>(selectedTypes.at(static_cast<int>(tauJetIndex))) : -1;
 
             FillGenLepton(tauJet.genLepton);
             FillGenJet(tauJet.genJet, genJetFlavourInfos);

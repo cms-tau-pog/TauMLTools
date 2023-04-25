@@ -1,0 +1,276 @@
+{
+    "PfCand": {
+        "pfCand_valid": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_pt": {
+            "global": {
+                "mean": 50.0,
+                "std": 50.0,
+                "lim_min": -1.0,
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_eta": {
+            "global": {
+                "mean": 0.0,
+                "std": 3.0,
+                "lim_min": -1.0,
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_phi": {
+            "global": {
+                "mean": 0.0,
+                "std": 3.141592653589793,
+                "lim_min": -1.0,
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_mass": {
+            "global": {
+                "mean": 0.09469,
+                "std": 0.0651,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.0132,
+                "num": 1264948146
+            }
+        },
+        "pfCand_charge": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_puppiWeight": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_puppiWeightNoLep": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_lostInnerHits": {
+            "global": {
+                "mean": 5.0,
+                "std": 5.0,
+                "lim_min": -1.0,
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_nPixelHits": {
+            "global": {
+                "mean": 5.0,
+                "std": 5.0,
+                "lim_min": -1.0,
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_nHits": {
+            "global": {
+                "mean": 6.442,
+                "std": 8.344,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 111.1,
+                "num": 1264948146
+            }
+        },
+        "pfCand_hasTrackDetails": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_dxy": {
+            "global": {
+                "mean": -0.01635,
+                "std": 2.4,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 5.762,
+                "num": 544529656
+            }
+        },
+        "pfCand_dxy_error": {
+            "global": {
+                "mean": 0.02704,
+                "std": 0.08913,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.008675,
+                "num": 544529562
+            }
+        },
+        "pfCand_dz": {
+            "global": {
+                "mean": -0.01443,
+                "std": 7.444,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 55.42,
+                "num": 544529652
+            }
+        },
+        "pfCand_dz_error": {
+            "global": {
+                "mean": 0.05551,
+                "std": 0.5998,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.3628,
+                "num": 544519764
+            }
+        },
+        "pfCand_track_chi2": {
+            "global": {
+                "mean": 11.16,
+                "std": 60.39,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 3772.0,
+                "num": 544529656
+            }
+        },
+        "pfCand_track_ndof": {
+            "global": {
+                "mean": 13.53,
+                "std": 6.44,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 224.6,
+                "num": 544529656
+            }
+        },
+        "pfCand_caloFraction": {
+            "global": {
+                "mean": 0.5,
+                "std": 0.5,
+                "lim_min": -1.0,
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_hcalFraction": {
+            "global": {
+                "mean": 0.5,
+                "std": 0.5,
+                "lim_min": -1.0,
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_rawCaloFraction": {
+            "global": {
+                "mean": 1.3,
+                "std": 1.3,
+                "lim_min": -1.0,
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_rawHcalFraction": {
+            "global": {
+                "mean": 0.5,
+                "std": 0.5,
+                "lim_min": -1.0,
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_deta": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_dphi": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        }
+    },
+    "PfCandCategorical": {
+        "pfCand_particleType": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_pvAssociationQuality": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_fromPV": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        }
+    }
+}

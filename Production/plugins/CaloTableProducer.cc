@@ -71,7 +71,6 @@ private:
   {
     static const std::string name = "RecHitHBHE";
     std::vector<float> eraw, eaux, rho_front, eta_front, phi_front, chi2, timeFalling;
-    std::vector<bool> isMerged;
     auto table = Fill(event, hbheToken_, geometry, name, [&](const HBHERecHit& hit) {
       const auto& positionFront = geometry.getGeometry(hit.idFront())->getPosition();
       eraw.push_back(hit.eraw());
@@ -81,7 +80,6 @@ private:
       phi_front.push_back(positionFront.phi());
       chi2.push_back(hit.chi2());
       timeFalling.push_back(hit.timeFalling());
-      isMerged.push_back(hit.isMerged());
     });
 
     table->addColumn<float>("eraw", eraw, "eraw", precision_);
@@ -91,7 +89,6 @@ private:
     table->addColumn<float>("phi_front", phi_front, "phi_front", precision_);
     table->addColumn<float>("chi2", chi2, "chi2", precision_);
     table->addColumn<float>("timeFalling", timeFalling, "timeFalling", precision_);
-    table->addColumn<bool>("isMerged", isMerged, "isMerged", precision_);
 
     event.put(std::move(table), name);
   }
@@ -106,21 +103,17 @@ private:
   void FillEcal(edm::Event& event, const edm::EDGetTokenT<EcalRecHitCollection>& token,
                 const CaloGeometry& geometry, const std::string& name) const
   {
-    std::vector<float> energyError, timeError, chi2;
-    std::vector<bool> isRecovered, isTimeValid, isTimeErrorValid;
+    std::vector<float> timeError, chi2;
+    std::vector<bool> isTimeValid, isTimeErrorValid;
     auto table = Fill(event, token, geometry, name, [&](const EcalRecHit& hit) {
-      energyError.push_back(hit.energyError());
       timeError.push_back(hit.timeError());
       chi2.push_back(hit.chi2());
-      isRecovered.push_back(hit.isRecovered());
       isTimeValid.push_back(hit.isTimeValid());
       isTimeErrorValid.push_back(hit.isTimeErrorValid());
     });
 
-    table->addColumn<float>("energyError", energyError, "energyError", precision_);
     table->addColumn<float>("timeError", timeError, "timeError", precision_);
     table->addColumn<float>("chi2", chi2, "chi2", precision_);
-    table->addColumn<bool>("isRecovered", isRecovered, "isRecovered", precision_);
     table->addColumn<bool>("isTimeValid", isTimeValid, "isTimeValid", precision_);
     table->addColumn<bool>("isTimeErrorValid", isTimeErrorValid, "isTimeErrorValid", precision_);
 

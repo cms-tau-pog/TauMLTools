@@ -1,0 +1,16 @@
+defaults:
+  - ../../configs@_global_.training_cfg: trainingDisTauTag_v1
+  - _self_
+
+# mlflow
+path_to_mlflow: mlruns
+experiment_name: ???
+
+# setup
+scaling_cfg: ../../configs/scaling_params_vDisTauTag_v1.json # for DataLoader initialisation
+gpu_cfg:
+  gpu_mem  : 7 # in Gb
+  gpu_index: 0
+
+# logs
+log_suffix: step1
