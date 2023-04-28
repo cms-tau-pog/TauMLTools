@@ -11,6 +11,8 @@ namespace tau_analysis {
 namespace selectors {
 
 struct TagObject {
+    enum class Kind{ Muon = 1, Electron = 2 };
+    Kind kind; 
     pat::PackedCandidate::PolarLorentzVector p4;
     int charge;
     unsigned id;
@@ -18,10 +20,13 @@ struct TagObject {
     bool has_extramuon;
     bool has_extraelectron;
     bool has_dimuon;
+    bool has_dielectron;
 };
 
 struct TauJetSelector {
-    using Result = std::tuple<std::vector<const TauJet*>, std::shared_ptr<TagObject>>;
+    enum class Type { MuonTag = 1, ElectronTag = 2, HighMET = 3, PtOrdered = 4, GenBased = 5 };
+
+    using Result = std::tuple<std::vector<const TauJet*>, std::shared_ptr<TagObject>, std::vector<Type>>;
 
     virtual ~TauJetSelector() {}
     virtual Result Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
@@ -53,6 +58,14 @@ struct genTauTau : TauJetSelector {
 };
 
 struct TauJetTag : TauJetSelector {
+    virtual Result Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
+                          const std::vector<pat::Electron>& electrons,
+                          const std::vector<pat::Muon>& muons, const pat::MET& met,
+                          const reco::Vertex& primaryVertex,
+                          const pat::TriggerObjectStandAloneCollection& triggerObjects,
+                          const edm::TriggerResults& triggerResults, float rho) override;
+};
+struct TagAndProbe : TauJetSelector {
     virtual Result Select(const edm::Event& event, const std::deque<TauJet>& tauJets,
                           const std::vector<pat::Electron>& electrons,
                           const std::vector<pat::Muon>& muons, const pat::MET& met,
