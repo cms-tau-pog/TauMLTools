@@ -15,7 +15,7 @@ import tensorflow as tf
 import awkward as ak
 import numpy as np
 
-def fetch_file_list(_files):
+def fetch_file_list(_files, cfg):
     files = []
     for _entry in _files:
         if _entry.startswith('root://'): # stream with xrootd, assume _entry is a directory to read *all* ROOT files from
