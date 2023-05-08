@@ -7,7 +7,7 @@ import os
 import gc
 import re
 from XRootD import client
-from XRootD.client.flags import DirListFlags
+from XRootD.client.flags import DirListFlags, StatInfoFlags
 
 from utils.gen_preprocessing import compute_genmatch_dR, recompute_tau_type, dict_to_numba
 from numba.core import types
@@ -18,6 +18,16 @@ def _get_xrootd_filenames(prompt, verbose=False):
     if verbose:
         print(f"\nStream input files with client {client_path}\n")
     data_path = re.findall("^root://.*/(/.*$)", prompt)[0]
+    if verbose:
+        print(f"\nStream input from path {data_path}\n")
+    if data_path.endswith(".root"):
+        status, stats = xrootd_client.stat(data_path)
+        if status.status != 0:
+            print(f"\nStatus of {data_path} failed.\n")
+            return None
+        else:
+            if not stats.flags & StatInfoFlags.IS_DIR:
+                return [prompt]
     status, listing = xrootd_client.dirlist(data_path, DirListFlags.STAT)
     if status.status != 0:
         print(f"\nDirList of {data_path} failed.\n")
@@ -257,3 +267,4 @@ def compute_labels(gen_cfg, gen_data, label_data):
         print(f'\n        [WARNING] non-zero fraction of recomputed tau types: {sum_/len(label_data["tauType"])*100:.1f}%\n')
     
     return recomputed_labels
+

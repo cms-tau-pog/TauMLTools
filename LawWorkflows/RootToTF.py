@@ -51,8 +51,8 @@ class RootToTF(Task, HTCondorWorkflow, law.LocalWorkflow):
 
   def create_branch_map(self):
     _files  = self.dataset_cfg.pop('files')
-    files   = sorted([os.path.abspath(f) for f in _files])
-    files   = list(fetch_file_list(files))
+    files   = sorted([f if f.startswith('root://') else os.path.abspath(f) for f in _files ])
+    files   = list(fetch_file_list(files, self.cfg_dict))
     assert len(files), "Input file list is empty: {}".format(_files)
 
     batches = [files[j:j+self.files_per_job] for j in range(0, len(files), self.files_per_job)]
