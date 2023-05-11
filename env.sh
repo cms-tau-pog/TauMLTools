@@ -96,7 +96,7 @@ action() {
   run_cmd mkdir -p "$ANALYSIS_DATA_PATH"
 
   local os_version=$(cat /etc/os-release | grep VERSION_ID | sed -E 's/VERSION_ID="([0-9]+).*"/\1/')
-  local default_cmssw_ver=CMSSW_13_0_0
+  local default_cmssw_ver=CMSSW_13_0_5_patch1
   export DEFAULT_CMSSW_BASE="$ANALYSIS_PATH/soft/CentOS$os_version/$default_cmssw_ver"
 
   if [[ $MODE = *"cmssw"* ]]; then
