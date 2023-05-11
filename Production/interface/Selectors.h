@@ -21,6 +21,9 @@ struct TagObject {
     bool has_extraelectron;
     bool has_dimuon;
     bool has_dielectron;
+    //
+    reco_tau::gen_truth::GenLepton::Kind genkind;
+    ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double>> genp4;
 };
 
 struct TauJetSelector {
