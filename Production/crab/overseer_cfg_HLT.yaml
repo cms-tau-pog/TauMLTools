@@ -14,15 +14,18 @@ filesToTransfer:
   - RunKit/crabJob_cmsRun.py
   - RunKit/sh_tools.py
   - RunKit/skim_tree.py
+  - Production/data/PFCalibration_v5.db
+  - Production/data/Run3Winter23Digi_v5.db
   - Production/config/skim_HLT.yaml
   - Production/python/hlt_configs/hltMC.py
   - Production/python/hlt_configs/hltData.py
   - Production/python/skimHLT.py
   - Production/python/customiseHLT.py
+  - Production/python/customizeHLTFor2023.py
 site: T2_CH_CERN
-crabOutput: /store/group/phys_tau/kandroso/Run3_HLT/prod_v1_crab
-finalOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v1
-localCrabOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v1_crab
+crabOutput: /store/group/phys_tau/kandroso/Run3_HLT/prod_v2_crab
+finalOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v2
+localCrabOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v2_crab
 maxMemory: 4000
 numCores: 1
 inputDBS: global
