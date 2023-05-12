@@ -319,7 +319,7 @@ def customise(process, output='nano.root', is_data=False):
     process.hltVerticesPF
     + process.hltVerticesPFSelector
     + cms.ignore(process.hltVerticesPFFilter)
-    + process.hltPFJetForBtagSelector
+    + cms.ignore(process.hltPFJetForBtagSelector)
     + process.hltPFJetForBtag
     + process.hltDeepBLifetimeTagInfosPF
     + process.hltDeepInclusiveVertexFinderPF
