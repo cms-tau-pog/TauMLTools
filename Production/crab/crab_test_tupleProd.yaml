@@ -1,0 +1,10 @@
+config:
+  params:
+    cmsRunCfg: /afs/cern.ch/user/o/olavoryk/deep_tau_tools/TauMLTools/Production/python/Production.py
+    maxEvents: 10
+    copyInputsToLocal: false
+    cmsRunOptions: "sampleType=MC,era=Run2_2018"
+  dryrun: true
+
+TT: /TTTo2L2Nu_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM
+
