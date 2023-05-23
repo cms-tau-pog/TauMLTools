@@ -17,8 +17,10 @@ options.register('fileList', '', VarParsing.multiplicity.singleton, VarParsing.v
                  "List of root files to process.")
 options.register('fileNamePrefix', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "Prefix to add to input file names.")
-options.register('tupleOutput', 'eventTuple.root', VarParsing.multiplicity.singleton, VarParsing.varType.string,
-                 "Event tuple file.")
+# options.register('tupleOutput', 'eventTuple.root', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+#                  "Event tuple file.")
+options.register('output', 'eventTuple.root', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                     "Event tuple file.")
 options.register('lumiFile', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "JSON file with lumi mask.")
 options.register('eventList', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
@@ -111,7 +113,8 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, globalTag, '')
 
 process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring())
-process.TFileService = cms.Service('TFileService', fileName = cms.string(options.tupleOutput) )
+# process.TFileService = cms.Service('TFileService', fileName = cms.string(options.tupleOutput) )
+process.TFileService = cms.Service('TFileService', fileName = cms.string(options.output) )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 from TauMLTools.Production.readFileList import *
