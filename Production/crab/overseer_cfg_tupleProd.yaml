@@ -15,6 +15,7 @@ filesToTransfer:
   - RunKit/sh_tools.py
   - Production/python/Production.py
   - Production/python/sampleConfig.py
+  - Production/python/readFileList.py
 site: T2_CH_CERN
 crabOutput: /store/group/phys_tau/test_24Apr/DeepTau_v2p5_UL18_prod
 finalOutput: /eos/cms/store/group/phys_tau/test_24Apr/DeepTau_v2p5_UL18

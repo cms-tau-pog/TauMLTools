@@ -57,8 +57,10 @@ options.register('runTauSpinner', False, VarParsing.multiplicity.singleton, VarP
 
 options.parseArguments()
 
-from TauMLTools.Production.sampleConfig import Era, SampleType
-import TauMLTools.Production.sampleConfig as sampleConfig
+# from TauMLTools.Production.sampleConfig import Era, SampleType
+from sampleConfig import Era, SampleType
+# import TauMLTools.Production.sampleConfig as sampleConfig
+import sampleConfig as sampleConfig
 sampleType = SampleType[options.sampleType]
 era = Era[options.era]
 isData = sampleType == SampleType.Data
@@ -117,7 +119,8 @@ process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring())
 process.TFileService = cms.Service('TFileService', fileName = cms.string(options.output) )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
-from TauMLTools.Production.readFileList import *
+# from TauMLTools.Production.readFileList import *
+from readFileList import *
 if len(options.fileList) > 0:
     readFileList(process.source.fileNames, options.fileList, options.fileNamePrefix)
 elif len(options.inputFiles) > 0:

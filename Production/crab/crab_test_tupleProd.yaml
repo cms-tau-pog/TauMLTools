@@ -1,6 +1,6 @@
 config:
   params:
-    cmsRunCfg: Production.py
+    cmsRunCfg: Production/python/Production.py
     maxEvents: 10
     copyInputsToLocal: false
     cmsRunOptions: "sampleType=MC,era=Run2_2018"
