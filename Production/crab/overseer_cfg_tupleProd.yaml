@@ -13,7 +13,7 @@ filesToTransfer:
   - RunKit/crabJob.py
   - RunKit/crabJob_cmsRun.py
   - RunKit/sh_tools.py
-  - /afs/cern.ch/user/o/olavoryk/deep_tau_tools/TauMLTools/Production/python/Production.py
+  - Production/python/Production.py
   - Production/python/sampleConfig.py
 site: T2_CH_CERN
 crabOutput: /store/group/phys_tau/test_24Apr/DeepTau_v2p5_UL18_prod
