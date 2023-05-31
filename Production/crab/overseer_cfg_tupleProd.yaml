@@ -1,8 +1,8 @@
 cmsswPython: RunKit/cmsRunWrapper.py
 params:
-  copyInputsToLocal: false
-  maxEvents: 10
-  writePSet: true
+  cmsRunCfg: Production.py
+  copyInputsToLocal: true
+  writePSet: false
 splitting: FileBased
 unitsPerJob: 8
 scriptExe: RunKit/crabJob.sh
