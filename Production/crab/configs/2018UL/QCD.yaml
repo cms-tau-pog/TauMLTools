@@ -1,8 +1,6 @@
 config:
   params:
-    sampleType: mc
-    era: Run2_2018
-    storeFailed: true
+    cmsRunOptions: "sampleType=MC,era=Run2_2018"
 
 QCD_HT50to100: /QCD_HT50to100_TuneCP5_13TeV-madgraphMLM-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM
 QCD_HT50to100_PSWeights: /QCD_HT50to100_TuneCP5_PSWeights_13TeV-madgraph-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM
