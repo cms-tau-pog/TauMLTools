@@ -136,20 +136,24 @@ Scaling_setup:
       - &is_pfElectron 'pfCand_particleType == 2'
       - &is_pfElectron_hasTrackDetails '(pfCand_particleType == 2) & (pfCand_hasTrackDetails == 1)'
       - &is_pfElectron_hasTrackDetails_track_ndof '(pfCand_particleType == 2) & (pfCand_hasTrackDetails == 1) & (pfCand_track_ndof > 0)'
+      - &is_pfElectron_hasTimeDetails '(pfCand_particleType == 2) & (pfCand_timeError >= 0)'
       # ----------------------------
       - &is_pfMuon 'pfCand_particleType == 3'
       - &is_pfMuon_hasTrackDetails '(pfCand_particleType == 3) & (pfCand_hasTrackDetails == 1)'
       - &is_pfMuon_hasTrackDetails_track_ndof '(pfCand_particleType == 3) & (pfCand_hasTrackDetails == 1) & (pfCand_track_ndof > 0)'
+      - &is_pfMuon_hasTimeDetails '(pfCand_particleType == 3) & (pfCand_timeError >= 0)'
       # ----------------------------
       - &is_pfGamma 'pfCand_particleType == 4'
       - &is_pfGamma_hasTrackDetails '(pfCand_particleType == 4) & (pfCand_hasTrackDetails == 1)'
       - &is_pfGamma_hasTrackDetails_track_ndof '(pfCand_particleType == 4) & (pfCand_hasTrackDetails == 1) & (pfCand_track_ndof > 0)'
+      - &is_pfGamma_hasTimeDetails '(pfCand_particleType == 4) & (pfCand_timeError >= 0)'
       # ----------------------------
       - &is_neutralHadron 'pfCand_particleType == 5'
       # ----------------------------
       - &is_chargedHadron 'pfCand_particleType == 1'
       - &is_chargedHadron_hasTrackDetails '(pfCand_particleType == 1) & (pfCand_hasTrackDetails == 1)'
       - &is_chargedHadron_hasTrackDetails_track_ndof '(pfCand_particleType == 1) & (pfCand_hasTrackDetails == 1) & (pfCand_track_ndof > 0)'
+      - &is_chargedHadron_hasTimeDetails '(pfCand_particleType == 1) & (pfCand_timeError >= 0)'
       # ----------------------------
       - &muon_normalizedChi2_valid 'muon_normalizedChi2 >= 0'
       - &muon_pfEcalEnergy_valid 'muon_pfEcalEnergy >= 0'
