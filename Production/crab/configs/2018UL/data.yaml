@@ -1,6 +1,6 @@
 config:
   params:
-    cmsRunOptions: "sampleType=MC,era=Run2_2018"
+    cmsRunOptions: "sampleType=data,era=Run2_2018"
   #lumiMask: /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/13TeV/Legacy_2018/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt
 
 EGamma_Run2018A: /EGamma/Run2018A-UL2018_MiniAODv2_GT36-v1/MINIAOD
