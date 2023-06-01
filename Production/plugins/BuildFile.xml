@@ -1,4 +1,6 @@
+<use name="DataFormats/NanoAOD"/>
 <use name="FWCore/Framework"/>
+<use name="L1Trigger/L1TCalorimeter"/>
 <use name="SimGeneral/HepPDTRecord"/>
 <use name="TauMLTools/Production"/>
 

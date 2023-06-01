@@ -29,6 +29,7 @@ parser.add_argument('--inputDBS', required=False, default="global", help="DBS in
 parser.add_argument('--splitting', required=False, default="Automatic",
 					help="suffix that will be added to each job name")
 parser.add_argument('--unitsPerJob', required=False, type=int, default=1000, help="number of units per job")
+parser.add_argument('--totalUnits', required=False, type=int, default=-1, help="total number of units")
 parser.add_argument('--maxMemory', required=False, type=int, default=2000,
 					help="maximum amount of memory (in MB) a job is allowed to use (default: 2000 MB )")
 parser.add_argument('--numCores', required=False, type=int, default=1, help="number of cores per job (default: 1)")
@@ -83,8 +84,8 @@ try:
     job_collection = JobCollection(args.jobFile, job_names, args.lumiMask, args.jobNameSuffix)
     print (args.jobFile)
     print (job_collection)
-    print ("Splitting: {} with {} units per job".format(args.splitting, args.unitsPerJob))
-    job_collection.submit(config, args.splitting, args.unitsPerJob, args.dryrun)
+    print ("Splitting: {} with {} units per job and {} total units".format(args.splitting, args.unitsPerJob, args.totalUnits))
+    job_collection.submit(config, args.splitting, args.unitsPerJob, args.totalUnits, args.dryrun)
 except RuntimeError as err:
     print ("ERROR:", str(err), file=sys.stderr)
     sys.exit(1)

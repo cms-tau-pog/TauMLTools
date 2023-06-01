@@ -1,5 +1,5 @@
 /*! Definition of the wrapper for the main entry of a program.
-This file is part of https://github.com/hh-italian-group/AnalysisTools. */
+This file is part of https://github.com/cms-tau-pog/TauMLTools. */
 
 #pragma once
 

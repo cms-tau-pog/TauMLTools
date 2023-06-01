@@ -1,0 +1,36 @@
+genmatch_dR: 0.2
+
+genLepton_match_map:
+  Electron: 1
+  Muon: 2
+  TauElectron: 3
+  TauMuon: 4
+  Tau: 5
+  NoMatch: 6
+  None: 0
+  Exception: -1
+
+genLepton_kind_map:
+  PromptElectron: 1
+  PromptMuon: 2
+  TauDecayedToElectron: 3
+  TauDecayedToMuon: 4
+  TauDecayedToHadrons: 5
+  Other: 6
+
+sample_type_map: 
+  Data: 0
+  MC: 1
+  Embedded: 2
+
+tau_type_map:
+  e: 0
+  mu: 1
+  tau: 2
+  jet: 3
+  emb_e: 4
+  emb_mu: 5
+  emb_tau: 6
+  emb_jet: 7
+  data: 8
+  no_type: -1

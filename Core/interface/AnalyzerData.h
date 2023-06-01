@@ -1,5 +1,5 @@
 /*! Base class for Analyzer data containers.
-This file is part of https://github.com/hh-italian-group/TauMLTools. */
+This file is part of https://github.com/cms-tau-pog/TauMLTools. */
 
 #pragma once
 
@@ -12,33 +12,39 @@ This file is part of https://github.com/hh-italian-group/TauMLTools. */
 #include "SmartHistogram.h"
 
 #define ANA_DATA_ENTRY(type, name, ...) \
-    root_ext::AnalyzerDataEntry<type> name{#name, this, ##__VA_ARGS__};
-    /**/
+  root_ext::AnalyzerDataEntry<type> name{#name, this, ##__VA_ARGS__};
+  /**/
+
+#define ANA_DATA_ENTRY_EMPTY(type, name) \
+  root_ext::AnalyzerDataEntry<type> name{#name, this};
+  /**/
 
 #define TH1D_ENTRY(name, nbinsx, xlow, xup) ANA_DATA_ENTRY(TH1D, name, nbinsx, xlow, xup)
 #define TH1D_ENTRY_FIX(name, binsizex, nbinsx, xlow) TH1D_ENTRY(name, nbinsx, xlow, (xlow+binsizex*nbinsx))
 #define TH1D_ENTRY_CUSTOM(name, bins) ANA_DATA_ENTRY(TH1D, name, bins)
 
 #define TH1D_ENTRY_EX(name, nbinsx, xlow, xup, x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store) \
-    ANA_DATA_ENTRY(TH1D, name, nbinsx, xlow, xup, x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store)
+  ANA_DATA_ENTRY(TH1D, name, nbinsx, xlow, xup, x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store)
 #define TH1D_ENTRY_FIX_EX(name, binsizex, nbinsx, xlow, x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store) \
-    TH1D_ENTRY_EX(name, nbinsx, xlow, (xlow+binsizex*nbinsx), x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store)
+  TH1D_ENTRY_EX(name, nbinsx, xlow, (xlow+binsizex*nbinsx), x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store)
 #define TH1D_ENTRY_CUSTOM_EX(name, bins, x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store) \
-    ANA_DATA_ENTRY(TH1D, name, bins, x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store)
+  ANA_DATA_ENTRY(TH1D, name, bins, x_axis_title, y_axis_title, use_log_y, max_y_sf, divide, store)
 
 #define TH2D_ENTRY(name, nbinsx, xlow, xup, nbinsy, ylow, yup) \
-    ANA_DATA_ENTRY(TH2D, name, nbinsx, xlow, xup, nbinsy, ylow, yup)
+  ANA_DATA_ENTRY(TH2D, name, nbinsx, xlow, xup, nbinsy, ylow, yup)
 #define TH2D_ENTRY_FIX(name, binsizex, nbinsx, xlow, binsizey, nbinsy, ylow) \
-    TH2D_ENTRY(name, nbinsx, xlow, (xlow+binsizex*nbinsx), nbinsy, ylow, (ylow+binsizey*nbinsy))
+  TH2D_ENTRY(name, nbinsx, xlow, (xlow+binsizex*nbinsx), nbinsy, ylow, (ylow+binsizey*nbinsy))
 
+#define TH2D_ENTRY_EMPTY(name) \
+  ANA_DATA_ENTRY_EMPTY(TH2D, name)
 #define TH2D_ENTRY_EX(name, nbinsx, xlow, xup, nbinsy, ylow, yup, x_axis_title, y_axis_title, use_log_y, max_y_sf, \
                       store) \
-    ANA_DATA_ENTRY(TH2D, name, nbinsx, xlow, xup, nbinsy, ylow, yup, x_axis_title, y_axis_title, use_log_y, max_y_sf, \
-                   store)
+  ANA_DATA_ENTRY(TH2D, name, nbinsx, xlow, xup, nbinsy, ylow, yup, x_axis_title, y_axis_title, use_log_y, max_y_sf, \
+                 store)
 #define TH2D_ENTRY_FIX_EX(name, binsizex, nbinsx, xlow, binsizey, nbinsy, ylow, x_axis_title, y_axis_title, \
                           use_log_y, max_y_sf, store) \
-    TH2D_ENTRY_EX(name, nbinsx, xlow, (xlow+binsizex*nbinsx), nbinsy, ylow, (ylow+binsizey*nbinsy), x_axis_title, \
-                  y_axis_title, use_log_y, max_y_sf, store)
+  TH2D_ENTRY_EX(name, nbinsx, xlow, (xlow+binsizex*nbinsx), nbinsy, ylow, (ylow+binsizey*nbinsy), x_axis_title, \
+                y_axis_title, use_log_y, max_y_sf, store)
 #define TH2D_ENTRY_CUSTOM(name, binsx, binsy) ANA_DATA_ENTRY(TH2D, name, binsx, binsy)
 
 #define GRAPH_ENTRY(name) ANA_DATA_ENTRY(TGraph, name)
@@ -48,17 +54,16 @@ namespace root_ext {
 class AnalyzerData;
 
 struct AnalyzerDataEntryBase {
-    using Mutex = std::recursive_mutex;
-
-    AnalyzerDataEntryBase(const std::string& _name, AnalyzerData* _data);
-    virtual ~AnalyzerDataEntryBase() {}
-    const std::string& Name() const;
-    Mutex& GetMutex();
+  using Mutex = std::recursive_mutex;
+  AnalyzerDataEntryBase(const std::string& _name, AnalyzerData* _data);
+  virtual ~AnalyzerDataEntryBase() {}
+  const std::string& Name() const { return name; }
+  Mutex& GetMutex() { return mutex; }
 private:
-    std::string name;
-    Mutex mutex;
+  std::string name;
+  Mutex mutex;
 protected:
-    AnalyzerData* data;
+  AnalyzerData* data;
 };
 
 template<typename _ValueType>
@@ -66,70 +71,120 @@ struct AnalyzerDataEntry;
 
 class AnalyzerData {
 public:
-    using Mutex = std::recursive_mutex;
-    using Hist = AbstractHistogram;
-    using HistPtr = std::shared_ptr<Hist>;
-    using HistContainer = std::unordered_map<std::string, HistPtr>;
-    using Entry = AnalyzerDataEntryBase;
-    using EntryContainer = std::unordered_map<std::string, Entry*>;
+  using Mutex = std::recursive_mutex;
+  using Hist = AbstractHistogram;
+  using HistPtr = std::shared_ptr<Hist>;
+  using HistContainer = std::unordered_map<std::string, HistPtr>;
+  using Entry = AnalyzerDataEntryBase;
+  using EntryContainer = std::unordered_map<std::string, Entry*>;
 
-    AnalyzerData();
+  AnalyzerData()
+    : directory(nullptr), readMode(false), mutex(std::make_unique<Mutex>()) {}
 
-    explicit AnalyzerData(const std::string& outputFileName);
+  explicit AnalyzerData(const std::string& outputFileName)
+    : outputFile(CreateRootFile(outputFileName)),
+      directory(outputFile.get()),
+      readMode(false),
+      mutex(std::make_unique<Mutex>())
+  {
+  }
 
-    explicit AnalyzerData(std::shared_ptr<TFile> _outputFile, const std::string& directoryName = "",
-                          bool _readMode = false);
+  explicit AnalyzerData(std::shared_ptr<TFile> _outputFile, const std::string& directoryName = "",
+                        bool _readMode = false)
+    : outputFile(_outputFile), readMode(_readMode), mutex(std::make_unique<Mutex>())
+  {
+    if(!outputFile)
+      throw analysis::exception("Output file is nullptr.");
+    directory = directoryName.size() ? GetDirectory(*outputFile, directoryName, true) : outputFile.get();
+  }
 
-    explicit AnalyzerData(TDirectory* _directory, const std::string& subDirectoryName = "", bool _readMode = false);
+  explicit AnalyzerData(TDirectory* _directory, const std::string& subDirectoryName = "", bool _readMode = false)
+    : readMode(_readMode), mutex(std::make_unique<Mutex>())
+  {
+    if(!_directory)
+      throw analysis::exception("Output directory is nullptr.");
+    directory = subDirectoryName.size() ? GetDirectory(*_directory, subDirectoryName, true) : _directory;
+  }
 
-    virtual ~AnalyzerData();
-    TDirectory* GetOutputDirectory() const;
-    std::shared_ptr<TFile> GetOutputFile() const;
-    bool ReadMode() const;
-    Mutex& GetMutex() const;
-
-    void AddHistogram(HistPtr hist);
-    const HistContainer& GetHistograms() const;
-
-    template<typename Histogram>
-    std::map<std::string, std::shared_ptr<SmartHistogram<Histogram>>> GetHistogramsEx() const
-    {
-        std::lock_guard<Mutex> lock(*mutex);
-        std::map<std::string, std::shared_ptr<SmartHistogram<Histogram>>> result;
-        for(const auto& hist_entry : histograms) {
-            auto smart_hist = std::dynamic_pointer_cast<SmartHistogram<Histogram>>(hist_entry.second);
-            if(smart_hist)
-                result[hist_entry.first] = smart_hist;
-        }
-        return result;
+  virtual ~AnalyzerData()
+  {
+    if(directory && !readMode) {
+      for(const auto& hist : histograms)
+        hist.second->WriteRootObject();
     }
+  }
 
-    template<typename Histogram>
-    std::shared_ptr<SmartHistogram<Histogram>> TryGetHistogramEx(const std::string& name) const
-    {
-        std::lock_guard<Mutex> lock(*mutex);
-        if(!histograms.count(name))
-            return std::shared_ptr<SmartHistogram<Histogram>>();
-        const auto& hist = histograms.at(name);
-        return std::dynamic_pointer_cast<SmartHistogram<Histogram>>(hist);
+  TDirectory* GetOutputDirectory() const { return directory; }
+  std::shared_ptr<TFile> GetOutputFile() const { return outputFile; }
+  bool ReadMode() const { return readMode; }
+  Mutex& GetMutex() const { return *mutex; }
+
+  void AddHistogram(HistPtr hist)
+  {
+    std::lock_guard<Mutex> lock(*mutex);
+    if(!hist)
+      throw analysis::exception("Can't add nullptr histogram into AnalyzerData");
+    if(histograms.count(hist->Name()))
+      throw analysis::exception("Histogram '%1%' already exists in this AnalyzerData.") % hist->Name();
+    TDirectory* hist_dir = readMode ? nullptr : directory;
+    hist->SetOutputDirectory(hist_dir);
+    histograms[hist->Name()] = hist;
+  }
+
+  const HistContainer& GetHistograms() const { return histograms; }
+
+  template<typename Histogram>
+  std::map<std::string, std::shared_ptr<SmartHistogram<Histogram>>> GetHistogramsEx() const
+  {
+    std::lock_guard<Mutex> lock(*mutex);
+    std::map<std::string, std::shared_ptr<SmartHistogram<Histogram>>> result;
+    for(const auto& hist_entry : histograms) {
+      auto smart_hist = std::dynamic_pointer_cast<SmartHistogram<Histogram>>(hist_entry.second);
+      if(smart_hist)
+        result[hist_entry.first] = smart_hist;
     }
+    return result;
+  }
 
-    void AddEntry(Entry& entry);
-    const EntryContainer& GetEntries() const;
+  template<typename Histogram>
+  std::shared_ptr<SmartHistogram<Histogram>> TryGetHistogramEx(const std::string& name) const
+  {
+    std::lock_guard<Mutex> lock(*mutex);
+    if(!histograms.count(name))
+      return std::shared_ptr<SmartHistogram<Histogram>>();
+    const auto& hist = histograms.at(name);
+    return std::dynamic_pointer_cast<SmartHistogram<Histogram>>(hist);
+  }
 
-    template<typename Histogram>
-    std::map<std::string, AnalyzerDataEntry<Histogram>*> GetEntriesEx() const;
-    template<typename Histogram>
-    AnalyzerDataEntry<Histogram>& GetEntryEx(const std::string& name) const;
+  void AddEntry(Entry& entry)
+  {
+    std::lock_guard<Mutex> lock(*mutex);
+    if(entries.count(entry.Name()))
+      throw analysis::exception("Entry '%1%' already exists in this AnalyzerData.") % entry.Name();
+    entries[entry.Name()] = &entry;
+  }
+
+  const EntryContainer& GetEntries() const { return entries; }
+
+  template<typename Histogram>
+  std::map<std::string, AnalyzerDataEntry<Histogram>*> GetEntriesEx() const;
+  template<typename Histogram>
+  AnalyzerDataEntry<Histogram>& GetEntryEx(const std::string& name) const;
 
 private:
-    std::shared_ptr<TFile> outputFile;
-    TDirectory* directory;
-    bool readMode;
-    EntryContainer entries;
-    HistContainer histograms;
-    std::unique_ptr<Mutex> mutex;
+  std::shared_ptr<TFile> outputFile;
+  TDirectory* directory;
+  bool readMode;
+  EntryContainer entries;
+  HistContainer histograms;
+  std::unique_ptr<Mutex> mutex;
 };
+
+AnalyzerDataEntryBase::AnalyzerDataEntryBase(const std::string& _name, AnalyzerData* _data)
+  : name(_name), data(_data)
+{
+  data->AddEntry(*this);
+}
 
 
 template<typename _ValueType>

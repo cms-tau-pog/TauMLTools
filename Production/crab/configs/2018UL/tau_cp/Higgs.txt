@@ -1,4 +1,4 @@
-sampleType=MC_UL18 selector=genTauTau
+sampleType=MC era=Run2_2018 selector=genTauTau runTauSpinner=True
 
 GluGluHToTauTau_M125  /GluGluHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v3/MINIAODSIM
 VBFHToTauTau_M125     /VBFHToTauTau_M125_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM

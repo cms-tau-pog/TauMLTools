@@ -1,4 +1,4 @@
-sampleType=MC_Phase2_110X
+sampleType=MC era=Phase2_110X
 
 QCD_Pt-15to3000_NoPU         /QCD_Pt-15to3000_TuneCP5_Flat_14TeV-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-NoPU_castor_all_pt_tracks_110X_mcRun4_realistic_v3-v2/MINIAODSIM
 QCD_Pt-15to3000_PU140        /QCD_Pt-15to3000_TuneCP5_Flat_14TeV-pythia8/Phase2HLTTDRWinter20RECOMiniAOD-PU140_castor_110X_mcRun4_realistic_v3-v2/MINIAODSIM

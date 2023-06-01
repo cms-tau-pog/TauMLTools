@@ -1,0 +1,10 @@
+config:
+  params:
+    cmsRunCfg: hltMC.py
+    maxEvents: 100
+    maxFiles: 1
+    copyInputsToLocal: false
+    customiseCmds: "process.Timing = cms.Service('Timing', summaryOnly=cms.untracked.bool(True)); process.SimpleMemoryCheck = cms.Service('SimpleMemoryCheck', jobReportOutputOnly=cms.untracked.bool(True)); process.CPU = cms.Service('CPU')"
+  dryrun: true
+
+TT: /TT_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter23Digi-126X_mcRun3_2023_forPU65_v1_ext1-v2/GEN-SIM-RAW

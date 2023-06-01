@@ -1,0 +1,3 @@
+maxEvents=-1
+
+TenTau_DR  /TenTau_Pt-15To500_gun/Run3Summer22DRPremix-124X_mcRun3_2022_realistic_v12-v2/GEN-SIM-RAW

@@ -4,14 +4,15 @@ import re
 import importlib
 import FWCore.ParameterSet.Config as cms
 from FWCore.ParameterSet.VarParsing import VarParsing
-import RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD as tauAtMiniTools
 from RecoMET.METPUSubtraction.deepMETProducer_cfi import deepMETProducer
 import os
 
 
 options = VarParsing('analysis')
 options.register('sampleType', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
-                 "Indicates the sample type: MC_18, Run2018ABC, ...")
+                 "Indicates the sample type")
+options.register('era', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                 "Indicates the era")
 options.register('fileList', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "List of root files to process.")
 options.register('fileNamePrefix', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
@@ -30,6 +31,10 @@ options.register('selector', 'None', VarParsing.multiplicity.singleton, VarParsi
                  "Name of the tauJet selector.")
 options.register('triggers', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "Store only events that pass the specified HLT paths.")
+options.register("disabledBranches", [], VarParsing.multiplicity.list, VarParsing.varType.string,
+                 "Not store following branches in tupleOutput file.")
+options.register("enabledBranches", [], VarParsing.multiplicity.list, VarParsing.varType.string,
+                 "Branches to store in tupleOutput file (if empty list: stores all the branches).")
 options.register('storeJetsWithoutTau', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Store jets that don't match to any pat::Tau.")
 options.register('requireGenMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
@@ -41,22 +46,32 @@ options.register('applyRecoPtSieve', False, VarParsing.multiplicity.singleton, V
                  "Randomly drop jet->tau fakes depending on reco tau pt to balance contributions from low and higt pt.")
 options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                 " If 'reclusterJets' set true a new collection of uncorrected ak4PFJets is built to seed taus (as at RECO), otherwise standard slimmedJets are used")
-options.register('rerunTauReco', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
-                "If true, tau reconstruction is re-run on MINIAOD with a larger signal cone and no DM finding filter")
+options.register('rerunTauReco', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                """If not empty, tau reconstruction is re-run on MINIAOD (available modes:
+                   1) signalCone - larger signal cone and no DM finding filter,
+                   2) displacedTau - loose max Impact Parameter and signal quality cuts)""")
+options.register('runTauSpinner', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+                 "Run TauPOGSpinner to store CP weights")
+
 options.parseArguments()
 
-sampleConfig = importlib.import_module('TauMLTools.Production.sampleConfig')
-isData = sampleConfig.IsData(options.sampleType)
-isEmbedded = sampleConfig.IsEmbedded(options.sampleType)
-isRun2UL = sampleConfig.isRun2UL(options.sampleType)
-isRun2PreUL = sampleConfig.isRun2PreUL(options.sampleType)
-isPhase2 = sampleConfig.isPhase2(options.sampleType)
-isRun3 = sampleConfig.isRun3(options.sampleType)
-period = sampleConfig.GetPeriod(options.sampleType)
-period_cfg = sampleConfig.GetPeriodCfg(options.sampleType)
+from TauMLTools.Production.sampleConfig import Era, SampleType
+import TauMLTools.Production.sampleConfig as sampleConfig
+sampleType = SampleType[options.sampleType]
+era = Era[options.era]
+isData = sampleType == SampleType.Data
+isEmbedded = sampleType == SampleType.Embedded
+isRun2 = sampleConfig.isRun2(era)
+isRun3 = sampleConfig.isRun3(era)
+isPhase2 = sampleConfig.isPhase2(era)
+era_cfg = sampleConfig.getEraCfg(era)
+globalTag = sampleConfig.getGlobalTag(era, sampleType)
+
+if not (isRun2 or isRun3 or isPhase2):
+    raise RuntimeError("Support for era = {} is not implemented".format(era.name))
 
 processName = 'tupleProduction'
-process = cms.Process(processName, period_cfg)
+process = cms.Process(processName, era_cfg)
 process.options = cms.untracked.PSet()
 process.options.wantSummary = cms.untracked.bool(False)
 process.options.allowUnscheduled = cms.untracked.bool(True)
@@ -67,14 +82,13 @@ process.load('Configuration.StandardSequences.MagneticField_cff')
 
 # TauSpinner
 process.TauSpinnerReco = cms.EDProducer( "TauPOGSpinner",
-                                 isReco = cms.bool(True),
-                                 isTauolaConfigured = cms.bool(False),
-                                 isLHPDFConfigured = cms.bool(False),
-                                 LHAPDFname = cms.untracked.string('NNPDF30_nlo_as_0118'),
-                                 CMSEnergy = cms.double(13000.0),
-                                 gensrc = cms.InputTag('prunedGenParticles')
-                               )
-
+    isReco = cms.bool(True),
+    isTauolaConfigured = cms.bool(False),
+    isLHPDFConfigured = cms.bool(False),
+    LHAPDFname = cms.untracked.string('NNPDF30_nlo_as_0118'),
+    CMSEnergy = cms.double(13000.0),
+    gensrc = cms.InputTag('prunedGenParticles')
+)
 
 process.RandomNumberGeneratorService = cms.Service('RandomNumberGeneratorService',
                                                    TauSpinnerReco = cms.PSet(
@@ -89,18 +103,13 @@ process.deepMETProducer = deepMETProducer.clone()
 # include Phase2 specific configuration only after 11_0_X
 if isPhase2:
     process.load('Configuration.Geometry.GeometryExtended2026D49Reco_cff')
-    process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-    from Configuration.AlCa.GlobalTag import GlobalTag
-    process.GlobalTag = GlobalTag(process.GlobalTag, sampleConfig.GetGlobalTag(options.sampleType), '')
-elif isRun3:
+elif isRun2 or isRun3:
     process.load('Configuration.Geometry.GeometryRecoDB_cff')
-    process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-    from Configuration.AlCa.GlobalTag import GlobalTag
-    process.GlobalTag = GlobalTag(process.GlobalTag, sampleConfig.GetGlobalTag(options.sampleType), '')
-else:
-    process.load('Configuration.Geometry.GeometryRecoDB_cff')
-    process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
-    process.GlobalTag.globaltag = sampleConfig.GetGlobalTag(options.sampleType)
+
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag, globalTag, '')
+
 process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring())
 process.TFileService = cms.Service('TFileService', fileName = cms.string(options.tupleOutput) )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
@@ -125,83 +134,51 @@ tau_collection = 'slimmedTaus'
 if options.rerunTauReco:
     tau_collection = 'selectedPatTaus'
 
-    tauAtMiniTools.addTauReReco(process)
-    tauAtMiniTools.adaptTauToMiniAODReReco(process, options.reclusterJets)
+    import RecoTauTag.Configuration.tools.adaptToRunAtMiniAOD as tauAtMiniConfig
+    tauAtMiniTools = tauAtMiniConfig.adaptToRunAtMiniAOD(process, runBoosted=False)
+    tauAtMiniTools.addTauReReco()
+    tauAtMiniTools.adaptTauToMiniAODReReco(reclusterJets = options.reclusterJets)
 
     if isData:
         from PhysicsTools.PatAlgos.tools.coreTools import runOnData
         runOnData(process, names = ['Taus'], outputModules = [])
 
-    process.combinatoricRecoTaus.builders[0].signalConeSize = cms.string('max(min(0.2, 4.528/(pt()^0.8982)), 0.03)') ## change to quantile 0.95
-    process.selectedPatTaus.cut = cms.string('pt > 18.')   ## remove DMFinding filter (was pt > 18. && tauID(\'decayModeFindingNewDMs\')> 0.5)
+    import TauMLTools.Production.setupTauReReco as setupTauReReco
+    if options.rerunTauReco == "signalCone":
+        setupTauReReco.reReco_SigCone(process)
+    elif options.rerunTauReco == "displacedTau":
+        setupTauReReco.reReco_DisTau(process)
+    else:
+        raise RuntimeError('rerunTauReco = "{}" mode is not supported.'.format(options.rerunTauReco))
 
 # include Phase2 specific configuration only after 11_0_X
 if isPhase2:
     tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
     updatedTauName = "slimmedTausNewID"
     tauIdEmbedder = tauIdConfig.TauIDEmbedder(
-        process, cms, updatedTauName = updatedTauName,
+        process, cms, originalTauName = tau_collection, updatedTauName = updatedTauName,
         toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1", "newDMPhase2v1"]
     )
     tauIdEmbedder.runTauID() # note here, that with the official CMSSW version of 'runTauIdMVA' slimmedTaus are hardcoded as input tau collection
-    boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
-elif isRun3:
+elif isRun2 or isRun3:
     tauIdConfig = importlib.import_module('RecoTauTag.RecoTau.tools.runTauIdMVA')
     updatedTauName = "slimmedTausNewID"
     tauIdEmbedder = tauIdConfig.TauIDEmbedder(
-        process, cms, updatedTauName = updatedTauName,
-        toKeep = [ "deepTau2018v2p5" ]
+        process, cms, originalTauName = tau_collection, updatedTauName = updatedTauName,
+        toKeep = [ "deepTau2017v2p1", "deepTau2018v2p5" ]
     )
     tauIdEmbedder.runTauID()
-    boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
-elif isRun2UL:
-    boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
-else:
-    from TauMLTools.Production.runTauIdMVA import runTauID
-    updatedTauName = "slimmedTausNewID"
-    runTauID(process, outputTauCollection = updatedTauName, inputTauCollection = tau_collection,
-             toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
-    tauIdConfig = importlib.import_module('TauMLTools.Production.runTauIdMVA')
 
-    from RecoTauTag.Configuration.boostedHPSPFTaus_cff import ca8PFJetsCHSprunedForBoostedTaus
-    process.ca8PFJetsCHSprunedForBoostedTausPAT = ca8PFJetsCHSprunedForBoostedTaus.clone(
-        src = cms.InputTag("packedPFCandidates"),
-        jetCollInstanceName = cms.string('subJetsForSeedingBoostedTausPAT')
-    )
-    process.cleanedSlimmedTausBoosted = cms.EDProducer("PATBoostedTauCleaner",
-        src = cms.InputTag('slimmedTausBoosted'),
-        pfcands = cms.InputTag('packedPFCandidates'),
-        vtxLabel= cms.InputTag('offlineSlimmedPrimaryVertices'),
-        ca8JetSrc = cms.InputTag('ca8PFJetsCHSprunedForBoostedTausPAT','subJetsForSeedingBoostedTausPAT'),
-        removeOverLap = cms.bool(True),
-    )
-
-    updatedBoostedTauName = "slimmedBoostedTausNewID"
-    runTauID(process, outputTauCollection=updatedBoostedTauName, inputTauCollection="cleanedSlimmedTausBoosted",
-             toKeep = [ "2017v2", "dR0p32017v2", "newDM2017v2", "deepTau2017v2p1" ])
-
-    process.boostedSequence = cms.Sequence(
-        process.ca8PFJetsCHSprunedForBoostedTausPAT *
-        process.cleanedSlimmedTausBoosted *
-        getattr(process, updatedBoostedTauName + 'rerunMvaIsolationSequence') *
-        getattr(process, updatedBoostedTauName))
-    boostedTaus_InputTag = cms.InputTag(updatedBoostedTauName)
-
- # boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
-if isRun2UL:
-    taus_InputTag = cms.InputTag('slimmedTaus')
-elif isRun3:
-    taus_InputTag = cms.InputTag('slimmedTausNewID')
-else:
-    taus_InputTag = cms.InputTag('slimmedTausNewID')
+boostedTaus_InputTag = cms.InputTag('slimmedTausBoosted')
+taus_InputTag = cms.InputTag('slimmedTausNewID')
 
 if isPhase2:
     process.slimmedElectronsMerged = cms.EDProducer("SlimmedElectronMerger",
-    src = cms.VInputTag("slimmedElectrons","slimmedElectronsFromMultiCl")
+        src = cms.VInputTag("slimmedElectrons","slimmedElectronsHGC")
     )
     electrons_InputTag = cms.InputTag('slimmedElectronsMerged')
     vtx_InputTag = cms.InputTag('offlineSlimmedPrimaryVertices4D')
-else:
+elif isRun2 or isRun3:
     electrons_InputTag = cms.InputTag('slimmedElectrons')
     vtx_InputTag = cms.InputTag('offlineSlimmedPrimaryVertices')
 
@@ -235,6 +212,8 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     requireGenMatch          = cms.bool(options.requireGenMatch),
     requireGenORRecoTauMatch = cms.bool(options.requireGenORRecoTauMatch),
     applyRecoPtSieve         = cms.bool(options.applyRecoPtSieve),
+    disabledBranches         = cms.vstring(options.disabledBranches),
+    enabledBranches          = cms.vstring(options.enabledBranches),
     tauJetBuilderSetup       = tauJetBuilderSetup,
     selector		     = cms.string(options.selector),
 
@@ -243,8 +222,10 @@ process.tauTupleProducer = cms.EDAnalyzer('TauTupleProducer',
     genParticles       = cms.InputTag('prunedGenParticles'),
     puInfo             = cms.InputTag('slimmedAddPileupInfo'),
     vertices           = vtx_InputTag,
+    secondVertices     = cms.InputTag('slimmedSecondaryVertices'),
     rho                = cms.InputTag('fixedGridRhoAll'),
     electrons          = electrons_InputTag,
+    photons	       = cms.InputTag('slimmedPhotons'),
     muons              = cms.InputTag('slimmedMuons'),
     taus               = taus_InputTag,
     boostedTaus        = boostedTaus_InputTag,
@@ -276,29 +257,17 @@ if isPhase2:
         getattr(process, updatedTauName) +
         process.tupleProductionSequence
     )
-
-elif isRun2UL:
+elif isRun2 or isRun3:
     process.p = cms.Path(
-	process.deepMETProducer +
-        process.TauSpinnerReco +
-        process.tupleProductionSequence
-    )
-
-elif isRun3:
-    process.p = cms.Path(
+        process.deepMETProducer +
         getattr(process, 'rerunMvaIsolationSequence') +
         getattr(process, updatedTauName) +
         process.tupleProductionSequence
     )
-else:
-    process.p = cms.Path(
-        process.deepMETProducer +
-        process.TauSpinnerReco +
-        getattr(process, updatedTauName + 'rerunMvaIsolationSequence') +
-        getattr(process, updatedTauName) +
-        process.boostedSequence +
-        process.tupleProductionSequence
-    )
+    if options.runTauSpinner:
+        process.p.insert(0, process.TauSpinnerReco)
+    if options.rerunTauReco:
+        process.p.insert(0, getattr(process,'miniAODTausSequence'))
 
 if len(options.triggers) > 0:
     hlt_paths = options.triggers.split(',')
@@ -310,12 +279,6 @@ if len(options.triggers) > 0:
         triggerConditions = cms.vstring(hlt_paths),
     )
     process.p.insert(0, process.hltFilter)
-
-if isPhase2:
-    process.p.insert(0, process.slimmedElectronsMerged)
-
-if isRun2PreUL:
-    process.p.insert(2, process.boostedSequence)
 
 process.load('FWCore.MessageLogger.MessageLogger_cfi')
 x = process.maxEvents.input.value()

@@ -91,10 +91,12 @@ class JobCollection:
                 result += "\n" + str(job)
         return result
 
-    def submit(self, config, splitting, unitsPerJob, dryrunBool):
+    def submit(self, config, splitting, unitsPerJob, totalUnits, dryrunBool):
         config.JobType.pyCfgParams = self.pyCfgParams
         config.Data.unitsPerJob = unitsPerJob
         config.Data.splitting = splitting
+        if (totalUnits > 0):
+            config.Data.totalUnits = totalUnits
 
         for job in self.jobs:
             if len(self.jobNames) == 0 or job.jobName in self.jobNames:
