@@ -840,7 +840,7 @@ public:
             fillGrid(Br::ele_deltaPhiEleClusterTrackAtCalo, tau.ele_deltaPhiEleClusterTrackAtCalo.at(idx));
             fillGrid(Br::ele_deltaPhiSuperClusterTrackAtVtx, tau.ele_deltaPhiSuperClusterTrackAtVtx.at(idx));
             fillGrid(Br::ele_deltaPhiSeedClusterTrackAtCalo, tau.ele_deltaPhiSeedClusterTrackAtCalo.at(idx));
-            const bool cc_mvaInput = tau.ele_mvaInput_sigmaEtaEta.at(idx) >= -1e38;
+            const bool cc_mvaInput = (tau.ele_mvaInput_sigmaEtaEta.at(idx) >= -1e38) || (input_spectrum.find("prod_Phase2") == std::string::npos); // Only in Phase2
             if(cc_mvaInput) {
               fillGrid(Br::ele_mvaInput_earlyBrem, tau.ele_mvaInput_earlyBrem.at(idx));
               fillGrid(Br::ele_mvaInput_lateBrem, tau.ele_mvaInput_lateBrem.at(idx));
