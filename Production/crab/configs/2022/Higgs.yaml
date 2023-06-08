@@ -1,0 +1,6 @@
+config:
+  params:
+    cmsRunOptions: "sampleType=MC,era=Run3"
+
+GluGluHToTauTau_M-125: /GluGluHToTauTau_M-125_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22MiniAODv3-124X_mcRun3_2022_realistic_v12-v3/MINIAODSIM
+VBFHToTauTau_M-125: /VBFHToTauTau_M125_TuneCP5_13p6TeV_powheg-pythia8/Run3Summer22MiniAODv3-124X_mcRun3_2022_realistic_v12-v3/MINIAODSIM
