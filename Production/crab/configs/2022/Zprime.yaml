@@ -9,3 +9,5 @@ Zprimeto2E_M-2500: /Zprimeto2E_M-2500_TuneCP5_13p6TeV_pythia8/Run3Summer22MiniAO
 Zprimeto2E_M-3000: /Zprimeto2E_M-3000_TuneCP5_13p6TeV_pythia8/Run3Summer22MiniAODv3-124X_mcRun3_2022_realistic_v12-v2/MINIAODSIM
 Zprimeto2E_M-3500: /Zprimeto2E_M-3500_TuneCP5_13p6TeV_pythia8/Run3Summer22MiniAODv3-124X_mcRun3_2022_realistic_v12-v2/MINIAODSIM
 Zprimeto2E_M-4000: /Zprimeto2E_M-4000_TuneCP5_13p6TeV_pythia8/Run3Summer22MiniAODv3-124X_mcRun3_2022_realistic_v12-v2/MINIAODSIM
+
+Zprimeto2Tau_M-4000_Poisson60: /ZprimeToTauTau_M-4000_TuneCP5_tauola_13p6TeV-_pythia8/Run3Summer22MiniAODv3-124X_mcRun3_2022_realistic_v12-v2/MINIAODSIM
