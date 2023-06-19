@@ -273,6 +273,11 @@ private:
         tauTuple().has_extraelectron = tagObj ? tagObj->has_extraelectron : default_value;
         tauTuple().has_dimuon = tagObj ? tagObj->has_dimuon : default_value;
         tauTuple().has_dielectron = tagObj ? tagObj->has_dielectron : default_value;
+        tauTuple().tagObj_genkind = tagObj ? static_cast<int>(tagObj->genkind) : default_int_value;
+	tauTuple().tagObj_genpt = tagObj ? tagObj->genp4.pt() : default_value;
+        tauTuple().tagObj_geneta = tagObj ? tagObj->genp4.eta() : default_value;
+        tauTuple().tagObj_genphi = tagObj ? tagObj->genp4.phi() : default_value;
+        tauTuple().tagObj_genmass = tagObj ? tagObj->genp4.mass() : default_value;
 
         tauTuple().total_entries = static_cast<int>(tauJets.size());
         for(size_t tauJetIndex = 0; tauJetIndex < tauJets.size(); ++tauJetIndex) {

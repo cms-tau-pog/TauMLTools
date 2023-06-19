@@ -39,7 +39,7 @@ options.register('storeJetsWithoutTau', False, VarParsing.multiplicity.singleton
                  "Store jets that don't match to any pat::Tau.")
 options.register('requireGenMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Store only tau jets that have genLepton_index >= 0 or genJet_index >= 0.")
-options.register('requireGenORRecoTauMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+options.register('requireGenORRecoTauMatch', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  """Store only tau jets that satisfy the following condition:
                     tau_index >= 0 || boostedTau_index >= 0 || (genLepton_index >= 0 && genLepton_kind == 5)""")
 options.register('applyRecoPtSieve', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
