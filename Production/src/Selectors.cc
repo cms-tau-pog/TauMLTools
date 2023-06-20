@@ -246,7 +246,7 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
 		tagObject->kind = tau_analysis::selectors::TagObject::Kind::Electron; //new tag object member
         	tagObject->p4 = ref_electron->polarP4();
         	tagObject->charge = ref_electron->charge();
-        	tagObject->id = ref_electron->electronID("mvaEleID-Fall17-noIso-V2-wp90"); //Not sure what to put here 
+        	tagObject->id = ref_electron->electronID("mvaEleID-Fall17-noIso-V2-wp90"); 
         	tagObject->isolation = PFRelIsolation(*ref_electron,rho);
         	tagObject->has_extramuon = hasExtraMuon(muons, ref_muon, primaryVertex);
         	tagObject->has_extraelectron = hasExtraElectron(electrons, ref_electron, rho);
@@ -257,7 +257,11 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
         	tagObject = nullptr;   
     	}
         const TauJet* selected = nullptr;
-        for(const TauJet& tauJet : tauJets) { //Look for highest pT jet
+        for(const TauJet& tauJet : tauJets) { //Look for highest pT jet and for gen tag 
+            if(tauJet.genLepton && tagObject != nullptr && reco::deltaR(tauJet.genLepton->visibleP4(), tagObject->p4) < 0.1) {
+	    	    tagObject->genkind = tauJet.genLepton->kind();
+		    tagObject->genp4 = tauJet.genLepton->visibleP4();
+	    }
             if(!tauJet.jet) continue;
             const pat::Jet& jet = *tauJet.jet;
             if(!(std::abs(jet.eta()) < 2.8) || ((ref_muon || ref_electron) && !(reco::deltaR(jet.p4(), tagObject->p4) > 0.4)))
@@ -271,6 +275,7 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
             }
         }
     }
+
     else { // No mu or ele tag nor high MET 
         tagObject = nullptr;
         for(const TauJet& tauJet : tauJets) {
@@ -285,7 +290,11 @@ TauJetSelector::Result TagAndProbe::Select(const edm::Event& event, const std::d
    
     // Add true taus to selectedTauJets for all cases
     for(const TauJet& tauJet : tauJets) {
-       if(!(tauJet.genLepton) || !(std::abs(tauJet.genLepton->visibleP4().eta()) < 2.8 && tauJet.genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToHadrons)) continue;
+       if(!(tauJet.genLepton) || !(std::abs(tauJet.genLepton->visibleP4().eta()) < 2.8 
+	     && (tauJet.genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToHadrons
+	     ||  tauJet.genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToMuon
+	     ||  tauJet.genLepton->kind() == reco_tau::gen_truth::GenLepton::Kind::TauDecayedToElectron))) 
+	  continue;
        bool sameJet = false;
        for(const TauJet* selectedTauJet : selectedTauJets) {
            if(&tauJet == selectedTauJet) {

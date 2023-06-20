@@ -17,8 +17,8 @@ options.register('fileList', '', VarParsing.multiplicity.singleton, VarParsing.v
                  "List of root files to process.")
 options.register('fileNamePrefix', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "Prefix to add to input file names.")
-options.register('tupleOutput', 'eventTuple.root', VarParsing.multiplicity.singleton, VarParsing.varType.string,
-                 "Event tuple file.")
+options.register('output', 'eventTuple.root', VarParsing.multiplicity.singleton, VarParsing.varType.string,
+                     "Event tuple file.")
 options.register('lumiFile', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                  "JSON file with lumi mask.")
 options.register('eventList', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
@@ -39,7 +39,7 @@ options.register('storeJetsWithoutTau', False, VarParsing.multiplicity.singleton
                  "Store jets that don't match to any pat::Tau.")
 options.register('requireGenMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Store only tau jets that have genLepton_index >= 0 or genJet_index >= 0.")
-options.register('requireGenORRecoTauMatch', True, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
+options.register('requireGenORRecoTauMatch', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  """Store only tau jets that satisfy the following condition:
                     tau_index >= 0 || boostedTau_index >= 0 || (genLepton_index >= 0 && genLepton_kind == 5)""")
 options.register('applyRecoPtSieve', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
@@ -55,8 +55,30 @@ options.register('runTauSpinner', False, VarParsing.multiplicity.singleton, VarP
 
 options.parseArguments()
 
-from TauMLTools.Production.sampleConfig import Era, SampleType
-import TauMLTools.Production.sampleConfig as sampleConfig
+import importlib
+import os
+import sys
+
+def load(module_file, default_path):
+  module_path = os.path.join(default_path, module_file)
+  if not os.path.exists(module_path):
+    module_path = os.path.join(os.path.dirname(__file__), module_file)
+    if not os.path.exists(module_path):
+      module_path = os.path.join(os.getenv("CMSSW_BASE"), 'src', module_file)
+      if not os.path.exists(module_path):
+        raise RuntimeError(f"Cannot find path to {module_file}.")
+
+  module_name, module_ext = os.path.splitext(module_file)
+  spec = importlib.util.spec_from_file_location(module_name, module_path)
+  module = importlib.util.module_from_spec(spec)
+  sys.modules[module_name] = module
+  spec.loader.exec_module(module)
+  return module
+
+
+sampleConfig  = load('sampleConfig.py', os.path.join(os.getenv("CMSSW_BASE"), 'src/TauMLTools/Production/python'))
+from sampleConfig import Era, SampleType
+
 sampleType = SampleType[options.sampleType]
 era = Era[options.era]
 isData = sampleType == SampleType.Data
@@ -111,10 +133,13 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, globalTag, '')
 
 process.source = cms.Source('PoolSource', fileNames = cms.untracked.vstring())
-process.TFileService = cms.Service('TFileService', fileName = cms.string(options.tupleOutput) )
+process.TFileService = cms.Service('TFileService', fileName = cms.string(options.output) )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
-from TauMLTools.Production.readFileList import *
+
+readFileList  = load('readFileList.py', os.path.join(os.getenv("CMSSW_BASE"), 'src/TauMLTools/Production/python'))
+from readFileList import *
+
 if len(options.fileList) > 0:
     readFileList(process.source.fileNames, options.fileList, options.fileNamePrefix)
 elif len(options.inputFiles) > 0:

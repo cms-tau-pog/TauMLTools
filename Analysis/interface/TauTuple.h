@@ -146,6 +146,8 @@
     VAR(Int_t, has_extraelectron) /* Extra electron present */ \
     VAR(Int_t, has_dimuon) /* Extra muon pair present */ \
     VAR(Int_t, has_dielectron) /* Extra electron pair present */ \
+    VAR(Int_t, tagObj_genkind) /* Based on genLepton kind */ \
+    VAR4(Float_t, tagObj_genpt, tagObj_geneta, tagObj_genphi, tagObj_genmass) /* 4-momentum of the gen tag object */ \
     /* Selection type of TagAndProbe selector */ \
     VAR(Int_t, selectionType) /* 1 Muon tag, 2 Ele tag, 3 High MET, 4 Pt ordered, 5 gen based */ \
     /* Jet variables (for both AK4 and AK8 (aka "fat") jets) */ \

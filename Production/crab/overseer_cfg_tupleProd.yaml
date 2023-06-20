@@ -1,0 +1,45 @@
+cmsswPython: RunKit/cmsRunWrapper.py
+params:
+  cmsRunCfg: Production.py
+  copyInputsToLocal: true
+  writePSet: false
+splitting: FileBased
+unitsPerJob: 8
+scriptExe: RunKit/crabJob.sh
+outputFiles:
+  - nano.root
+filesToTransfer:
+  - RunKit/crabJob.sh
+  - RunKit/crabJob.py
+  - RunKit/crabJob_cmsRun.py
+  - RunKit/sh_tools.py
+  - Production/python/Production.py
+  - Production/python/sampleConfig.py
+  - Production/python/readFileList.py
+site: T2_CH_CERN
+crabOutput: /store/group/phys_tau/test_24Apr/DeepTau_v2p5_UL18_prod
+finalOutput: /eos/cms/store/group/phys_tau/test_24Apr/DeepTau_v2p5_UL18
+localCrabOutput: /eos/cms//store/group/phys_tau/test_24Apr/DeepTau_v2p5_UL18_prod
+maxMemory: 2500
+numCores: 1
+inputDBS: global
+allowNonValid: False
+dryrun: False
+maxRecoveryCount: 3
+updateInterval: 60
+localProcessing:
+  lawTask: ProdTask
+  workflow: htcondor
+  bootstrap: bootstrap.sh
+#  requirements: ( (OpSysAndVer =?= "CentOS7") || (OpSysAndVer =?= "CentOS8") )
+targetOutputFileSize: 2048
+renewKerberosTicket: True
+whitelistFinalRecovery:
+  - T1_DE_KIT
+  - T2_CH_CERN
+  - T2_DE_DESY
+  - T2_IT_Legnaro
+  - T3_CH_PSI
+
+
+  

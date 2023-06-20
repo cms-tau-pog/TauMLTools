@@ -481,6 +481,26 @@
                 "sqmean": null,
                 "num": null
             }
+        },
+        "pv_t": {
+            "global": {
+                "mean": 0.0,
+                "std": 1.0,
+                "lim_min": -1.0,
+                "lim_max": 1.0,
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pv_t_sig": {
+            "global": {
+                "mean": 38.64,
+                "std": 53.04,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 4307.0,
+                "num": 710298
+            }
         }
     },
     "PfCand_electron": {
@@ -652,24 +672,6 @@
                 "num": 102716
             }
         },
-        "pfCand_ele_vertex_dt": {
-            "inner": {
-                "mean": 0.0008906,
-                "std": 0.1881,
-                "lim_min": -5,
-                "lim_max": 5,
-                "sqmean": 0.0354,
-                "num": 211912
-            },
-            "outer": {
-                "mean": 0.001447,
-                "std": 0.1881,
-                "lim_min": -5,
-                "lim_max": 5,
-                "sqmean": 0.03539,
-                "num": 102716
-            }
-        },
         "pfCand_ele_vertex_dx_tauFL": {
             "inner": {
                 "mean": -0.0001738,
@@ -725,6 +727,16 @@
             }
         },
         "pfCand_ele_hasTrackDetails": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_ele_hasTimeDetails": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -808,38 +820,56 @@
         },
         "pfCand_ele_time": {
             "inner": {
-                "mean": -0.003007,
-                "std": 0.162,
+                "mean": -0.004368,
+                "std": 0.1953,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 0.02626,
-                "num": 211481
+                "sqmean": 0.03815,
+                "num": 145590
             },
             "outer": {
-                "mean": -0.002257,
-                "std": 0.1381,
+                "mean": -0.004762,
+                "std": 0.2005,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 0.01909,
-                "num": 84838
+                "sqmean": 0.04023,
+                "num": 40252
+            }
+        },
+        "pfCand_ele_vertex_dt": {
+            "inner": {
+                "mean": -0.002774,
+                "std": 0.08359,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.006994,
+                "num": 145590
+            },
+            "outer": {
+                "mean": -0.001821,
+                "std": 0.2305,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.05315,
+                "num": 40252
             }
         },
         "pfCand_ele_time_sig": {
             "inner": {
-                "mean": 5.174,
-                "std": 6.161,
+                "mean": 2.004,
+                "std": 3.537,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 64.72,
-                "num": 211481
+                "sqmean": 16.52,
+                "num": 145590
             },
             "outer": {
-                "mean": 3.222,
-                "std": 5.216,
+                "mean": 6.787,
+                "std": 7.303,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 37.58,
-                "num": 84838
+                "sqmean": 99.4,
+                "num": 40252
             }
         },
         "pfCand_ele_track_chi2_ndof": {
@@ -1058,24 +1088,6 @@
                 "num": 208294
             }
         },
-        "pfCand_muon_vertex_dt": {
-            "inner": {
-                "mean": 0.0008122,
-                "std": 0.1882,
-                "lim_min": -5,
-                "lim_max": 5,
-                "sqmean": 0.0354,
-                "num": 188697
-            },
-            "outer": {
-                "mean": 0.0004387,
-                "std": 0.1872,
-                "lim_min": -5,
-                "lim_max": 5,
-                "sqmean": 0.03506,
-                "num": 208294
-            }
-        },
         "pfCand_muon_vertex_dx_tauFL": {
             "inner": {
                 "mean": -0.0003709,
@@ -1131,6 +1143,16 @@
             }
         },
         "pfCand_muon_hasTrackDetails": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_muon_hasTimeDetails": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -1214,38 +1236,56 @@
         },
         "pfCand_muon_time": {
             "inner": {
-                "mean": 0.0009522,
-                "std": 0.1785,
+                "mean": 0.001159,
+                "std": 0.1969,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 0.03186,
-                "num": 188695
+                "sqmean": 0.03879,
+                "num": 154995
             },
             "outer": {
-                "mean": -0.004777,
-                "std": 0.177,
+                "mean": -0.006075,
+                "std": 0.1996,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 0.03136,
-                "num": 208269
+                "sqmean": 0.03989,
+                "num": 163759
+            }
+        },
+        "pfCand_muon_vertex_dt": {
+            "inner": {
+                "mean": 0.002116,
+                "std": 0.07892,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.006233,
+                "num": 154995
+            },
+            "outer": {
+                "mean": -0.005347,
+                "std": 0.2606,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.06795,
+                "num": 163759
             }
         },
         "pfCand_muon_time_sig": {
             "inner": {
-                "mean": 5.763,
-                "std": 5.737,
+                "mean": 1.887,
+                "std": 3.268,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 66.13,
-                "num": 188695
+                "sqmean": 14.24,
+                "num": 154995
             },
             "outer": {
-                "mean": 5.084,
-                "std": 5.525,
+                "mean": 8.231,
+                "std": 7.195,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 56.37,
-                "num": 208269
+                "sqmean": 119.5,
+                "num": 163759
             }
         },
         "pfCand_muon_track_chi2_ndof": {
@@ -1484,24 +1524,6 @@
                 "num": 41577016
             }
         },
-        "pfCand_chHad_vertex_dt": {
-            "inner": {
-                "mean": 0.00037,
-                "std": 0.1883,
-                "lim_min": -5,
-                "lim_max": 5,
-                "sqmean": 0.03546,
-                "num": 1866561
-            },
-            "outer": {
-                "mean": 0.000603,
-                "std": 0.188,
-                "lim_min": -5,
-                "lim_max": 5,
-                "sqmean": 0.03535,
-                "num": 41577016
-            }
-        },
         "pfCand_chHad_vertex_dx_tauFL": {
             "inner": {
                 "mean": -0.0005992,
@@ -1557,6 +1579,16 @@
             }
         },
         "pfCand_chHad_hasTrackDetails": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_chHad_hasTimeDetails": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -1640,38 +1672,56 @@
         },
         "pfCand_chHad_time": {
             "inner": {
-                "mean": 0.004482,
-                "std": 0.1824,
+                "mean": 0.006689,
+                "std": 0.2228,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 0.0333,
-                "num": 1592300
+                "sqmean": 0.04969,
+                "num": 1067074
             },
             "outer": {
-                "mean": 0.009075,
-                "std": 0.2003,
+                "mean": 0.01681,
+                "std": 0.2724,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 0.04019,
-                "num": 28120792
+                "sqmean": 0.07447,
+                "num": 15178348
+            }
+        },
+        "pfCand_chHad_vertex_dt": {
+            "inner": {
+                "mean": 0.007443,
+                "std": 0.1927,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.03717,
+                "num": 1067074
+            },
+            "outer": {
+                "mean": 0.01751,
+                "std": 0.3228,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.1045,
+                "num": 15178348
             }
         },
         "pfCand_chHad_time_sig": {
             "inner": {
-                "mean": 5.198,
-                "std": 7.234,
+                "mean": 4.599,
+                "std": 7.909,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 79.35,
-                "num": 1592300
+                "sqmean": 83.7,
+                "num": 1067074
             },
             "outer": {
-                "mean": 4.375,
-                "std": 8.369,
+                "mean": 10.21,
+                "std": 11.26,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 89.19,
-                "num": 28120792
+                "sqmean": 231.1,
+                "num": 15178348
             }
         },
         "pfCand_chHad_track_chi2_ndof": {
@@ -2006,24 +2056,6 @@
                 "num": 20647181
             }
         },
-        "pfCand_gamma_vertex_dt": {
-            "inner": {
-                "mean": 0.0006475,
-                "std": 0.1881,
-                "lim_min": -5,
-                "lim_max": 5,
-                "sqmean": 0.03537,
-                "num": 827218
-            },
-            "outer": {
-                "mean": 0.0005391,
-                "std": 0.188,
-                "lim_min": -5,
-                "lim_max": 5,
-                "sqmean": 0.03534,
-                "num": 20647181
-            }
-        },
         "pfCand_gamma_vertex_dx_tauFL": {
             "inner": {
                 "mean": -0.0006508,
@@ -2079,6 +2111,16 @@
             }
         },
         "pfCand_gamma_hasTrackDetails": {
+            "global": {
+                "mean": 0,
+                "std": 1,
+                "lim_min": "-inf",
+                "lim_max": "inf",
+                "sqmean": null,
+                "num": null
+            }
+        },
+        "pfCand_gamma_hasTimeDetails": {
             "global": {
                 "mean": 0,
                 "std": 1,
@@ -2162,38 +2204,56 @@
         },
         "pfCand_gamma_time": {
             "inner": {
-                "mean": -0.01847,
-                "std": 0.1465,
+                "mean": -0.03451,
+                "std": 0.1989,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 0.0218,
-                "num": 71
+                "sqmean": 0.04074,
+                "num": 38
             },
             "outer": {
-                "mean": -0.01482,
-                "std": 0.02964,
+                "mean": null,
+                "std": null,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 0.001098,
-                "num": 5
+                "sqmean": null,
+                "num": 1
+            }
+        },
+        "pfCand_gamma_vertex_dt": {
+            "inner": {
+                "mean": -0.006175,
+                "std": 0.06606,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": 0.004402,
+                "num": 38
+            },
+            "outer": {
+                "mean": null,
+                "std": null,
+                "lim_min": -5,
+                "lim_max": 5,
+                "sqmean": null,
+                "num": 1
             }
         },
         "pfCand_gamma_time_sig": {
             "inner": {
-                "mean": 4.263,
-                "std": 6.37,
+                "mean": 2.08,
+                "std": 2.636,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 58.75,
-                "num": 71
+                "sqmean": 11.28,
+                "num": 38
             },
             "outer": {
-                "mean": 0.8313,
-                "std": 1.663,
+                "mean": null,
+                "std": null,
                 "lim_min": -5,
                 "lim_max": 5,
-                "sqmean": 3.455,
-                "num": 5
+                "sqmean": null,
+                "num": 1
             }
         },
         "pfCand_gamma_track_chi2_ndof": {
