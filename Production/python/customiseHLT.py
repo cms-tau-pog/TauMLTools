@@ -255,7 +255,7 @@ def customise(process, output='nano.root', is_data=False):
   )
 
   process.pfVertexTable = cms.EDProducer("VertexTableProducerHLT",
-    src = cms.InputTag("hltVerticesPFFilter"),
+    src = cms.InputTag("hltVerticesPF"),
     name = cms.string("PFPrimaryVertex")
   )
   process.svCandidateTable.src = 'hltDeepInclusiveSecondaryVerticesPF'
@@ -381,6 +381,9 @@ def customise(process, output='nano.root', is_data=False):
   )
 
   process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
+
+  # update L1 LUTs
+  process.load("L1Trigger.L1TCalorimeter.caloParams_2023_v0_2_cfi")
 
   process.options.numberOfThreads = 1
   process.MessageLogger.cerr.FwkReport.reportEvery = 100
