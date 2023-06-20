@@ -14,18 +14,15 @@ filesToTransfer:
   - RunKit/crabJob_cmsRun.py
   - RunKit/sh_tools.py
   - RunKit/skim_tree.py
-  - Production/data/PFCalibration_v5.db
-  - Production/data/Run3Winter23Digi_v5.db
   - Production/config/skim_HLT.yaml
   - Production/python/hlt_configs/hltMC.py
   - Production/python/hlt_configs/hltData.py
   - Production/python/skimHLT.py
   - Production/python/customiseHLT.py
-  - Production/python/customizeHLTFor2023.py
 site: T2_CH_CERN
-crabOutput: /store/group/phys_tau/kandroso/Run3_HLT/prod_v2_crab
-finalOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v2
-localCrabOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v2_crab
+crabOutput: /store/group/phys_tau/kandroso/Run3_HLT/prod_v3_crab
+finalOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v3
+localCrabOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v3_crab
 maxMemory: 4000
 numCores: 1
 inputDBS: global
@@ -38,6 +35,7 @@ localProcessing:
   workflow: htcondor
   bootstrap: bootstrap.sh
   nCPU: 2
+  maxRuntime: 24.0
 #  requirements: ( (OpSysAndVer =?= "CentOS7") || (OpSysAndVer =?= "CentOS8") )
 targetOutputFileSize: 2048
 renewKerberosTicket: True

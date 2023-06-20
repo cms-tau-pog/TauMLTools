@@ -1,0 +1,9 @@
+config:
+  inputDBS: phys03
+  params:
+    copyInputsToLocal: false
+    cmsRunCfg: hltMC.py
+
+Staus_M_100_10mm: /Staus_M_100_10mm_13p6TeV_Run3Winter23/lpcdisptau-RAWSIM-8a3dc5b1f87befb7d778aeb44f15c904/USER
+Staus_M_100_100mm: /Staus_M_100_100mm_13p6TeV_Run3Winter23/lpcdisptau-RAWSIM-8a3dc5b1f87befb7d778aeb44f15c904/USER
+Staus_M_100_1000mm: /Staus_M_100_1000mm_13p6TeV_Run3Winter23/lpcdisptau-RAWSIM-8a3dc5b1f87befb7d778aeb44f15c904/USER
