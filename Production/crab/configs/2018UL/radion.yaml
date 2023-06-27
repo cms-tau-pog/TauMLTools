@@ -1,6 +1,6 @@
 config:
     params:
-      cmsRunOptions: "sampleType=MC,era=Run2_2018"
+      cmsRunOptions: "sampleType=MC,era=Run2_2018,selector=TagAndProbe"
   
 GluGluToRadionToHHTo2B2Tau_M-250: /GluGluToRadionToHHTo2B2Tau_M-250_TuneCP5_PSWeights_narrow_13TeV-madgraph-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v2/MINIAODSIM
 GluGluToRadionToHHTo2B2Tau_M-260: /GluGluToRadionToHHTo2B2Tau_M-260_TuneCP5_PSWeights_narrow_13TeV-madgraph-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM
