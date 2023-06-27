@@ -20,9 +20,9 @@ filesToTransfer:
   - Production/python/skimHLT.py
   - Production/python/customiseHLT.py
 site: T2_CH_CERN
-crabOutput: /store/group/phys_tau/kandroso/Run3_HLT/prod_v1_crab
-finalOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v1
-localCrabOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v1_crab
+crabOutput: /store/group/phys_tau/kandroso/Run3_HLT/prod_v3_crab
+finalOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v3
+localCrabOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v3_crab
 maxMemory: 4000
 numCores: 1
 inputDBS: global
@@ -35,6 +35,7 @@ localProcessing:
   workflow: htcondor
   bootstrap: bootstrap.sh
   nCPU: 2
+  maxRuntime: 24.0
 #  requirements: ( (OpSysAndVer =?= "CentOS7") || (OpSysAndVer =?= "CentOS8") )
 targetOutputFileSize: 2048
 renewKerberosTicket: True

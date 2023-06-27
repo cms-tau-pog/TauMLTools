@@ -171,7 +171,7 @@ def customise(process, output='nano.root', is_data=False):
     )
   )
   process.AK4PFJetsTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
-    src = cms.InputTag( "hltAK4PFJets" ),
+    src = cms.InputTag( "hltAK4PFJetsCorrected" ),
     cut = cms.string(""),
     name= cms.string("Jet"),
     doc = cms.string("HLT AK4 PF Jets"),
@@ -214,6 +214,19 @@ def customise(process, output='nano.root', is_data=False):
     )
   )
 
+  pnetTags = cms.PSet()
+  for tag_name in [ "probtauhp", "probtauhm", "probb", "probc", "probuds", "probg", "ptcorr" ]:
+    setattr(pnetTags, f"PNet_{tag_name}", cms.InputTag(f"hltParticleNetONNXJetTags:{tag_name}"))
+
+  process.AK4PFJetsExtTable = cms.EDProducer("JetTableProducerHLT",
+    jets = cms.InputTag("hltAK4PFJetsCorrected"),
+    looseJets = cms.InputTag("hltAK4PFJetsLooseIDCorrected"),
+    tightJets = cms.InputTag("hltAK4PFJetsTightIDCorrected"),
+    jetTags = pnetTags,
+    maxDeltaR = cms.double(0.1),
+    precision = cms.int32(7),
+  )
+
   process.L1Table = cms.EDProducer("L1TableProducer",
     egammas = cms.InputTag("hltGtStage2Digis", "EGamma"),
     muons = cms.InputTag("hltGtStage2Digis", "Muon"),
@@ -221,6 +234,8 @@ def customise(process, output='nano.root', is_data=False):
     #taus = cms.InputTag("hltGtStage2Digis", "Tau"),
     taus = cms.InputTag("simCaloStage2Digis"),
     caloTowers = cms.InputTag("simCaloStage2Digis", "MP"),
+    l2TauTagNNProducer = cms.string("hltL2TauTagNNProducer"),
+    l2Taus = process.hltL2TauTagNNProducer.L1Taus,
     precision = cms.int32(7)
   )
 
@@ -240,7 +255,7 @@ def customise(process, output='nano.root', is_data=False):
   )
 
   process.pfVertexTable = cms.EDProducer("VertexTableProducerHLT",
-    src = cms.InputTag("hltVerticesPFFilter"),
+    src = cms.InputTag("hltVerticesPF"),
     name = cms.string("PFPrimaryVertex")
   )
   process.svCandidateTable.src = 'hltDeepInclusiveSecondaryVerticesPF'
@@ -252,6 +267,7 @@ def customise(process, output='nano.root', is_data=False):
   process.pfCandTablesTask = cms.Task(process.pfCandTable)
   process.vertexTablesTask = cms.Task(process.pfVertexTable, process.svCandidateTable)
   process.AK4PFJetsTableTask = cms.Task(process.AK4PFJetsTable)
+  process.AK4PFJetsExtTableTask = cms.Task(process.AK4PFJetsExtTable)
   process.genParticlesForJetsNoNuTask = cms.Task(process.genParticlesForJetsNoNu, process.selectedHadronsAndPartons)
   process.genJetFlavourInfosTask =  cms.Task(process.genJetFlavourInfos)
   process.recoAllGenJetsNoNuTask=cms.Task(process.ak4GenJetsNoNu)
@@ -265,6 +281,7 @@ def customise(process, output='nano.root', is_data=False):
     process.pfCandTablesTask,
     process.vertexTablesTask,
     process.AK4PFJetsTableTask,
+    process.AK4PFJetsExtTableTask,
     process.recoAllGenJetsNoNuTask,
     process.L1TableTask,
     process.caloTableTask,
@@ -298,8 +315,29 @@ def customise(process, output='nano.root', is_data=False):
     + process.hltDeepInclusiveSecondaryVerticesPF
   )
 
+  process.HLTJetFlavourTagParticleNetSequencePF = cms.Sequence(
+    process.hltVerticesPF
+    + process.hltVerticesPFSelector
+    + cms.ignore(process.hltVerticesPFFilter)
+    + cms.ignore(process.hltPFJetForBtagSelector)
+    + process.hltPFJetForBtag
+    + process.hltDeepBLifetimeTagInfosPF
+    + process.hltDeepInclusiveVertexFinderPF
+    + process.hltDeepInclusiveSecondaryVerticesPF
+    + process.hltDeepTrackVertexArbitratorPF
+    + process.hltDeepInclusiveMergedVerticesPF
+    + process.hltPrimaryVertexAssociation
+    + process.hltParticleNetJetTagInfos
+    + process.hltParticleNetONNXJetTags
+    + process.hltParticleNetDiscriminatorsJetTags
+  )
+
   process.hltHpsPFTauTrack.MinN = 0
   process.hltTauJet5.MinN = 0
+  process.hltPFJetForBtagSelector.MinPt = 15
+  process.hltPFJetForBtagSelector.MaxEta = 2.7
+  process.hltParticleNetJetTagInfos.min_jet_pt = 15
+  process.hltParticleNetJetTagInfos.max_jet_eta = 2.7
   process.nanoAOD_step = cms.Path(
     process.SimL1Emulator
     + cms.ignore(process.hltTriggerType)
@@ -309,6 +347,7 @@ def customise(process, output='nano.root', is_data=False):
     + process.HLTGlobalPFTauHPSSequence
     + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau
     + process.HLTAK4PFJetsSequence
+    + process.HLTJetFlavourTagParticleNetSequencePF
     + process.HLTTauVertexSequencePF
     + process.l1bits
     + process.nanoSequence
@@ -343,19 +382,22 @@ def customise(process, output='nano.root', is_data=False):
 
   process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
 
-  process.options.numberOfThreads = 2
+  # update L1 LUTs
+  process.load("L1Trigger.L1TCalorimeter.caloParams_2023_v0_2_cfi")
+
+  process.options.numberOfThreads = 1
   process.MessageLogger.cerr.FwkReport.reportEvery = 100
 
-  process.FastTimerService.printEventSummary = False
-  process.FastTimerService.printRunSummary = False
-  process.FastTimerService.printJobSummary = False
+  # process.FastTimerService.printEventSummary = False
+  # process.FastTimerService.printRunSummary = False
+  # process.FastTimerService.printJobSummary = False
   # process.hltL1TGlobalSummary.DumpTrigSummary = False
 
   # del process.MessageLogger.TriggerSummaryProducerAOD
   # del process.MessageLogger.L1GtTrigReport
   # del process.MessageLogger.L1TGlobalSummary
   # del process.MessageLogger.HLTrigReport
-  del process.MessageLogger.FastReport
+  # del process.MessageLogger.FastReport
   # del process.MessageLogger.ThroughputService
   # process.MessageLogger.cerr.enableStatistics = cms.untracked.bool(False)
   del process.dqmOutput
