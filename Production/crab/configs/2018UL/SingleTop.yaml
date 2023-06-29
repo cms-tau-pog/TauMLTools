@@ -1,6 +1,6 @@
 config:
   params:
-    cmsRunOptions: "sampleType=MC,era=Run2_2018"
+    cmsRunOptions: "sampleType=MC,era=Run2_2018,selector=TagAndProbe"
 
 ST_tW_antitop_5f_NoFullyHadronicDecays: /ST_tW_antitop_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM
 ST_tW_top_5f_NoFullyHadronicDecays: /ST_tW_top_5f_NoFullyHadronicDecays_TuneCP5_13TeV-powheg-pythia8/RunIISummer20UL18MiniAODv2-106X_upgrade2018_realistic_v16_L1v1-v1/MINIAODSIM
