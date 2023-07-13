@@ -1,0 +1,8 @@
+config:
+  params:
+    cmsRunCfg: hltMC.py
+
+HNL_M-3_V-0.0276_tau: local:/eos/cms/store/group/phys_tau/kandroso/Run3_HLT/RAW/Run3Winter23/HeavyNeutrino_trilepton_M-3_V-0.0276_tau_massiveAndCKM_LO
+HNL_M-5_V-0.0046_tau: local:/eos/cms/store/group/phys_tau/kandroso/Run3_HLT/RAW/Run3Winter23/HeavyNeutrino_trilepton_M-5_V-0.0046_tau_massiveAndCKM_LO
+HNL_M-7_V-0.0013_tau: local:/eos/cms/store/group/phys_tau/kandroso/Run3_HLT/RAW/Run3Winter23/HeavyNeutrino_trilepton_M-7_V-0.0013_tau_massiveAndCKM_LO
+HNL_M-10_V-0.0004_tau: local:/eos/cms/store/group/phys_tau/kandroso/Run3_HLT/RAW/Run3Winter23/HeavyNeutrino_trilepton_M-10_V-0.0004_tau_massiveAndCKM_LO

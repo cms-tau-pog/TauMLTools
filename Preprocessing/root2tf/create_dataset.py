@@ -110,7 +110,6 @@ def main(cfg: DictConfig) -> None:
 
             # save TF dataset
             dataset.save(path_to_dataset, compression='GZIP')
-            OmegaConf.save(config=cfg, f=f'{path_to_dataset}/cfg.yaml')
             time_4 = time.time()
             if cfg['verbose']:
                 print(f'        Saving TF datasets: took {(time_4-time_3):.1f} s.\n')
@@ -121,6 +120,9 @@ def main(cfg: DictConfig) -> None:
             for k, v in n_samples.items():
                 print(f'    {k}: {v} samples')
     
+    # save the config (to be fetched during the training)
+    OmegaConf.save(config=cfg, f=to_absolute_path(f'{cfg["path_to_dataset"]}/{cfg["dataset_name"]}/cfg.yaml')) 
+
     if cfg['verbose']:
         print(f'\nTotal time: {(time_4-time_start):.1f} s.\n') 
 

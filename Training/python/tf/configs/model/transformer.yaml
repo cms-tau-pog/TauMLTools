@@ -1,0 +1,24 @@
+defaults:
+  - .@kwargs.encoder.embedding_kwargs: embedding
+  - _self_
+
+type: transformer
+name: transformer_test
+kwargs:
+  encoder:
+    embedding_kwargs: 
+      out_dim: ${model.kwargs.encoder.dim_model} # override embedding dim to dim_model
+    use_masked_mha: false
+    num_layers: 6
+    dim_model: 64
+    dim_head_key: 8
+    dim_head_value: 8
+    num_heads: 8
+    dim_ff: 256 # they usually set it to 4x dim_model
+    activation: gelu
+    dropout_rate: 0.1
+  decoder:
+    dim_ff_layers: [256, 128]
+    activation: gelu
+    output_attn: false # false for training, true for attention visualisation
+    n_outputs: 4

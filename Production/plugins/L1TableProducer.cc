@@ -9,20 +9,30 @@
 #include "DataFormats/L1Trigger/interface/Jet.h"
 #include "DataFormats/L1Trigger/interface/Muon.h"
 #include "DataFormats/L1TCalorimeter/interface/CaloTower.h"
+#include "DataFormats/Math/interface/deltaR.h"
 #include "L1Trigger/L1TCalorimeter/interface/CaloParamsHelper.h"
 #include "L1Trigger/L1TCalorimeter/interface/CaloStage2Nav.h"
 #include "L1Trigger/L1TCalorimeter/interface/CaloTools.h"
 #include "L1Trigger/L1TCalorimeter/interface/Stage2Layer2ClusterAlgorithmFirmware.h"
-
+#include "HLTrigger/HLTcore/interface/HLTFilter.h"
 
 class L1TableProducer : public edm::stream::EDProducer<> {
 public:
+  using FCol = trigger::TriggerFilterObjectWithRefs;
+  using FColToken = edm::EDGetTokenT<FCol>;
+  using L2Tags = std::vector<float>;
+  using L2TagsToken = edm::EDGetTokenT<L2Tags>;
+  using L2OutToken = std::pair<FColToken, L2TagsToken>;
+  using L2OutTokenCol = std::vector<L2OutToken>;
+
   L1TableProducer(const edm::ParameterSet& cfg) :
       egammasToken_(consumes<l1t::EGammaBxCollection>(cfg.getParameter<edm::InputTag>("egammas"))),
       muonsToken_(consumes<l1t::MuonBxCollection>(cfg.getParameter<edm::InputTag>("muons"))),
       jetsToken_(consumes<l1t::JetBxCollection>(cfg.getParameter<edm::InputTag>("jets"))),
       tausToken_(consumes<l1t::TauBxCollection>(cfg.getParameter<edm::InputTag>("taus"))),
       caloTowersToken_(consumes<l1t::CaloTowerBxCollection>(cfg.getParameter<edm::InputTag>("caloTowers"))),
+      l2TauToken_(loadL2Tokens(cfg.getParameterSetVector("l2Taus"),
+                               cfg.getParameter<std::string>("l2TauTagNNProducer"))),
       candidateToken_(esConsumes<l1t::CaloParams, L1TCaloParamsRcd, edm::Transition::BeginRun>()),
       o2oProtoToken_(esConsumes<l1t::CaloParams, L1TCaloParamsO2ORcd, edm::Transition::BeginRun>()),
       precision_(cfg.getParameter<int>("precision"))
@@ -35,6 +45,18 @@ public:
   }
 
 private:
+  L2OutTokenCol loadL2Tokens(const edm::VParameterSet& cfg, const std::string& l2TauTagNNProducer)
+  {
+    L2OutTokenCol tokens;
+    for(const edm::ParameterSet& pset : cfg) {
+      tokens.emplace_back(
+        consumes<FCol>(pset.getParameter<edm::InputTag>("L1TauTrigger")),
+        consumes<L2Tags>(edm::InputTag(l2TauTagNNProducer, pset.getParameter<std::string>("L1CollectionName")))
+      );
+    }
+    return tokens;
+  }
+
   // adapted from https://github.com/cms-sw/cmssw/blob/166eab1458287d877b7b06a931153f21b74e2093/L1Trigger/L1TCalorimeter/plugins/L1TStage2Layer2Producer.cc
   void beginRun(const edm::Run& run, const edm::EventSetup& setup) override
   {
@@ -143,6 +165,7 @@ private:
     std::vector<bool> hasEM, isMerged;
 
     std::vector<int> tower_tauIdx, tower_relEta, tower_relPhi, tower_hwEtEm, tower_hwEtHad, tower_hwPt;
+    std::vector<float> l2_scores;
 
     if(!caloParams_ || !tauClusterAlgo_)
       throw cms::Exception("L1NtupleProducer") << "CaloParams or TauClusterAlgo not initialized";
@@ -155,6 +178,30 @@ private:
 
     std::vector<l1t::CaloCluster> tauClusters;
     tauClusterAlgo_->processEvent(towers, tauClusters);
+
+    std::vector<std::pair<l1t::TauVectorRef, std::vector<float>>> l2TauOutcomes;
+    for(const auto& [token_l1, token_l2] : l2TauToken_) {
+      const auto& l1Objects = event.get(token_l1);
+      l1t::TauVectorRef taus;
+      l1Objects.getObjects(trigger::TriggerL1Tau, taus);
+      const auto& l2Objects = event.get(token_l2);
+      l2TauOutcomes.emplace_back(taus, l2Objects);
+    }
+
+    const auto getL2Score = [&](double tau_eta, double tau_phi) {
+      float best_score = -1.f;
+      double best_dr2 = 0.01;
+      for(const auto& [taus, scores] : l2TauOutcomes) {
+        for(size_t i = 0; i < taus.size(); ++i) {
+          const double dr2 = reco::deltaR2(tau_eta, tau_phi, taus[i]->eta(), taus[i]->phi());
+          if(dr2 < best_dr2) {
+            best_dr2 = dr2;
+            best_score = scores.at(i);
+          }
+        }
+      }
+      return best_score;
+    };
 
     // adapted from https://github.com/cms-sw/cmssw/blob/17b3781658ba5a652d1d3e0cc74c31915b708235/L1Trigger/L1TCalorimeter/src/CaloTools.cc#LL125-L151C2
     const auto fillTowers = [&](int tau_idx, int iEta, int iPhi, int localEtaMin, int localEtaMax, int localPhiMin,
@@ -222,6 +269,7 @@ private:
       isoEt.push_back(it->isoEt());
       nTT.push_back(it->nTT());
       fillTauEx(*it, hwPt.size() - 1);
+      l2_scores.push_back(getL2Score(it->eta(), it->phi()));
     });
 
     table->addColumn<int>("hwPt", hwPt, "hardware pt");
@@ -234,6 +282,7 @@ private:
     table->addColumn<int>("isoEt", isoEt, "iso Et");
     table->addColumn<int>("nTT", nTT, "number of TTs");
     table->addColumn<int>("hwEtSum", hwEtSum, "hardware Et sum towers around tau (including signal and isolation)");
+    table->addColumn<float>("l2Tag", l2_scores, "L2 NN tau tag score");
     event.put(std::move(table), tauTableName);
 
     auto towerTable = std::make_unique<nanoaod::FlatTable>(tower_tauIdx.size(), tauTowersTableName, false, false);
@@ -252,6 +301,7 @@ private:
   const edm::EDGetTokenT<l1t::JetBxCollection> jetsToken_;
   const edm::EDGetTokenT<l1t::TauBxCollection> tausToken_;
   const edm::EDGetTokenT<l1t::CaloTowerBxCollection> caloTowersToken_;
+  const L2OutTokenCol l2TauToken_;
   const edm::ESGetToken<l1t::CaloParams, L1TCaloParamsRcd> candidateToken_;
   const edm::ESGetToken<l1t::CaloParams, L1TCaloParamsO2ORcd> o2oProtoToken_;
   const unsigned int precision_;
