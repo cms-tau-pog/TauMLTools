@@ -2,7 +2,6 @@ cmsswPython: RunKit/cmsRunWrapper.py
 params:
   cmsRunCfg: Production.py
   copyInputsToLocal: true
-  writePSet: false
 splitting: FileBased
 unitsPerJob: 8
 scriptExe: RunKit/crabJob.sh
@@ -17,9 +16,9 @@ filesToTransfer:
   - Production/python/sampleConfig.py
   - Production/python/readFileList.py
 site: T2_CH_CERN
-crabOutput: /store/group/phys_tau/test_24Apr/DeepTau_v2p5_UL18_prod
-finalOutput: /eos/cms/store/group/phys_tau/test_24Apr/DeepTau_v2p5_UL18
-localCrabOutput: /eos/cms//store/group/phys_tau/test_24Apr/DeepTau_v2p5_UL18_prod
+crabOutput: /store/group/phys_tau/TauML/prod_2018UL_v3/olha/output
+finalOutput: /eos/cms/store/group/phys_tau/TauML/prod_2018UL_v3/olha/post_output
+localCrabOutput: /eos/cms/store/group/phys_tau/TauML/prod_2018UL_v3/olha/output
 maxMemory: 2500
 numCores: 1
 inputDBS: global
