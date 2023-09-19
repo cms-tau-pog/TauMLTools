@@ -18,6 +18,7 @@ namespace gen_truth {
 using LorentzVectorXYZ = ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double>>;
 using LorentzVectorM = ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double>>;
 using Point3D = ROOT::Math::PositionVector3D<ROOT::Math::Cartesian3D<double>>;
+using Displacement3D = ROOT::Math::DisplacementVector3D<ROOT::Math::Cartesian3D<double>>;
 
 class GenParticle {
 public:
@@ -156,7 +157,10 @@ public:
                                                      const IntVector1& GenPart_genPartIdxMother,
                                                      const IntVector2& GenPart_pdgId,
                                                      const IntVector3& GenPart_statusFlags,
-                                                     int event=0) {
+                                                     const FloatVector& GenPart_vx = FloatVector(),
+                                                     const FloatVector& GenPart_vy = FloatVector(),
+                                                     const FloatVector& GenPart_vz = FloatVector(),
+                                                     int event = 0) {
         try {
             std::vector<GenLepton> genLeptons;
             std::set<size_t> processed_particles;
@@ -170,7 +174,7 @@ public:
                 GenLepton lepton;
                 FillImplNano<FloatVector, IntVector1, IntVector2, IntVector3> fillImplNano(
                     lepton, processed_particles, GenPart_pt, GenPart_eta, GenPart_phi, GenPart_mass,
-                    GenPart_genPartIdxMother, GenPart_pdgId, GenPart_statusFlags);
+                    GenPart_genPartIdxMother, GenPart_pdgId, GenPart_statusFlags, GenPart_vx, GenPart_vy, GenPart_vz);
                 fillImplNano.FillAll(genPart_idx);
                 lepton.initialize();
                 genLeptons.push_back(lepton);
@@ -289,6 +293,14 @@ public:
     size_t nFinalStateMuons() const { return nFinalStateMuons_; }
     size_t nFinalStateNeutrinos() const { return nFinalStateNeutrinos_; }
 
+    const Point3D vertex() const { return firstCopy().vertex; }
+    const Displacement3D flightLength() const
+    {
+        if(mothers().empty())
+            return Displacement3D(0., 0., 0.);
+        return vertex() - (*mothers().begin())->vertex;
+    }
+
     void PrintDecay(const GenParticle& particle, const std::string& pre, std::ostream& os) const
     {
         os << particle << std::endl;
@@ -401,6 +413,9 @@ private:
         const IntVector1& GenPart_genPartIdxMother_;
         const IntVector2& GenPart_pdgId_;
         const IntVector3& GenPart_statusFlags_;
+        const FloatVector& GenPart_vx_;
+        const FloatVector& GenPart_vy_;
+        const FloatVector& GenPart_vz_;
 
         FillImplNano(GenLepton& lepton, std::set<size_t>& processedParticles,
             const FloatVector& GenPart_pt ,
@@ -409,11 +424,15 @@ private:
             const FloatVector& GenPart_mass,
             const IntVector1& GenPart_genPartIdxMother,
             const IntVector2& GenPart_pdgId,
-            const IntVector3& GenPart_statusFlags) :
+            const IntVector3& GenPart_statusFlags,
+            const FloatVector& GenPart_vx,
+            const FloatVector& GenPart_vy,
+            const FloatVector& GenPart_vz) :
             lepton_(lepton), processedParticles_(processedParticles),
             GenPart_pt_(GenPart_pt), GenPart_eta_(GenPart_eta), GenPart_phi_(GenPart_phi),
             GenPart_mass_(GenPart_mass), GenPart_genPartIdxMother_(GenPart_genPartIdxMother),
-            GenPart_pdgId_(GenPart_pdgId), GenPart_statusFlags_(GenPart_statusFlags)
+            GenPart_pdgId_(GenPart_pdgId), GenPart_statusFlags_(GenPart_statusFlags),
+            GenPart_vx_(GenPart_vx), GenPart_vy_(GenPart_vy), GenPart_vz_(GenPart_vz)
         {
         }
 
@@ -461,7 +480,10 @@ private:
             output_p.isLastCopy = output_pStatusFlags.isLastCopy();
             double output_pMass=GenParticle::GetMass(output_p.pdgCode(), GenPart_mass_.at(part_idx));
             output_p.p4 = LorentzVectorM(GenPart_pt_.at(part_idx),GenPart_eta_.at(part_idx),GenPart_phi_.at(part_idx),output_pMass);
-            output_p.vertex = Point3D(0.,0.,0.);
+            if(GenPart_vx_.size() == GenPart_pt_.size())
+                output_p.vertex = Point3D(GenPart_vx_.at(part_idx), GenPart_vy_.at(part_idx), GenPart_vz_.at(part_idx));
+            else // no vertex information in nanoAOD
+                output_p.vertex = Point3D(0., 0., 0.);
 
             size_t p_index = lepton_.particles_->size();
             if(mother_index != NoneIndex)

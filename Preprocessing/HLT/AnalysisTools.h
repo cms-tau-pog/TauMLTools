@@ -76,6 +76,45 @@ RVecLV GetP4(const V1& pt, const V2& eta, const V3& phi, const V4& mass)
   return GetP4(pt, eta, phi, mass, CreateIndexes(pt.size()));
 }
 
+
+template<typename TIn>
+struct InToOut {
+  using type = TIn;
+};
+
+template<>
+struct InToOut<bool> {
+  using type = int;
+};
+
+template<>
+struct InToOut<unsigned char> {
+  using type = int;
+};
+
+template<typename TIn, typename TOut = typename InToOut<TIn>::type>
+ROOT::VecOps::RVec<TOut> GetVar(const RVecI& idx, const ROOT::VecOps::RVec<TIn>& var)
+{
+  ROOT::VecOps::RVec<TOut> result(idx.size(), TOut(0));
+  for(size_t i = 0; i < idx.size(); ++i) {
+    if(idx[i] >= 0)
+      result[i] = var[idx[i]];
+  }
+  return result;
+}
+
+template<typename TIn, typename TOut = typename InToOut<TIn>::type>
+ROOT::VecOps::RVec<ROOT::VecOps::RVec<TOut>> GetVarVec(const RVecSetInt& matched, const ROOT::VecOps::RVec<TIn>& var)
+{
+  ROOT::VecOps::RVec<ROOT::VecOps::RVec<TOut>> result(matched.size());
+  for(size_t i = 0; i < matched.size(); ++i) {
+    for(auto idx : matched[i]) {
+      result[i].push_back(var[idx]);
+    }
+  }
+  return result;
+}
+
 inline RVecB RemoveOverlaps(const RVecLV& obj_p4, const RVecB& pre_sel, const std::vector<RVecLV>& other_objects,
                             size_t min_number_of_non_overlaps, double min_deltaR)
 {
@@ -192,4 +231,8 @@ namespace v_ops{
   RVecF phi(const LV& p4) { return ROOT::VecOps::Map(p4, [](const auto& p4) -> float { return p4.phi(); }); }
   template<typename LV>
   RVecF mass(const LV& p4) { return ROOT::VecOps::Map(p4, [](const auto& p4) -> float { return p4.mass(); }); }
+  template<typename LV>
+  RVecF rho(const LV& p4) { return ROOT::VecOps::Map(p4, [](const auto& p4) -> float { return p4.rho(); }); }
+  template<typename LV>
+  RVecF z(const LV& p4) { return ROOT::VecOps::Map(p4, [](const auto& p4) -> float { return p4.z(); }); }
 }

@@ -1,5 +1,5 @@
-
 class MixStep:
+  @staticmethod
   def Load(cfg):
     mix_steps = []
     pt_bin_edges = cfg['bin_edges']['pt']
@@ -19,7 +19,7 @@ class MixStep:
                                                 pt_high=pt_bin_edges[pt_bin_idx + 1],
                                                 eta_low=eta_bin_edges[bin['eta_bin']],
                                                 eta_high=eta_bin_edges[bin['eta_bin'] + 1])
-        step.selection = f'L1Tau_type == static_cast<int>(TauType::{bin["tau_type"]}) && ({selection})'
+        step.selection = f'L1Tau_Gen_type == static_cast<int>(TauType::{bin["tau_type"]}) && ({selection})'
         step.tau_type = bin['tau_type']
         step.eta_bin = bin['eta_bin']
         step.pt_bin = pt_bin_idx
@@ -27,6 +27,7 @@ class MixStep:
         step.start_idx = batch_size
         step.stop_idx = batch_size + count
         step.count = count
+        step.allow_duplicates = bin.get('allow_duplicates', False)
         mix_steps.append(step)
         batch_size += count
     return mix_steps, batch_size
@@ -39,4 +40,5 @@ class MixStep:
     print(f'bin idx: {self.bin_idx}')
     print(f'tau_type: {self.tau_type}')
     print(f'selection: {self.selection}')
+    print(f'allow duplicates: {self.allow_duplicates}')
 

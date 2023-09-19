@@ -14,6 +14,10 @@ class TauType(Enum):
   emb_tau = 6
   emb_jet = 7
   data = 8
+  displaced_e = 9
+  displaced_mu = 10
+  displaced_tau = 11
+  displaced_jet = 12
 
 def ListToVector(list, type="string"):
 	vec = ROOT.std.vector(type)()
@@ -65,29 +69,39 @@ def MakeFileList(input):
 def ApplyCommonDefinitions(df, deltaR=0.4, isData=False):
   df = df.Define("genLeptons", """reco_tau::gen_truth::GenLepton::fromNanoAOD(
                                     GenPart_pt, GenPart_eta, GenPart_phi, GenPart_mass,
-                                    GenPart_genPartIdxMother, GenPart_pdgId, GenPart_statusFlags, event)""") \
+                                    GenPart_genPartIdxMother, GenPart_pdgId, GenPart_statusFlags,
+                                    GenPart_vx, GenPart_vy, GenPart_vz, event)""") \
          .Define('L1Tau_mass', 'RVecF(L1Tau_pt.size(), 0.)') \
-         .Define('L1Tau_p4', 'GetP4(L1Tau_pt, L1Tau_eta, L1Tau_phi, L1Tau_mass)')
+         .Define('L1Tau_p4', 'GetP4(L1Tau_pt, L1Tau_eta, L1Tau_phi, L1Tau_mass)') \
+         .Define('Jet_p4', 'GetP4(Jet_pt, Jet_eta, Jet_phi, Jet_mass)') \
+         .Define('Tau_p4', 'GetP4(Tau_pt, Tau_eta, Tau_phi, Tau_mass)') \
+         .Define('L1Tau_jetIdx', f'FindUniqueMatching(L1Tau_p4, Jet_p4, {deltaR})') \
+         .Define('L1Tau_tauIdx', f'FindUniqueMatching(L1Tau_p4, Tau_p4, {deltaR})')
+
   if isData:
-    df = df.Define('L1Tau_type', 'RVecI(L1Tau_pt.size(), static_cast<int>(TauType::data))')
+    df = df.Define('L1Tau_Gen_type', 'RVecI(L1Tau_pt.size(), static_cast<int>(TauType::data))')
   else:
     df = df.Define('GenJet_p4', 'GetP4(GenJet_pt, GenJet_eta, GenJet_phi, GenJet_mass)') \
            .Define('GenLepton_p4', 'v_ops::visibleP4(genLeptons)') \
            .Define('L1Tau_genLepIndices', f'FindMatchingSet(L1Tau_p4, GenLepton_p4, {deltaR})') \
            .Define('L1Tau_genLepUniqueIdx', f'FindUniqueMatching(L1Tau_p4, GenLepton_p4, {deltaR})') \
            .Define('L1Tau_genJetUniqueIdx', f'FindUniqueMatching(L1Tau_p4, GenJet_p4, {deltaR})') \
-           .Define('L1Tau_type', '''GetTauTypes(genLeptons, L1Tau_genLepUniqueIdx, L1Tau_genLepIndices,
-                                                L1Tau_genJetUniqueIdx, false)''') \
-           .Define('L1Tau_gen_p4', '''GetGenP4(L1Tau_type, L1Tau_genLepUniqueIdx, L1Tau_genJetUniqueIdx, genLeptons,
-                                               GenJet_p4)''') \
-           .Define('L1Tau_gen_pt', 'v_ops::pt(L1Tau_gen_p4)') \
-           .Define('L1Tau_gen_eta', 'v_ops::eta(L1Tau_gen_p4)') \
-           .Define('L1Tau_gen_abs_eta', 'abs(L1Tau_gen_eta)') \
-           .Define('L1Tau_gen_phi', 'v_ops::phi(L1Tau_gen_p4)') \
-           .Define('L1Tau_gen_mass', 'v_ops::mass(L1Tau_gen_p4)') \
-           .Define('L1Tau_gen_charge', 'GetGenCharge(L1Tau_type, L1Tau_genLepUniqueIdx, genLeptons)') \
-           .Define('L1Tau_gen_partonFlavour', '''GetGenPartonFlavour(L1Tau_type, L1Tau_genJetUniqueIdx,
-                                                 GenJet_partonFlavour)''')
+           .Define('L1Tau_Gen_type', '''GetTauTypes(genLeptons, L1Tau_genLepUniqueIdx, L1Tau_genLepIndices,
+                                                       L1Tau_genJetUniqueIdx, false, true)''') \
+           .Define('L1Tau_Gen_p4', '''GetGenP4(L1Tau_Gen_type, L1Tau_genLepUniqueIdx, L1Tau_genJetUniqueIdx,
+                                               genLeptons, GenJet_p4)''') \
+           .Define('L1Tau_Gen_pt', 'v_ops::pt(L1Tau_Gen_p4)') \
+           .Define('L1Tau_Gen_eta', 'v_ops::eta(L1Tau_Gen_p4)') \
+           .Define('L1Tau_Gen_abs_eta', 'abs(L1Tau_Gen_eta)') \
+           .Define('L1Tau_Gen_phi', 'v_ops::phi(L1Tau_Gen_p4)') \
+           .Define('L1Tau_Gen_mass', 'v_ops::mass(L1Tau_Gen_p4)') \
+           .Define('L1Tau_Gen_charge', 'GetGenCharge(L1Tau_Gen_type, L1Tau_genLepUniqueIdx, genLeptons)') \
+           .Define('L1Tau_Gen_partonFlavour', '''GetGenPartonFlavour(L1Tau_Gen_type, L1Tau_genJetUniqueIdx,
+                                                 GenJet_partonFlavour)''') \
+           .Define('L1Tau_Gen_flightLength', 'GetGenFlightLength(L1Tau_Gen_type, L1Tau_genLepUniqueIdx, genLeptons)') \
+           .Define('L1Tau_Gen_flightLength_rho', 'v_ops::rho(L1Tau_Gen_flightLength)') \
+           .Define('L1Tau_Gen_flightLength_phi', 'v_ops::phi(L1Tau_Gen_flightLength)') \
+           .Define('L1Tau_Gen_flightLength_z', 'v_ops::z(L1Tau_Gen_flightLength)')
   return df
 
 

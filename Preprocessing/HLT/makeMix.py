@@ -83,14 +83,95 @@ def make_mix(cfg_file, output, n_jobs, job_id):
 
     l1tau_columns = [
       'pt', 'eta', 'phi', 'hwEtSum', 'hwEta', 'hwIso', 'hwPhi', 'hwPt', 'isoEt', 'nTT', 'rawEt', 'towerIEta',
-      'towerIPhi', 'type', 'gen_pt', 'gen_eta', 'gen_phi', 'gen_mass', 'gen_charge', 'gen_partonFlavour',
+      'towerIPhi',
     ]
 
     df_in = df_in.Define(f'L1Tau_nPV', 'RVecI(L1Tau_pt.size(), nPFPrimaryVertex)')
     df_in = df_in.Define(f'L1Tau_event', 'RVecI(L1Tau_pt.size(), static_cast<int>(event))')
     df_in = df_in.Define(f'L1Tau_luminosityBlock', 'RVecI(L1Tau_pt.size(), static_cast<int>(luminosityBlock))')
     df_in = df_in.Define(f'L1Tau_run', 'RVecI(L1Tau_pt.size(), static_cast<int>(run))')
-    other_columns = { 'nPV', 'event', 'luminosityBlock', 'run' }
+    other_columns = { 'nPV', 'event', 'luminosityBlock', 'run',
+                     'Gen_type', 'Gen_pt', 'Gen_eta', 'Gen_phi', 'Gen_mass', 'Gen_charge', 'Gen_partonFlavour',
+                     'Gen_flightLength_rho', 'Gen_flightLength_phi', 'Gen_flightLength_z' }
+
+    tau_columns = [ 'Tau_pt', 'Tau_eta', 'Tau_phi', 'Tau_mass', 'Tau_charge',  'Tau_deepTauVSjet' ]
+    for c in tau_columns:
+      df_in = df_in.Define(f'L1Tau_{c}', f'GetVar(L1Tau_tauIdx, {c})')
+      other_columns.add(c)
+
+    jet_columns = [ 'Jet_pt', 'Jet_eta', 'Jet_phi', 'Jet_mass', 'Jet_PNet_probb', 'Jet_PNet_probc', 'Jet_PNet_probg',
+                    'Jet_PNet_probtauhm', 'Jet_PNet_probtauhp', 'Jet_PNet_probuds', 'Jet_PNet_ptcorr', ]
+    for c in jet_columns:
+      df_in = df_in.Define(f'L1Tau_{c}', f'GetVar(L1Tau_jetIdx, {c})')
+      other_columns.add(c)
+
+    pfcand_columns = [ 'PFCand_EcalEnergy', 'PFCand_HcalEnergy', 'PFCand_charge', 'PFCand_eta', 'PFCand_longLived',
+                       'PFCand_mass', 'PFCand_pdgId', 'PFCand_phi', 'PFCand_pt', 'PFCand_rawEcalEnergy',
+                       'PFCand_rawHcalEnergy', 'PFCand_trackChi2', 'PFCand_trackDxy', 'PFCand_trackDxyError',
+                       'PFCand_trackDz', 'PFCand_trackDzError', 'PFCand_trackEta', 'PFCand_trackEtaError',
+                       'PFCand_trackHitsValidFraction', 'PFCand_trackIsValid', 'PFCand_trackNdof',
+                       'PFCand_trackNumberOfLostHits', 'PFCand_trackNumberOfValidHits', 'PFCand_trackPhi',
+                       'PFCand_trackPhiError', 'PFCand_trackPt', 'PFCand_trackPtError', 'PFCand_vx', 'PFCand_vy',
+                       'PFCand_vz', ]
+    df_in = df_in.Define('PFCand_p4', 'GetP4(PFCand_pt, PFCand_eta, PFCand_phi, PFCand_mass)')
+    df_in = df_in.Define('L1Tau_PFCand_matched', 'FindMatchingSet(L1Tau_p4, PFCand_p4, 0.5)')
+    for c in pfcand_columns:
+      df_in = df_in.Define(f'L1Tau_{c}', f'GetVarVec(L1Tau_PFCand_matched, {c})')
+      other_columns.add(c)
+
+    pfpv_columns = [ 'PFPrimaryVertex_chi2', 'PFPrimaryVertex_ndof', 'PFPrimaryVertex_x', 'PFPrimaryVertex_y',
+                     'PFPrimaryVertex_z', ]
+    for c in pfpv_columns:
+      df_in = df_in.Define(f'L1Tau_{c}', f'ROOT::VecOps::RVec<RVecF>(L1Tau_pt.size(), {c})')
+      other_columns.add(c)
+
+    pfsv_columns = [ 'PFSecondaryVertex_chi2', 'PFSecondaryVertex_eta', 'PFSecondaryVertex_mass',
+                     'PFSecondaryVertex_ndof', 'PFSecondaryVertex_ntracks', 'PFSecondaryVertex_phi',
+                     'PFSecondaryVertex_pt', 'PFSecondaryVertex_x', 'PFSecondaryVertex_y', 'PFSecondaryVertex_z', ]
+    df_in = df_in.Define('PFSecondaryVertex_p4', '''GetP4(PFSecondaryVertex_pt, PFSecondaryVertex_eta,
+                                                    PFSecondaryVertex_phi, PFSecondaryVertex_mass)''')
+    df_in = df_in.Define('L1Tau_PFSecondaryVertex_matched', 'FindMatchingSet(L1Tau_p4, PFSecondaryVertex_p4, 0.5)')
+    for c in pfsv_columns:
+      df_in = df_in.Define(f'L1Tau_{c}', f'GetVarVec(L1Tau_PFSecondaryVertex_matched, {c})')
+      other_columns.add(c)
+
+    pixelTrack_columns = [ 'PixelTrack_charge', 'PixelTrack_chi2', 'PixelTrack_dxy', 'PixelTrack_dz', 'PixelTrack_eta',
+                           'PixelTrack_nHits', 'PixelTrack_nLayers', 'PixelTrack_phi', 'PixelTrack_pt',
+                           'PixelTrack_quality', 'PixelTrack_tip', 'PixelTrack_vtxIdx', 'PixelTrack_zip', ]
+    df_in = df_in.Define('PixelTrack_mass', 'RVecF(PixelTrack_pt.size(), 0.f)')
+    df_in = df_in.Define('PixelTrack_p4', 'GetP4(PixelTrack_pt, PixelTrack_eta, PixelTrack_phi, PixelTrack_mass)')
+    df_in = df_in.Define('L1Tau_PixelTrack_matched', 'FindMatchingSet(L1Tau_p4, PixelTrack_p4, 0.5)')
+    for c in pixelTrack_columns:
+      df_in = df_in.Define(f'L1Tau_{c}', f'GetVarVec(L1Tau_PixelTrack_matched, {c})')
+      other_columns.add(c)
+
+    pixelVertex_columns = [ 'PixelVertex_chi2', 'PixelVertex_ndof', 'PixelVertex_ptv2', 'PixelVertex_weight',
+                            'PixelVertex_z', ]
+    for c in pixelVertex_columns:
+      df_in = df_in.Define(f'L1Tau_{c}', f'ROOT::VecOps::RVec<RVecF>(L1Tau_pt.size(), {c})')
+      other_columns.add(c)
+
+    recHit_colums = {
+      'EB': [ 'RecHitEB_chi2', 'RecHitEB_energy', 'RecHitEB_eta', 'RecHitEB_isTimeErrorValid',
+                         'RecHitEB_isTimeValid', 'RecHitEB_phi', 'RecHitEB_rho', 'RecHitEB_time',
+                         'RecHitEB_timeError', ],
+      'EE': [ 'RecHitEE_chi2', 'RecHitEE_energy', 'RecHitEE_eta', 'RecHitEE_isTimeErrorValid',
+                         'RecHitEE_isTimeValid', 'RecHitEE_phi', 'RecHitEE_rho', 'RecHitEE_time',
+                         'RecHitEE_timeError', ],
+      'HBHE': [ 'RecHitHBHE_chi2', 'RecHitHBHE_eaux', 'RecHitHBHE_energy', 'RecHitHBHE_eraw',
+                           'RecHitHBHE_eta', 'RecHitHBHE_eta_front', 'RecHitHBHE_phi', 'RecHitHBHE_phi_front',
+                           'RecHitHBHE_rho', 'RecHitHBHE_rho_front', 'RecHitHBHE_time', 'RecHitHBHE_timeFalling', ],
+      'HO': [ 'RecHitHO_energy', 'RecHitHO_eta', 'RecHitHO_phi', 'RecHitHO_rho', 'RecHitHO_time', ],
+    }
+    for det, columns in recHit_colums.items():
+      df_in = df_in.Define(f'RecHit{det}_mass', f'RVecF(RecHit{det}_rho.size(), 0.f)')
+      df_in = df_in.Define(f'RecHit{det}_p4', f'''GetP4(RecHit{det}_rho, RecHit{det}_eta,
+                                                        RecHit{det}_phi, RecHit{det}_mass)''')
+      df_in = df_in.Define(f'L1Tau_RecHit{det}_matched', f'FindMatchingSet(L1Tau_p4, RecHit{det}_p4, 0.5)')
+      for c in columns:
+        df_in = df_in.Define(f'L1Tau_{c}', f'GetVarVec(L1Tau_RecHit{det}_matched, {c})')
+        other_columns.add(c)
+
     l1tau_columns.extend(other_columns)
 
     columns_in = [ 'L1Tau_sel' ]
@@ -116,7 +197,7 @@ def make_mix(cfg_file, output, n_jobs, job_id):
 
     tuple_maker = ROOT.analysis.TupleMaker(*column_types)(100, nTau_in)
     df_out = tuple_maker.process(ROOT.RDF.AsRNode(df_in), ROOT.RDF.AsRNode(df_out), columns_in_v,
-                                 step.start_idx, step.stop_idx, batch_size)
+                                 step.start_idx, step.stop_idx, batch_size, True)
 
     define_fn_name = 'Define' if step_idx == 0 else 'Redefine'
     for column_idx in range(1, len(columns_in)):
@@ -124,22 +205,22 @@ def make_mix(cfg_file, output, n_jobs, job_id):
       {'ROOT::VecOps::RVec<int>', 'ROOT::VecOps::RVec<float>', 'ROOT::VecOps::RVec<ROOT::VecOps::RVec<int> >'}
       if column_type in ['ROOT::VecOps::RVec<int>', 'ROOT::VecOps::RVec<Int_t>' ]:
         default_value = '0'
-        entry_col = 'int_values'
+        entry_type = 'int'
       elif column_type in [ 'ROOT::VecOps::RVec<float>', 'ROOT::VecOps::RVec<Float_t>']:
         default_value = '0.f'
-        entry_col = 'float_values'
+        entry_type = 'float'
       elif column_type in [ 'ROOT::VecOps::RVec<ROOT::VecOps::RVec<int> >', 'ROOT::VecOps::RVec<vector<int> >']:
         default_value = 'RVecI()'
-        entry_col = 'vint_values'
+        entry_type = 'RVecI'
       elif column_type == 'ROOT::VecOps::RVec<ROOT::VecOps::RVec<float> >':
         default_value = 'RVecF()'
-        entry_col = 'vfloat_values'
+        entry_type = 'RVecF'
       else:
         raise Exception(f'Unknown column type {column_type}')
 
       if step_idx != 0:
         default_value = f'{columns_out[column_idx-1]}'
-      define_str = f'_entry.valid ? _entry.{entry_col}.at({column_idx - 1}) : {default_value}'
+      define_str = f'_entry.valid ? std::get<{entry_type}>(_entry.values.at({column_idx - 1})) : {default_value}'
       df_out = getattr(df_out, define_fn_name)(columns_out[column_idx - 1], define_str)
 
     if step_idx == 0:

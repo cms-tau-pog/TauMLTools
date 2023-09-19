@@ -32,8 +32,10 @@ def analyse_mix(cfg_file):
   mix_steps, batch_size = MixStep.Load(cfg)
   print(f'Number of mix steps: {len(mix_steps)}')
   print(f'Batch size: {batch_size}')
-  step_stat = np.zeros(len(mix_steps))
-  step_stat_split = { 'tau': np.zeros(len(mix_steps)), 'jet': np.zeros(len(mix_steps)), 'e': np.zeros(len(mix_steps)) }
+
+  step_stats = {}
+  for tau_type in [ 'total', 'tau', 'displaced_tau', 'jet', 'e' ]:
+    step_stats[tau_type] = np.ones((len(mix_steps), 2)) * -1
   n_taus = { }
   n_taus_batch = { }
   for step_idx, step in enumerate(mix_steps):
@@ -46,12 +48,15 @@ def analyse_mix(cfg_file):
       n_available += hist.GetBinContent(step.pt_bin + 1, step.eta_bin + 1)
     n_taus[step.tau_type] = n_available + n_taus.get(step.tau_type, 0)
     n_taus_batch[step.tau_type] = step.count + n_taus_batch.get(step.tau_type, 0)
-    n_batches = math.floor(n_available / step.count)
-    step_stat[step_idx] = n_batches
-    step_stat_split[step.tau_type][step_idx] = n_batches
-  step_idx = np.argmin(step_stat)
+    n_batches = math.floor(n_available / step.count) if not step.allow_duplicates else float('inf')
+    step.n_available = n_available
+    for tau_type in [ 'total', step.tau_type ]:
+      step_stats[tau_type][step_idx, 0] = n_batches
+      step_stats[tau_type][step_idx, 1] = step_idx
+  finite_steps = step_stats['total'][np.isfinite(step_stats['total'][:, 0]), :]
+  step_idx = np.argmin(finite_steps[:, 0])
   print(f'Total number of samples = {sum(n_taus.values())}: {n_taus}')
-  n_taus_active = { name: x * step_stat[step_idx] for name, x in n_taus_batch.items()}
+  n_taus_active = { name: x * finite_steps[step_idx, 0] for name, x in n_taus_batch.items()}
   print(f'Total number of used samples = {sum(n_taus_active.values())}: {n_taus_active}')
   n_taus_frac = { name: n_taus_active[name] / x for name, x in n_taus.items()}
   print(f'Used fraction: {n_taus_frac}')
@@ -59,13 +64,23 @@ def analyse_mix(cfg_file):
   n_taus_rel = { name: x / n_taus_batch['tau'] for name, x in n_taus_batch.items()}
   print(f'Relative number of samples: {n_taus_rel}')
   print('Step with minimum number of batches:')
-  print(f'n_batches: {step_stat[step_idx]}')
-  mix_steps[step_idx].Print()
-  for name, stat in step_stat_split.items():
-    step_idx = np.argmax(stat)
+  print(f'n_batches: {finite_steps[step_idx, 0]}')
+  mix_steps[int(finite_steps[step_idx, 1])].Print()
+  for name, stat in step_stats.items():
+    if name == 'total': continue
+    finite_steps = stat[np.isfinite(stat[:, 0]) & (stat[:, 0] >= 0), :]
+    if np.shape(finite_steps)[0] == 0: continue
+    step_idx = np.argmax(finite_steps[:, 0])
     print(f'Step with maximum number of batches for {name}:')
-    print(f'n_batches: {stat[step_idx]}')
-    mix_steps[step_idx].Print()
+    print(f'n_batches: {finite_steps[step_idx, 0]}')
+    mix_steps[int(finite_steps[step_idx, 1])].Print()
+  n_batches = cfg['n_batches']
+  print(f'Target number of batches: {n_batches}')
+  print('Steps with allowed duplicates:')
+  for step_idx in range(len(mix_steps)):
+    if mix_steps[step_idx].allow_duplicates:
+      n_repetitions = math.ceil((n_batches * mix_steps[step_idx].count) / mix_steps[step_idx].n_available)
+      print(f'step {step_idx} n_repetitions = {n_repetitions} selection: {mix_steps[step_idx].selection}')
 
 if __name__ == "__main__":
   import argparse

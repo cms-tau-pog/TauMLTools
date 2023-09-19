@@ -40,7 +40,7 @@ if __name__ == "__main__":
   parser.add_argument('--x-bins', required=True, type=str, help="x bins")
   parser.add_argument('--y-bins', required=True, type=str, help="y bins")
   parser.add_argument('--input-tree', required=False, type=str, default='Events', help="Input tree")
-  parser.add_argument('--tau-types', required=False, type=str, default='e,mu,tau,jet', help="tau types")
+  parser.add_argument('--tau-types', required=False, type=str, default='e,mu,tau,jet,displaced_tau', help="tau types")
   args = parser.parse_args()
 
   PrepareRootEnv()
