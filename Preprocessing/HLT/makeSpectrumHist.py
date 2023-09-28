@@ -23,9 +23,9 @@ def make_hists(input_files, input_tree, output, x_bins, y_bins, tau_types):
                              y_bins_vec.size() - 1, y_bins_vec.data())
   hists = {}
   for tau_type in tau_types:
-    df_tau = df.Define("L1Tau_gen_pt_sel", f"L1Tau_gen_pt[L1Tau_type == {tau_type.value}]") \
-               .Define("L1Tau_gen_abs_eta_sel", f"L1Tau_gen_abs_eta[L1Tau_type == {tau_type.value}]")
-    hists[tau_type] = df_tau.Histo2D(model, "L1Tau_gen_pt_sel", "L1Tau_gen_abs_eta_sel")
+    df_tau = df.Define("L1Tau_Gen_pt_sel", f"L1Tau_Gen_pt[L1Tau_Gen_type == {tau_type.value}]") \
+               .Define("L1Tau_Gen_abs_eta_sel", f"L1Tau_Gen_abs_eta[L1Tau_Gen_type == {tau_type.value}]")
+    hists[tau_type] = df_tau.Histo2D(model, "L1Tau_Gen_pt_sel", "L1Tau_Gen_abs_eta_sel")
   os.makedirs(os.path.dirname(output), exist_ok=True)
   output_file = ROOT.TFile(output, "RECREATE")
   for tau_type, hist in hists.items():

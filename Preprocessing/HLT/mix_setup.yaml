@@ -34,14 +34,15 @@ inputs:
     - QCD_PT-80to120
     - QCD_PT-50to80
     - QCD_PT-30to50
-  Displaced:
+  HNL:
     - HNL_M-3_V-0.0276_tau
     - HNL_M-5_V-0.0046_tau
     - HNL_M-7_V-0.0013_tau
+  Staus_M_100:
     - Staus_M_100_100mm
     - Staus_M_100_10mm
-    - Staus_M_300_10mm
-    - Staus_M_300_100mm
+  Staus_M_300:
+    - Staus_M_300
 
 bin_selection: "
   L1Tau_Gen_pt >= {pt_low} && L1Tau_Gen_pt < {pt_high}
@@ -52,56 +53,52 @@ bin_edges:
   pt: [ 20.0, 30.0, 40.0, 60.0, 80.0, 100.0, 150.0, 250.0, 1000.0 ]
   eta: [ 0.0, 1.5, 2.1 ]
 
-bins:
+output:
   - input_setups: [ Zprime, Higgs, DY, TT ]
-    tau_type: tau
-    eta_bin: 0
-    counts: [ 28, 28, 28, 16, 7, 7, 3, 2 ]
+    bins:
+      - tau_type: tau
+        eta_bin: 0
+        counts: [ 28, 28, 28, 16, 7, 7, 3, 2 ]
+      - tau_type: tau
+        eta_bin: 1
+        counts: [ 10, 9, 10, 4, 1, 1, 0, 0 ]
   - input_setups: [ Zprime, Higgs, DY, TT ]
-    tau_type: tau
-    eta_bin: 1
-    counts: [ 10, 9, 10, 4, 1, 1, 0, 0 ]
+    bins:
+      - tau_type: e
+        eta_bin: 0
+        counts: [ 2, 2, 2, 2, 2, 1, 1, 1 ]
+      - tau_type: e
+        eta_bin: 1
+        counts: [ 1, 1, 2, 1, 1, 1, 0, 0 ]
   - input_setups: [ Zprime, Higgs, DY, TT ]
-    tau_type: tau
-    eta_bin: 1
-    counts: [ 0, 0, 0, 0, 0, 0, 1, 1 ]
-    allow_duplicates: true
-  - input_setups: [ Displaced ]
-    tau_type: displaced_tau
-    eta_bin: 0
-    counts: [ 1, 1, 1, 1, 1, 0, 0, 0 ]
-    allow_duplicates: true
-  - input_setups: [ Displaced ]
-    tau_type: displaced_tau
-    eta_bin: 1
-    counts: [ 1, 1, 1, 1, 1, 0, 0, 0 ]
-    allow_duplicates: true
+    bins:
+      - tau_type: tau
+        eta_bin: 1
+        counts: [ 0, 0, 0, 0, 0, 0, 1, 1 ]
+        allow_duplicates: true
+      - tau_type: e
+        eta_bin: 1
+        counts: [ 0, 0, 0, 0, 0, 0, 1, 1 ]
+        allow_duplicates: true
+  - input_setups: [ Staus_M_100, Staus_M_300, HNL ]
+    bins:
+      - tau_type: displaced_tau
+        eta_bin: 0
+        counts: [ 1, 1, 1, 1, 1, 1, 1, 1 ]
+        allow_duplicates: true
   - input_setups: [ TT ]
-    tau_type: jet
-    eta_bin: 0
-    counts: [ 28, 28, 28, 16, 7, 7, 3, 2 ]
-  - input_setups: [ TT ]
-    tau_type: jet
-    eta_bin: 1
-    counts: [ 10, 9, 10, 4, 1, 1, 1, 1 ]
+    bins:
+      - tau_type: jet
+        eta_bin: 0
+        counts: [ 28, 28, 28, 16, 7, 7, 3, 2 ]
+      - tau_type: jet
+        eta_bin: 1
+        counts: [ 10, 9, 10, 4, 1, 1, 1, 1 ]
   - input_setups: [ QCD ]
-    tau_type: jet
-    eta_bin: 0
-    counts: [ 28, 28, 28, 16, 7, 7, 3, 2 ]
-  - input_setups: [ QCD ]
-    tau_type: jet
-    eta_bin: 1
-    counts: [ 10, 9, 10, 4, 1, 1, 1, 1 ]
-  - input_setups: [ Zprime, Higgs, DY, TT ]
-    tau_type: e
-    eta_bin: 0
-    counts: [ 2, 2, 2, 2, 2, 1, 1, 1 ]
-  - input_setups: [ Zprime, Higgs, DY, TT ]
-    tau_type: e
-    eta_bin: 1
-    counts: [ 1, 1, 2, 1, 1, 1, 0, 0 ]
-  - input_setups: [ Zprime, Higgs, DY, TT ]
-    tau_type: e
-    eta_bin: 1
-    counts: [ 0, 0, 0, 0, 0, 0, 1, 1 ]
-    allow_duplicates: true
+    bins:
+      - tau_type: jet
+        eta_bin: 0
+        counts: [ 28, 28, 28, 16, 7, 7, 3, 2 ]
+      - tau_type: jet
+        eta_bin: 1
+        counts: [ 10, 9, 10, 4, 1, 1, 1, 1 ]

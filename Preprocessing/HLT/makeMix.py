@@ -12,7 +12,7 @@ if __name__ == "__main__":
   __package__ = os.path.split(file_dir)[-1]
 
 from .AnalysisTools import *
-from .MixStep import MixStep
+from .MixBin import MixBin
 
 import ROOT
 ROOT.gROOT.SetBatch(True)
@@ -63,12 +63,16 @@ def make_mix(cfg_file, output, n_jobs, job_id):
   if os.path.exists(output):
     shutil.rmtree(output)
   os.makedirs(output, exist_ok=True)
-  mix_steps, batch_size = MixStep.Load(cfg)
+  mix_steps, batch_size = MixBin.Load(cfg)
   print(f'Number of mix steps: {len(mix_steps)}')
   print(f'Batch size: {batch_size}')
-  for step_idx, step in enumerate(mix_steps):
+  for step_idx, mix_bins in enumerate(mix_steps):
     print(f'{timestamp_str()}{step_idx+1}/{len(mix_steps)}: processing...')
-    input_files = make_intput_list(step.inputs, cfg['input_root'])
+    print(f'Number of bins in step: {len(mix_bins)}')
+    input_files = make_intput_list(mix_bins[0].inputs, cfg['input_root'])
+    print(f'Input files ({len(input_files)} total):')
+    for file in input_files:
+      print(f'  {file}')
     input_files_vec = ListToVector(input_files, "string")
     df_in = ROOT.RDataFrame(cfg['tree_name'], input_files_vec)
     if n_jobs != 1:
@@ -79,7 +83,6 @@ def make_mix(cfg_file, output, n_jobs, job_id):
     if 'event_sel' in cfg:
       df_in = df_in.Filter(cfg['event_sel'])
     df_in = ApplyCommonDefinitions(df_in)
-    df_in = df_in.Define('L1Tau_sel', step.selection)
 
     l1tau_columns = [
       'pt', 'eta', 'phi', 'hwEtSum', 'hwEta', 'hwIso', 'hwPhi', 'hwPt', 'isoEt', 'nTT', 'rawEt', 'towerIEta',
@@ -174,19 +177,42 @@ def make_mix(cfg_file, output, n_jobs, job_id):
 
     l1tau_columns.extend(other_columns)
 
-    columns_in = [ 'L1Tau_sel' ]
+    columns_in = [ ]
     columns_out = []
     for col in l1tau_columns:
       columns_in.append(f'L1Tau_{col}')
       out_name = f'L1Tau_{col}' if col not in other_columns else col
       columns_out.append(out_name)
 
-    columns_in_v = ListToVector(columns_in)
     column_types = [ str(df_in.GetColumnType(c)) for c in columns_in ]
-    nTau_in = (step.stop_idx - step.start_idx) * n_batches
-    print(f'nTaus = {nTau_in}')
-    print(f'inputs: {step.input_setups}')
-    print(f'selection: {step.selection}')
+
+    tuple_maker = ROOT.analysis.TupleMaker(*column_types)()
+
+    print(f'inputs: {mix_bins[0].input_setups}')
+    nTau_in = 0
+    slot_sel_str = 'RVecI slot_sel(L1Tau_pt.size(), -1);'
+    for bin in mix_bins:
+      nTau_batch = bin.stop_idx - bin.start_idx
+      nTau_bin = nTau_batch * n_batches
+      max_queue_size = nTau_bin if bin.allow_duplicates else min(nTau_batch * 100, nTau_bin)
+      slot_id = tuple_maker.AddBin(bin.start_idx, bin.stop_idx, max_queue_size, nTau_bin)
+      nTau_in += nTau_bin
+      slot_sel_str += f'''
+        {{
+          auto sel = {bin.selection};
+          for(size_t n = 0; n < L1Tau_pt.size(); ++n) {{
+            if(sel[n]) slot_sel[n] = {slot_id};
+          }}
+        }}
+      '''
+      print(f'bin: slot={slot_id} nTaus={nTau_bin} selection="{bin.selection}"')
+    slot_sel_str += ' return slot_sel;'
+    print(f'nTaus total = {nTau_in}')
+    df_in = df_in.Define('slot_sel', slot_sel_str)
+    df_in = df_in.Filter('for(auto slot : slot_sel) if(slot >= 0) return true; return false;')
+
+    columns_in = [ 'slot_sel' ] + columns_in
+    column_types = [ str(df_in.GetColumnType('slot_sel')) ] + column_types
 
     if step_idx == 0:
       nTau_out = batch_size * n_batches
@@ -195,14 +221,12 @@ def make_mix(cfg_file, output, n_jobs, job_id):
       output_prev_step = os.path.join(output, f'step_{step_idx}.root')
       df_out = ROOT.RDataFrame(cfg['tree_name'], output_prev_step)
 
-    tuple_maker = ROOT.analysis.TupleMaker(*column_types)(100, nTau_in)
-    df_out = tuple_maker.process(ROOT.RDF.AsRNode(df_in), ROOT.RDF.AsRNode(df_out), columns_in_v,
-                                 step.start_idx, step.stop_idx, batch_size, True)
+    columns_in_v = ListToVector(columns_in)
+    df_out = tuple_maker.process(ROOT.RDF.AsRNode(df_in), ROOT.RDF.AsRNode(df_out), columns_in_v, batch_size, True)
 
     define_fn_name = 'Define' if step_idx == 0 else 'Redefine'
     for column_idx in range(1, len(columns_in)):
       column_type = column_types[column_idx]
-      {'ROOT::VecOps::RVec<int>', 'ROOT::VecOps::RVec<float>', 'ROOT::VecOps::RVec<ROOT::VecOps::RVec<int> >'}
       if column_type in ['ROOT::VecOps::RVec<int>', 'ROOT::VecOps::RVec<Int_t>' ]:
         default_value = '0'
         entry_type = 'int'
@@ -220,15 +244,15 @@ def make_mix(cfg_file, output, n_jobs, job_id):
 
       if step_idx != 0:
         default_value = f'{columns_out[column_idx-1]}'
-      define_str = f'_entry.valid ? std::get<{entry_type}>(_entry.values.at({column_idx - 1})) : {default_value}'
+      define_str = f'_entry && _entry->valid ? std::get<{entry_type}>(_entry->values.at({column_idx - 1})) : {default_value}'
       df_out = getattr(df_out, define_fn_name)(columns_out[column_idx - 1], define_str)
 
     if step_idx == 0:
-      df_out = df_out.Define('is_valid', '_entry.valid')
+      df_out = df_out.Define('is_valid', '_entry && _entry->valid')
       df_out = df_out.Define('step_idx', f'int({step_idx + 1})')
     else:
-      df_out = df_out.Redefine('is_valid', '_entry.valid || is_valid')
-      df_out = df_out.Redefine('step_idx', f'_entry.valid ? int({step_idx + 1}) : step_idx')
+      df_out = df_out.Redefine('is_valid', '(_entry && _entry->valid) || is_valid')
+      df_out = df_out.Redefine('step_idx', f'(_entry && _entry->valid) ? int({step_idx + 1}) : step_idx')
     columns_out.extend(['is_valid', 'step_idx'])
 
     opt = ROOT.RDF.RSnapshotOptions()

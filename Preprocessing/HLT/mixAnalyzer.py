@@ -12,7 +12,7 @@ if __name__ == "__main__":
   __package__ = os.path.split(file_dir)[-1]
 
 from .AnalysisTools import *
-from .MixStep import MixStep
+from .MixBin import MixBin
 
 import ROOT
 ROOT.gROOT.SetBatch(True)
@@ -29,16 +29,21 @@ def GetBinContent(hist, pt, eta):
 def analyse_mix(cfg_file):
   with open(cfg_file, 'r') as f:
     cfg = yaml.safe_load(f)
-  mix_steps, batch_size = MixStep.Load(cfg)
-  print(f'Number of mix steps: {len(mix_steps)}')
+  mix_bins_groupped, batch_size = MixBin.Load(cfg)
+  n_steps = len(mix_bins_groupped)
+  mix_bins = []
+  for bins in mix_bins_groupped:
+    mix_bins.extend(bins)
+  print(f'Number of mix steps: {n_steps}')
+  print(f'Number of mix bins: {len(mix_bins)}')
   print(f'Batch size: {batch_size}')
 
   step_stats = {}
   for tau_type in [ 'total', 'tau', 'displaced_tau', 'jet', 'e' ]:
-    step_stats[tau_type] = np.ones((len(mix_steps), 2)) * -1
+    step_stats[tau_type] = np.ones((len(mix_bins), 2)) * -1
   n_taus = { }
   n_taus_batch = { }
-  for step_idx, step in enumerate(mix_steps):
+  for step_idx, step in enumerate(mix_bins):
     n_available = 0
     for input in step.inputs:
       input_path = os.path.join(cfg['spectrum_root'], f'{input}.root')
@@ -63,24 +68,24 @@ def analyse_mix(cfg_file):
   print(f'Number of samples per batch: {n_taus_batch}')
   n_taus_rel = { name: x / n_taus_batch['tau'] for name, x in n_taus_batch.items()}
   print(f'Relative number of samples: {n_taus_rel}')
-  print('Step with minimum number of batches:')
+  print('Bin with minimum number of batches:')
   print(f'n_batches: {finite_steps[step_idx, 0]}')
-  mix_steps[int(finite_steps[step_idx, 1])].Print()
+  mix_bins[int(finite_steps[step_idx, 1])].Print()
   for name, stat in step_stats.items():
     if name == 'total': continue
     finite_steps = stat[np.isfinite(stat[:, 0]) & (stat[:, 0] >= 0), :]
     if np.shape(finite_steps)[0] == 0: continue
     step_idx = np.argmax(finite_steps[:, 0])
-    print(f'Step with maximum number of batches for {name}:')
+    print(f'Bin with maximum number of batches for {name}:')
     print(f'n_batches: {finite_steps[step_idx, 0]}')
-    mix_steps[int(finite_steps[step_idx, 1])].Print()
+    mix_bins[int(finite_steps[step_idx, 1])].Print()
   n_batches = cfg['n_batches']
   print(f'Target number of batches: {n_batches}')
-  print('Steps with allowed duplicates:')
-  for step_idx in range(len(mix_steps)):
-    if mix_steps[step_idx].allow_duplicates:
-      n_repetitions = math.ceil((n_batches * mix_steps[step_idx].count) / mix_steps[step_idx].n_available)
-      print(f'step {step_idx} n_repetitions = {n_repetitions} selection: {mix_steps[step_idx].selection}')
+  print('Bins with allowed duplicates:')
+  for step_idx in range(len(mix_bins)):
+    if mix_bins[step_idx].allow_duplicates:
+      n_repetitions = math.ceil((n_batches * mix_bins[step_idx].count) / mix_bins[step_idx].n_available)
+      print(f'step {mix_bins[step_idx].step_idx} bin {mix_bins[step_idx].bin_idx} n_repetitions = {n_repetitions} selection: {mix_bins[step_idx].selection}')
 
 if __name__ == "__main__":
   import argparse
