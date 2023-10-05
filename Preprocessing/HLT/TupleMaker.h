@@ -130,6 +130,18 @@ struct TupleMaker {
               entry->valid = true;
               // std::cout << "Push to slot " << slot_id << " started." << std::endl;
               const auto push_result = queue.Push(slot_id, entry);
+              if(push_result == PushResult::EntryPushedToEmptyQueue) {
+                const auto queue_state = queue.GetQueueState(slot_id);
+                if(queue_state.n_current_max_size_reached > 0) {
+                  const size_t new_max_size = queue_state.max_size * 10;
+                  std::cout << detail::timeStampNow() << "slot_id " << slot_id << " updating max_size from "
+                            << queue_state.max_size << " to " << new_max_size
+                            << ". n_current_max_size_reached=" << queue_state.n_current_max_size_reached
+                            << ", n_max_size_reached_total=" << queue_state.n_max_size_reached_total
+                            << ", n_zero_size_reached=" << queue_state.n_zero_size_reached << std::endl;
+                  queue.SetMaxSize(slot_id, new_max_size);
+                }
+              }
               // std::cout << "Push to slot " << slot_id << " done." << std::endl;
               if(queue.IsMaxEntriesReachedForAll())
                 throw StopLoop();

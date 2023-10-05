@@ -83,12 +83,13 @@ private:
 };
 
 struct QueueState {
-  size_t max_size, max_entries, n_entries, waiting_for_entry, n_max_size_reached, n_zero_size_reached, queue_size;
+  size_t max_size, max_entries, n_entries, waiting_for_entry, n_current_max_size_reached, n_max_size_reached_total,
+         n_zero_size_reached, queue_size;
   bool input_depleted, output_depleted;
 
   QueueState(size_t max_size_, size_t max_entries_)
-    : max_size(max_size_), max_entries(max_entries_), n_entries(0), waiting_for_entry(0), n_max_size_reached(0),
-      n_zero_size_reached(0), queue_size(0), input_depleted(false), output_depleted(false)
+    : max_size(max_size_), max_entries(max_entries_), n_entries(0), waiting_for_entry(0), n_current_max_size_reached(0),
+      n_max_size_reached_total(0), n_zero_size_reached(0), queue_size(0), input_depleted(false), output_depleted(false)
   {
   }
 };
@@ -109,7 +110,7 @@ public:
   };
 
   enum class PushResult {
-    EntryPushed, MaxSizeReached, MaxEntriesReached, OutputDepleted,
+    EntryPushedToEmptyQueue, EntryPushedToNonEmptyQueue, MaxSizeReached, MaxEntriesReached, OutputDepleted,
   };
 
 public:
@@ -146,17 +147,21 @@ public:
       auto& state = desc.state;
       if(desc.queue.size() >= state.max_size) {
         push_result = PushResult::MaxSizeReached;
-        ++state.n_max_size_reached;
+        ++state.n_current_max_size_reached;
+        ++state.n_max_size_reached_total;
       } else if(state.n_entries >= state.max_entries) {
         push_result = PushResult::MaxEntriesReached;
       } else if(state.output_depleted) {
         push_result = PushResult::OutputDepleted;
       } else {
-        if(desc.queue.empty())
+        if(desc.queue.empty()) {
           ++state.n_zero_size_reached;
+          push_result = PushResult::EntryPushedToEmptyQueue;
+        } else {
+          push_result = PushResult::EntryPushedToNonEmptyQueue;
+        }
         desc.queue.push(entry);
         ++state.n_entries;
-        push_result = PushResult::EntryPushed;
       }
     }
     cond_var_.notify_all();
@@ -165,25 +170,33 @@ public:
 
   bool Pop(size_t slot_id, Entry& entry)
   {
-    bool entry_is_valid = false;
-    {
-      Lock lock(mutex_);
-      CheckSlotId(slot_id);
-      ++queues_.at(slot_id)->state.waiting_for_entry;
-    }
-    cond_var_.notify_all();
-    {
-      Lock lock(mutex_);
-      cond_var_.wait(lock, [&] {
-        return !queues_.at(slot_id)->queue.empty() || queues_.at(slot_id)->state.input_depleted;
-      });
+    bool entry_is_valid = false, need_to_wait = true;
+    const auto check_condition = [&]() {
+      return !queues_.at(slot_id)->queue.empty() || queues_.at(slot_id)->state.input_depleted;
+    };
+    const auto pop_entry = [&]() {
       auto& desc = *queues_.at(slot_id);
       if(!desc.queue.empty()) {
         entry = desc.queue.front();
         entry_is_valid = true;
         desc.queue.pop();
-        --desc.state.waiting_for_entry;
       }
+      --desc.state.waiting_for_entry;
+    };
+    {
+      Lock lock(mutex_);
+      CheckSlotId(slot_id);
+      ++queues_.at(slot_id)->state.waiting_for_entry;
+      if(check_condition()) {
+        pop_entry();
+        need_to_wait = false;
+      }
+    }
+    if(need_to_wait) {
+      cond_var_.notify_all();
+      Lock lock(mutex_);
+      cond_var_.wait(lock, check_condition);
+      pop_entry();
     }
     cond_var_.notify_all();
     return entry_is_valid;
@@ -249,6 +262,17 @@ public:
     return state;
   }
 
+  void SetMaxSize(size_t slot_id, size_t max_size)
+  {
+    {
+      Lock lock(mutex_);
+      CheckSlotId(slot_id);
+      queues_.at(slot_id)->state.max_size = max_size;
+      queues_.at(slot_id)->state.n_current_max_size_reached = 0;
+    }
+    cond_var_.notify_all();
+  }
+
 private:
   void CheckSlotId(size_t slot_id) const
   {
@@ -265,7 +289,9 @@ private:
 inline std::ostream& operator<<(std::ostream& out, const QueueState& state)
 {
   out << "max_size=" << state.max_size << ", max_entries=" << state.max_entries << ", n_entries=" << state.n_entries
-      << ", waiting_for_entry=" << state.waiting_for_entry << ", n_max_size_reached=" << state.n_max_size_reached
+      << ", waiting_for_entry=" << state.waiting_for_entry
+      << ", n_current_max_size_reached=" << state.n_current_max_size_reached
+      << ", n_max_size_reached_total=" << state.n_max_size_reached_total
       << ", n_zero_size_reached=" << state.n_zero_size_reached << ", queue_size=" << state.queue_size
       << ", input_depleted=" << state.input_depleted << ", output_depleted=" << state.output_depleted;
   return out;

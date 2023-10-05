@@ -84,8 +84,8 @@ def analyse_mix(cfg_file):
   print('Bins with allowed duplicates:')
   for step_idx in range(len(mix_bins)):
     if mix_bins[step_idx].allow_duplicates:
-      n_repetitions = math.ceil((n_batches * mix_bins[step_idx].count) / mix_bins[step_idx].n_available)
-      print(f'step {mix_bins[step_idx].step_idx} bin {mix_bins[step_idx].bin_idx} n_repetitions = {n_repetitions} selection: {mix_bins[step_idx].selection}')
+      n_repetitions = (n_batches * mix_bins[step_idx].count) / mix_bins[step_idx].n_available
+      print(f'step {mix_bins[step_idx].step_idx} bin {mix_bins[step_idx].bin_idx} n_repetitions = {n_repetitions:.2f} selection: {mix_bins[step_idx].selection}')
 
 if __name__ == "__main__":
   import argparse

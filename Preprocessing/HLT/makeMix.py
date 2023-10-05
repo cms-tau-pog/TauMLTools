@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 import yaml
+import gc
 
 if __name__ == "__main__":
   file_dir = os.path.dirname(os.path.abspath(__file__))
@@ -69,6 +70,7 @@ def make_mix(cfg_file, output, n_jobs, job_id):
   for step_idx, mix_bins in enumerate(mix_steps):
     print(f'{timestamp_str()}{step_idx+1}/{len(mix_steps)}: processing...')
     print(f'Number of bins in step: {len(mix_bins)}')
+    gc.collect()
     input_files = make_intput_list(mix_bins[0].inputs, cfg['input_root'])
     print(f'Input files ({len(input_files)} total):')
     for file in input_files:
@@ -194,7 +196,7 @@ def make_mix(cfg_file, output, n_jobs, job_id):
     for bin in mix_bins:
       nTau_batch = bin.stop_idx - bin.start_idx
       nTau_bin = nTau_batch * n_batches
-      max_queue_size = nTau_bin if bin.allow_duplicates else min(nTau_batch * 100, nTau_bin)
+      max_queue_size = nTau_bin if bin.allow_duplicates else min(10000, nTau_bin)
       slot_id = tuple_maker.AddBin(bin.start_idx, bin.stop_idx, max_queue_size, nTau_bin)
       nTau_in += nTau_bin
       slot_sel_str += f'''
@@ -256,14 +258,23 @@ def make_mix(cfg_file, output, n_jobs, job_id):
     columns_out.extend(['is_valid', 'step_idx'])
 
     opt = ROOT.RDF.RSnapshotOptions()
-    opt.fCompressionAlgorithm = ROOT.ROOT.kLZMA
-    opt.fCompressionLevel = 9
+    if step_idx + 1 == len(mix_steps):
+      opt.fCompressionAlgorithm = ROOT.ROOT.kLZMA
+      opt.fCompressionLevel = 9
+    else:
+      opt.fCompressionAlgorithm = ROOT.ROOT.kLZ4
+      opt.fCompressionLevel = 4
     opt.fMode = 'RECREATE'
     output_step = os.path.join(output, f'step_{step_idx+1}.root')
     columns_out_v = ListToVector(columns_out)
     df_out.Snapshot(cfg['tree_name'], output_step, columns_out_v, opt)
     tuple_maker.join()
     print(f'{timestamp_str()}{step_idx+1}/{len(mix_steps)}: done.')
+    if step_idx > 0:
+      print(f'Removing previous step...')
+      prev_step = os.path.join(output, f'step_{step_idx}.root')
+      os.remove(prev_step)
+
 
 if __name__ == "__main__":
   import argparse

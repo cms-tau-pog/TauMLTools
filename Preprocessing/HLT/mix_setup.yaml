@@ -54,31 +54,39 @@ bin_edges:
   eta: [ 0.0, 1.5, 2.1 ]
 
 output:
+  - input_setups: [ Higgs, DY, TT ]
+    bins:
+      - tau_type: tau
+        eta_bin: 0
+        counts: [ 28, 28, 28, 16, 7, 0, 0, 0 ]
+      - tau_type: tau
+        eta_bin: 1
+        counts: [ 10, 9, 10, 4, 1, 0, 0, 0 ]
+  - input_setups: [ Higgs, DY, TT ]
+    bins:
+      - tau_type: e
+        eta_bin: 0
+        counts: [ 2, 3, 3, 2, 2, 0, 0, 0 ]
+      - tau_type: e
+        eta_bin: 1
+        counts: [ 1, 1, 2, 1, 1, 0, 0, 0 ]
   - input_setups: [ Zprime, Higgs, DY, TT ]
     bins:
       - tau_type: tau
         eta_bin: 0
-        counts: [ 28, 28, 28, 16, 7, 7, 3, 2 ]
+        counts: [ 0, 0, 0, 0, 0, 7, 3, 2 ]
+        allow_duplicates: true
       - tau_type: tau
         eta_bin: 1
-        counts: [ 10, 9, 10, 4, 1, 1, 0, 0 ]
-  - input_setups: [ Zprime, Higgs, DY, TT ]
-    bins:
+        counts: [ 0, 0, 0, 0, 0, 1, 1, 1 ]
+        allow_duplicates: true
       - tau_type: e
         eta_bin: 0
-        counts: [ 2, 2, 2, 2, 2, 1, 1, 1 ]
-      - tau_type: e
-        eta_bin: 1
-        counts: [ 1, 1, 2, 1, 1, 1, 0, 0 ]
-  - input_setups: [ Zprime, Higgs, DY, TT ]
-    bins:
-      - tau_type: tau
-        eta_bin: 1
-        counts: [ 0, 0, 0, 0, 0, 0, 1, 1 ]
+        counts: [ 0, 0, 0, 0, 0, 1, 1, 1 ]
         allow_duplicates: true
       - tau_type: e
         eta_bin: 1
-        counts: [ 0, 0, 0, 0, 0, 0, 1, 1 ]
+        counts: [ 0, 0, 0, 0, 0, 1, 1, 1 ]
         allow_duplicates: true
   - input_setups: [ Staus_M_100, Staus_M_300, HNL ]
     bins:
