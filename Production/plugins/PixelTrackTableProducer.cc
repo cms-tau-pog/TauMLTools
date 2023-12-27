@@ -13,7 +13,8 @@
 #include "DataFormats/TrajectoryState/interface/LocalTrajectoryParameters.h"
 #include "MagneticField/Engine/interface/MagneticField.h"
 #include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
-#include "RecoPixelVertexing/PixelTrackFitting/interface/FitUtils.h"
+//#include "RecoPixelVertexing/PixelTrackFitting/interface/FitUtils.h"
+#include "RecoTracker/PixelTrackFitting/interface/FitUtils.h"
 #include "TrackingTools/TrajectoryParametrization/interface/GlobalTrajectoryParameters.h"
 
 class PixelTrackTableProducer : public edm::global::EDProducer<> {
