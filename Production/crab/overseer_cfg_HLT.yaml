@@ -15,7 +15,8 @@ filesToTransfer:
   - RunKit/sh_tools.py
   - RunKit/skim_tree.py
   - Production/config/skim_HLT.yaml
-  - Production/python/hlt_configs/hltMC.py
+    #- Production/python/hlt_configs/hltMC.py
+  - Production/python/hlt_configs/hlt_test.py
   - Production/python/hlt_configs/hltData.py
   - Production/python/skimHLT.py
   - Production/python/customiseHLT.py

@@ -98,12 +98,14 @@ action() {
   run_cmd mkdir -p "$ANALYSIS_DATA_PATH"
 
   local os_version=$(cat /etc/os-release | grep VERSION_ID | sed -E 's/VERSION_ID="([0-9]+).*"/\1/')
-  local default_cmssw_ver=CMSSW_13_0_7
+  #local default_cmssw_ver=CMSSW_13_0_7
+  local default_cmssw_ver=CMSSW_13_3_0
   export DEFAULT_CMSSW_BASE="$ANALYSIS_PATH/soft/CentOS$os_version/$default_cmssw_ver"
 
   if [[ $MODE = *"cmssw"* ]]; then
-    run_cmd install_cmssw slc7_amd64_gcc11 $default_cmssw_ver $os_version 7
-    run_cmd install_cmssw el8_amd64_gcc11 $default_cmssw_ver $os_version 8
+    #run_cmd install_cmssw slc7_amd64_gcc11 $default_cmssw_ver $os_version 7
+    #run_cmd install_cmssw el8_amd64_gcc11 $default_cmssw_ver $os_version 8
+    run_cmd install_cmssw el8_amd64_gcc12 $default_cmssw_ver $os_version 8
 
     #for phase2
     #run_cmd install_cmssw slc7_amd64_gcc900 CMSSW_11_2_5 $os_version 7
