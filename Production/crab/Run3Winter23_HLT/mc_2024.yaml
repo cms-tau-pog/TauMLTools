@@ -1,7 +1,0 @@
-config:
-  params:
-    cmsRunCfg: hltMC.py
-
-
-
-RelVal_TTbar: /RelValTTbar_14TeV/CMSSW_13_3_0_pre4-133X_mcRun3_2023_realistic_v1_Standard_13_3_0_pre4-v1/GEN-SIM-DIGI-RAW
