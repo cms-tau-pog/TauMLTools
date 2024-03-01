@@ -1,0 +1,63 @@
+hydra: # disable usage of hydra log directory as cwd
+  job:
+    chdir: False
+
+defaults:
+  - model@model: ???
+  - _self_
+
+# mlflow
+path_to_mlflow: ./mlruns
+experiment_name: ???
+
+# datasets
+dataset_name: ??? # to log to mlflow for bookkeeping
+datasets: 
+  train:
+    ???: # will take all files from "train" subfolder of this dataset
+      path_to_dataset: ./datasets
+  val:
+    ???: # will take all files from "val" subfolder of this dataset
+      path_to_dataset: ./datasets
+
+input_dataset_cfg: "../../../Preprocessing/root2tf/datasets/${dataset_name}/cfg.yaml" # will fetch feature names and labels from here
+
+# TF dataset formation
+tf_dataset_cfg:
+  combine_via: interleave # options: interleave, sampling
+  n_threads: 10 # without controlling it may throw thread limit exception
+  smart_batching_step: 10 # null to disable smart batching and use a standard one
+  sequence_length_dist_start: 0 # for smart batching
+  sequence_length_dist_end: 300 # for smart batching
+  shuffle_buffer_size: 40000 # null to not shuffle
+  shuffle_smart_buffer_size: 1000
+  cache: null # null to not cache the training dataset
+  train_batch_size: 128
+  val_batch_size: 128
+  classes: ["tau", "e", "mu", "jet"] # will pick only those labels (in this order)
+
+# LR schedule
+schedule: null # custom // null // decrease
+warmup_steps: null # only for schedule=custom, max LR = lr_multiplier * 1/sqrt(dim_model) * 1/sqrt(warmup_steps)
+lr_multiplier: null # only for schedule=custom
+learning_rate: 0.0001 # only for schedule=null
+decrease_every: null # only for schedule=decrease
+decrease_by: null # only for schedule=decrease
+
+# optimiser
+optimiser: adam # sgd // adam // adamw // radam
+momentum: null # only for sgd
+nesterov: null # only for sgd
+weight_decay: null # only for adamw/radam
+beta_1: 0.9 # only for adam/adamw/radam
+beta_2: 0.999 # only for adam/adamw/radam
+epsilon: 1e-7 # only for adam/adamw/radam
+
+# training
+n_epochs: 1
+min_delta: 0.0001
+patience: 3
+
+# gpu
+gpu_id: 0
+memory_limit: 10 # in Gb

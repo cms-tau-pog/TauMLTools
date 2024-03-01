@@ -1,0 +1,47 @@
+
+# .15 = dark_gray
+# .8 = light_gray
+
+# Seaborn common parameters:
+# ------------------------------------------------------
+
+figure.facecolor: white
+
+text.color: .15
+
+axes.labelcolor: .15
+axes.axisbelow: True
+
+legend.frameon: False
+legend.numpoints: 1
+legend.scatterpoints: 1
+
+xtick.direction: out
+ytick.direction: out
+xtick.color: .15
+ytick.color: .15
+
+image.cmap: Greys
+
+font.family: sans-serif
+font.sans-serif: Arial, Liberation Sans, DejaVu Sans, Bitstream Vera Sans, sans-serif
+
+grid.linestyle: -
+lines.solid_capstyle: round
+
+# Seaborn whitegrid parameters:
+# ------------------------------------------------------
+
+axes.prop_cycle: cycler('color', ['A4F4F2', 'A0C4FF', 'FFD6E0', 'FFADAD', 'FFEF9F', 'FDFFB6', 'C1FBA4', '7BF1A8'])
+axes.grid: True
+axes.facecolor: white
+axes.edgecolor: 808080
+axes.linewidth: 1
+axes.labelsize: medium
+
+grid.color: .8
+
+xtick.major.size: 0
+ytick.major.size: 0
+xtick.minor.size: 0
+ytick.minor.size: 0
