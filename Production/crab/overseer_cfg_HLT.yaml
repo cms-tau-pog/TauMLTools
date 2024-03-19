@@ -2,33 +2,33 @@ cmsswPython: RunKit/cmsRunWrapper.py
 params:
   copyInputsToLocal: true
   maxEvents: -1
-  skimCfg: skim_HLT.yaml
+  outputs:
+    - file: nano.root
+      crabOutput: TODO # T2_CH_CERN:/store/group/phys_tau/kandroso/hlt_skim_prod_2024
+      finalOutput: TODO # T2_CH_CERN:/store/group/phys_tau/kandroso/hlt_skim_2024
+      skimCfg: skim_HLT.yaml
+      skimSetup: skim_setup
 splitting: FileBased
 unitsPerJob: 16
 scriptExe: RunKit/crabJob.sh
-outputFiles:
-  - nano.root
 filesToTransfer:
   - RunKit/crabJob.sh
   - RunKit/crabJob.py
   - RunKit/crabJob_cmsRun.py
-  - RunKit/sh_tools.py
+  - RunKit/run_tools.py
+  - RunKit/grid_tools.py
   - RunKit/skim_tree.py
   - Production/config/skim_HLT.yaml
   - Production/python/hlt_configs/hltMC.py
   - Production/python/hlt_configs/hltData.py
   - Production/python/skimHLT.py
   - Production/python/customiseHLT.py
-site: T2_CH_CERN
-crabOutput: /store/group/phys_tau/kandroso/Run3_HLT/prod_v3_crab
-finalOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v3
-localCrabOutput: /eos/cms/store/group/phys_tau/kandroso/Run3_HLT/prod_v3_crab
 maxMemory: 4000
 numCores: 1
 inputDBS: global
 allowNonValid: False
 dryrun: False
-maxRecoveryCount: 3
+maxRecoveryCount: 4
 updateInterval: 60
 localProcessing:
   lawTask: ProdTask
@@ -36,13 +36,21 @@ localProcessing:
   bootstrap: bootstrap.sh
   nCPU: 2
   maxRuntime: 24.0
-#  requirements: ( (OpSysAndVer =?= "CentOS7") || (OpSysAndVer =?= "CentOS8") )
+  maxParallelJobs: 1000
+  requirements: TARGET.OpSysAndVer =?= "AlmaLinux9"
 targetOutputFileSize: 2048
 renewKerberosTicket: True
-crabType: dev
+htmlReport: TODO # T3_CH_CERNBOX:/store/user/kandroso/www/tau/hlt_skim_prod_2024
 whitelistFinalRecovery:
   - T1_DE_KIT
+  - T1_US_FNAL
+  - T2_AT_Vienna
   - T2_CH_CERN
   - T2_DE_DESY
+  - T2_DE_RWTH
+  - T2_ES_CIEMAT
   - T2_IT_Legnaro
-  - T3_CH_PSI
+  - T2_UK_London_IC
+  - T2_US_Caltech
+  - T2_US_UCSD
+  - T2_US_Wisconsin

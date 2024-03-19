@@ -31,7 +31,7 @@ def customiseGenParticles(process):
   return process
 
 
-def customise(process, output='nano.root', is_data=False):
+def customise(process, output='nano.root', is_data=False, full_l1=False, calo_table=False, pixel_track_table=False, pf_cand_table=False):
   process.load('PhysicsTools.NanoAOD.nano_cff')
   process.load('RecoJets.JetProducers.ak4GenJets_cfi')
   from PhysicsTools.NanoAOD.nano_cff import nanoAOD_customizeCommon
@@ -227,17 +227,53 @@ def customise(process, output='nano.root', is_data=False):
     precision = cms.int32(7),
   )
 
+  process.muonTable = cms.EDProducer("FilterObjectTableProducer",
+    inputs = cms.VPSet(
+      cms.PSet(
+        inputTag = cms.InputTag("hltL3crIsoL1sSingleMu22L1f0L2f10QL3f24QL3trkIsoFiltered"),
+        branchName = cms.string("passSingleMuon"),
+        description = cms.string("pass hltL3crIsoL1sSingleMu22L1f0L2f10QL3f24QL3trkIsoFiltered (part of HLT_IsoMu24)"),
+      ),
+      cms.PSet(
+        inputTag = cms.InputTag("hltL3crIsoBigORMu18erTauXXer2p1L1f0L2f10QL3f20QL3trkIsoFiltered"),
+        branchName = cms.string("passMuTau"),
+        description = cms.string("pass hltL3crIsoBigORMu18erTauXXer2p1L1f0L2f10QL3f20QL3trkIsoFiltered (part of HLT_IsoMu20_eta2p1_LooseDeepTauPFTauHPS27_eta2p1_CrossL1)"),
+      )
+    ),
+    types = cms.vint32(83),
+    tableName = cms.string("Muon")
+  )
+
+  process.electronTable = cms.EDProducer("FilterObjectTableProducer",
+    inputs = cms.VPSet(
+      cms.PSet(
+        inputTag = cms.InputTag("hltEle32WPTightGsfTrackIsoFilter"),
+        branchName = cms.string("passSingleElectron"),
+        description = cms.string("pass hltEle32WPTightGsfTrackIsoFilter (part of HLT_Ele32_WPTight_Gsf)"),
+      ),
+      cms.PSet(
+        inputTag = cms.InputTag("hltEle24erWPTightGsfTrackIsoFilterForTau"),
+        branchName = cms.string("passETau"),
+        description = cms.string("pass hltEle24erWPTightGsfTrackIsoFilterForTau (part of HLT_Ele24_eta2p1_WPTight_Gsf_LooseDeepTauPFTauHPS30_eta2p1)"),
+      )
+    ),
+    types = cms.vint32(81),
+    tableName = cms.string("Electron")
+  )
+
   process.L1Table = cms.EDProducer("L1TableProducer",
     egammas = cms.InputTag("hltGtStage2Digis", "EGamma"),
     muons = cms.InputTag("hltGtStage2Digis", "Muon"),
     jets = cms.InputTag("hltGtStage2Digis", "Jet"),
-    #taus = cms.InputTag("hltGtStage2Digis", "Tau"),
-    taus = cms.InputTag("simCaloStage2Digis"),
+    taus = cms.InputTag("hltGtStage2Digis", "Tau"),
     caloTowers = cms.InputTag("simCaloStage2Digis", "MP"),
     l2TauTagNNProducer = cms.string("hltL2TauTagNNProducer"),
     l2Taus = process.hltL2TauTagNNProducer.L1Taus,
-    precision = cms.int32(7)
+    precision = cms.int32(7),
+    storeCaloTowers = cms.bool(full_l1)
   )
+  if full_l1:
+    process.L1Table.taus = cms.InputTag("simCaloStage2Digis")
 
   process.caloTable = cms.EDProducer("CaloTableProducer",
     hbhe = cms.InputTag("hltHbhereco"),
@@ -264,7 +300,10 @@ def customise(process, output='nano.root', is_data=False):
 
   process.tauTablesTask = cms.Task(process.tauTable)
   process.tauTablesExtTask = cms.Task(process.tauExtTable)
-  process.pfCandTablesTask = cms.Task(process.pfCandTable)
+  if pf_cand_table:
+    process.pfCandTablesTask = cms.Task(process.pfCandTable)
+  else:
+    process.pfCandTablesTask = cms.Task()
   process.vertexTablesTask = cms.Task(process.pfVertexTable, process.svCandidateTable)
   process.AK4PFJetsTableTask = cms.Task(process.AK4PFJetsTable)
   process.AK4PFJetsExtTableTask = cms.Task(process.AK4PFJetsExtTable)
@@ -272,9 +311,19 @@ def customise(process, output='nano.root', is_data=False):
   process.genJetFlavourInfosTask =  cms.Task(process.genJetFlavourInfos)
   process.recoAllGenJetsNoNuTask=cms.Task(process.ak4GenJetsNoNu)
   process.GenJetTableTask = cms.Task(process.GenJetTable, process.ak4GenJetsNoNuExtTable)
-  process.L1TableTask = cms.Task(process.simCaloStage2Digis, process.L1Table)
-  process.caloTableTask = cms.Task(process.caloTable)
-  process.pixelTrackTableTask = cms.Task(process.pixelTrackTable)
+  if full_l1:
+    process.L1TableTask = cms.Task(process.simCaloStage2Digis, process.L1Table)
+  else:
+    process.L1TableTask = cms.Task(process.L1Table)
+  if calo_table:
+    process.caloTableTask = cms.Task(process.caloTable)
+  else:
+    process.caloTableTask = cms.Task()
+  if pixel_track_table:
+    process.pixelTrackTableTask = cms.Task(process.pixelTrackTable)
+  else:
+    process.pixelTrackTableTask = cms.Task()
+  process.leptonTableTask = cms.Task(process.electronTable, process.muonTable)
   process.nanoTableTask = cms.Task(
     process.tauTablesTask,
     process.tauTablesExtTask,
@@ -285,7 +334,8 @@ def customise(process, output='nano.root', is_data=False):
     process.recoAllGenJetsNoNuTask,
     process.L1TableTask,
     process.caloTableTask,
-    process.pixelTrackTableTask
+    process.pixelTrackTableTask,
+    process.leptonTableTask
   )
 
   if not is_data:
@@ -303,7 +353,7 @@ def customise(process, output='nano.root', is_data=False):
   process.l1bits=cms.EDProducer("L1TriggerResultsConverter",
     src=cms.InputTag("hltGtStage2Digis"),
     legacyL1=cms.bool(False),
-    storeUnprefireableBit=cms.bool(True),
+    storeUnprefireableBits=cms.bool(True),
     src_ext=cms.InputTag("simGtExtUnprefireable")
   )
 
@@ -315,7 +365,7 @@ def customise(process, output='nano.root', is_data=False):
     + process.hltDeepInclusiveSecondaryVerticesPF
   )
 
-  process.HLTJetFlavourTagParticleNetSequencePF = cms.Sequence(
+  process.HLTJetFlavourTagParticleNetSequencePFMod = cms.Sequence(
     process.hltVerticesPF
     + process.hltVerticesPFSelector
     + cms.ignore(process.hltVerticesPFFilter)
@@ -347,7 +397,7 @@ def customise(process, output='nano.root', is_data=False):
     + process.HLTGlobalPFTauHPSSequence
     + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau
     + process.HLTAK4PFJetsSequence
-    + process.HLTJetFlavourTagParticleNetSequencePF
+    + process.HLTJetFlavourTagParticleNetSequencePFMod
     + process.HLTTauVertexSequencePF
     + process.l1bits
     + process.nanoSequence
@@ -381,9 +431,6 @@ def customise(process, output='nano.root', is_data=False):
   )
 
   process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
-
-  # update L1 LUTs
-  process.load("L1Trigger.L1TCalorimeter.caloParams_2023_v0_2_cfi")
 
   process.options.numberOfThreads = 1
   process.MessageLogger.cerr.FwkReport.reportEvery = 100

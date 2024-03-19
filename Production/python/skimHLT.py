@@ -51,6 +51,8 @@ def skim(df):
   ref_eta_str = '{' + ', '.join(ref_eta) + '}'
   ref_phi_str = '{' + ', '.join(ref_phi) + '}'
   for obj in [ 'PixelTrack', 'PFCand', 'RecHitHBHE', 'RecHitEB', 'RecHitEE' ]:
+    if f'{obj}_eta' not in columns:
+      continue
     df = df.Define(f'{obj}_sel', f'DeltaRMatch({obj}_eta, {obj}_phi, {ref_eta_str}, {ref_phi_str}, 0.5f)')
     sample_c = None
     for c in columns:

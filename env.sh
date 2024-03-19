@@ -27,30 +27,26 @@ do_install_cmssw() {
 
   export SCRAM_ARCH=$1
   local CMSSW_VER=$2
-  local os_version=$3
-  if ! [ -f "$this_dir/soft/CentOS$os_version/$CMSSW_VER/.installed" ]; then
-    run_cmd mkdir -p "$this_dir/soft/CentOS$os_version"
-    run_cmd cd "$this_dir/soft/CentOS$os_version"
+  if ! [ -f "$this_dir/soft/$CMSSW_VER/.installed" ]; then
+    run_cmd mkdir -p "$this_dir/soft"
+    run_cmd cd "$this_dir/soft"
     run_cmd source /cvmfs/cms.cern.ch/cmsset_default.sh
     if [ -d $CMSSW_VER ]; then
       echo "Removing incomplete $CMSSW_VER installation..."
       run_cmd rm -rf $CMSSW_VER
     fi
-    echo "Creating $CMSSW_VER area for CentOS$os_version in $PWD ..."
+    echo "Creating $CMSSW_VER area in $PWD ..."
     run_cmd scramv1 project CMSSW $CMSSW_VER
     run_cmd cd $CMSSW_VER/src
     run_cmd eval `scramv1 runtime -sh`
-    run_cmd git cms-init
-    run_cmd git cms-addpkg L1Trigger/L1TCalorimeter
-    run_cmd git clone git@github.com:cms-l1t-offline/L1Trigger-L1TCalorimeter.git L1Trigger/L1TCalorimeter/data
-    run_cmd cp $this_dir/Production/python/hlt_configs/caloParams_2023_v0_2_cfi.py L1Trigger/L1TCalorimeter/python
     run_cmd mkdir TauMLTools
     run_cmd cd TauMLTools
     run_cmd ln -s "$this_dir/Analysis" Analysis
     run_cmd ln -s "$this_dir/Core" Core
     run_cmd ln -s "$this_dir/Production" Production
     run_cmd scram b -j8
-    run_cmd touch "$this_dir/soft/CentOS$os_version/$CMSSW_VER/.installed"
+    run_cmd cd "$this_dir"
+    run_cmd touch "$this_dir/soft/$CMSSW_VER/.installed"
   fi
 }
 
@@ -59,25 +55,20 @@ install_cmssw() {
   local this_dir="$( cd "$( dirname "$this_file" )" && pwd )"
   local scram_arch=$1
   local cmssw_version=$2
-  local os_version=$3
-  local target_os_version=$4
-  if [[ $os_version == $target_os_version ]]; then
+  local node_os=$3
+  local target_os=$4
+  if [[ $node_os == $target_os ]]; then
     local env_cmd=""
     local env_cmd_args=""
   else
-    if [[ $target_os_version < 8 ]] ; then
-      local os_type="cc"
-    else
-      local os_type="el"
-    fi
-    local env_cmd="cmssw-$os_type$target_os_version"
+    local env_cmd="cmssw-$target_os"
     if ! command -v $env_cmd &> /dev/null; then
       echo "Unable to do a cross-platform installation for $cmssw_version SCRAM_ARCH=$scram_arch. $env_cmd is not available."
       return 1
     fi
     local env_cmd_args="--command-to-run"
   fi
-  if ! [ -f "$this_dir/soft/CentOS$target_os_version/$CMSSW_VER/.installed" ]; then
+  if ! [ -f "$this_dir/soft/$CMSSW_VER/.installed" ]; then
     run_cmd $env_cmd $env_cmd_args /usr/bin/env -i HOME=$HOME bash "$this_file" install_cmssw $scram_arch $cmssw_version $target_os_version
   fi
 }
@@ -98,20 +89,31 @@ action() {
   run_cmd mkdir -p "$ANALYSIS_DATA_PATH"
 
   local os_version=$(cat /etc/os-release | grep VERSION_ID | sed -E 's/VERSION_ID="([0-9]+).*"/\1/')
-  local default_cmssw_ver=CMSSW_13_0_7
-  export DEFAULT_CMSSW_BASE="$ANALYSIS_PATH/soft/CentOS$os_version/$default_cmssw_ver"
+  if [[ $os_version < 8 ]] ; then
+    local os_prefix="cc"
+  else
+    local os_prefix="el"
+  fi
+  local node_os=$os_prefix$os_version
+
+  local default_cmssw_ver=CMSSW_14_0_0
+  local target_os_version=8
+  local target_os_prefix="el"
+  local target_os=$target_os_prefix$target_os_version
+  export DEFAULT_CMSSW_BASE="$ANALYSIS_PATH/soft/$default_cmssw_ver"
 
   if [[ $MODE = *"cmssw"* ]]; then
-    run_cmd install_cmssw slc7_amd64_gcc11 $default_cmssw_ver $os_version 7
-    run_cmd install_cmssw el8_amd64_gcc11 $default_cmssw_ver $os_version 8
+    run_cmd install_cmssw el8_amd64_gcc11 $default_cmssw_ver $node_os $target_os
 
-    #for phase2
-    #run_cmd install_cmssw slc7_amd64_gcc900 CMSSW_11_2_5 $os_version 7
-    #run_cmd install_cmssw slc7_amd64_gcc900 CMSSW_11_3_0 $os_version 7
+    if [[ $node_os == $target_os ]]; then
+      export CMSSW_SINGULARITY=""
+      local env_cmd=""
+    else
+      export CMSSW_SINGULARITY="/cvmfs/cms.cern.ch/common/cmssw-$target_os"
+      local env_cmd="$CMSSW_SINGULARITY --command-to-run"
+    fi
 
-    alias cmsEnv="env -i HOME=$HOME ANALYSIS_PATH=$ANALYSIS_PATH ANALYSIS_DATA_PATH=$ANALYSIS_DATA_PATH X509_USER_PROXY=$X509_USER_PROXY DEFAULT_CMSSW_BASE=$DEFAULT_CMSSW_BASE $ANALYSIS_PATH/RunKit/cmsEnv.sh"
-    #alias cmsEnv11_2="env -i HOME=$HOME ANALYSIS_PATH=$ANALYSIS_PATH ANALYSIS_DATA_PATH=$ANALYSIS_DATA_PATH X509_USER_PROXY=$X509_USER_PROXY DEFAULT_CMSSW_BASE=$ANALYSIS_PATH/soft/CentOS$os_version/CMSSW_11_2_5 $ANALYSIS_PATH/RunKit/cmsEnv.sh"
-    #alias cmsEnv11_3="env -i HOME=$HOME ANALYSIS_PATH=$ANALYSIS_PATH ANALYSIS_DATA_PATH=$ANALYSIS_DATA_PATH X509_USER_PROXY=$X509_USER_PROXY DEFAULT_CMSSW_BASE=$ANALYSIS_PATH/soft/CentOS$os_version/CMSSW_11_3_0 $ANALYSIS_PATH/RunKit/cmsEnv.sh"
+    alias cmsEnv="$env_cmd env -i HOME=$HOME ANALYSIS_PATH=$ANALYSIS_PATH ANALYSIS_DATA_PATH=$ANALYSIS_DATA_PATH X509_USER_PROXY=$X509_USER_PROXY DEFAULT_CMSSW_BASE=$DEFAULT_CMSSW_BASE KRB5CCNAME=$KRB5CCNAME $ANALYSIS_PATH/RunKit/cmsEnv.sh"
   fi
 
   if [[ $MODE == *"conda"* ]]; then
@@ -188,13 +190,17 @@ action() {
     local TAU_ML_LIB_DIR=$(cd $(dirname $(which python))/..; pwd)
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TAU_ML_LIB_DIR/lib
   else
-    source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_102 x86_64-centos${os_version}-gcc11-opt
+    source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_105 x86_64-el9-gcc13-opt
     for law_location in /afs/cern.ch/user/m/mrieger/public/law_sw/setup.sh /afs/desy.de/user/r/riegerma/public/law_sw/setup.sh; do
       if [ -f $law_location ]; then
         source $law_location
         break
       fi
     done
+    current_args=( "$@" )
+    set --
+    source /cvmfs/cms.cern.ch/rucio/setup-py3.sh &> /dev/null
+    set -- "${current_args[@]}"
   fi
 
   if [ ! -z $ZSH_VERSION ]; then

@@ -103,7 +103,7 @@ Production should be run on the server that have the crab stageout area mounted 
 
 1. Check that all datasets are present and valid (replace path to `yaml`s accordingly):
    ```sh
-   cat Production/crab/Run3Winter23_HLT/*.yaml | grep -v -E '^( +| *#)' | grep -E ' /' | sed -E 's/.*: (.*)/\1/' | xargs python RunKit/checkDatasetExistance.py
+   cat Production/crab/Run3Winter24_HLT/*.yaml | grep -v -E '^( +| *#)' | grep -E ' /' | sed -E 's/.*: (.*)/\1/' | xargs python RunKit/checkDatasetExistance.py
    ```
    If all ok, there should be no output.
 1. Modify output and other site-specific settings in `NanoProd/crab/overseer_cfg_HLT.yaml`. In particular:
@@ -116,7 +116,7 @@ Production should be run on the server that have the crab stageout area mounted 
 1. Test that the code works locally (take one of the RAW files as an input). E.g.
    ```sh
    mkdir -p tmp && cd tmp
-   cmsEnv python3 $ANALYSIS_PATH/RunKit/cmsRunWrapper.py cmsRunCfg=$ANALYSIS_PATH/Production/python/hlt_configs/hltMC.py maxEvents=10 inputFiles=/store/mc/Run3Winter23Digi/TT_TuneCP5_13p6TeV_powheg-pythia8/GEN-SIM-RAW/126X_mcRun3_2023_forPU65_v1_ext1-v2/40002/cbcb2b23-174a-4e7f-a385-152d9c5c5b87.root output=nano_mc_tmp.root writePSet=True copyInputsToLocal=False skimCfg=$ANALYSIS_PATH/Production/config/skim_HLT.yaml skimSetup=skim_setup
+   cmsEnv python3 $ANALYSIS_PATH/RunKit/cmsRunWrapper.py cmsRunCfg=$ANALYSIS_PATH/Production/python/hlt_configs/hltMC.py maxEvents=100 inputFiles=/store/mc/Run3Winter24Digi/GluGluHToTauTau_M-125_TuneCP5_13p6TeV_powheg-pythia8/GEN-SIM-RAW/133X_mcRun3_2024_realistic_v8-v2/50000/000d40c2-6549-4879-a6fe-b71e3b1e3a57.root writePSet=True copyInputsToLocal=False 'output=nano.root;./output;../Production/config/skim_HLT.yaml;skim_setup'
    cmsEnv $ANALYSIS_PATH/RunKit/crabJob.sh
    ```
    Check that output file `nano_0.root` is created correctly. After that, you can remove `tmp` directory:
@@ -138,6 +138,7 @@ Production should be run on the server that have the crab stageout area mounted 
      ```sh
      rm -r crab_test
      ```
+     And remove an output file from the storage element.
 
 1. Test that post-processing task is known to law:
    ```sh
@@ -326,7 +327,7 @@ The production of TF datasets can be parallelized (over input files) with law on
 ```bash
 law run RootToTF --cfg CFG --dataset-type DTYPE --version VERSION --environment conda --output-path OUTPUT
 ```
-where *CFG* is the path to a yaml file such as [create_dataset.yaml](Preprocessing/root2tf/configs/create_dataset.yaml), *DTYPE* is the dataset type (validation, training) as specified in the *CFG* file, *VERSION* is the job batch identifier and *OUTPUT* is the destination folder.  
+where *CFG* is the path to a yaml file such as [create_dataset.yaml](Preprocessing/root2tf/configs/create_dataset.yaml), *DTYPE* is the dataset type (validation, training) as specified in the *CFG* file, *VERSION* is the job batch identifier and *OUTPUT* is the destination folder.
 **NOTE**: *OUTPUT* overwrites the yaml configuration. This is needed to bypass the different filesystem on the HTCondor machine.
 
 ## Training NN

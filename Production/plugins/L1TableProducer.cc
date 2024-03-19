@@ -30,18 +30,20 @@ public:
       muonsToken_(consumes<l1t::MuonBxCollection>(cfg.getParameter<edm::InputTag>("muons"))),
       jetsToken_(consumes<l1t::JetBxCollection>(cfg.getParameter<edm::InputTag>("jets"))),
       tausToken_(consumes<l1t::TauBxCollection>(cfg.getParameter<edm::InputTag>("taus"))),
-      caloTowersToken_(consumes<l1t::CaloTowerBxCollection>(cfg.getParameter<edm::InputTag>("caloTowers"))),
+      caloTowersToken_(mayConsume<l1t::CaloTowerBxCollection>(cfg.getParameter<edm::InputTag>("caloTowers"))),
       l2TauToken_(loadL2Tokens(cfg.getParameterSetVector("l2Taus"),
                                cfg.getParameter<std::string>("l2TauTagNNProducer"))),
       candidateToken_(esConsumes<l1t::CaloParams, L1TCaloParamsRcd, edm::Transition::BeginRun>()),
       o2oProtoToken_(esConsumes<l1t::CaloParams, L1TCaloParamsO2ORcd, edm::Transition::BeginRun>()),
-      precision_(cfg.getParameter<int>("precision"))
+      precision_(cfg.getParameter<int>("precision")),
+      storeCaloTowers_(cfg.getParameter<bool>("storeCaloTowers"))
   {
     produces<nanoaod::FlatTable>("L1Egamma");
     produces<nanoaod::FlatTable>("L1Muon");
     produces<nanoaod::FlatTable>("L1Jet");
     produces<nanoaod::FlatTable>("L1Tau");
-    produces<nanoaod::FlatTable>("L1TauTowers");
+    if(storeCaloTowers_)
+      produces<nanoaod::FlatTable>("L1TauTowers");
   }
 
 private:
@@ -60,6 +62,8 @@ private:
   // adapted from https://github.com/cms-sw/cmssw/blob/166eab1458287d877b7b06a931153f21b74e2093/L1Trigger/L1TCalorimeter/plugins/L1TStage2Layer2Producer.cc
   void beginRun(const edm::Run& run, const edm::EventSetup& setup) override
   {
+    if(!storeCaloTowers_)
+      return;
     const unsigned long long id = setup.get<L1TCaloParamsRcd>().cacheIdentifier();
     if(!caloParamsCacheId_ || id != *caloParamsCacheId_) {
       caloParamsCacheId_ = id;
@@ -167,17 +171,17 @@ private:
     std::vector<int> tower_tauIdx, tower_relEta, tower_relPhi, tower_hwEtEm, tower_hwEtHad, tower_hwPt;
     std::vector<float> l2_scores;
 
-    if(!caloParams_ || !tauClusterAlgo_)
-      throw cms::Exception("L1NtupleProducer") << "CaloParams or TauClusterAlgo not initialized";
-
-    const auto& caloTowers = event.get(caloTowersToken_);
     std::vector<l1t::CaloTower> towers;
-    for(auto tower_iter = caloTowers.begin(0); tower_iter != caloTowers.end(0); ++tower_iter) {
-      towers.push_back(*tower_iter);
-    }
-
     std::vector<l1t::CaloCluster> tauClusters;
-    tauClusterAlgo_->processEvent(towers, tauClusters);
+    if(storeCaloTowers_) {
+      if(!caloParams_ || !tauClusterAlgo_)
+        throw cms::Exception("L1NtupleProducer") << "CaloParams or TauClusterAlgo not initialized";
+      const auto& caloTowers = event.get(caloTowersToken_);
+      for(auto tower_iter = caloTowers.begin(0); tower_iter != caloTowers.end(0); ++tower_iter) {
+        towers.push_back(*tower_iter);
+      }
+      tauClusterAlgo_->processEvent(towers, tauClusters);
+    }
 
     std::vector<std::pair<l1t::TauVectorRef, std::vector<float>>> l2TauOutcomes;
     for(const auto& [token_l1, token_l2] : l2TauToken_) {
@@ -268,8 +272,9 @@ private:
       rawEt.push_back(it->rawEt());
       isoEt.push_back(it->isoEt());
       nTT.push_back(it->nTT());
-      fillTauEx(*it, hwPt.size() - 1);
       l2_scores.push_back(getL2Score(it->eta(), it->phi()));
+      if(storeCaloTowers_)
+        fillTauEx(*it, hwPt.size() - 1);
     });
 
     table->addColumn<int>("hwPt", hwPt, "hardware pt");
@@ -281,18 +286,21 @@ private:
     table->addColumn<int>("rawEt", rawEt, "raw Et");
     table->addColumn<int>("isoEt", isoEt, "iso Et");
     table->addColumn<int>("nTT", nTT, "number of TTs");
-    table->addColumn<int>("hwEtSum", hwEtSum, "hardware Et sum towers around tau (including signal and isolation)");
     table->addColumn<float>("l2Tag", l2_scores, "L2 NN tau tag score");
+    if(storeCaloTowers_)
+      table->addColumn<int>("hwEtSum", hwEtSum, "hardware Et sum towers around tau (including signal and isolation)");
     event.put(std::move(table), tauTableName);
 
-    auto towerTable = std::make_unique<nanoaod::FlatTable>(tower_tauIdx.size(), tauTowersTableName, false, false);
-    towerTable->addColumn<int>("tauIdx", tower_tauIdx, "index of the tau in the collection");
-    towerTable->addColumn<int>("relEta", tower_relEta, "relative eta of the tower");
-    towerTable->addColumn<int>("relPhi", tower_relPhi, "relative phi of the tower");
-    towerTable->addColumn<int>("hwEtEm", tower_hwEtEm, "hardware Et of the EM component of the tower");
-    towerTable->addColumn<int>("hwEtHad", tower_hwEtHad, "hardware Et of the hadronic component of the tower");
-    towerTable->addColumn<int>("hwPt", tower_hwPt, "hardware Et of the tower");
-    event.put(std::move(towerTable), tauTowersTableName);
+    if(storeCaloTowers_) {
+      auto towerTable = std::make_unique<nanoaod::FlatTable>(tower_tauIdx.size(), tauTowersTableName, false, false);
+      towerTable->addColumn<int>("tauIdx", tower_tauIdx, "index of the tau in the collection");
+      towerTable->addColumn<int>("relEta", tower_relEta, "relative eta of the tower");
+      towerTable->addColumn<int>("relPhi", tower_relPhi, "relative phi of the tower");
+      towerTable->addColumn<int>("hwEtEm", tower_hwEtEm, "hardware Et of the EM component of the tower");
+      towerTable->addColumn<int>("hwEtHad", tower_hwEtHad, "hardware Et of the hadronic component of the tower");
+      towerTable->addColumn<int>("hwPt", tower_hwPt, "hardware Et of the tower");
+      event.put(std::move(towerTable), tauTowersTableName);
+    }
   }
 
 private:
@@ -305,6 +313,7 @@ private:
   const edm::ESGetToken<l1t::CaloParams, L1TCaloParamsRcd> candidateToken_;
   const edm::ESGetToken<l1t::CaloParams, L1TCaloParamsO2ORcd> o2oProtoToken_;
   const unsigned int precision_;
+  const bool storeCaloTowers_;
 
   std::optional<unsigned long long> caloParamsCacheId_;
   std::unique_ptr<l1t::CaloParamsHelper> caloParams_;
