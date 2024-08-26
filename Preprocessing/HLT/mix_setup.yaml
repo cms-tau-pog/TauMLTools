@@ -1,0 +1,112 @@
+input_root: /data2/Run3_HLT/prod_v3
+spectrum_root: /data2/Run3_HLT/prod_v3_spec
+n_batches: 50000
+tree_name: Events
+
+inputs:
+  Higgs:
+    - GluGluHToTauTau_M-125_ext1
+    - GluGlutoHHto2B2Tau_kl-0p00_kt-1p00_c2-0p00
+    - GluGlutoHHto2B2Tau_kl-0p00_kt-1p00_c2-1p00
+    - GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-0p35
+    - GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-3p00
+    - GluGlutoHHto2B2Tau_kl-1p00_kt-1p00_c2-m2p00
+    - GluGlutoHHto2B2Tau_kl-2p45_kt-1p00_c2-0p00
+    - VBFHHto2B2Tau_CV-1_C2V-1_C3-1
+    - VBFHHto2B2Tau_CV-1_C2V-1_C3-2
+    - VBFHHto2B2Tau_CV-1_C2V-2_C3-1
+    - VBFHToTauTau_M125_ext1
+  Zprime:
+    - ZprimeToTauTau_M-4000
+    - ZprimeToEE_M-6000
+  DY:
+    - DYTo2L_MLL-50
+    - DYTo2L_MLL-4to50
+  TT:
+    - TT
+    - TT_ext1
+  QCD:
+    - QCD_PT-600toInf
+    - QCD_PT-470to600
+    - QCD_PT-300to470
+    - QCD_PT-170to300
+    - QCD_PT-120to170
+    - QCD_PT-80to120
+    - QCD_PT-50to80
+    - QCD_PT-30to50
+  HNL:
+    - HNL_M-3_V-0.0276_tau
+    - HNL_M-5_V-0.0046_tau
+    - HNL_M-7_V-0.0013_tau
+  Staus_M_100:
+    - Staus_M_100_100mm
+    - Staus_M_100_10mm
+  Staus_M_300:
+    - Staus_M_300
+
+bin_selection: "
+  L1Tau_Gen_pt >= {pt_low} && L1Tau_Gen_pt < {pt_high}
+  && L1Tau_Gen_abs_eta >= {eta_low} && L1Tau_Gen_abs_eta < {eta_high}
+"
+
+bin_edges:
+  pt: [ 20.0, 30.0, 40.0, 60.0, 80.0, 100.0, 150.0, 250.0, 1000.0 ]
+  eta: [ 0.0, 1.5, 2.1 ]
+
+output:
+  - input_setups: [ Higgs, DY, TT ]
+    bins:
+      - tau_type: tau
+        eta_bin: 0
+        counts: [ 28, 28, 28, 16, 7, 0, 0, 0 ]
+      - tau_type: tau
+        eta_bin: 1
+        counts: [ 10, 9, 10, 4, 1, 0, 0, 0 ]
+  - input_setups: [ Higgs, DY, TT ]
+    bins:
+      - tau_type: e
+        eta_bin: 0
+        counts: [ 2, 3, 3, 2, 2, 0, 0, 0 ]
+      - tau_type: e
+        eta_bin: 1
+        counts: [ 1, 1, 2, 1, 1, 0, 0, 0 ]
+  - input_setups: [ Zprime, Higgs, DY, TT ]
+    bins:
+      - tau_type: tau
+        eta_bin: 0
+        counts: [ 0, 0, 0, 0, 0, 7, 3, 2 ]
+        allow_duplicates: true
+      - tau_type: tau
+        eta_bin: 1
+        counts: [ 0, 0, 0, 0, 0, 1, 1, 1 ]
+        allow_duplicates: true
+      - tau_type: e
+        eta_bin: 0
+        counts: [ 0, 0, 0, 0, 0, 1, 1, 1 ]
+        allow_duplicates: true
+      - tau_type: e
+        eta_bin: 1
+        counts: [ 0, 0, 0, 0, 0, 1, 1, 1 ]
+        allow_duplicates: true
+  - input_setups: [ Staus_M_100, Staus_M_300, HNL ]
+    bins:
+      - tau_type: displaced_tau
+        eta_bin: 0
+        counts: [ 1, 1, 1, 1, 1, 1, 1, 1 ]
+        allow_duplicates: true
+  - input_setups: [ TT ]
+    bins:
+      - tau_type: jet
+        eta_bin: 0
+        counts: [ 28, 28, 28, 16, 7, 7, 3, 2 ]
+      - tau_type: jet
+        eta_bin: 1
+        counts: [ 10, 9, 10, 4, 1, 1, 1, 1 ]
+  - input_setups: [ QCD ]
+    bins:
+      - tau_type: jet
+        eta_bin: 0
+        counts: [ 28, 28, 28, 16, 7, 7, 3, 2 ]
+      - tau_type: jet
+        eta_bin: 1
+        counts: [ 10, 9, 10, 4, 1, 1, 1, 1 ]

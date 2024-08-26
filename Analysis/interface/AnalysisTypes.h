@@ -49,11 +49,15 @@ ENUM_NAMES(GenQcdMatch) = {
     { GenQcdMatch::Gluon, "gen_gluon" }
 };
 
-enum class TauType { e = 0, mu = 1, tau = 2, jet = 3, emb_e = 4, emb_mu = 5, emb_tau = 6, emb_jet = 7, data = 8 };
+enum class TauType { e = 0, mu = 1, tau = 2, jet = 3, emb_e = 4, emb_mu = 5, emb_tau = 6, emb_jet = 7, data = 8,
+                     displaced_e = 9, displaced_mu = 10, displaced_tau = 11, displaced_jet = 12 };
 ENUM_NAMES(TauType) = {
     { TauType::e, "e" }, { TauType::mu, "mu" }, { TauType::tau, "tau" }, { TauType::jet, "jet" },
-    { TauType::emb_e, "emb_e" }, { TauType::emb_mu, "emb_mu" }, { TauType::emb_tau, "emb_tau" }, { TauType::emb_jet, "emb_jet" },
-    { TauType::data, "data" }
+    { TauType::emb_e, "emb_e" }, { TauType::emb_mu, "emb_mu" },
+    { TauType::emb_tau, "emb_tau" }, { TauType::emb_jet, "emb_jet" },
+    { TauType::data, "data" },
+    { TauType::displaced_e, "displaced_e" }, { TauType::displaced_mu, "displaced_mu" },
+    { TauType::displaced_tau, "displaced_tau" }, { TauType::displaced_jet, "displaced_jet" }
 };
 
 enum class SampleType { Data = 0, MC = 1, Embedded = 2 };
