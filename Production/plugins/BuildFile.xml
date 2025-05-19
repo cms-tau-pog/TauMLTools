@@ -3,5 +3,7 @@
 <use name="L1Trigger/L1TCalorimeter"/>
 <use name="SimGeneral/HepPDTRecord"/>
 <use name="TauMLTools/Production"/>
+<use name="HLTrigger/HLTcore"/>
+
 
 <flags EDM_PLUGIN="1"/>

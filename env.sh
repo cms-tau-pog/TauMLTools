@@ -96,14 +96,14 @@ action() {
   fi
   local node_os=$os_prefix$os_version
 
-  local default_cmssw_ver=CMSSW_14_0_0
-  local target_os_version=8
+  local default_cmssw_ver=CMSSW_15_0_2
+  local target_os_version=9
   local target_os_prefix="el"
   local target_os=$target_os_prefix$target_os_version
   export DEFAULT_CMSSW_BASE="$ANALYSIS_PATH/soft/$default_cmssw_ver"
 
   if [[ $MODE = *"cmssw"* ]]; then
-    run_cmd install_cmssw el8_amd64_gcc11 $default_cmssw_ver $node_os $target_os
+    run_cmd install_cmssw el9_amd64_gcc12 $default_cmssw_ver $node_os $target_os
 
     if [[ $node_os == $target_os ]]; then
       export CMSSW_SINGULARITY=""
@@ -190,7 +190,7 @@ action() {
     local TAU_ML_LIB_DIR=$(cd $(dirname $(which python))/..; pwd)
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TAU_ML_LIB_DIR/lib
   else
-    source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_105 x86_64-el9-gcc13-opt
+    source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_107 x86_64-el9-gcc14-opt
     for law_location in /afs/cern.ch/user/m/mrieger/public/law_sw/setup.sh /afs/desy.de/user/r/riegerma/public/law_sw/setup.sh; do
       if [ -f $law_location ]; then
         source $law_location

@@ -103,19 +103,24 @@ private:
   {
     const auto& collection = event.get(token);
     std::vector<float> pt, eta, phi;
+    std::vector<int> bx;
 
-    for(auto it = collection.begin(0); it != collection.end(0); ++it) {
-      if(it->pt() <= 0) continue;
-      pt.push_back(it->pt());
-      eta.push_back(it->eta());
-      phi.push_back(it->phi());
-      fn(it);
+    for(int bx_index = collection.getFirstBX(); bx_index <= collection.getLastBX(); ++bx_index) {
+      for(auto it = collection.begin(bx_index); it != collection.end(bx_index); ++it) {
+        if(it->pt() <= 0) continue;
+        pt.push_back(it->pt());
+        eta.push_back(it->eta());
+        phi.push_back(it->phi());
+        bx.push_back(bx_index);
+        fn(it);
+      }
     }
 
     auto table = std::make_unique<nanoaod::FlatTable>(pt.size(), name, false, false);
     table->addColumn<float>("pt", pt, "transverse momentum", precision_);
     table->addColumn<float>("eta", eta, "pseudorapidity", precision_);
     table->addColumn<float>("phi", phi, "azimuthal angle", precision_);
+    table->addColumn<int>("bx", bx, "bunch crossing");
     return table;
   }
 

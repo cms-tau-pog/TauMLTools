@@ -7,4 +7,4 @@ config:
     customiseCmds: "process.Timing = cms.Service('Timing', summaryOnly=cms.untracked.bool(True)); process.SimpleMemoryCheck = cms.Service('SimpleMemoryCheck', jobReportOutputOnly=cms.untracked.bool(True)); process.CPU = cms.Service('CPU')"
   dryrun: true
 
-tmp: /GluGluHToTauTau_M-125_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter24Digi-133X_mcRun3_2024_realistic_v8-v2/GEN-SIM-RAW
+tmp: /GluGluHto2Tau_Par-MH-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7-v2/GEN-SIM-RAW

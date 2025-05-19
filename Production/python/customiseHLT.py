@@ -51,7 +51,7 @@ def customise(process, output='nano.root', is_data=False, full_l1=False, calo_ta
 
   process.load('RecoJets.Configuration.GenJetParticles_cff')
 
-  process.GenJetTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+  process.GenJetTable = cms.EDProducer("SimpleGenJetFlatTableProducer",
     src = cms.InputTag( "ak4GenJetsNoNu" ),
     cut = cms.string(""),
     name= cms.string("GenJet"),
@@ -75,54 +75,6 @@ def customise(process, output='nano.root', is_data=False, full_l1=False, calo_ta
       neutralEmMultiplicity = Var("neutralEmMultiplicity", int, doc="number of neutral electromagnetic particles "),
       muonMultiplicity = Var("muonMultiplicity", int, doc="number of muons "),
       )
-  )
-  process.tauTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
-    src = cms.InputTag( "hltHpsPFTauProducer" ),
-    cut = cms.string(""),
-    name= cms.string("Tau"),
-    doc = cms.string("HLT taus"),
-    singleton = cms.bool(False), # the number of entries is variable
-    extension = cms.bool(False), # this is the main table
-    variables = cms.PSet(
-      P4Vars,
-      charge = Var("charge", int, doc="electric charge"),
-      vx = Var("vx", float, doc='x coordinate of vertex position'),
-      vy = Var("vy", float, doc='y coordinate of vertex position'),
-      vz = Var("vz", float, doc='z coordinate of vertex position'),
-      pdgId = Var("pdgId", int, doc='PDG identifier'),
-      dz = Var("? leadPFCand.trackRef.isNonnull && leadPFCand.trackRef.isAvailable ? leadPFCand.trackRef.dz : -999 ", float, doc='lead PF Candidate dz'),
-      dzError = Var("? leadPFCand.trackRef.isNonnull && leadPFCand.trackRef.isAvailable ? leadPFCand.trackRef.dzError : -999 ", float, doc='lead PF Candidate dz Error'),
-      decayMode = Var("decayMode", int, doc='tau decay mode'),
-      jetIsValid = Var("jetRef.isNonnull && jetRef.isAvailable", bool, doc = "jet is valid"),
-      # variables available in PF jets
-      # source: DataFormats/JetReco/interface/PFJet.h
-      chargedHadronEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.chargedHadronEnergy : -999.", float, doc = "chargedHadronEnergy"),
-      neutralHadronEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.neutralHadronEnergy : -999.", float, doc = "neutralHadronEnergy"),
-      photonEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.photonEnergy : -999.", float, doc = "photonEnergy"),
-      muonEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.muonEnergy : -999.", float, doc = "muonEnergy"),
-      chargedHadronMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.chargedHadronMultiplicity : -999.", float, doc = "chargedHadronMultiplicity"),
-      neutralHadronMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.neutralHadronMultiplicity : -999.", float, doc = "neutralHadronMultiplicity"),
-      photonMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.photonMultiplicity : -999.", float, doc = "photonMultiplicity"),
-      muonMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.muonMultiplicity : -999.", float, doc = "muonMultiplicity"),
-      chargedMuEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.chargedMuEnergy : -999.", float, doc = "chargedMuEnergy"),
-      neutralEmEnergy = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.neutralEmEnergy : -999.", float, doc = "neutralEmEnergy"),
-      chargedMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.chargedMultiplicity : -999.", float, doc = "chargedMultiplicity"),
-      neutralMultiplicity = Var("? jetRef.isNonnull && jetRef.isAvailable ? jetRef.neutralMultiplicity : -999.", float, doc = "neutralMultiplicity"),
-      # # source: DataFormats/TauReco/interface/PFTau.h
-      # ## variables available in PF tau
-      emFraction = Var("emFraction", float, doc = " Ecal/Hcal Cluster Energy"),
-      hcalTotOverPLead = Var("hcalTotOverPLead", float, doc = " total Hcal Cluster E / leadPFChargedHadron P"),
-      signalConeSize = Var("signalConeSize", float, doc = "Size of signal cone"),
-    )
-  )
-  # cms.EDProducer : an object that produces a new data object
-  process.tauExtTable = cms.EDProducer("TauTableProducerHLT",
-    taus = cms.InputTag( "hltHpsPFTauProducer" ),
-    deepTauVSe = cms.InputTag("hltHpsPFTauDeepTauProducerForVBFIsoTau", "VSe"),
-    deepTauVSmu = cms.InputTag("hltHpsPFTauDeepTauProducerForVBFIsoTau", "VSmu"),
-    deepTauVSjet = cms.InputTag("hltHpsPFTauDeepTauProducerForVBFIsoTau", "VSjet"),
-    tauTransverseImpactParameters = cms.InputTag( "hltHpsPFTauTransverseImpactParametersForDeepTauForVBFIsoTau" ),
-    precision = cms.int32(7),
   )
   process.ak4GenJetsNoNuExtTable = cms.EDProducer("GenJetFlavourTableProducer",
     name = cms.string("GenJet"),
@@ -170,7 +122,7 @@ def customise(process, output='nano.root', is_data=False, full_l1=False, calo_ta
       HcalEnergy = Var("hcalEnergy", float, doc='HcalEnergy'),
     )
   )
-  process.AK4PFJetsTable = cms.EDProducer("SimpleCandidateFlatTableProducer",
+  process.AK4PFJetsTable = cms.EDProducer("SimplePFJetFlatTableProducer",
     src = cms.InputTag( "hltAK4PFJetsCorrected" ),
     cut = cms.string(""),
     name= cms.string("Jet"),
@@ -261,6 +213,16 @@ def customise(process, output='nano.root', is_data=False, full_l1=False, calo_ta
     tableName = cms.string("Electron")
   )
 
+  process.hltAllL1Taus = cms.EDFilter("L1TauProducer",
+    taus = cms.InputTag("hltGtStage2Digis", "Tau"),
+    saveTags = cms.bool(True),
+  )
+
+  process.hltL2TauTagNNProducer.L1Taus += cms.VPSet( cms.PSet(
+    L1CollectionName = cms.string('AllL1Taus'),
+    L1TauTrigger = cms.InputTag("hltAllL1Taus")
+  ))
+
   process.L1Table = cms.EDProducer("L1TableProducer",
     egammas = cms.InputTag("hltGtStage2Digis", "EGamma"),
     muons = cms.InputTag("hltGtStage2Digis", "Muon"),
@@ -272,6 +234,7 @@ def customise(process, output='nano.root', is_data=False, full_l1=False, calo_ta
     precision = cms.int32(7),
     storeCaloTowers = cms.bool(full_l1)
   )
+
   if full_l1:
     process.L1Table.taus = cms.InputTag("simCaloStage2Digis")
 
@@ -298,8 +261,6 @@ def customise(process, output='nano.root', is_data=False, full_l1=False, calo_ta
   process.svCandidateTable.name = 'PFSecondaryVertex'
   process.svCandidateTable.extension = False
 
-  process.tauTablesTask = cms.Task(process.tauTable)
-  process.tauTablesExtTask = cms.Task(process.tauExtTable)
   if pf_cand_table:
     process.pfCandTablesTask = cms.Task(process.pfCandTable)
   else:
@@ -325,8 +286,6 @@ def customise(process, output='nano.root', is_data=False, full_l1=False, calo_ta
     process.pixelTrackTableTask = cms.Task()
   process.leptonTableTask = cms.Task(process.electronTable, process.muonTable)
   process.nanoTableTask = cms.Task(
-    process.tauTablesTask,
-    process.tauTablesExtTask,
     process.pfCandTablesTask,
     process.vertexTablesTask,
     process.AK4PFJetsTableTask,
@@ -347,6 +306,7 @@ def customise(process, output='nano.root', is_data=False, full_l1=False, calo_ta
       process.GenJetTableTask
     )
     process.finalGenParticles.src = cms.InputTag("genParticles")
+    del process.genParticleTable.externalVariables.iso
     process = customiseGenParticles(process)
 
   process.nanoSequence = cms.Sequence(process.nanoTableTask)
@@ -382,20 +342,19 @@ def customise(process, output='nano.root', is_data=False, full_l1=False, calo_ta
     + process.hltParticleNetDiscriminatorsJetTags
   )
 
-  process.hltHpsPFTauTrack.MinN = 0
   process.hltTauJet5.MinN = 0
   process.hltPFJetForBtagSelector.MinPt = 15
   process.hltPFJetForBtagSelector.MaxEta = 2.7
   process.hltParticleNetJetTagInfos.min_jet_pt = 15
   process.hltParticleNetJetTagInfos.max_jet_eta = 2.7
+
+  process.HLTL2TauTagNNSequence.insert(0, process.hltAllL1Taus)
   process.nanoAOD_step = cms.Path(
     process.SimL1Emulator
     + cms.ignore(process.hltTriggerType)
     + process.HLTL1UnpackerSequence
     + process.HLTBeamSpot
     + process.HLTL2TauTagNNSequence
-    + process.HLTGlobalPFTauHPSSequence
-    + process.HLTHPSDeepTauPFTauSequenceForVBFIsoTau
     + process.HLTAK4PFJetsSequence
     + process.HLTJetFlavourTagParticleNetSequencePFMod
     + process.HLTTauVertexSequencePF

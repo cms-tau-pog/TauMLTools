@@ -32,7 +32,7 @@ RVecB DeltaRMatch(const RVecF& eta1, const RVecF& phi1,
 
 def skim(df):
   columns = [ str(c) for c in df.GetColumnNames() ]
-  ref_objects = [ ('L1Tau', '_tmp'), ('Tau', ''), ('Jet', '') ]
+  ref_objects = [ ('L1Tau', '_tmp'), ('Jet', '') ]
   for obj, suffix in ref_objects:
     df = df.Define(f'{obj}_sel', f'{obj}_pt > 15 && abs({obj}_eta) < 2.7')
     sample_c = None

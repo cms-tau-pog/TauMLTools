@@ -1,0 +1,17 @@
+config:
+  params:
+    cmsRunCfg: hltMC.py
+
+
+DYto2L: /DYto2L-4Jets_Bin-MLL-50_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7-v2/GEN-SIM-RAW
+DYto2Tau_MuTauh: /DYto2Tau-4Jets_Bin-MLL-50_Fil-MuTauh_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7-v2/GEN-SIM-RAW
+GluGluHto2Tau: /GluGluHto2Tau_Par-MH-125_TuneCP5_13p6TeV_powheg-minlo-pythia8/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7-v2/GEN-SIM-RAW
+GluGluHto2Tau_ext1: /GluGluHto2Tau_Par-MH-125_TuneCP5_13p6TeV_powhegMINLO-pythia8/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7_ext1-v2/GEN-SIM-RAW
+GluGluToHHTo2B2Tau: /GluGluToHHTo2B2Tau_Par-c2-0-kl-1-kt-1_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7-v2/GEN-SIM-RAW
+TT: /TT_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7-v2/GEN-SIM-RAW
+TT_ext1: /TT_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7_ext1-v2/GEN-SIM-RAW
+TenTau_PT_15to500: /TenTau_Bin-PT-15to500_PGun/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7-v2/GEN-SIM-RAW
+VBFHHto2B2Tau: /VBFHHto2B2Tau_Par-C2V-1-C3-1-CV-1_TuneCP5_13p6TeV_madgraph-pythia8/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7-v2/GEN-SIM-RAW
+VBFHTo2Tau: /VBFHTo2Tau_Par-MH-125_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7-v2/GEN-SIM-RAW
+VBFHto2Tau_ext1: /VBFHto2Tau_Par-MH-125_TuneCP5_13p6TeV_powheg-pythia8/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7_ext1-v2/GEN-SIM-RAW
+ZprimeTo2Tau_M_4000: /ZprimeTo2Tau_Par-M-4000_TuneCP5_13p6TeV_pythia8-tauola/Run3Winter25Digi-142X_mcRun3_2025_realistic_v7-v3/GEN-SIM-RAW

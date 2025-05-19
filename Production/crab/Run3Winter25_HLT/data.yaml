@@ -1,0 +1,13 @@
+config:
+  params:
+    cmsRunCfg: hltData.py
+
+EphemeralHLTPhysics0_Run2024I: /EphemeralHLTPhysics0/Run2024I-v1/RAW
+EphemeralHLTPhysics1_Run2024I: /EphemeralHLTPhysics1/Run2024I-v1/RAW
+EphemeralHLTPhysics2_Run2024I: /EphemeralHLTPhysics2/Run2024I-v1/RAW
+EphemeralHLTPhysics3_Run2024I: /EphemeralHLTPhysics3/Run2024I-v1/RAW
+EphemeralHLTPhysics4_Run2024I: /EphemeralHLTPhysics4/Run2024I-v1/RAW
+EphemeralHLTPhysics5_Run2024I: /EphemeralHLTPhysics5/Run2024I-v1/RAW
+EphemeralHLTPhysics6_Run2024I: /EphemeralHLTPhysics6/Run2024I-v1/RAW
+EphemeralHLTPhysics7_Run2024I: /EphemeralHLTPhysics7/Run2024I-v1/RAW
+

@@ -4,10 +4,8 @@ params:
   maxEvents: -1
   outputs:
     - file: nano.root
-      crabOutput: TODO # T2_CH_CERN:/store/group/phys_tau/kandroso/hlt_skim_prod_2024
-      finalOutput: TODO # T2_CH_CERN:/store/group/phys_tau/kandroso/hlt_skim_2024
-      skimCfg: skim_HLT.yaml
-      skimSetup: skim_setup
+      crabOutput: TODO # T2_CH_CERN:/store/group/phys_tau/kandroso/hlt_skim_prod_2025
+      finalOutput: TODO # T2_CH_CERN:/store/group/phys_tau/kandroso/hlt_skim_2025
 splitting: FileBased
 unitsPerJob: 16
 scriptExe: RunKit/crabJob.sh
@@ -17,19 +15,18 @@ filesToTransfer:
   - RunKit/crabJob_cmsRun.py
   - RunKit/run_tools.py
   - RunKit/grid_tools.py
-  - RunKit/skim_tree.py
-  - Production/config/skim_HLT.yaml
   - Production/python/hlt_configs/hltMC.py
   - Production/python/hlt_configs/hltData.py
-  - Production/python/skimHLT.py
   - Production/python/customiseHLT.py
 maxMemory: 4000
 numCores: 1
 inputDBS: global
 allowNonValid: False
+autoIgnoreCorrupt: True
 dryrun: False
 maxRecoveryCount: 4
 updateInterval: 60
+maxNumberOfActiveCrabTasks: 100
 localProcessing:
   lawTask: ProdTask
   workflow: htcondor
@@ -40,7 +37,7 @@ localProcessing:
   requirements: TARGET.OpSysAndVer =?= "AlmaLinux9"
 targetOutputFileSize: 2048
 renewKerberosTicket: True
-htmlReport: TODO # T3_CH_CERNBOX:/store/user/kandroso/www/tau/hlt_skim_prod_2024
+htmlReport: TODO # T3_CH_CERNBOX:/store/user/kandroso/www/tau/hlt_skim_prod_2025
 whitelistFinalRecovery:
   - T1_DE_KIT
   - T1_US_FNAL
