@@ -10,7 +10,7 @@ import shutil
 import law
 import luigi
 from .framework import Task, HTCondorWorkflow
-from RunKit.sh_tools import sh_call
+from RunKit.run_tools import ps_call
 
 class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
   ## '_' will be converted to '-' for the shell command invocation
@@ -108,7 +108,7 @@ class ShuffleMergeSpectral(Task, HTCondorWorkflow, law.LocalWorkflow):
     for arg in optional_arguments:
       if len(arg[1]) > 0:
         command += arg
-    sh_call(command, verbose=1)
+    ps_call(command, verbose=1)
 
     self.move(tmp_file, self.output().path)
     self.move('out', os.path.join(hash_output, f'out_{self.branch}'))
