@@ -17,4 +17,5 @@ __init__.py
 /data
 /.crabOverseer
 /tmp
+/tarballs
 environment.location
