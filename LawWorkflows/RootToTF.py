@@ -46,28 +46,6 @@ class RootToTF(HTCondorTOpASWorkflow):
     # n_jobs        = luigi.IntParameter(default=0, description='number of jobs to run. Together with --files-per-job determines the total number of files processed. Default=0 run on all files.')
     dataset_type  = luigi.Parameter(description="which samples to read (train/validation/test)")
 
-    def htcondor_job_config(self, config, job_num, branches):
-        config = super().htcondor_job_config(config, job_num, branches)
-        config.render_variables["copy_in"] = "False"
-        main_dir = os.getenv("ANALYSIS_PATH")
-        tarball_dir = os.path.abspath(f"{main_dir}/tarballs/{self.version}")
-        tarball_local = law.LocalFileTarget(
-            os.path.join(
-                tarball_dir,
-                self.__class__.__name__,
-                "TauMLTools.tar.gz",
-            )
-        )
-        if not tarball_local.exists():
-            tarball_local.parent.touch()
-            excludes = ["./.[^.]*", "./Analysis", "./Production", "./Evaluation", "./Core", "./Training", "./RunKit", "./soft", "./data", "./tarballs", "*/outputs", "*/mlruns", "__pycache__"]
-            exclude_str = " ".join([f"--exclude={ex}" for ex in excludes])
-            os.system(f'tar {exclude_str} -czf {tarball_local.path}  .')
-            tarball_local.parent.touch()
-        config.input_files["Tau_tar"] = law.JobInputFile(tarball_local.path, render=False, copy=False)
-        return config
-
-
     def __init__(self, *args, **kwargs):
         ''' run the conversion of .root files to tensorflow datasets
         '''

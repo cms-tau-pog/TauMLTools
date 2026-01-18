@@ -3,9 +3,11 @@
 import copy
 import os
 import math
-
+import subprocess
+import select
 import luigi
 import law
+from law.util import interruptable_popen
 from datetime import datetime
 from getpass import getuser
 from tempfile import mkdtemp
@@ -22,12 +24,10 @@ def copy_param(ref_param, new_default):
     param._default = new_default
     return param
 
-class Task(law.Task):
+class TaskParameters(law.Task):
     """
-    Base task that we use to force a version parameter on all inheriting tasks, and that provides
-    some convenience methods to create local file and directory targets at the default data path.
+    Base Parameter task for Task.
     """
-
     version = luigi.Parameter(
       default="default/{}".format(startup_time),
       description="Versions of runs. Set to a timestamp as default."
@@ -40,6 +40,12 @@ class Task(law.Task):
     is_local_output = luigi.BoolParameter(
         description="Whether to use local storage. False by default."
     )
+
+class Task(TaskParameters):
+    """
+    Base task that we use to force a version parameter on all inheriting tasks, and that provides
+    some convenience methods to create local file and directory targets at the default data path.
+    """
     try:
         local_user = getuser()
     except:
@@ -174,14 +180,142 @@ class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
 
         return config
 
-class HTCondorTOpASWorkflow(Task, HTCondorWorkflow, law.LocalWorkflow):
-    # Remote workflow Task for TOpAS.
+    def convert_env_to_dict(self, env):
+        my_env = {}
+        for line in env.splitlines():
+            if line.find(" ") < 0:
+                try:
+                    key, value = line.split("=", 1)
+                    my_env[key] = value
+                except ValueError:
+                    pass
+        return my_env
+
+    def set_environment(self, sourcescript, silent=False):
+        if not silent:
+            print("with source script: {}".format(sourcescript))
+        if isinstance(sourcescript, str):
+            sourcescript = [sourcescript]
+        source_command = [
+            "source {};".format(sourcescript) for sourcescript in sourcescript
+        ] + ["env"]
+        source_command_string = " ".join(source_command)
+        code, out, error = interruptable_popen(
+            source_command_string,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            # rich_console=console
+        )
+        if code != 0:
+            print("source returned non-zero exit status {}".format(code))
+            print("Error: {}".format(error))
+            raise Exception("source failed")
+        my_env = self.convert_env_to_dict(out)
+        return my_env
+
+    # Run a bash command
+    #   Command can be composed of multiple parts (interpreted as seperated by a space).
+    #   A sourcescript can be provided that is called by set_environment the resulting
+    #       env is then used for the command
+    #   The command is run as if it was called from run_location
+    #   With "collect_out" the output of the run command is returned
+    def run_command(
+        self,
+        command=[],
+        sourcescript=[],
+        run_location=None,
+        collect_out=False,
+        silent=False,
+    ):
+        if command:
+            if isinstance(command, str):
+                command = [command]
+            logstring = "Running {}".format(command)
+            if run_location:
+                logstring += " from {}".format(run_location)
+            if not silent:
+                print(logstring)
+            if sourcescript:
+                run_env = self.set_environment(sourcescript, silent)
+            else:
+                run_env = None
+            code, out, error = interruptable_popen(
+                " ".join(command),
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=run_env,
+                cwd=run_location,
+            )
+            if not silent:
+                print("Output: {}".format(out))
+            if not silent or code != 0:
+                print("Error: {}".format(error))
+            if code != 0:
+                print("Error when running {}.".format(list(command)))
+                print("Command returned non-zero exit status {}.".format(code))
+                raise Exception("{} failed".format(list(command)))
+            else:
+                if not silent:
+                    print("Command successful.")
+            if collect_out:
+                return out
+        else:
+            raise Exception("No command provided.")
+
+    def run_command_readable(self, command=[], sourcescript=[], run_location=None):
+        """
+        This can be used, to run a command, where you want to read the output while the command is running.
+        redirect both stdout and stderr to the same output.
+        """
+        if command:
+            if isinstance(command, str):
+                command = [command]
+            if sourcescript:
+                run_env = self.set_environment(sourcescript)
+            else:
+                run_env = None
+            logstring = "Running {}".format(command)
+            if run_location:
+                logstring += " from {}".format(run_location)
+            print("--------------------")
+            print(logstring)
+            try:
+                p = subprocess.Popen(
+                    " ".join(command),
+                    shell=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    env=run_env,
+                    cwd=run_location,
+                    encoding="utf-8",
+                )
+                while True:
+                    reads = [p.stdout.fileno(), p.stderr.fileno()]
+                    ret = select.select(reads, [], [])
+
+                    for fd in ret[0]:
+                        if fd == p.stdout.fileno():
+                            read = p.stdout.readline()
+                            if read != "\n":
+                                print(read.strip())
+                        if fd == p.stderr.fileno():
+                            read = p.stderr.readline()
+                            if read != "\n":
+                                print(read.strip())
+
+                    if p.poll() != None:
+                        break
+                if p.returncode != 0:
+                    raise Exception(f"Error when running {command}.")
+            except Exception as e:
+                raise Exception(f"Error when running {command}.")
+        else:
+            raise Exception("No command provided.")
+
+class HTCondorTOpASWorkflowParameters(Task):
     # Special treatment for other clusters might require adjustments.
-      # class RootToTF(Task, law.LocalWorkflow):
-      ## '_' will be converted to '-' for the shell command invocation
-      # cfg           = luigi.Parameter(description='location of the input yaml configuration file')
-      # n_jobs        = luigi.IntParameter(default=0, description='number of jobs to run. Together with --files-per-job determines the total number of files processed. Default=0 run on all files.')
-      # dataset_type  = luigi.Parameter(description="which samples to read (train/validation/test)")
     evictable  = luigi.Parameter(default = "False", description = 'Can job be evicted without breaking?')
     num_CPUs   = luigi.Parameter(default = "None", significant = False, description = 'Number of requested CPU.')
     num_GPUs   = luigi.Parameter(default = "None", significant = False, description = 'Number of requested GPU.')
@@ -195,6 +329,9 @@ class HTCondorTOpASWorkflow(Task, HTCondorWorkflow, law.LocalWorkflow):
 
     comp_facility = luigi.Parameter(default = 'TOpAS',
                                     description = 'Computing facility for specific setups e.g: desy-naf, lxplus')
+
+class HTCondorTOpASWorkflow(HTCondorTOpASWorkflowParameters, HTCondorWorkflow, law.LocalWorkflow):
+    # Remote workflow Task for TOpAS.
 
     # Redirect location of job files to <local_path>/"files"/...
     def htcondor_create_job_file_factory(self):
@@ -221,7 +358,7 @@ class HTCondorTOpASWorkflow(Task, HTCondorWorkflow, law.LocalWorkflow):
 
         # render_variables are rendered into all files sent with a job
         config.render_variables["analysis_path"] = main_dir
-        # config.render_variables["copy_in"] = "False"
+        config.render_variables["environment"] = self.environment
 
         full_req = str(self.requirements)
         if (self.num_GPUs != "None"):
@@ -230,14 +367,6 @@ class HTCondorTOpASWorkflow(Task, HTCondorWorkflow, law.LocalWorkflow):
                 full_req = full_req + " && (GlobalMemoryMb > {})".format(str(self.cuda_memory))
         if full_req != "None":
             config.custom_content.append(("requirements", full_req))
-        # if self.comp_facility=="desy-naf":
-        #     config.custom_content.append(("+RequestRuntime", int(math.floor(self.max_runtime * 3600)) - 1))
-        #     config.custom_content.append(('RequestMemory', '{}'.format(self.max_memory)))
-        # elif self.comp_facility=="lxplus":
-        #     config.custom_content.append(("+MaxRuntime", int(math.floor(self.max_runtime * 3600)) - 1))
-        #     config.custom_content.append(('request_memory', '{}'.format(self.max_memory)))
-        # elif self.comp_facility == "ETP":
-            # Use proxy file located in $X509_USER_PROXY or /tmp/x509up_u$(id) if empty
         htcondor_user_proxy = law.wlcg.get_vomsproxy_file()
         config.render_variables["comp_facility"] = self.comp_facility
         config.custom_content.append(("x509userproxy", htcondor_user_proxy))
@@ -248,11 +377,6 @@ class HTCondorTOpASWorkflow(Task, HTCondorWorkflow, law.LocalWorkflow):
                 raise Exception('TOpAS requires a value for {}.'.format(i))
         config.custom_content.append(('request_cpus', self.num_CPUs))
         config.custom_content.append(('RequestMemory', self.max_memory))
-        # config.custom_content.append(('RequestMemory', f"{self.max_memory} + {self.max_memory} * (1/4 * NumJobStarts)"))
-        # config.custom_content.append(('periodic_hold', "(HoldReasonCode == 34)"))
-        # config.custom_content.append(('periodic_hold_reason', '"OOM, retrying"'))
-        # config.custom_content.append(('periodic_release', "(HoldReasonCode == 34)"))
-        # config.custom_content.append(('max_retries', "2")) # Max + 50% memory on retry
 
         if self.evictable:
             config.custom_content.append(('+evictable', self.evictable))
@@ -260,83 +384,26 @@ class HTCondorTOpASWorkflow(Task, HTCondorWorkflow, law.LocalWorkflow):
         config.custom_content.append(('accounting_group', self.accounting_group))
         config.custom_content.append(("universe", "docker"))
         config.custom_content.append(("docker_image", self.docker_image))
-        # tarball_dir = os.path.abspath(f"{main_dir}/tarballs/{self.version}")
-        # tarball_local = law.LocalFileTarget(
-        #     os.path.join(
-        #         tarball_dir,
-        #         self.__class__.__name__,
-        #         "TauMLTools.tar.gz",
-        #     )
-        # )
-        # if not tarball_local.exists():
-        #     tarball_local.parent.touch()
-        #     excludes = ["./.[^.]*", "./Analysis", "./Production", "./Evaluation", "./Core", "./Training", "./RunKit", "./soft", "./data", "./tarballs", "*/outputs", "*/mlruns", "__pycache__"]
-        #     exclude_str = " ".join([f"--exclude={ex}" for ex in excludes])
-        #     os.system(f'tar {exclude_str} -czf {tarball_local.path}  .')
-        #     tarball_local.parent.touch()
-        # config.input_files["Tau_tar"] = law.JobInputFile(tarball_local.path, render=False, copy=False)
-        # else:
-        #     raise Exception('no specific setups for {self.comp_facility} computing facility')
-
-        # if self.comp_facility != "ETP":
-        #     config.custom_content.append(("getenv", "true"))
-        # config.render_variables["environment"] = self.environment
         config.render_variables["LOCAL_TIMESTAMP"] = startup_time
-        config.custom_content.append(('JobBatchName'  , self.batch_name))
+        HTC_name = self.version + "_" + str(branches)
+        config.custom_content.append(('JobBatchName'  , HTC_name))
         config.custom_content.append(("error" , '/'.join([err_dir, 'err_{}.txt'.format(job_num)])))
         config.custom_content.append(("output", '/'.join([out_dir, 'out_{}.txt'.format(job_num)])))
         config.custom_content.append(("log"   , '/'.join([log_dir, 'log_{}.txt'.format(job_num)])))
         # config.custom_content.append(("stream_error", "True"))
         # config.custom_content.append(("stream_output", "True"))
+        tarball_dir = os.path.abspath(f"tarballs/{self.version}")
+        tarball_local = law.LocalFileTarget(
+            os.path.join(
+                tarball_dir,
+                self.__class__.__name__,
+                "TauMLTools.tar.gz",
+            )
+        )
+        if not tarball_local.exists():
+            tarball_local.parent.touch()
+            excludes = ["./.[^.]*", "./Analysis", "./Production", "./Evaluation", "./Core", "./Preprocessing", "./RunKit", "./soft", "./data", "./tarballs", "*/outputs", "*/mlruns", "__pycache__"]
+            exclude_str = " ".join([f"--exclude={ex}" for ex in excludes])
+            os.system(f'tar {exclude_str} -czf {tarball_local.path}  .')
+        config.input_files["Tau_tar"] = law.JobInputFile(tarball_local.path, render=False, copy=False)
         return config
-
-
-    # def __init__(self, *args, **kwargs):
-    #     ''' run the conversion of .root files to tensorflow datasets
-    #     '''
-    #     super(RootToTF, self).__init__(*args, **kwargs)
-    #     # the task is re-init on the condor node, so os.path.abspath would refer to the condor node root directory
-    #     # re-instantiating luigi parameters bypasses this and allows to pass local paths to the condor job
-    #     rel_cfg = os.path.relpath(self.cfg, f"{os.getenv('ANALYSIS_PATH')}/LawWorkflows")
-    #     with initialize(config_path=os.path.dirname(rel_cfg)):
-    #         self.cfg_dict = compose(config_name=os.path.basename(rel_cfg))
-    #     input_data  = OmegaConf.to_object(self.cfg_dict['input_data'])
-    #     self.dataset_cfg = input_data[self.dataset_type]
-
-    # def create_branch_map(self):
-    #     from mass_copy import remote_glob
-    #     _files = self.dataset_cfg.pop('files')
-    #     files = []
-    #     for file_path in _files:
-    #         files += remote_glob(file_path)
-    #     assert len(files), "Input file list is empty: {}".format(_files)
-    #     branch_map = {i: j for i,j in enumerate(files)}
-    #     print(branch_map)
-    #     return branch_map
-
-
-    # def output(self):
-    #     file_path = self.branch_data
-    #     file_name = os.path.splitext(os.path.basename(file_path))[0]
-    #     output_target = self.remote_directory_target(file_name)
-    #     output_target.parent.touch()
-    #     return output_target
-
-    # def run(self):
-    #     from create_dataset import process_files as run_job
-    #     file_path = self.branch_data
-    #     file_name = os.path.splitext(os.path.basename(file_path))[0]
-    #     temp_output_folder = os.path.abspath('./temp/{}'.format(file_name))
-    #     self.cfg_dict['path_to_dataset'] = temp_output_folder
-    #     print(f"file_path = {file_path}")
-    #     result = run_job(
-    #         cfg           = self.cfg_dict     ,
-    #         files         = [file_path]  ,
-    #         dataset_cfg   = self.dataset_cfg  ,
-    #     )
-    #     if not result:
-    #         raise Exception('job {} failed'.format(self.branch))
-    #     else:
-    #         copy_files_to_remote(law.LocalDirectoryTarget(temp_output_folder), self.output().parent)
-    #         print('Output files moved to {}'.format(self.output().path))
-

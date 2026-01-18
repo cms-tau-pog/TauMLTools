@@ -189,7 +189,7 @@ action() {
 
   if [[ $MODE == *"conda"* ]]; then
 
-    ENV_NAME="tau-ml"
+    ENV_NAME="tau-ml-TV"
 
     if [[ ! -z ${PARSED_ENV_PATH} ]]; then
       ENV_PATH="$(realpath ${PARSED_ENV_PATH})"

@@ -1,6 +1,8 @@
 from tensorflow.keras.layers import Dense, Embedding
 import tensorflow as tf
 
+relax_shapes = False
+
 class FeatureEmbedding(tf.keras.layers.Layer):
     def __init__(self, feature_idx_to_select, shared_cat_feature_idx, shared_cat_dim_in, shared_cat_dim_out, hidden_dim, activation, out_dim):
         super().__init__()
@@ -14,6 +16,7 @@ class FeatureEmbedding(tf.keras.layers.Layer):
         self.dense_out = [Dense(out_dim, activation=activation) for _ in range(self.n_particle_types)]
         self.shared_embedding = Embedding(shared_cat_dim_in, shared_cat_dim_out)
         
+    @tf.function(experimental_relax_shapes=relax_shapes)
     def call(self, inputs):
         outputs = []
         for i, x in enumerate(inputs): # NB: assumes that len(inputs)==len(feature_idx_to_select), so make sure to align this in the model call()  

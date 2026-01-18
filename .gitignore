@@ -19,3 +19,10 @@ __init__.py
 /tmp
 /tarballs
 environment.location
+*.code-workspace
+/.cache
+/.conda
+/.anaconda
+/.python_history
+/mlruns
+*.code-workspace

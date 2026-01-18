@@ -3,38 +3,38 @@ hydra: # disable usage of hydra log directory as cwd
     chdir: False
 
 defaults:
-  - model@model: ???
+  - model@model: transformer
+  - input_files: ???
   - _self_
 
 # mlflow
 path_to_mlflow: ./mlruns
 experiment_name: ???
+run_name: ???
 
 # datasets
-dataset_name: ??? # to log to mlflow for bookkeeping
-datasets: 
-  train:
-    ???: # will take all files from "train" subfolder of this dataset
-      path_to_dataset: ./datasets
-  val:
-    ???: # will take all files from "val" subfolder of this dataset
-      path_to_dataset: ./datasets
-
-input_dataset_cfg: "../../../Preprocessing/root2tf/datasets/${dataset_name}/cfg.yaml" # will fetch feature names and labels from here
+dataset_name: null # to log to mlflow for bookkeeping
 
 # TF dataset formation
 tf_dataset_cfg:
+  datasets_location:
+    training: "data/train/"
+    validation: "data/val/"
+    dataset_cfg: "data/cfg.yaml"
   combine_via: interleave # options: interleave, sampling
   n_threads: 10 # without controlling it may throw thread limit exception
+  batching: smart # standard // smart // token
   smart_batching_step: 10 # null to disable smart batching and use a standard one
   sequence_length_dist_start: 0 # for smart batching
   sequence_length_dist_end: 300 # for smart batching
-  shuffle_buffer_size: 40000 # null to not shuffle
-  shuffle_smart_buffer_size: 1000
+  # tokens_per_batch: 180000
+  shuffle_buffer_size: 4000 # null to not shuffle
+  shuffle_smart_buffer_size: 100
   cache: null # null to not cache the training dataset
-  train_batch_size: 128
-  val_batch_size: 128
+  train_batch_size: 350
+  val_batch_size: 350
   classes: ["tau", "e", "mu", "jet"] # will pick only those labels (in this order)
+  scaler: True
 
 # LR schedule
 schedule: null # custom // null // decrease
@@ -53,11 +53,36 @@ beta_1: 0.9 # only for adam/adamw/radam
 beta_2: 0.999 # only for adam/adamw/radam
 epsilon: 1e-7 # only for adam/adamw/radam
 
+global_max_tokens: none
+global_sort_by: none
+filter_type: first
+
+# filters:
+#   pfCand:
+#     r:
+#       max: 0.5
+#     # max_tokens: val  # Optional: Maximum number of tokens to keep
+#   muon:
+#     r:
+#       max: 0.5
+#   ele:
+#     r:
+#       max: 0.5
+
+
 # training
 n_epochs: 1
 min_delta: 0.0001
-patience: 3
+patience: 10
 
-# gpu
-gpu_id: 0
-memory_limit: 10 # in Gb
+# GPU settings
+# gpu: "0"
+gpu: "0" #,1" #,2,3" #,4,5,6,7"
+#"0,1"
+#,2,3,4,5,6,7"
+
+# CPU settings
+cpu:
+  cores: 16
+  intra: 8
+  inter: 8
