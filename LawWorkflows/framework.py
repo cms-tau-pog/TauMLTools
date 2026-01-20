@@ -402,7 +402,7 @@ class HTCondorTOpASWorkflow(HTCondorTOpASWorkflowParameters, HTCondorWorkflow, l
         )
         if not tarball_local.exists():
             tarball_local.parent.touch()
-            excludes = ["./.[^.]*", "./Analysis", "./Production", "./Evaluation", "./Core", "./Preprocessing", "./RunKit", "./soft", "./data", "./tarballs", "*/outputs", "*/mlruns", "__pycache__"]
+            excludes = ["./.[^.]*", "./Analysis", "./Production", "./Core", "./Preprocessing", "./RunKit", "./soft", "./data", "./tarballs", "*/outputs", "*/mlruns", "__pycache__"]
             exclude_str = " ".join([f"--exclude={ex}" for ex in excludes])
             os.system(f'tar {exclude_str} -czf {tarball_local.path}  .')
         config.input_files["Tau_tar"] = law.JobInputFile(tarball_local.path, render=False, copy=False)

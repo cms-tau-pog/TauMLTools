@@ -19,6 +19,7 @@ import numpy as np
 import mlflow
 import os
 import yaml
+import pickle
 
 def filter_by_features(data, filter_cfg, input_dataset_cfg, token_selection_mode="first"):
     """
@@ -143,7 +144,7 @@ def compose_datasets_train_val(cfg, n_gpu, input_dataset_cfg, use_strategy):
         val_data = compose_datasets(cfg, input_dataset_cfg, "val", scaling_data)
         num_train_steps = None
         num_val_steps = None
-    return train_data, val_data, num_train_steps, num_val_steps #, scaling_data
+    return train_data, val_data, num_train_steps, num_val_steps, scaling_data
 
 # Experimental
 def merge_dicts(d1, d2):
@@ -246,7 +247,7 @@ def compose_datasets(cfg, input_dataset_cfg, data_type, scaling_data, input_cont
 
     return data
 
-def log_to_mlflow(model, cfg, scaler_data=None):
+def log_to_mlflow(model, cfg, scaling_data=None):
     """
     Log model artifacts, parameters, and metrics to MLflow.
 
@@ -300,13 +301,13 @@ def log_to_mlflow(model, cfg, scaler_data=None):
         mlflow.log_param('decrease_every', cfg['decrease_every'])
         mlflow.log_param('decrease_by', cfg['decrease_by'])
 
-    # # Save scaler as artifact if provided
-    # if scaler_data is not None:
-    #     scaler_path = os.path.join(path_to_hydra_logs, "scaler.pkl")
-    #     with open(scaler_path, "wb") as f:
-    #         pickle.dump(scaler_data, f)
-    #     mlflow.log_artifact(scaler_path, artifact_path="scaler")
-    #     print(f"Scaler saved and logged to MLflow: {scaler_path}")
+    # Save scaler as artifact if provided
+    if scaling_data is not None:
+        scaler_path = f'{path_to_hydra_logs}/scaler_{cfg["dataset_name"]}.pkl'
+        with open(scaler_path, "wb") as f:
+            pickle.dump(scaling_data, f)
+        mlflow.log_artifact(scaler_path) #, artifact_path="scaler")
+        print(f"Scaler saved and logged to MLflow: {scaler_path}")
 
     # log N trainable params
     summary_list = []
@@ -632,16 +633,16 @@ def setup_scaler(cfg, input_dataset_cfg, data_type):
         alt_type = "validation"
     # Get list of training cfg files
     tf_dataset_cfg=cfg["tf_dataset_cfg"]
-    scaler_data = {}
+    scaling_data = {}
     files = [os.path.join(tf_dataset_cfg["datasets_location"][alt_type], os.path.basename(f)) for f in cfg["input_files"][data_type]][:45]
     for file in files:
         key = os.path.basename(file)
         with open(f"{file}/cfg.yaml", 'rb') as f:
-            scaler_data[key] = yaml.safe_load(f)["scaling_data"]
+            scaling_data[key] = yaml.safe_load(f)["scaling_data"]
     # Merge statistics
-    merged_scaler_data = merge_statistics(scaler_data, input_dataset_cfg['feature_names'])
+    merged_scaling_data = merge_statistics(scaling_data, input_dataset_cfg['feature_names'])
     # Sum of event counts
-    num_events = merged_scaler_data["global"]["particle_type"]["count"]
+    num_events = merged_scaling_data["global"]["particle_type"]["count"]
     # Only calc stat data for training data
     if data_type == "val":
         return None, num_events
@@ -649,8 +650,8 @@ def setup_scaler(cfg, input_dataset_cfg, data_type):
         # Special treatment for "particle_type" feature as it is categorical and shared between collections
         for collection in input_dataset_cfg['feature_names']:
             if "particle_type" in input_dataset_cfg['feature_names'][collection]:
-                merged_scaler_data[collection]["particle_type"]["mean"] = 0.
-                merged_scaler_data[collection]["particle_type"]["std"] = 1.
+                merged_scaling_data[collection]["particle_type"]["mean"] = 0.
+                merged_scaling_data[collection]["particle_type"]["std"] = 1.
         # Turn merged statistics into lists
         scaling_means = []
         scaling_stds = []
@@ -658,19 +659,19 @@ def setup_scaler(cfg, input_dataset_cfg, data_type):
             scaling_means.append([])
             scaling_stds.append([])
             for variable in input_dataset_cfg['feature_names'][collection]:
-                scaling_means[i_col].append(merged_scaler_data[collection][variable]["mean"])
-                scaling_stds[i_col].append(merged_scaler_data[collection][variable]["std"])
+                scaling_means[i_col].append(merged_scaling_data[collection][variable]["mean"])
+                scaling_stds[i_col].append(merged_scaling_data[collection][variable]["std"])
         # Ensure proper shape
         scaling_means = [tf.reshape(tf.constant(mean, dtype=tf.float32), [1, 1, -1]) for mean in scaling_means]
         scaling_stds = [tf.reshape(tf.constant(std, dtype=tf.float32), [1, 1, -1]) for std in scaling_stds]
         return (scaling_means, scaling_stds), num_events
 
-def merge_statistics(scaler_data, feature_names):
+def merge_statistics(scaling_data, feature_names):
     """
     Merge multiple statistics dictionaries for feature scaling.
 
     Args:
-        scaler_data (dict): Dictionary of statistics from multiple files
+        scaling_data (dict): Dictionary of statistics from multiple files
         feature_names (dict): Dictionary mapping collection names to feature lists
 
     Returns:
@@ -684,7 +685,7 @@ def merge_statistics(scaler_data, feature_names):
             merged_stats[collection][variable] = {
                     "mean": 0.0, "std": 0.0, "min": float("inf"), "max": float("-inf"), "count": 0
                 }
-            for file_stats in scaler_data.values():
+            for file_stats in scaling_data.values():
                 # Get existing values
                 values = file_stats[collection][variable]
                 count_old = merged_stats[collection][variable]["count"]

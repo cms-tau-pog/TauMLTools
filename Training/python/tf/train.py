@@ -149,7 +149,7 @@ def main(cfg: DictConfig) -> None:
         os.makedirs(checkpoint_path, exist_ok=True)
         with use_strategy.scope():
             # load datasets
-            train_data, val_data, num_train_steps, num_val_steps = compose_datasets_train_val(cfg, gpu_multiply, input_dataset_cfg, use_strategy)
+            train_data, val_data, num_train_steps, num_val_steps, scaling_data = compose_datasets_train_val(cfg, gpu_multiply, input_dataset_cfg, use_strategy)
 
             # define model
             feature_name_to_idx = {}
@@ -248,30 +248,6 @@ def main(cfg: DictConfig) -> None:
                 opt = tfa.optimizers.RectifiedAdam(weight_decay=cfg['weight_decay'], learning_rate=learning_rate, beta_1=cfg['beta_1'], beta_2=cfg['beta_2'], epsilon=cfg['epsilon'])
             else:
                 raise RuntimeError(f"Unknown value for optimiser: {cfg['optimiser']}. Only \'sgd\' and \'adam\' are supported.")
-            # opt = mixed_precision.LossScaleOptimizer(opt, dynamic=True)
-
-
-            # class GarbageCollectionCallback(tf.keras.callbacks.Callback):
-            #     def on_epoch_end(self, epoch, logs=None):
-            #         gc.collect()
-            #         print(f"Epoch {epoch + 1}: Garbage collection completed.")
-
-            # class RemoteCheckpoint(tf.keras.callbacks.Callback):
-            #     def __init__(self, remote_path, local_path, save_freq=1):
-            #         super(RemoteCheckpoint, self).__init__()
-            #         self.remote_path = remote_path
-            #         self.local_path = local_path
-            #         self.save_freq = save_freq
-            #         os.makedirs(local_path, exist_ok=True)
-
-            #     def on_epoch_end(self, epoch, logs=None):
-            #         if (epoch + 1) % self.save_freq == 0:
-            #             remote_checkpoint_path = f"{self.remote_path}/epoch_{epoch+1}.zip"
-            #             self.upload_checkpoint(self.local_path, remote_checkpoint_path, epoch)
-
-            #     def upload_checkpoint(self, local_path, remote_path, epoch):
-            #         shutil.make_archive(f"epoch_{epoch}", "zip", local_path)
-            #         mass_copy.mass_copy(f"epoch_{epoch}.zip", remote_path) # broken
 
             # callbacks, compile, fit
             early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', min_delta=cfg["min_delta"], patience=cfg["patience"], mode='auto', restore_best_weights=True)
@@ -301,7 +277,7 @@ def main(cfg: DictConfig) -> None:
         end_time = time.time()
         print("Runtime: {}".format(end_time-start_time))
         # log info
-        log_to_mlflow(model, cfg)
+        log_to_mlflow(model, cfg, scaling_data)
         mlflow.log_param('run_id', run_id)
         mlflow.log_artifacts(checkpoint_path, "checkpoints")
         shutil.rmtree(checkpoint_path)

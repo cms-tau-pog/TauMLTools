@@ -5,8 +5,10 @@ import law
 import os
 import re
 import tarfile
+import shutil
 # import math
 # import select
+import yaml
 from hydra import compose, initialize
 from .framework import HTCondorTOpASWorkflow, HTCondorTOpASWorkflowParameters
 import luigi
@@ -87,153 +89,131 @@ class Training(HTCondorTOpASWorkflow):
             ),
             run_location=working_dir
         )
-
 class MLflowLogTraining(HTCondorTOpASWorkflowParameters):
     """
     Local Task to merge mlruns tarballs from the remote Training branches.
-    Uses MLflow bindings to verify completion by checking for matching
-    experiment and run names in the local storage.
+    Merges runs into existing experiments if names match, and fixes all metadata.
     """
 
     input_cmds = luigi.Parameter(description='Path to the txt file with input commands.')
     mlruns_dir = luigi.Parameter(description='Path to the local central mlruns directory.')
 
     def requires(self):
-        # Trigger/Require the Training workflow
         return Training.req(self)
 
     def output(self):
-        """
-        Uses MLflow API to check if the specific experiment and run name
-        already exist in the local mlruns directory.
-        """
         training_task = self.requires()
         branch_map = training_task.branch_map
-
-        # Set the MLflow tracking URI to the local directory
         local_uri = f"file:{os.path.abspath(self.mlruns_dir)}"
         client = mlflow.tracking.MlflowClient(tracking_uri=local_uri)
 
         outputs = {}
         for branch, data in branch_map.items():
             cmd = data["command"]
-
-            # Extract names from the command line strings
             exp_match = re.search(r"experiment_name=(\S+)", cmd)
             run_match = re.search(r"run_name=(\S+)", cmd)
 
             if not (exp_match and run_match):
                 raise ValueError(f"{cmd} does not contain experiment and run names.")
 
-            exp_name = exp_match.group(1)
-            run_name = run_match.group(1)
-
-            # Use MLflow bindings to search for existing run
+            exp_name, run_name = exp_match.group(1), run_match.group(1)
             found_target = None
             try:
                 experiment = client.get_experiment_by_name(exp_name)
                 if experiment:
-                    # Filter runs by the specific run_name tag/attribute
                     runs = client.search_runs(
                         experiment_ids=[experiment.experiment_id],
                         filter_string=f"tags.mlflow.runName = '{run_name}'"
                     )
                     if runs:
-                        # If found, the output target is the actual directory on disk
                         run_id = runs[0].info.run_id
                         found_target = law.LocalFileTarget(os.path.join(self.mlruns_dir, experiment.experiment_id, run_id))
             except Exception:
-                pass # Fallback to incomplete if API calls fail
-
-            # If not found via API, provide a path that won't exist yet to force 'run()'
+                pass
             outputs[branch] = found_target or law.LocalFileTarget(f"{self.mlruns_dir}/needed_{exp_name}_{run_name}")
-        print("HERE", outputs)
+
         return law.TargetCollection(outputs)
 
     def run(self):
-        # 1. Access the collection of tarballs from Training
         branch_targets = self.input().collection.targets.values()
-
-        # 2. Define the central local directory
-        extract_parent = os.path.dirname(self.mlruns_dir)
+        local_uri = f"file:{self.mlruns_dir}"
+        client = mlflow.tracking.MlflowClient(tracking_uri=local_uri)
 
         if not os.path.exists(self.mlruns_dir):
             os.makedirs(self.mlruns_dir, exist_ok=True)
 
-        self.publish_message(f"Merging {len(branch_targets)} tarballs into {self.mlruns_dir}")
+        self.publish_message(f"Starting merge into {self.mlruns_dir}")
 
-        # Keep track of newly extracted IDs to only patch what we just updated
-        new_experiment_ids = set()
-        new_run_ids = set()
+        patched_runs = [] # List of (local_exp_id, run_id)
 
-        # 3. Extract all tarballs
-        success_count = 0
         for target in branch_targets:
-            tar_path = target.path
-            if not target.exists() or target.stat().st_size < 500:
-                continue
+            with tarfile.open(target.path, "r:gz") as tar:
+                # 1. Map remote experiment IDs to local IDs by checking names
+                id_map = {} # {remote_id: local_id}
 
-            try:
-                with tarfile.open(tar_path, "r:gz") as tar:
-                    if not tar.getmembers():
+                # Pre-scan tar for experiment meta files to establish mapping
+                for member in tar.getmembers():
+                    if member.name.endswith("meta.yaml") and member.name.count('/') == 2:
+                        # This is an experiment meta file: mlruns/<id>/meta.yaml
+                        f = tar.extractfile(member)
+                        meta = yaml.safe_load(f)
+                        remote_name = meta.get("name")
+                        print("HERE", remote_name)
+                        remote_id = member.name.split('/')[1]
+
+                        if remote_id in ["0", ".trash"]: continue
+
+                        # Check if this experiment exists locally
+                        local_exp = client.get_experiment_by_name(remote_name)
+                        if local_exp:
+                            id_map[remote_id] = local_exp.experiment_id
+                        else:
+                            # If it doesn't exist, it will be extracted as-is
+                            id_map[remote_id] = remote_id
+
+                # 2. Extract and Redirect
+                for member in tar.getmembers():
+                    parts = member.name.strip("/").split("/")
+                    if len(parts) < 2 or parts[0] != "mlruns" or parts[1] in ["0", ".trash"]:
                         continue
 
-                    # Track IDs from tar content before extraction
-                    for member in tar.getmembers():
-                        parts = member.name.strip("/").split("/")
-                        if len(parts) >= 2 and parts[0] == "mlruns":
-                            # Track valid Experiment and Run IDs
-                            new_experiment_ids.add(parts[1])
-                            if len(parts) >= 3:
-                                new_run_ids.add((parts[1], parts[2]))
+                    remote_exp_id = parts[1]
+                    local_exp_id = id_map.get(remote_exp_id, remote_exp_id)
 
-                    tar.extractall(path=extract_parent)
-                    success_count += 1
-            except Exception as e:
-                print(f"Failed to process {tar_path}: {e}")
+                    # Construct new local path
+                    rel_parts = [local_exp_id] + parts[2:]
+                    dest_path = os.path.join(self.mlruns_dir, *rel_parts)
 
-        # 4. Use MLflow bindings/File system to fix paths in meta files
-        self.publish_message("Fixing artifact URIs for new runs and experiments...")
+                    if member.isdir():
+                        os.makedirs(dest_path, exist_ok=True)
+                    else:
+                        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                        with tar.extractfile(member) as source, open(dest_path, "wb") as target_file:
+                            shutil.copyfileobj(source, target_file)
 
-        try:
-            # First, fix Experiment meta files for the newly inserted experiments
-            for exp_id in new_experiment_ids:
-                exp_meta_path = os.path.join(self.mlruns_dir, exp_id, "meta.yaml")
-                if os.path.exists(exp_meta_path):
-                    with open(exp_meta_path, 'r') as f:
-                        content = f.read()
+                        # Track if this was a run directory for patching
+                        if len(parts) >= 3:
+                            patched_runs.append((local_exp_id, parts[2]))
 
-                    # Fix experiment-level artifact_location
-                    local_exp_uri = f"file:{self.mlruns_dir}/{exp_id}"
-                    new_content = re.sub(
-                        r'artifact_location:.*',
-                        f'artifact_location: {local_exp_uri}',
-                        content
-                    )
+        # 3. Patch Metadata (Experiment and Run levels)
+        self.publish_message("Patching metadata for merged consistency...")
+        unique_runs = list(set(patched_runs))
+        unique_exps = list(set([r[0] for r in unique_runs]))
 
-                    if new_content != content:
-                        with open(exp_meta_path, 'w') as f:
-                            f.write(new_content)
+        for exp_id in unique_exps:
+            meta_path = os.path.join(self.mlruns_dir, exp_id, "meta.yaml")
+            if os.path.exists(meta_path):
+                with open(meta_path, 'r') as f: meta = yaml.safe_load(f)
+                meta["artifact_location"] = f"file:{self.mlruns_dir}/{exp_id}"
+                meta["experiment_id"] = exp_id
+                with open(meta_path, 'w') as f: yaml.safe_dump(meta, f)
 
-            # Second, fix Run meta files for the newly inserted runs
-            for exp_id, run_id in new_run_ids:
-                run_meta_path = os.path.join(self.mlruns_dir, exp_id, run_id, "meta.yaml")
-                if os.path.exists(run_meta_path):
-                    with open(run_meta_path, 'r') as f:
-                        content = f.read()
+        for exp_id, run_id in unique_runs:
+            meta_path = os.path.join(self.mlruns_dir, exp_id, run_id, "meta.yaml")
+            if os.path.exists(meta_path):
+                with open(meta_path, 'r') as f: meta = yaml.safe_load(f)
+                meta["artifact_uri"] = f"file:{self.mlruns_dir}/{exp_id}/{run_id}/artifacts"
+                meta["experiment_id"] = exp_id
+                with open(meta_path, 'w') as f: yaml.safe_dump(meta, f)
 
-                    local_run_artifact_uri = f"file:{self.mlruns_dir}/{exp_id}/{run_id}/artifacts"
-                    new_content = re.sub(
-                        r'artifact_uri:.*',
-                        f'artifact_uri: {local_run_artifact_uri}',
-                        content
-                    )
-
-                    if new_content != content:
-                        with open(run_meta_path, 'w') as f:
-                            f.write(new_content)
-
-        except Exception as e:
-            print(f"Warning: Failed to fix some MLflow metadata paths: {e}")
-
-        self.publish_message(f"Successfully merged and patched {success_count} runs.")
+        self.publish_message("Merge complete.")
