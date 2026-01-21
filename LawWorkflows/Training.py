@@ -30,7 +30,6 @@ class Training(HTCondorTOpASWorkflow):
 
     def create_branch_map(self):
         # Opening file
-        print(f"Reading commands from file: {self.input_cmds}")
         self.cmds_list = {}
 
         required_keys = {

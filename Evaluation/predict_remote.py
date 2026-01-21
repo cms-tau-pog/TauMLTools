@@ -17,11 +17,7 @@ def main(cfg: DictConfig) -> None:
     print(flat_dir)
     # Batch job setup
     print('\n-> Loading model\n')
-    path_to_artifacts = os.path.abspath(f"{flat_dir}/artifacts")
-    if cfg.get("checkpoint"):
-        path_to_model = os.path.abspath(f'{path_to_artifacts}/checkpoints/{cfg["checkpoint"]}')
-    else:
-        path_to_model = os.path.abspath(f'{path_to_artifacts}/model/')
+    path_to_model = os.path.abspath(f'{flat_dir}/artifacts/model/')
     model = load_model(path_to_model)
     print(model)
 

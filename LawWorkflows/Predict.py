@@ -7,7 +7,7 @@ import tarfile
 import mlflow
 import tempfile
 from hydra import compose, initialize
-from .framework import HTCondorTOpASWorkflow
+from .framework import HTCondorTOpASWorkflow, HTCondorTOpASWorkflowParameters
 from .Training import MLflowLogTraining
 from LawWorkflows.mass_copy import mass_copy
 from hydra.utils import to_absolute_path
@@ -16,7 +16,7 @@ class Predict(HTCondorTOpASWorkflow):
     """
     HTCondor Workflow to run predictions.
     Matches training runs with prediction tasks using the original training commands,
-    packs the required model/checkpoint and scaler, and runs the prediction on HTCondor.
+    packs the required model and scaler, and runs the prediction on HTCondor.
     """
 
     predict_cfg = luigi.Parameter(
@@ -32,7 +32,7 @@ class Predict(HTCondorTOpASWorkflow):
 
     def create_branch_map(self):
         # Opening file
-        print(f"Reading commands from file: {self.training_cmds}")
+        # print(f"Reading commands from file: {self.training_cmds}")
         self.cmds_list = {}
 
         required_keys = {
@@ -54,7 +54,7 @@ class Predict(HTCondorTOpASWorkflow):
         return self.cmds_list
 
     def output(self):
-        return self.local_target("files/predict_{}To{}.tar.gz".format(self.branch, int(self.branch) + 1))
+        return self.local_target("files/prediction_{}To{}.tar.gz".format(self.branch, int(self.branch) + 1))
 
     def htcondor_job_config(self, config, job_num, branches):
         # print(branches, job_num)
@@ -89,13 +89,8 @@ class Predict(HTCondorTOpASWorkflow):
         artifact_path = os.path.join(self.mlruns_dir, exp.experiment_id, run_id, "artifacts")
 
         # Determine target model path
-        checkpoint_name = p_cfg.get("checkpoint")
-        if checkpoint_name:
-            model_src = os.path.join(artifact_path, "checkpoints", checkpoint_name)
-            arc_model_name = f"checkpoints/{checkpoint_name}*"
-        else:
-            model_src = os.path.join(artifact_path, "model")
-            arc_model_name = "model"
+        model_src = os.path.join(artifact_path, "model")
+        arc_model_name = "model"
 
         # Pack the artifacts for this specific job
         tarball_dir = os.path.abspath(f"tarballs/{self.version}")
@@ -162,8 +157,6 @@ class Predict(HTCondorTOpASWorkflow):
     def run(self):
         # Remote Execution on the worker node
         working_dir = "Evaluation"
-        # exp_name = self.branch_data["experiment_name"]
-        # run_name = self.branch_data["run_name"]
 
         # Unpack prediction package with config + model + scaler
         self.run_command(
@@ -192,11 +185,92 @@ class Predict(HTCondorTOpASWorkflow):
         self.run_command(
             f"tar -czf ${{LAW_JOB_INIT_DIR}}/prediction_{self.branch}To{int(self.branch) + 1}.tar.gz predictions",
         )
+        self.publish_message("Prediction complete.")
 
-        # # Run the prediction script
-        # self.run_command_readable(cmd)
 
-        # # Move output to the expected law target location
-        # output_target = self.output()
-        # output_target.parent.touch()
-        # self.run_command(f"mv predictions.tar.gz {output_target.path}")
+class MLflowLogPredictions(HTCondorTOpASWorkflowParameters):
+    """
+    Collects prediction tarballs from the Predict task and merges them
+    into the local MLflow mlruns directory.
+    """
+    predict_cfg = luigi.Parameter(
+        description="Path to the yaml config defining files for prediction."
+    )
+    training_cmds = luigi.Parameter(
+        description="Path to the txt file with original training commands to match models."
+    )
+    mlruns_dir = luigi.Parameter(
+        default="mlruns",
+        description="Path to the local central mlruns directory."
+    )
+
+    def requires(self):
+        return Predict.req(self)
+
+
+    def output(self):
+        predict_task = self.requires()
+        branch_map = predict_task.branch_map
+        local_uri = f"file:{os.path.abspath(self.mlruns_dir)}"
+        client = mlflow.tracking.MlflowClient(tracking_uri=local_uri)
+        position_from_law_dir = "../"
+
+        with initialize(version_base=None, config_path=position_from_law_dir + os.path.dirname(os.path.relpath(self.predict_cfg))):
+            cfg_data = compose(config_name=os.path.basename(self.predict_cfg))
+        test_datasets = cfg_data["test_datasets"].keys()
+
+        outputs = {}
+        for branch, branch_data in branch_map.items():
+            exp_name = branch_data["experiment_name"]
+            run_name = branch_data["run_name"]
+            # input_files = branch_data["input_files"]
+
+            experiment = client.get_experiment_by_name(exp_name)
+            if not experiment:
+                raise ValueError(f"Experiment {exp_name} not found in {self.mlruns_dir}")
+            runs = client.search_runs(
+                experiment_ids=[experiment.experiment_id],
+                filter_string=f"tags.mlflow.runName = '{run_name}'"
+            )
+            if not runs:
+                raise ValueError(f"Run {run_name} not found in {self.mlruns_dir}")
+            run_id = runs[0].info.run_id
+            run_path = os.path.join(self.mlruns_dir, experiment.experiment_id, run_id)
+            predict_targets = {}
+            for test_dataset in test_datasets:
+                predict_targets[test_dataset] = law.LocalFileTarget(os.path.join(run_path, "artifacts/predictions", test_dataset))
+            outputs[branch] = law.SiblingFileCollection(predict_targets)
+
+        return outputs
+
+    def run(self):
+        predict_task = self.requires()
+        branch_map = predict_task.branch_map
+        local_uri = f"file:{os.path.abspath(self.mlruns_dir)}"
+        client = mlflow.tracking.MlflowClient(tracking_uri=local_uri)
+
+        for branch, branch_data in branch_map.items():
+            exp_name = branch_data["experiment_name"]
+            run_name = branch_data["run_name"]
+
+            experiment = client.get_experiment_by_name(exp_name)
+            if not experiment:
+                raise ValueError(f"Experiment {exp_name} not found in {self.mlruns_dir}")
+            runs = client.search_runs(
+                experiment_ids=[experiment.experiment_id],
+                filter_string=f"tags.mlflow.runName = '{run_name}'"
+            )
+            if not runs:
+                raise ValueError(f"Run {run_name} not found in {self.mlruns_dir}")
+            run_id = runs[0].info.run_id
+            artifact_path = os.path.join(self.mlruns_dir, experiment.experiment_id, run_id, "artifacts")
+
+            prediction_tar = predict_task.output().collection[branch]
+
+            with prediction_tar.localize("r") as local_tar:
+                with tarfile.open(local_tar.path, "r:gz") as tar:
+                    tar.extractall(path=artifact_path)
+                    print(f"Unpacked predictions for branch {branch} into {artifact_path}")
+
+        self.publish_message("Prediction merge complete.")
+
