@@ -6,7 +6,7 @@ wp_maker:
       VVTight: 0.6
       VTight: 0.7
       Tight: 0.8
-      Medium: 0.9 
+      Medium: 0.9
       Loose: 0.95
       VLoose: 0.98
       VVLoose: 0.99
@@ -18,63 +18,99 @@ wp_maker:
       VLoose: 0.9995
     jet:
       VVTight: 0.4
-      VTight: 0.5 
+      VTight: 0.5
       Tight: 0.6
       Medium: 0.7
       Loose: 0.8
       VLoose: 0.9
       VVLoose: 0.95
       VVVLoose: 0.98
-    
-  tpr_step: 0.0001 # will evenly sample grid of values from 0 to 1 with step=tpr_step
-  require_wp_vs_others: True # if in computation of WP thresholds for a given `vs_type` taus should pass WPs from `WPs_to_require` against remaining `vs_types` 
+
+  tpr_step: 0.000001 # will evenly sample grid of values from 0 to 1 with step=tpr_step
+  require_wp_vs_others: False # if in computation of WP thresholds for a given `vs_type` taus should pass WPs from `WPs_to_require` against remaining `vs_types`
   WPs_to_require:
     e: VVVLoose
     mu: VLoose
     jet: VVVLoose
-  
+
   # convergence params
-  epsilon: 1e-5
+  epsilon: 1e-7
   n_iterations: 100
   verbose: False
-  rounding: 4
+  rounding: 6
+
+output_name: working_points_merge.json
 
 create_df:
   _target_: __main__.create_df
 
   # path to prediction files
-  path_to_mlflow: ???
-  experiment_id: ???
-  run_id: ???
-  path_to_preds: "${create_df.path_to_mlflow}/${create_df.experiment_id}/${create_df.run_id}/artifacts/predictions/"
+  path_to_mlflow: /work/tvoigtlaender/thesis/ml/mlruns
+  experiment_name: TauT_TV_Thesis
+  run_name:
+  - 2025_mar_ensemble_2_r_2
+  - 2025_mar_ensemble_2_r_3
+  - 2025_mar_ensemble_2_r_4
+  - 2025_mar_ensemble_2_r_5
+  - 2025_mar_ensemble_2_r_6
+  - 2025_mar_ensemble_2_r_7
+  - 2025_mar_ensemble_2_r_8
+  - 2025_mar_ensemble_2_r_9
+  - 2025_mar_ensemble_2_o_1
+  - 2025_mar_ensemble_2_o_2
+  - 2025_mar_ensemble_2_o_3
+  - 2025_mar_scaling_6_1
+  - 2025_mar_scaling_6_2
+  - 2025_mar_scaling_6_3
+  - 2025_mar_scaling_6_4
+  - 2025_mar_scaling_6_5
+  - 2025_mar_scaling_6_6
+  - 2025_mar_scaling_6_7
+  - 2025_mar_scaling_6_8
+  - 2025_mar_scaling_6b_1
+  - 2025_apr_full_dataset_1_1
+  - 2025_apr_full_dataset_cut_rand_2_1
+  - 2025_apr_full_dataset_cut_rand_2_2
+  - 2025_apr_full_dataset_cut_rand_2_3
+  - 2025_apr_full_dataset_cut_rand_2_4
+  - 2025_apr_full_dataset_cut_rand_2_5
+  - 2025_mar_rcut_2_1
+  - 2025_apr_full_dataset_1_1_at7
+  - 2025_apr_full_dataset_1_1_at21
+  - 2025_apr_full_dataset_1_1_at47
+  path_to_preds: none
   tau_type_to_select: tau
-  pred_samples: # samples in `path_to_preds` to take taus from 
-    2016APVUL_GluGluHToTauTau_M125: 
-      filename_pattern: 'eventTuple_*.h5' # single files, list of files and "*" are supported 
-      sample_lumi: 19.52
-      reweight_to_lumi: 137.64 # total luminosity or `null` to skip reweighting
-    2016UL_GluGluHToTauTau_M125: 
-      filename_pattern: 'eventTuple_*.h5'
-      sample_lumi: 16.81
-      reweight_to_lumi: 137.64
-    2017UL_GluGluHToTauTau_M125: 
-      filename_pattern: 'eventTuple_*.h5'
-      sample_lumi: 41.48
-      reweight_to_lumi: 137.64
-    2018UL_GluGluHToTauTau_M125: 
-      filename_pattern: 'eventTuple_*.h5'
-      sample_lumi: 59.83
-      reweight_to_lumi: 137.64
+  pred_samples: # samples in `path_to_preds` to take taus from
+    # 2016APVUL_GluGluHToTauTau_M125:
+    #   filename_pattern: 'eventTuple_*.h5' # single files, list of files and "*" are supported
+    #   sample_lumi: 19.52
+    #   reweight_to_lumi: 137.64 # total luminosity or `null` to skip reweighting
+    # 2016UL_GluGluHToTauTau_M125:
+    #   filename_pattern: 'eventTuple_*.h5'
+    #   sample_lumi: 16.81
+    #   reweight_to_lumi: 137.64
+    # 2017UL_GluGluHToTauTau_M125:
+    #   filename_pattern: 'eventTuple_*.h5'
+    #   sample_lumi: 41.48
+    #   reweight_to_lumi: 137.64
+    # 2018UL_GluGluHToTauTau_M125:
+    #   filename_pattern: 'eventTuple_*.h5'
+    #   sample_lumi: 59.83
+    #   reweight_to_lumi: 137.64
+    GluGluHToTauTau_M125:
+      filename_pattern: 'eventTuple_*/predictions.h5'
+      # sample_lumi: 59.83
+      # reweight_to_lumi: 137.64
 
   # naming conventions of prediction files
   pred_group_name: predictions
-  pred_column_prefix: node_ # node_ // pred_
-  target_group_name: targets # targets // labels
-  target_column_prefix: node_ # node_ // label_
+  pred_column_prefix: pred_ # node_ // pred_
+  target_group_name: labels # targets // labels
+  target_column_prefix: label_ # node_ // label_
 
   # add columns to apply selection on
   # paths to input ROOT files will be retrieved from corresponding pred_input_filemap.json
-  add_columns_from: 'inputs' # either "predictions" or "inputs"
+  add_columns_from: 'predictions' # either "predictions" or "inputs"
   add_columns: [ 'tau_pt', 'tau_eta', 'tau_dz', 'tau_decayMode' ]
-  selection: '(tau_pt>=30) and (tau_pt<80) and (abs(tau_eta) < 2.3) and (abs(tau_dz) < 0.2) and not (tau_decayMode in [5,6])'
-  group_or_tree_name: taus # add_columns // taus -- either group name (add_columns_from=prediction) or tree name (add_columns_from=inputs)
+  selection: '(tau_pt>=20) and (tau_pt<100) and (abs(tau_eta) < 2.3) and (abs(tau_dz) < 0.2) and not (tau_decayMode in [5,6])'
+  group_or_tree_name: add_columns # add_columns // taus -- either group name (add_columns_from=prediction) or tree name (add_columns_from=inputs)
