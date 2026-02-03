@@ -9,6 +9,7 @@ class Era(Enum):
     Run2_2017 = 2
     Run2_2018 = 3
     Run3_2022 = 4
+    Run3_2024 = 5
     Phase2_110X = 100
     Phase2_111X = 101
     Phase2_113X = 102
@@ -29,6 +30,7 @@ _globalTagDict = {
     (Era.Run2_2018, SampleType.Data) : 'auto:run2_data',
     (Era.Run3_2022, SampleType.MC) : 'auto:phase1_2022_realistic',
     (Era.Run3_2022, SampleType.Data) : 'auto:run3_data',
+    (Era.Run3_2024, SampleType.MC) : '150X_mcRun3_2024_realistic_v2',
     (Era.Phase2_110X, SampleType.MC) : '110X_mcRun4_realistic_v3',
     (Era.Phase2_111X, SampleType.MC) : 'auto:phase2_realistic_T15',
     (Era.Phase2_113X, SampleType.MC) : 'auto:phase2_realistic_T15',
@@ -63,6 +65,9 @@ def getEraCfg(era):
         from Configuration.Eras.Era_Run2_2018_cff import Run2_2018
         return Run2_2018
     elif era == Era.Run3_2022:
+        from Configuration.Eras.Era_Run3_cff import Run3
+        return Run3
+    elif era == Era.Run3_2024:
         from Configuration.Eras.Era_Run3_cff import Run3
         return Run3
     elif isPhase2(era):

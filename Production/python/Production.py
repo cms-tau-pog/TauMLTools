@@ -55,7 +55,7 @@ options.register('runTauSpinner', False, VarParsing.multiplicity.singleton, VarP
 
 options.parseArguments()
 
-import importlib
+import importlib.util
 import os
 import sys
 
