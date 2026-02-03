@@ -19,6 +19,11 @@ if os.getenv("LOCAL_TIMESTAMP"):
 else:
     startup_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f")
 
+if os.getenv("LAW_LOCAL_USER"):
+    LAW_LOCAL_USER = os.getenv("LAW_LOCAL_USER")
+else:
+    LAW_LOCAL_USER = getuser()
+
 def copy_param(ref_param, new_default):
     param = copy.deepcopy(ref_param)
     param._default = new_default
@@ -96,10 +101,7 @@ class Task(TaskParameters):
     #   The wlcg_path will be prepended for WLCGFileTargets
     def remote_path(self, *path):
         parts = (self.version,) + (self.__class__.__name__,) + path
-        #  os.path.join(*parts)
-        tmp = os.path.join(*parts)
-        print(tmp)
-        return tmp
+        return os.path.join(*parts)
 
     def remote_target(self, path):
         if self.is_local_output:
@@ -116,11 +118,7 @@ class Task(TaskParameters):
 
         if isinstance(path, (list, tuple)):
             return [law.wlcg.WLCGDirectoryTarget(self.remote_path(p)) for p in path]
-
-        # return law.wlcg.WLCGDirectoryTarget(self.remote_path(path))
-        tmp = law.wlcg.WLCGDirectoryTarget(self.remote_path(path))
-        print(tmp)
-        return tmp
+        return law.wlcg.WLCGDirectoryTarget(self.remote_path(path))
 
 
 class HTCondorWorkflow(law.htcondor.HTCondorWorkflow):
@@ -326,6 +324,7 @@ class HTCondorTOpASWorkflowParameters(Task):
     max_runtime = law.DurationParameter(default=12.0, unit="h", significant=False, description="maximum runtime")
     max_memory  = luigi.Parameter(default = '2000', significant = False, description = 'maximum RAM usage')
     docker_image = luigi.Parameter(default='None', significant=False, description='Used docker image')
+    local_user    = luigi.Parameter(default=LAW_LOCAL_USER, description="Local $USER outside of batch job")
 
     comp_facility = luigi.Parameter(default = 'TOpAS',
                                     description = 'Computing facility for specific setups e.g: desy-naf, lxplus')
@@ -385,7 +384,8 @@ class HTCondorTOpASWorkflow(HTCondorTOpASWorkflowParameters, HTCondorWorkflow, l
         config.custom_content.append(("universe", "docker"))
         config.custom_content.append(("docker_image", self.docker_image))
         config.render_variables["LOCAL_TIMESTAMP"] = startup_time
-        HTC_name = self.version + "_" + str(branches)
+        config.render_variables["LAW_LOCAL_USER"] = LAW_LOCAL_USER
+        HTC_name = "_".join([self.version, self.__class__.__name__, str(branches)])
         config.custom_content.append(('JobBatchName'  , HTC_name))
         config.custom_content.append(("error" , '/'.join([err_dir, 'err_{}.txt'.format(job_num)])))
         config.custom_content.append(("output", '/'.join([out_dir, 'out_{}.txt'.format(job_num)])))
@@ -402,7 +402,7 @@ class HTCondorTOpASWorkflow(HTCondorTOpASWorkflowParameters, HTCondorWorkflow, l
         )
         if not tarball_local.exists():
             tarball_local.parent.touch()
-            excludes = ["./.[^.]*", "./Analysis", "./Production", "./Core", "./Preprocessing", "./RunKit", "./soft", "./data", "./tarballs", "*/outputs", "*/mlruns", "__pycache__"]
+            excludes = ["./.[^.]*", "./Outputs", "./Analysis", "./Production", "./Core", "./RunKit", "./soft", "./data", "./tarballs", "*/outputs", "*/mlruns", "__pycache__"]
             exclude_str = " ".join([f"--exclude={ex}" for ex in excludes])
             os.system(f'tar {exclude_str} -czf {tarball_local.path}  .')
         config.input_files["Tau_tar"] = law.JobInputFile(tarball_local.path, render=False, copy=False)

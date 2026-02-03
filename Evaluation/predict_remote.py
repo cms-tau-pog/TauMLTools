@@ -14,12 +14,11 @@ from utils.tf_reader import _read_tfrecord, scale_data, filter_by_features
 def main(cfg: DictConfig) -> None:
 
     flat_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    print(flat_dir)
     # Batch job setup
+    prediction_name = cfg["prediction_name"]
     print('\n-> Loading model\n')
     path_to_model = os.path.abspath(f'{flat_dir}/artifacts/model/')
     model = load_model(path_to_model)
-    print(model)
 
     # Use the first dataset_name for element_spec
     data_path_0 = os.path.join(flat_dir, f"Evaluation/data/test/{list(cfg['test_datasets'].keys())[0]}")
@@ -53,7 +52,7 @@ def main(cfg: DictConfig) -> None:
         for file_name in data_record_files:
             dataset = _read_tfrecord([file_name], dataset_cfg["element_spec"], None)
             # Filter if necessary
-            filter_config = cfg.get("filter_config", None)
+            filter_config = cfg.get("filters", None)
             if filter_config:
                 filter_type = cfg.get("filter_type")
                 if not filter_type:
@@ -92,7 +91,7 @@ def main(cfg: DictConfig) -> None:
             predictions = pd.DataFrame(data=predictions, columns=[f'pred_{tau_type}' for tau_type in cfg["classes"]])
             labels = pd.DataFrame(data=labels, columns=dataset_cfg["label_columns"], dtype=np.int64)
             add_columns = pd.DataFrame(data=add_columns, columns=dataset_cfg["add_columns"])
-            out_file = os.path.join(flat_dir, "predictions", dataset_name, os.path.basename(os.path.dirname(file_name)), "predictions.h5")
+            out_file = os.path.join(flat_dir, prediction_name, dataset_name, os.path.basename(os.path.dirname(file_name)), "predictions.h5")
             os.makedirs(os.path.dirname(out_file), exist_ok=True)
             predictions.to_hdf(out_file, key='predictions', mode='w', format='fixed', complevel=1, complib='zlib')
             labels.to_hdf(out_file, key='labels', mode='r+', format='fixed', complevel=1, complib='zlib')

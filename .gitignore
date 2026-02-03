@@ -25,4 +25,5 @@ environment.location
 /.anaconda
 /.python_history
 /mlruns
+/Outputs
 *.code-workspace

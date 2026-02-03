@@ -18,8 +18,6 @@ def main(cfg: DictConfig) -> None:
     mlflow.set_tracking_uri(local_uri)
     client = mlflow.tracking.MlflowClient(tracking_uri=local_uri)
 
-    print(cfg)
-
     experiment = client.get_experiment_by_name(cfg.experiment_name)
     if not experiment:
         raise ValueError(f"Experiment {cfg.experiment_name} not found in {cfg.path_to_mlflow}")
@@ -80,7 +78,9 @@ def main(cfg: DictConfig) -> None:
             for sample_alias, tau_types in cfg.input_samples.items():
                 for tau_type in tau_types:
                     if tau_type not in ["tau", vs_type]: continue
-                    path_to_pred = f'{path_to_artifacts}/predictions/{sample_alias}/*/predictions.h5'
+                    sample_list = cfg.pred_files[sample_alias]
+                    path_to_pred = [f'{path_to_artifacts}/predictions/{sample_alias}/{sample}' for sample in sample_list]
+
                     input_files, pred_files, target_files = eval_tools.prepare_filelists(sample_alias, path_to_pred, path_to_pred, path_to_pred, path_to_artifacts, tau_type, run_name)
 
                     # loop over all input files per sample with associated predictions/targets (if present) and combine together into df

@@ -20,6 +20,7 @@ action() {
   if [[ "{{comp_facility}}" == *"TOpAS"* ]]; then
     export HOME=${_CONDOR_JOB_IWD}
     export ANALYSIS_PATH="${_CONDOR_JOB_IWD}/tmp/TauMLTools"
+    export USER="{{LAW_LOCAL_USER}}"
     mkdir tmp/TauMLTools
     tar -xzf TauMLTools*.tar.gz -C tmp/TauMLTools
     cd tmp/TauMLTools

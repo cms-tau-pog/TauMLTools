@@ -20,10 +20,10 @@ class Predict(HTCondorTOpASWorkflow):
     """
 
     predict_cfg = luigi.Parameter(
-        description="Path to the yaml config defining files for prediction."
+        description="yaml filename of config defining files for prediction in Evaluation/configs/."
     )
     training_cmds = luigi.Parameter(
-        description="Path to the txt file with original training commands to match models."
+        description="txt file with original training commands to match models in Training/configs/."
     )
     mlruns_dir = luigi.Parameter(
         default="mlruns",
@@ -40,8 +40,10 @@ class Predict(HTCondorTOpASWorkflow):
             "experiment_name": r"experiment_name=(\S+)(\s|$)",
             "run_name": r"run_name=(\S+)(\s|$)",
         }
-
-        with open(self.training_cmds, 'r') as file1:
+        # print(os.getcwd())
+        training_config_path = "Training/configs/"
+        full_training_cmds = os.path.join(training_config_path, os.path.basename(self.training_cmds))
+        with open(full_training_cmds, 'r') as file1:
             for i, line in enumerate(file1):
                 self.cmds_list[i] = {}
                 for key, pattern in required_keys.items():
@@ -66,8 +68,9 @@ class Predict(HTCondorTOpASWorkflow):
         branch_data = self.create_branch_map()[job_num-1]
         client = mlflow.tracking.MlflowClient(tracking_uri=f"file:{self.mlruns_dir}")
 
-        with open(self.predict_cfg, "r") as f:
-            p_cfg = yaml.safe_load(f)
+        position_from_law_dir = "../Evaluation/configs"
+        with initialize(version_base=None, config_path=position_from_law_dir):
+            cfg_data = compose(config_name=os.path.basename(self.predict_cfg))
 
         # Extract names to resolve path
         exp_name = branch_data["experiment_name"]
@@ -94,7 +97,6 @@ class Predict(HTCondorTOpASWorkflow):
 
         # Pack the artifacts for this specific job
         tarball_dir = os.path.abspath(f"tarballs/{self.version}")
-        print("TARDIR",tarball_dir)
         model_tar_target = law.LocalFileTarget(
             os.path.join(
                 tarball_dir,
@@ -127,7 +129,7 @@ class Predict(HTCondorTOpASWorkflow):
                         raise FileNotFoundError(f"Model source not found: {model_src}")
 
                     # 2. Add scaler if requested
-                    if p_cfg.get("scaler"):
+                    if cfg_data.get("scaler"):
                         scaler_path = os.path.join(
                             artifact_path, f"scaler_{input_files}.pkl"
                         )
@@ -137,9 +139,6 @@ class Predict(HTCondorTOpASWorkflow):
                             scaler_path,
                             arcname=f"artifacts/scaler_{input_files}.pkl",
                         )
-
-                    # 3. Add predict config
-                    tar.add(self.predict_cfg, arcname="predict_cfg.yaml")
 
                 # Atomic publish (only happens if everything above succeeded)
                 os.replace(tmp_path, target_path)
@@ -163,11 +162,9 @@ class Predict(HTCondorTOpASWorkflow):
             f"tar -xzf ${{_CONDOR_SCRATCH_DIR}}/model_pack_branch_*.tar.gz",
         )
 
-        position_from_law_dir = "../"
-        full_cfg = position_from_law_dir + "/predict_cfg.yaml"
-        # Copy in training files
-        with initialize(version_base=None, config_path=os.path.dirname(full_cfg)):
-            cfg_data = compose(config_name=os.path.basename(full_cfg))
+        position_from_law_dir = "../Evaluation/configs"
+        with initialize(version_base=None, config_path=position_from_law_dir):
+            cfg_data = compose(config_name=os.path.basename(self.predict_cfg), overrides=["ensemble_num=''"])
 
         # Use the first dataset_name for element_spec
         dataset_names = cfg_data["test_datasets"]
@@ -180,10 +177,10 @@ class Predict(HTCondorTOpASWorkflow):
                 verbose=True
             )
 
-        command = "python predict_remote.py"
+        command = f"python predict_remote.py -cd {position_from_law_dir} --config-name={os.path.basename(self.predict_cfg)} ensemble_num=''"
         self.run_command(command, run_location=working_dir)
         self.run_command(
-            f"tar -czf ${{LAW_JOB_INIT_DIR}}/prediction_{self.branch}To{int(self.branch) + 1}.tar.gz predictions",
+            f"tar -czf ${{LAW_JOB_INIT_DIR}}/prediction_{self.branch}To{int(self.branch) + 1}.tar.gz {cfg_data['prediction_name']}",
         )
         self.publish_message("Prediction complete.")
 
@@ -194,7 +191,7 @@ class MLflowLogPredictions(HTCondorTOpASWorkflowParameters):
     into the local MLflow mlruns directory.
     """
     predict_cfg = luigi.Parameter(
-        description="Path to the yaml config defining files for prediction."
+        description="yaml filename of config defining files for prediction in Evaluation/configs/."
     )
     training_cmds = luigi.Parameter(
         description="Path to the txt file with original training commands to match models."
@@ -213,17 +210,15 @@ class MLflowLogPredictions(HTCondorTOpASWorkflowParameters):
         branch_map = predict_task.branch_map
         local_uri = f"file:{os.path.abspath(self.mlruns_dir)}"
         client = mlflow.tracking.MlflowClient(tracking_uri=local_uri)
-        position_from_law_dir = "../"
-
-        with initialize(version_base=None, config_path=position_from_law_dir + os.path.dirname(os.path.relpath(self.predict_cfg))):
+        position_from_law_dir = "../Evaluation/configs"
+        with initialize(version_base=None, config_path=position_from_law_dir):
             cfg_data = compose(config_name=os.path.basename(self.predict_cfg))
-        test_datasets = cfg_data["test_datasets"].keys()
+        prediction_name = cfg_data["prediction_name"]
 
         outputs = {}
         for branch, branch_data in branch_map.items():
             exp_name = branch_data["experiment_name"]
             run_name = branch_data["run_name"]
-            # input_files = branch_data["input_files"]
 
             experiment = client.get_experiment_by_name(exp_name)
             if not experiment:
@@ -237,9 +232,13 @@ class MLflowLogPredictions(HTCondorTOpASWorkflowParameters):
             run_id = runs[0].info.run_id
             run_path = os.path.join(self.mlruns_dir, experiment.experiment_id, run_id)
             predict_targets = {}
-            for test_dataset in test_datasets:
-                predict_targets[test_dataset] = law.LocalFileTarget(os.path.join(run_path, "artifacts/predictions", test_dataset))
-            outputs[branch] = law.SiblingFileCollection(predict_targets)
+            for test_dataset, test_files in cfg_data["test_datasets"].items():
+                    ds_targets = []
+                    for test_file in test_files:
+                        tf_name = os.path.basename(test_file)
+                        ds_targets.append(law.LocalFileTarget(os.path.join(run_path, "artifacts", prediction_name, test_dataset, tf_name)))
+                    predict_targets[test_dataset] = law.SiblingFileCollection(ds_targets)
+            outputs[branch] = law.FileCollection(predict_targets)
 
         return outputs
 

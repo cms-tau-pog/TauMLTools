@@ -10,6 +10,7 @@ import mlflow
 import hydra
 from hydra.utils import instantiate, call
 from omegaconf import DictConfig
+from utils.data_processing import create_df
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):

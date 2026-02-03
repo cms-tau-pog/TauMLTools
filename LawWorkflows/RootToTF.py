@@ -9,8 +9,17 @@ from omegaconf import OmegaConf
 sys.path.append(os.environ['ANALYSIS_PATH']+'/Preprocessing/root2tf/')
 import luigi
 import math
+from getpass import getuser
+from LawWorkflows.mass_copy import mass_copy
 
 law.contrib.load("wlcg")
+
+# if os.getenv("LAW_LOCAL_USER"):
+#     LAW_LOCAL_USER = os.getenv("LAW_LOCAL_USER")
+#     os.environ["USER"] = LAW_LOCAL_USER
+# else:
+#     LAW_LOCAL_USER = getuser()
+
 
 # Collect all files in the local directory recursively
 def collect_files(dir_path):
@@ -40,10 +49,8 @@ def copy_files_to_remote(local_dir, remote_dir):
         print(f"Copied {local_file_path} to {remote_file_target.uri()}")
 
 class RootToTF(HTCondorTOpASWorkflow):
-    # class RootToTF(Task, law.LocalWorkflow):
     ## '_' will be converted to '-' for the shell command invocation
     cfg           = luigi.Parameter(description='location of the input yaml configuration file')
-    # n_jobs        = luigi.IntParameter(default=0, description='number of jobs to run. Together with --files-per-job determines the total number of files processed. Default=0 run on all files.')
     dataset_type  = luigi.Parameter(description="which samples to read (train/validation/test)")
 
     def __init__(self, *args, **kwargs):
@@ -56,31 +63,33 @@ class RootToTF(HTCondorTOpASWorkflow):
         with initialize(config_path=os.path.dirname(rel_cfg)):
             self.cfg_dict = compose(config_name=os.path.basename(rel_cfg))
         input_data  = OmegaConf.to_object(self.cfg_dict['input_data'])
-        # print(input_data)
         self.dataset_cfg = input_data[self.dataset_type]
 
     def create_branch_map(self):
         from LawWorkflows.mass_copy import remote_glob
-        _files = self.dataset_cfg.pop('files')
+        datasets = self.dataset_cfg['files']
         files = []
-        for file_path in _files:
-            files += remote_glob(file_path)
-        assert len(files), "Input file list is empty: {}".format(_files)
+        for dataset_name, _files in datasets.items():
+            for file_path in _files:
+                globbed_files = remote_glob(file_path)
+                files += [(_f, dataset_name) for _f in globbed_files]
+            assert len(files), "Input file list is empty: {}".format(_files)
         branch_map = {i: j for i,j in enumerate(files)}
-        # print(branch_map)
         return branch_map
 
 
     def output(self):
-        file_path = self.branch_data
-        file_name = os.path.splitext(os.path.basename(file_path))[0]
+        file_path, dataset_name = self.branch_data
+        file_name = os.path.join(dataset_name, os.path.splitext(os.path.basename(file_path))[0])
+        # print(file_name)
         output_target = self.remote_directory_target(file_name)
+        # print(output_target.path)
         output_target.parent.touch()
         return output_target
 
     def run(self):
         from create_dataset import process_files as run_job
-        file_path = self.branch_data
+        file_path, dataset_name = self.branch_data
         file_name = os.path.splitext(os.path.basename(file_path))[0]
         temp_output_folder = os.path.abspath('./temp/{}'.format(file_name))
         self.cfg_dict['path_to_dataset'] = temp_output_folder
@@ -93,5 +102,5 @@ class RootToTF(HTCondorTOpASWorkflow):
         if not result:
             raise Exception('job {} failed'.format(self.branch))
         else:
-            copy_files_to_remote(law.LocalDirectoryTarget(temp_output_folder), self.output().parent)
-            print('Output files moved to {}'.format(self.output().path))
+            print('Moving files to {}'.format(self.output().parent.path))
+            self.output().parent.copy_from_local(temp_output_folder)

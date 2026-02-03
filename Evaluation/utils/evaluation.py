@@ -411,9 +411,15 @@ def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target,
     # prepare list of files with target labels
     if path_to_target is not None:
         if path_to_input==path_to_pred==path_to_target:
-            data_files = glob(path_to_target)
+            if isinstance(path_to_target, str):
+                data_files = glob(path_to_target)
+            else:
+                data_files = []
+                for file in path_to_target:
+                    data_files += glob(file)
             target_files = data_files
             input_files = data_files
+            pred_files = target_files
         else: # use paths from cfg
             raise FileNotFoundError(f'Target files are not in the mlflow run artifacts.')
     else: # will assume that target branches "gen_*" are present in input files
@@ -421,11 +427,6 @@ def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target,
 
     # prepare list of files with inputs/predictions
     if path_to_pred is not None:
-        path_to_pred = os.path.abspath(to_absolute_path(fill_placeholders(path_to_pred, {"{sample_alias}": sample_alias})))
-        if f'artifacts/predictions/{sample_alias}' in path_to_pred and path_to_pred.format(tau_type=tau_type, run_variant=run_name)==path_to_target:
-            pred_files = target_files
-        else:
-            raise FileNotFoundError('path to target and prediction should be the same')
         if len(pred_files) != len(input_files):
             raise Exception(f'Number of input files ({len(input_files)}) not equal to number of prediction files with labels ({len(pred_files)})')
     else: # will assume that predictions are present in input files
