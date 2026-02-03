@@ -68,6 +68,17 @@ filter_type: first
 #   ele:
 #     r:
 #       max: 0.5
+# filters:
+#   pfCand:
+#     r:
+#       max: 0.5
+#     # max_tokens: val  # Optional: Maximum number of tokens to keep
+#   muon:
+#     r:
+#       max: 0.5
+#   ele:
+#     r:
+#       max: 0.5
 
 
 # training
