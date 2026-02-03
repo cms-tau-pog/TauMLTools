@@ -13,7 +13,6 @@ import re
 from glob import glob
 from dataclasses import dataclass
 from hydra.utils import to_absolute_path
-from functools import partial
 
 @dataclass
 class RocCurve:
@@ -26,7 +25,6 @@ class RocCurve:
     def fill(self, cfg, create_ratio=False, ref_roc=None):
         fpr = np.array(cfg['false_positive_rate'])
         n_points = len(fpr)
-        self.auc_score = cfg.get('auc_score')
         self.pr = np.empty((2, n_points))
         self.pr[0, :] = fpr
         self.pr[1, :] = cfg['true_positive_rate']
@@ -37,11 +35,11 @@ class RocCurve:
             self.pr_err[0, 1, :] = cfg['false_positive_rate_down']
             self.pr_err[1, 0, :] = cfg['true_positive_rate_up']
             self.pr_err[1, 1, :] = cfg['true_positive_rate_down']
-        
+
         if 'thresholds' in cfg:
             self.thresholds = np.empty(n_points)
             self.thresholds[:] = cfg['thresholds']
-        
+
         if 'auc_score' in cfg:
             self.auc_score = cfg['auc_score']
 
@@ -59,7 +57,7 @@ class RocCurve:
             self.ratio = self.create_roc_ratio(self.pr[1], self.pr[0], ref_roc.pr[1], ref_roc.pr[0], True)
         else:
             self.ratio = None
-            
+
     def prune(self, tpr_decimals=3):
         pruned = copy.deepcopy(self)
         rounded_tpr = np.round(self.pr[1, :], decimals=tpr_decimals)
@@ -142,14 +140,14 @@ class RocCurve:
             ratio[1, :] = x2_clean
         return ratio
 
-### ----------------------------------------------------------------------------------------------------------------------  
+### ----------------------------------------------------------------------------------------------------------------------
 
 @dataclass
 class PlotSetup:
-    
+
     # general
     tick_size: int = 14
-    xlim: list = None 
+    xlim: list = None
 
     # y-axis params
     ylabel: str = "Mis-id probability"
@@ -197,7 +195,7 @@ class PlotSetup:
             ax_ratio.set_ylabel(self.ratio_ylabel, fontsize=self.ratio_ylabel_size, labelpad=self.ratio_ylabel_pad)
             ax_ratio.tick_params(labelsize=self.ratio_tick_size)
             ax_ratio.grid(True, which='both')
-    
+
     @staticmethod
     def get_pt_text(pt_min, pt_max):
         if pt_max == 1000:
@@ -206,14 +204,14 @@ class PlotSetup:
             pt_text = r'$p_T < {}$ GeV'.format(pt_max)
         else:
             pt_text = r'$p_T\in ({}, {})$ GeV'.format(pt_min, pt_max)
-        
+
         return pt_text
 
     @staticmethod
     def get_eta_text(eta_min, eta_max):
         eta_text = r'${} < |\eta| < {}$'.format(eta_min, eta_max)
         return eta_text
-    
+
     @staticmethod
     def get_dm_text(dm_bin):
         if len(dm_bin)==1:
@@ -224,16 +222,17 @@ class PlotSetup:
 
     def add_text(self, ax, n_entries, pt_min, pt_max, eta_min, eta_max, dm_bin, period):
         header_y = 1.02
-        ax.text(0.03, 0.89 - n_entries*0.07, self.get_pt_text(pt_min, pt_max), fontsize=14, transform=ax.transAxes)
-        ax.text(0.03, 0.82 - n_entries*0.07, self.get_eta_text(eta_min, eta_max), fontsize=14, transform=ax.transAxes)
-        ax.text(0.03, 0.75 - n_entries*0.07, self.get_dm_text(dm_bin), fontsize=14, transform=ax.transAxes)
+
+        ax.text(0.44, 0.94, self.get_pt_text(pt_min, pt_max), fontsize=14, transform=ax.transAxes)
+        ax.text(0.44, 0.87, self.get_eta_text(eta_min, eta_max), fontsize=14, transform=ax.transAxes)
+        ax.text(0.44, 0.8, self.get_dm_text(dm_bin), fontsize=14, transform=ax.transAxes)
         ax.text(0.01, header_y, 'CMS', fontsize=14, transform=ax.transAxes, fontweight='bold', fontfamily='sans-serif')
         ax.text(0.12, header_y, 'Simulation Preliminary', fontsize=14, transform=ax.transAxes, fontstyle='italic',
                 fontfamily='sans-serif')
         ax.text(0.73, header_y, period, fontsize=13, transform=ax.transAxes, fontweight='bold',
                 fontfamily='sans-serif')
 
-### ----------------------------------------------------------------------------------------------------------------------  
+### ----------------------------------------------------------------------------------------------------------------------
 
 @dataclass
 class Discriminator:
@@ -243,7 +242,7 @@ class Discriminator:
     wp_from: str = None
     wp_column: str = None
     wp_name_to_index: dict = None
-    wp_thresholds: dict = None 
+    wp_thresholds: dict = None
 
     def __post_init__(self):
         if self.wp_from is None:
@@ -274,11 +273,12 @@ class Discriminator:
                 raise RuntimeError('Working points thresholds are not specified for discriminator "{}"'.format(self.name))
         else:
             raise RuntimeError(f'count_passed() behaviour not defined for: wp_from={self.wp_from}')
-        
+
     def create_roc_curve(self, df):
         roc, wp_roc = None, None
         if self.raw: # construct ROC curve
             fpr, tpr, thresholds = metrics.roc_curve(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
+            thresholds = np.where(np.isinf(thresholds), 2.0, thresholds)
             if not (np.isnan(fpr).any() or np.isnan(tpr).any()):
                 auc_score = metrics.roc_auc_score(df['gen_tau'].values, df[self.pred_column].values, sample_weight=df.weight.values)
                 roc = RocCurve()
@@ -293,10 +293,10 @@ class Discriminator:
                 print('[INFO] ROC curve is empty!')
                 return None, None
         else:
-            print('[INFO] raw=False, will skip creating ROC curve')        
-        
+            print('[INFO] raw=False, will skip creating ROC curve')
+
         # construct WPs
-        if self.wp_from in ['wp_column', 'pred_column']:  
+        if self.wp_from in ['wp_column', 'pred_column']:
             if (n_wp:=len(self.wp_names)) > 0:
                 wp_roc = RocCurve()
                 wp_roc_cfg = {
@@ -315,12 +315,12 @@ class Discriminator:
                         n_total = np.sum(df_x.weight.values)
                         eff = float(n_passed) / n_total if n_total > 0 else 0.0
                         wp_roc_cfg[pr_name][n_wp - wp_i - 1] = eff
-                        
+
                         # up/down variations
                         ci_low, ci_upp = proportion_confint(n_passed, n_total, alpha=1-0.68, method='beta')
                         wp_roc_cfg[f'{pr_name}_down'][n_wp - wp_i - 1] = ci_upp - eff
                         wp_roc_cfg[f'{pr_name}_up'][n_wp - wp_i - 1] = eff - ci_low
-                        
+
                 wp_roc.fill(wp_roc_cfg, create_ratio=False, ref_roc=None)
             else:
                 raise RuntimeError('No working points specified')
@@ -330,7 +330,7 @@ class Discriminator:
             raise RuntimeError(f'create_roc_curve() behaviour not defined for: wp_from={self.wp_from}')
         return roc, wp_roc
 
-### ----------------------------------------------------------------------------------------------------------------------  
+### ----------------------------------------------------------------------------------------------------------------------
 
 def select_curve(curve_list, **selection):
     filter_func = lambda x: all([x[k]==v if k in x else False for k,v in selection.items()])
@@ -344,15 +344,13 @@ def select_curve(curve_list, **selection):
 
 def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_target_file, path_to_weights, pred_column_prefix=None, target_column_prefix=None):
     def read_branches(path_to_file, tree_name, branches):
-        if not os.path.exists(path_to_input_file):
-            raise RuntimeError(f"Specified file for inputs ({path_to_input_file}) does not exist")
         if path_to_file.endswith('.root'):
             with uproot.open(path_to_file) as f:
                 tree = f[tree_name]
                 df = tree.arrays(branches, library='pd')
             return df
         elif path_to_file.endswith('.h5') or path_to_file.endswith('.hdf5'):
-            return pd.read_hdf(path_to_file, tree_name, columns=branches)
+            return pd.read_hdf(path_to_file, "add_columns")
         raise RuntimeError("Unsupported file type.")
 
     def add_group(df, group_name, path_to_file, group_column_prefix):
@@ -360,31 +358,36 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
             raise RuntimeError(f"Specified file {path_to_file} for {group_name} does not exist")
         with h5py.File(path_to_file, 'r') as f:
             file_keys = list(f.keys())
-        if group_name in file_keys: 
+        if group_name in file_keys:
             group_df = pd.read_hdf(path_to_file, group_name)
         else:
             group_df = pd.read_hdf(path_to_file)
-        
+
         # weight case
         if group_name == 'weights':
             group_df = pd.read_hdf(path_to_file)
             df['weight'] = pd.Series(group_df['weight'].values, index=df.index)
             return df
-        elif group_name == 'predictions': 
+        elif group_name == 'predictions':
             prob_tau = group_df[f'{group_column_prefix}tau'].values
-        elif group_name != 'targets':
+        elif group_name != 'labels':
             raise ValueError(f'group_name should be one of [predictions, targets, weights], got {group_name}')
-        
+
         # add columns for predictions/targets case
         for node_column in group_df.columns:
-            if not node_column.startswith(group_column_prefix): continue # assume prediction column name to be "{group_column_prefix}{tau_type}"
-            tau_type = node_column.split(f'{group_column_prefix}')[-1] 
+            if not node_column.startswith(group_column_prefix): continue
+            tau_type = node_column.split(f'{group_column_prefix}')[-1]
             if group_name == 'predictions':
+                # Add absolute scores
+                df[group_column_prefix + tau_type + "_abs"] = group_df[group_column_prefix + tau_type]
                 if tau_type != 'tau':
                     prob_vs_type = group_df[group_column_prefix + tau_type].values
                     tau_vs_other_type = np.where(prob_tau > 0, prob_tau / (prob_tau + prob_vs_type), np.zeros(prob_tau.shape))
                     df[group_column_prefix + tau_type] = pd.Series(tau_vs_other_type, index=df.index)
-            elif group_name == 'targets':
+                # else:
+                    # For tau, also add the relative score (tau vs tau = 1)
+                    # df[group_column_prefix + tau_type] = pd.Series(np.ones(prob_tau.shape), index=df.index)
+            elif group_name == 'labels':
                 df[f'gen_{tau_type}'] = group_df[node_column]
         return df
 
@@ -395,7 +398,7 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
     else:
         print(f'[INFO] path_to_pred_file=None, will proceed without reading predictions from there')
     if path_to_target_file is not None:
-        add_group(df, 'targets', path_to_target_file, target_column_prefix)
+        add_group(df, 'labels', path_to_target_file, target_column_prefix)
     else:
         print(f'[INFO] path_to_target_file=None, will proceed without reading targets from there')
     if path_to_weights is not None:
@@ -404,69 +407,32 @@ def create_df(path_to_input_file, input_branches, path_to_pred_file, path_to_tar
         df['weight'] = pd.Series(np.ones(df.shape[0]), index=df.index)
     return df
 
-def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target, path_to_artifacts):
-    def find_common_suffix(l):
-        if not all([isinstance(s, str) for s in l]):
-            raise TypeError("Iterable for finding common suffix doesn't contain all strings")
-        l_inverse = [s[::-1] for s in l]
-        suffix = os.path.commonprefix(l_inverse)[::-1]
-        return suffix
-    def path_splitter(path, common_suffix):
-        basename = os.path.splitext(os.path.basename(path))[0]
-        if basename.endswith(common_suffix):
-            return basename[:-len(common_suffix)]
-        else:
-            return basename
-        
-    # prepare list of files with inputs
-    # if path_to_input is not None:
-    #     path_to_input = os.path.abspath(to_absolute_path(fill_placeholders(path_to_input, {"{sample_alias}": sample_alias})))
-    #     input_common_suffix = find_common_suffix(glob(path_to_input))
-    #     input_files = sorted(glob(path_to_input), key=partial(path_splitter, common_suffix=input_common_suffix))
-    # else:
-    #     input_files = []
-    
+def prepare_filelists(sample_alias, path_to_input, path_to_pred, path_to_target, path_to_artifacts, tau_type, run_name):
     # prepare list of files with target labels
     if path_to_target is not None:
-        path_to_target = os.path.abspath(to_absolute_path(fill_placeholders(path_to_target, {"{sample_alias}": sample_alias})))
-        if f'artifacts/predictions/{sample_alias}' in path_to_target: # fetch corresponding input files from mlflow logs
-            #json_filemap_name = f'{path_to_artifacts}/predictions/{sample_alias}/pred_input_filemap.json'
-            json_filemap_name = path_to_target.replace(path_to_target.split("/")[-1], 'pred_input_filemap.json')
-            if os.path.exists(json_filemap_name):
-                with open(json_filemap_name, 'r') as json_file:
-                    target_input_map = json.load(json_file)
-                    # target_common_suffix = find_common_suffix(target_input_map.keys())
-                    # target_files, input_files = zip(*sorted(target_input_map.items(), key=lambda item: partial(path_splitter, common_suffix=target_common_suffix)(item[0])))  # sort by values (target files)
-                    target_files = glob(path_to_target)
-                    input_files = [target_input_map[file] for file in target_files]
+        if path_to_input==path_to_pred==path_to_target:
+            if isinstance(path_to_target, str):
+                data_files = glob(path_to_target)
             else:
-                raise FileNotFoundError(f'File {json_filemap_name} does not exist. Please make sure that input<->target file mapping is stored in mlflow run artifacts.')
-        else: # use paths from cfg 
+                data_files = []
+                for file in path_to_target:
+                    data_files += glob(file)
+            target_files = data_files
+            input_files = data_files
+            pred_files = target_files
+        else: # use paths from cfg
             raise FileNotFoundError(f'Target files are not in the mlflow run artifacts.')
-            # target_common_suffix = find_common_suffix(glob(path_to_target))
-            # target_files = sorted(glob(path_to_target), key=partial(path_splitter, common_suffix=target_common_suffix)) 
-            # if len(target_files) != len(input_files):
-            #     raise Exception(f'Number of input files ({len(input_files)}) not equal to number of target files with labels ({len(target_files)})')
     else: # will assume that target branches "gen_*" are present in input files
         raise FileNotFoundError(f'Target is not provided. With last modification target is required')
-        # assert len(input_files)>0
-        # target_files = [None]*len(input_files)
 
     # prepare list of files with inputs/predictions
     if path_to_pred is not None:
-        path_to_pred = os.path.abspath(to_absolute_path(fill_placeholders(path_to_pred, {"{sample_alias}": sample_alias})))
-        # pred_common_suffix = find_common_suffix(glob(path_to_pred))
-        # pred_files = sorted(glob(path_to_pred), key=partial(path_splitter, common_suffix=pred_common_suffix))
-        if f'artifacts/predictions/{sample_alias}' in path_to_pred and path_to_pred==path_to_target:
-            pred_files = target_files
-        else:
-            raise FileNotFoundError('path to target and prediction should be the same')   
         if len(pred_files) != len(input_files):
             raise Exception(f'Number of input files ({len(input_files)}) not equal to number of prediction files with labels ({len(pred_files)})')
     else: # will assume that predictions are present in input files
         assert len(input_files)>0
         pred_files = [None]*len(input_files)
-    
+
     return input_files, pred_files, target_files
 
 def fill_placeholders(string, placeholder_to_value):
@@ -474,7 +440,7 @@ def fill_placeholders(string, placeholder_to_value):
         string = string.replace(placeholder, str(value))
     return string
 
-### ----------------------------------------------------------------------------------------------------------------------  
+### ----------------------------------------------------------------------------------------------------------------------
 
 class FloatList(object):
     def __init__(self, value):

@@ -1,0 +1,9 @@
+cfg: root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/january_2025_V5/RootToTF/cfg.yaml
+train:
+- root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/january_2025_V5/RootToTF/ShuffleMergeSpectral_333
+- root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/january_2025_V5/RootToTF/ShuffleMergeSpectral_286
+- root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/january_2025_V5/RootToTF/ShuffleMergeSpectral_54
+val:
+- root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/january_2025_V5/RootToTF/ShuffleMergeSpectral_85
+- root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/january_2025_V5/RootToTF/ShuffleMergeSpectral_428
+- root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/january_2025_V5/RootToTF/ShuffleMergeSpectral_257

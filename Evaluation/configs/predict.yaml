@@ -1,0 +1,210 @@
+
+test_datasets:
+  TTToSemiLeptonic:
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1000
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1001
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1002
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1003
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1004
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1005
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1006
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1007
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1008
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1009
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1010
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1011
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1012
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1013
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1014
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-1015
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-120
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-121
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-122
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-123
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-124
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-125
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-126
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-127
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-128
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-129
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_TT/RootToTF/eventTuple_1-130
+  DYJetsToLL_M-50-amcatnloFXFX_ext2:
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_10
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_100
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1000
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1001
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1002
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1003
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1004
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1005
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1006
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1007
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1008
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1009
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_101
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1010
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1011
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1012
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1013
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1014
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1015
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1016
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1017
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1018
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1019
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_102
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1020
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1021
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1022
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1023
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1024
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1025
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1026
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1027
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1028
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1029
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_103
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1030
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1031
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1032
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1033
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1034
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1035
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1036
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1037
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1038
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1039
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_104
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1040
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1041
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1042
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1043
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1044
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1045
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1046
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1047
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1048
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1049
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_105
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1050
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1051
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1052
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1053
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1054
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1055
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1056
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1057
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1058
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1059
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_106
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1060
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1061
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1062
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1063
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1064
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1065
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1066
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1067
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1068
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1069
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_107
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1070
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1071
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1072
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1073
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1074
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1075
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1076
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1077
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1078
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1079
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_108
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1080
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1081
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1082
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1083
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1084
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1085
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1086
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1087
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1088
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1089
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_109
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1090
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1091
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1092
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1093
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1094
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1095
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1096
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1097
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1098
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_1099
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_11
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_12
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_13
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_14
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_15
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_16
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_17
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_18
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_DY/RootToTF/eventTuple_19
+  GluGluHToTauTau_M125:
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_1-1
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_1-10
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_1-2
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_1-3
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_1-4
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_1-5
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_1-6
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_1-7
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_1-8
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_1-9
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_10
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_11
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_12
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_13
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_14
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_20
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_21
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_22
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_23
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_24
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_25
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_26
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_27
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_28
+  - root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/july_2025_7_GG/RootToTF/eventTuple_29
+
+scaler: True
+batch_size: 4096
+classes: ["tau", "e", "mu", "jet"]
+
+# path_to_dataset: /ceph/srv/tvoigtlaender/DeepTau/
+# path_to_dataset: /ceph/srv/tvoigtlaender/DeepTau/july_2025
+# path_to_train_data: /ceph/srv/tvoigtlaender/SuM_apr
+# train_dataset_files: /work/tvoigtlaender/TauTransformerComparison/dataloader_dev/V2/TauMLTools/Training/python/tf/configs/input_files/all_train_files.yaml
+# tf_dataset_cfg:
+#   datasets_location:
+#     training: /ceph/srv/tvoigtlaender/SuM_apr
+# scaler: True
+
+# dataset_name: TTToSemiLeptonic/RootToTF
+# dataset_type: test
+# file_type: tfrecord
+# # tau_type: jet
+# n_files: -1
+# add_columns: False
+# # # gpu
+# # gpu_id: 0
+# # memory_limit: 8 # in Gb
+# path_to_mlflow: /work/tvoigtlaender/thesis/ml/runs/2025_mar_scaling_6_1/mlruns
+# experiment_id: auto
+# run_id: auto
+# # path_to_mlflow: /work/tvoigtlaender/checkpointing/TauMLTools/data/Training/full_run_V1.3bsmall_12layers/files/mlruns
+# # experiment_id: 840748978937517297
+# # run_id: cab1f4da8e3f451fa8b3445eb661cc87
+# checkpoint: null # null to load from "model" folder
+
+# output_filename: predictions #40
+

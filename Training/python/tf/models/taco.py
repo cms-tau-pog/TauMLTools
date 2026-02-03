@@ -17,6 +17,7 @@ class RadialFrequencies(tf.keras.layers.Layer):
         self.r_real = Dense(n_freqs+1, activation=tf.nn.relu) # bias_initializer=tf.keras.initializers.ones
         self.r_imag = Dense(n_freqs, activation=tf.nn.relu)  
         
+    @tf.function
     def call(self, inputs):
         x_hidden = self.dense_1(inputs)
         # x_hidden = self.dense_2(x_hidden)
@@ -35,12 +36,14 @@ class Conv1DBlock(tf.keras.layers.Layer):
                                     data_format='channels_first', activation='relu') 
                                     for i in range(self.n_conv_layers)]
 
+    @tf.function
     def pad_waveforms(self, x):
         n_add_left = int(np.floor((self.kernel_size-1)/2))
         n_add_right = int(np.ceil((self.kernel_size-1)/2))
         x_padded = tf.concat([x[..., -n_add_left:], x, x[..., :n_add_right]], axis=-1)
         return x_padded
 
+    @tf.function
     def call(self, inputs):
         x_conv_in = self.batch_norm(self.non_linearity(inputs))
         for i in range(self.n_conv_layers):
@@ -72,6 +75,7 @@ class WaveformEncoder(tf.keras.Model):
         z = tf.dtypes.complex(real, imag)
         return z
 
+    @tf.function
     def get_radial_spectrum(self, inputs):
         r = tf.expand_dims(inputs[..., self.feature_name_to_idx['r']], axis=-1)
         r_freqs = []
@@ -81,18 +85,21 @@ class WaveformEncoder(tf.keras.Model):
         r_freqs = tf.stack(r_freqs, axis=-2)
         return r_freqs
 
+    @tf.function
     def get_azim_spectrum(self, inputs):
         theta = inputs[..., self.feature_name_to_idx['theta']]
         azim_freqs = [tf.math.exp(tf.dtypes.complex(0, m*theta)) for m in range(-self.n_freqs, self.n_freqs+1)]
         azim_freqs = tf.stack(azim_freqs, axis=-1)[..., tf.newaxis, :] # additional axis for filter dimension
         return azim_freqs
 
+    @tf.function
     def get_rotation_spectrum(self):
         rotations = tf.constant(2*np.pi/self.n_rotations, dtype=tf.float32)*tf.range(0, self.n_rotations, dtype=tf.float32)
         rotation_freqs = tf.tensordot(tf.range(-self.n_freqs, self.n_freqs+1, dtype=tf.float32), rotations, axes=0) # tensor product with output dim [2*n_freqs+1, n_rotations]
         rotation_freqs = tf.math.exp(tf.dtypes.complex(tf.constant(0., dtype=tf.float32), rotation_freqs))
         return rotation_freqs
 
+    @tf.function
     def sample_waveforms(self, proj_freqs):  
         rotation_freqs = self.get_rotation_spectrum()
         waveforms = tf.tensordot(proj_freqs, rotation_freqs, axes=[[3], [0]]) # axes 3 and 0 are m dimension (frequency)
@@ -102,6 +109,7 @@ class WaveformEncoder(tf.keras.Model):
         waveforms = tf.math.abs(waveforms)
         return waveforms
 
+    @tf.function
     def project_onto_filters(self, inputs, filter_freqs):
         inputs_emb = self.feature_embedding(inputs) # [batch, None, emb]
         z = tf.dtypes.complex(inputs_emb, 0)[..., tf.newaxis,  tf.newaxis] # axis for filter and frequency dimensions (respectively) 
@@ -110,6 +118,7 @@ class WaveformEncoder(tf.keras.Model):
         # assert tf.math.reduce_all(tf.math.imag(proj_freqs + tf.reverse(proj_freqs, axis=[-1])) == 0)
         return proj_freqs
 
+    @tf.function
     def call(self, inputs):
         r_freqs = self.get_radial_spectrum(inputs) # [batch, None, filter, freq]
         azim_freqs = self.get_azim_spectrum(inputs) # [batch, None, 1, freq]
@@ -134,6 +143,7 @@ class WaveformDecoder(tf.keras.Model):
         self.output_dense = Dense(n_outputs, activation=None)
         self.output_softmax = Softmax()
 
+    @tf.function
     def call(self, inputs):
         x_block_in = inputs 
         for i in range(self.n_conv_blocks):
@@ -156,6 +166,7 @@ class TacoNet(tf.keras.Model):
         self.wave_encoder = WaveformEncoder(feature_name_to_idx, **encoder_kwargs)
         self.wave_decoder = WaveformDecoder(**decoder_kwargs)
         
+    @tf.function
     def call(self, inputs):
         waveforms = self.wave_encoder(inputs)
         outputs = self.wave_decoder(waveforms)

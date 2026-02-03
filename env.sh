@@ -1,16 +1,72 @@
 #!/bin/bash
 
-# if (( $# < 1 )) ; then
-#     cat << EOF
-# Setup environment for TauMLTools
-# Usage: source env.sh mode [mode_arg_1] [mode_arg_2] ...
-# Supported modes: run2 run3 phase2_112X phase2_113X lcg conda hlt
-# Mode-specific arguments:
-# conda
-#   --update [env.yaml]  updates environment from env.yaml (default: tau-ml-env.yaml)
-# EOF
-#     return 1
-# fi
+parse_arguments() {
+  # Default values
+  DEFAULT_SETUP_MODE="conda"
+  DEFAULT_ENV_PATH=""
+  SETUP_MODE=${DEFAULT_SETUP_MODE}
+  ENV_PATH=${DEFAULT_ENV_PATH}
+
+  # Parse arguments
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+      -m|--mode)
+        # Validate argument existence and structure
+        if [[ -z $2 || $2 == -* ]]; then
+          echo "Error: $1 requires a value (got '$2')"
+          return 1
+        fi
+        SETUP_MODE="$2"
+        SETUP_WAS_SET="True"
+        shift 2
+        ;;
+      -e|--env-path)
+        # Validate argument existence and structure
+        if [[ -z $2 || $2 == -* ]]; then
+          echo "Error: $1 requires a value (got '$2')"
+          return 1
+        fi
+        ENV_PATH="$2"
+        shift 2
+        ;;
+      -h|--help)
+        echo "Usage: source env.sh [options]"
+        echo ""
+        echo "Options:"
+        echo "  -m, --mode SETUP_MODE    Specify the setup mode to use use"
+        echo "                            [default: ${DEFAULT_SETUP_MODE}]"
+        echo "  -e, --env-path PATH       Specify custom environment path"
+        echo "                            [default: auto-detected]"
+        echo "  -l, --list                List available workflows"
+        echo "  -h, --help                Show this help message"
+        echo ""
+        echo "Environment path precedence:"
+        echo "1. Command line argument (-e/--env-path)"
+        echo "2. Saved location from environment.location file"
+        echo "3. Current directory"
+        return 1
+        ;;
+      -l|--list)
+          echo "Available setup modes:"
+          echo "-------------------"
+          echo "cmssw - Uses a CMSSW installation"
+          echo "conda - Uses a local miniforge"
+          echo "docker - Uses a pre-installed env in a docker container"
+          return 1
+          ;;
+      *)
+        echo "Error: Unknown option $1"
+        echo "Use --help to see available options"
+        return 1
+        ;;
+    esac
+  done
+
+  # Export for use in main script
+  export PARSED_SETUP_MODE="${SETUP_MODE}"
+  export PARSED_ENV_PATH="${ENV_PATH}"
+  return 0
+}
 
 run_cmd() {
   "$@"
@@ -74,13 +130,28 @@ install_cmssw() {
 }
 
 action() {
+
+  parse_arguments "$@"
+  # return 1
+  if [[ $? -ne 0 ]]; then
+    return 1
+  fi
+
+  if [[ -z ${SETUP_WAS_SET} ]]; then
+    echo "No setup mode selected, defaulting to ${DEFAULT_SETUP_MODE}"
+  fi
+
   local this_file="$( [ ! -z "$ZSH_VERSION" ] && echo "${(%):-%x}" || echo "${BASH_SOURCE[0]}" )"
   local this_dir="$( cd "$( dirname "$this_file" )" && pwd )"
-  local MODE=$1
+  local MODE=${SETUP_MODE}
 
   export ANALYSIS_PATH="$this_dir"
   export ANALYSIS_DATA_PATH="$ANALYSIS_PATH/data"
-  export X509_USER_PROXY="$ANALYSIS_DATA_PATH/voms.proxy"
+  if [[ -z ${_CONDOR_SCRATCH_DIR} ]]; then
+    export X509_USER_PROXY="$ANALYSIS_DATA_PATH/voms.proxy"
+  else
+    export X509_USER_PROXY="$_CONDOR_SCRATCH_DIR/voms.proxy"
+  fi
 
   export PYTHONPATH="$this_dir:$PYTHONPATH"
   export LAW_HOME="$this_dir/.law"
@@ -117,78 +188,58 @@ action() {
   fi
 
   if [[ $MODE == *"conda"* ]]; then
-    local CONDA=$(which conda 2>/dev/null)
-    if [[ $CONDA = "" || $CONDA = "/usr/bin/conda" ]]; then
-      local PRIVATE_CONDA_INSTALL_DEFAULT="$ANALYSIS_PATH/soft/conda"
-      local PRIVATE_CONDA_INSTALL="$PRIVATE_CONDA_INSTALL_DEFAULT"
-      if [ -f "$PRIVATE_CONDA_INSTALL_DEFAULT.ref" ]; then
-        local PRIVATE_CONDA_INSTALL=$(cat "$PRIVATE_CONDA_INSTALL.ref")
-      fi
-      if ! [ -f "$PRIVATE_CONDA_INSTALL/.installed" ]; then
-        echo "Please select path where conda environment and packages will be installed."
-        if [[ $HOST = lxplus*  || $HOSTNAME = lxplus* ]]; then
-          echo "On lxplus it is recommended to use /afs/cern.ch/work/${USER:0:1}/$USER/conda or /eos/home-${USER:0:1}/$USER/conda."
-        fi
-        printf "new or existing conda installation path (default $PRIVATE_CONDA_INSTALL_DEFAULT): "
-        read PRIVATE_CONDA_INSTALL
-        if [[ "$PRIVATE_CONDA_INSTALL" = "" ]]; then
-          PRIVATE_CONDA_INSTALL="$PRIVATE_CONDA_INSTALL_DEFAULT"
-        fi
-        if [[ "$PRIVATE_CONDA_INSTALL" != "$PRIVATE_CONDA_INSTALL_DEFAULT" ]]; then
-          echo $PRIVATE_CONDA_INSTALL > "$PRIVATE_CONDA_INSTALL_DEFAULT.ref"
-        else
-          rm -f "$PRIVATE_CONDA_INSTALL_DEFAULT.ref"
-        fi
-        if ! [ -f "$PRIVATE_CONDA_INSTALL/.installed" ]; then
-          if [ -d $PRIVATE_CONDA_INSTALL ]; then
-            printf "Incomplete private conda installation in $PRIVATE_CONDA_INSTALL. Proceed? [y/N] "
-            read X
-            if [[ $X = "y" || $X = "Y" || $X = "yes" ]]; then
-              run_cmd rm -rf $PRIVATE_CONDA_INSTALL
-            else
-              echo "Aborting..."
-              kill -INT $$
-            fi
-          fi
-          echo "Installing conda..."
-          run_cmd mkdir -p soft
-          run_cmd cd soft
-          run_cmd curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -o Miniconda3-latest-Linux-x86_64.sh
-          run_cmd bash Miniconda3-latest-Linux-x86_64.sh -b -p "$PRIVATE_CONDA_INSTALL"
-          run_cmd touch "$PRIVATE_CONDA_INSTALL/.installed"
-          run_cmd rm Miniconda3-latest-Linux-x86_64.sh
-          run_cmd cd ..
-        fi
-      fi
-      __conda_setup="$($PRIVATE_CONDA_INSTALL/bin/conda shell.${SHELL##*/} hook)"
-      if (( $? == 0 )); then
-        eval "$__conda_setup"
-      else
-        if [ -f "$PRIVATE_CONDA_INSTALL/etc/profile.d/conda.sh" ]; then
-          . "$PRIVATE_CONDA_INSTALL/etc/profile.d/conda.sh"
-        else
-          export PATH="$PRIVATE_CONDA_INSTALL/bin:$PATH"
-        fi
-      fi
-      unset __conda_setup
+
+    ENV_NAME="tau-ml-TV"
+
+    if [[ ! -z ${PARSED_ENV_PATH} ]]; then
+      ENV_PATH="$(realpath ${PARSED_ENV_PATH})"
+    elif [[ -f "${ANALYSIS_PATH}/environment.location" ]]; then
+      ENV_PATH="$(tail -n 1 ${ANALYSIS_PATH}/environment.location)"
+    else
+      ENV_PATH="${ANALYSIS_PATH}/soft"
     fi
-    tau_env_found=$(conda env list | grep -E '^tau-ml .*' | wc -l)
-    if (( $tau_env_found != 1 )); then
-      echo "Creating tau-ml environment..."
-      run_cmd conda env create -f $ANALYSIS_PATH/tau-ml-env.yaml
+    echo "Using environments from ${ENV_PATH}/conda."
+    # Save env location to file if provided
+    if [[ ! -z ${PARSED_ENV_PATH} ]]; then
+      echo saving environment path to file for future setups.
+      echo "### This file contains the environment location that was provided when the setup was last run ###" > ${ANALYSIS_PATH}/environment.location
+      echo "${ENV_PATH}" >> ${ANALYSIS_PATH}/environment.location
     fi
-    run_cmd conda activate tau-ml
-    ARG="$2"
-    if [[ $ARG = "--update" ]]; then
-      ENV_YAML="$3"
-      if [[ $ENV_YAML = "" ]]; then
-        ENV_YAML="tau-ml-env.yaml"
+    if [ ! -f "${ENV_PATH}/conda/bin/activate" ]; then
+      # Miniforge version used for all environments
+      MAMBAFORGE_VERSION="24.3.0-0"
+      MAMBAFORGE_INSTALLER="Mambaforge-${MAMBAFORGE_VERSION}-$(uname)-$(uname -m).sh"
+      echo "Miniforge could not be found, installing miniforge version ${MAMBAFORGE_INSTALLER}"
+      echo "More information can be found in"
+      echo "https://github.com/conda-forge/miniforge"
+      curl -L -O https://github.com/conda-forge/miniforge/releases/download/${MAMBAFORGE_VERSION}/${MAMBAFORGE_INSTALLER}
+      bash ${MAMBAFORGE_INSTALLER} -b -s -p ${ENV_PATH}/conda
+      rm -f ${MAMBAFORGE_INSTALLER}
+    fi
+
+    # Source base env of conda
+    source ${ENV_PATH}/conda/bin/activate ''
+
+    # Check if correct conda env is running
+    if [ -d "${ENV_PATH}/conda/envs/${ENV_NAME}" ]; then
+      echo  "${ENV_NAME} env found using conda."
+    else
+      # Create conda env from yaml file if necessary
+      echo "Creating ${ENV_NAME} env from ${ENV_NAME}-env.yaml..."
+      if [[ ! -f "${ANALYSIS_PATH}/${ENV_NAME}-env.yaml" ]]; then
+        echo "${ANALYSIS_PATH}/${ENV_NAME}-env.yml not found. Unable to create environment."
+        return 1
       fi
-      echo "Updating conda environment from '$ENV_YAML'..."
-      run_cmd conda env update --file $ENV_YAML --prune
+      conda env create -f ${ANALYSIS_PATH}/${ENV_NAME}-env.yml -n ${ENV_NAME}
+      echo  "${ENV_NAME} env built using conda."
     fi
+    echo "Activating env ${ENV_NAME} from conda."
+    conda activate ${ENV_NAME}
+
     local TAU_ML_LIB_DIR=$(cd $(dirname $(which python))/..; pwd)
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TAU_ML_LIB_DIR/lib
+  elif [[ $MODE == *"docker"* ]]; then
+    source /miniforge/bin/activate tau-ml
   else
     source /cvmfs/sft.cern.ch/lcg/views/setupViews.sh LCG_107 x86_64-el9-gcc14-opt
     for law_location in /afs/cern.ch/user/m/mrieger/public/law_sw/setup.sh /afs/desy.de/user/r/riegerma/public/law_sw/setup.sh; do

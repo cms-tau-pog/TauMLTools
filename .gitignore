@@ -17,3 +17,13 @@ __init__.py
 /data
 /.crabOverseer
 /tmp
+/tarballs
+environment.location
+*.code-workspace
+/.cache
+/.conda
+/.anaconda
+/.python_history
+/mlruns
+/Outputs
+*.code-workspace

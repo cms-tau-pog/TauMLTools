@@ -3,7 +3,10 @@ from omegaconf import OmegaConf, DictConfig
 import tensorflow as tf
 from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, Conv2D, Activation
 from models.embedding import FeatureEmbedding
-from utils.training import create_padding_mask
+
+def create_padding_mask(seq):
+    mask = tf.math.reduce_any(tf.math.not_equal(seq, 0), axis=-1) # [batch, seq], 0 -> padding, 1 -> constituent
+    return mask
 
 class ParticleNet(tf.keras.Model):
     def __init__(self, feature_name_to_idx, encoder_cfg, decoder_cfg):
@@ -201,6 +204,7 @@ class EdgeConv(tf.keras.layers.Layer):
         else:
             return sc + fts
 
+    @tf.function
     def knn(self, k, topk_indices, features):
         # topk_indices: (N, P, K)
         # features: (N, P, C)
@@ -212,6 +216,7 @@ class EdgeConv(tf.keras.layers.Layer):
             indices = tf.concat([batch_indices, tf.expand_dims(topk_indices, axis=3)], axis=3)  # (N, P, K, 2)
             return tf.gather_nd(features, indices)
 
+    @tf.function
     def batch_distance_matrix_general(self, A, B):
         with tf.name_scope('dmat'):
             r_A = tf.reduce_sum(A * A, axis=2, keepdims=True)

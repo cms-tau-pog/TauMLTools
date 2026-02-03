@@ -1,8 +1,9 @@
 from omegaconf import OmegaConf, DictConfig
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, MultiHeadAttention, LayerNormalization, Dropout, Softmax
+from tensorflow.keras.layers import Dense, MultiHeadAttention, LayerNormalization, Dropout, Softmax, Activation, Normalization
 from models.embedding import FeatureEmbedding
-from utils.training import create_padding_mask
+
+relax_shapes = False
 
 class MaskedMultiHeadAttention(tf.keras.layers.Layer):
     def __init__(self, num_heads, dim_head_key, dim_head_value, dim_out):
@@ -11,7 +12,8 @@ class MaskedMultiHeadAttention(tf.keras.layers.Layer):
         self.dim_head_key = dim_head_key
         self.dim_head_value = dim_head_value
         self.dim_out = dim_out
-        self.att_logit_norm = tf.sqrt(tf.cast(dim_head_key, tf.float32))
+        self.att_logit_norm = tf.sqrt(dim_head_key)
+        # self.att_logit_norm = tf.sqrt(tf.cast(dim_head_key, tf.float32))
 
         # head projection layers, separate dim  
         self.wq = tf.keras.layers.Dense(self.dim_head_key*self.num_heads) 
@@ -20,10 +22,12 @@ class MaskedMultiHeadAttention(tf.keras.layers.Layer):
 
         self.dense = tf.keras.layers.Dense(dim_out)
 
+    @tf.function(experimental_relax_shapes=relax_shapes)
     def split_heads(self, x, batch_size, head_dim):
         x = tf.reshape(x, (batch_size, -1, self.num_heads, head_dim))
         return tf.transpose(x, perm=[0, 2, 1, 3]) # (batch_size, num_heads, seq_len, depth)
 
+    @tf.function(experimental_relax_shapes=relax_shapes)
     def masked_attention(self, q, k, v, mask=None):
         # q * k^T
         matmul_qk = tf.matmul(q, k, transpose_b=True)  # (..., seq_len_q, seq_len_k)
@@ -54,6 +58,7 @@ class MaskedMultiHeadAttention(tf.keras.layers.Layer):
 
         return output, attention_weights
 
+    @tf.function(experimental_relax_shapes=relax_shapes)
     def call(self, query, key, value, attention_mask, return_attention_scores=False):
         batch_size = tf.shape(query)[0]
 
@@ -103,8 +108,12 @@ class EncoderLayer(tf.keras.layers.Layer):
         self.dropout1 = Dropout(dropout_rate)
         self.dropout2 = Dropout(dropout_rate)
 
-    def call(self, x, mask, training): # , return_attention_scores=False
-        attn_output, attn_score = self.mha(query=x, value=x, key=x, attention_mask=mask, return_attention_scores=True) 
+    @tf.function(experimental_relax_shapes=relax_shapes)
+    def call(self, x, mask, training, return_attention_scores=False):
+        if return_attention_scores:
+            attn_output, attn_score = self.mha(query=x, value=x, key=x, attention_mask=mask, return_attention_scores=False)
+        else:
+            attn_output = self.mha(query=x, value=x, key=x, attention_mask=mask, return_attention_scores=False)
         attn_output = self.dropout1(attn_output, training=training)
         out1 = self.layernorm1(x + attn_output)  
 
@@ -112,8 +121,10 @@ class EncoderLayer(tf.keras.layers.Layer):
         ffn_output = self.dropout2(ffn_output, training=training)
         out2 = self.layernorm2(out1 + ffn_output)
 
-        return out2, attn_score
-    
+        if return_attention_scores:
+            return out2, attn_score
+        else:
+            return out2
 class Encoder(tf.keras.layers.Layer):
     def __init__(self, feature_name_to_idx, embedding_kwargs, use_masked_mha, num_layers, num_heads, 
                         dim_model, dim_head_key, dim_head_value, dim_ff, activation, dropout_rate):
@@ -141,64 +152,59 @@ class Encoder(tf.keras.layers.Layer):
 
         self.feature_embedding = FeatureEmbedding(**embedding_kwargs)
 
-    def call(self, x, mask, training):
+    @tf.function(experimental_relax_shapes=relax_shapes)
+    def call(self, x, mask, training, return_attention_scores=False):
         x = self.feature_embedding(x)
         x = self.dropout(x, training=training)
         
         attn_scores = []
         for i in range(self.num_layers):
-            x, attn_score = self.enc_layers[i](x, mask, training)
-            attn_scores.append(attn_score)
-    
-        return x, attn_scores
+            if return_attention_scores:
+                x, attn_score = self.enc_layers[i](x, mask=mask, training=training, return_attention_scores=return_attention_scores)
+                attn_scores.append(attn_score)
+            else:
+                x = self.enc_layers[i](x, mask=mask, training=training, return_attention_scores=return_attention_scores)
+        if return_attention_scores:
+            return x, attn_scores
+        else:
+            return x
 
 class Transformer(tf.keras.Model):
     def __init__(self, feature_name_to_idx, encoder_kwargs, decoder_kwargs):
         super().__init__()
         encoder_kwargs = OmegaConf.to_object(encoder_kwargs)
         self.use_masked_mha = encoder_kwargs["use_masked_mha"]
-        self.particle_blocks_to_drop = [i for i, feature_names in enumerate(encoder_kwargs['embedding_kwargs']['features_to_drop'].values())
-                                                     if feature_names=='all']
+        # self.particle_blocks_to_drop = [i for i, feature_names in enumerate(encoder_kwargs['embedding_kwargs']['features_to_drop'].values())
+        #                                              if feature_names=='all']
         self.global_block_id = list(feature_name_to_idx.keys()).index('global')
-        self.r_indices = [feature_indices['r'] if particle_block_name != 'global' else None for particle_block_name, feature_indices in feature_name_to_idx.items()]
         self.r_cut = encoder_kwargs['embedding_kwargs'].pop('r_cut')
+        if self.r_cut is not None:
+            self.r_indices = [feature_indices['r'] if particle_block_name != 'global' else None for particle_block_name, feature_indices in feature_name_to_idx.items()]
 
         self.encoder = Encoder(feature_name_to_idx, **encoder_kwargs)
         self.decoder_dense = [Dense(n_nodes, activation=decoder_kwargs['activation']) for n_nodes in decoder_kwargs['dim_ff_layers']]
         self.output_dense = Dense(decoder_kwargs['n_outputs'], activation=None)
         self.output_pred = Softmax()
         self.output_attn = decoder_kwargs['output_attn']
-
+    
+    @tf.function(experimental_relax_shapes=relax_shapes) 
     def call(self, inputs, training):
+        mask = tf.concat([tf.math.reduce_any(tf.math.not_equal(input_, 0), axis=-1) for input_ in inputs], axis=1) 
 
-        # pad input tensors per particle type and create corresponding mask  
-        mask = []
-        padded_inputs = []
-        for input_id, input_ in enumerate(inputs):
-            if input_id in self.particle_blocks_to_drop: continue
-            if input_id==self.global_block_id:
-                input_ = tf.cast(input_, tf.float32) # seems to be stored as float64, so cast to float32
-                input_ = input_[:, tf.newaxis, :] # add dummy constituents axis, no padding needed
-            else:
-                if self.r_cut is not None:
-                    input_ = tf.ragged.boolean_mask(input_, input_[:,:,self.r_indices[input_id]] < self.r_cut)
-                input_ = input_.to_tensor()
-            padded_inputs.append(input_)
-            mask.append(create_padding_mask(input_))
-        mask = tf.concat(mask, axis=1) 
-
-        padding_mask = tf.math.logical_and(mask[:, tf.newaxis, :], mask[:, :, tf.newaxis]) # [batch, seq, seq], symmetric block-diagonal
+        padding_mask = tf.math.logical_and(tf.expand_dims(mask, axis=1), tf.expand_dims(mask, axis=-1)) # [batch, seq, seq], symmetric block-diagonal
         if self.use_masked_mha: # invert mask, 0 -> constituent, 1 -> padding
             padding_mask = ~padding_mask
-        padding_mask = tf.cast(padding_mask, tf.float32)
-        padding_mask = padding_mask[:, tf.newaxis, :, :] # additional axis for head dimension 
+        padding_mask = tf.expand_dims(padding_mask, axis=1) # additional axis for head dimension 
 
         # propagate through encoder
-        enc_output, attn_scores = self.encoder(padded_inputs, padding_mask, training)
+        if self.output_attn:
+            enc_output, attn_scores = self.encoder(inputs, mask=padding_mask, training=training, return_attention_scores=self.output_attn)
+        else:
+            enc_output = self.encoder(inputs, mask=padding_mask, training=training, return_attention_scores=self.output_attn)
 
          # mask padded tokens before pooling 
-        mask = tf.cast(mask, tf.float32)
-        enc_output *= mask[...,  tf.newaxis]
+        enc_output *= tf.expand_dims(tf.cast(mask, tf.float32), axis=-1)
+        # enc_output *= tf.expand_dims(tf.cast(mask, tf.float16), axis=-1)
         
         # pooling by summing over constituent dimension
         enc_output = tf.math.reduce_sum(enc_output, axis=1) 
@@ -215,24 +221,26 @@ class Transformer(tf.keras.Model):
             return output
 
 class CustomSchedule(tf.keras.optimizers.schedules.LearningRateSchedule):
-  def __init__(self, d_model, warmup_steps, lr_multiplier):
-    super(CustomSchedule, self).__init__()
+    def __init__(self, d_model, warmup_steps, lr_multiplier):
+        super(CustomSchedule, self).__init__()
 
-    self.lr_multiplier = lr_multiplier
-    self.d_model = d_model
-    self.warmup_steps = warmup_steps
+        self.lr_multiplier = lr_multiplier
+        self.d_model = d_model
+        self.warmup_steps = warmup_steps
 
-  def get_config(self):
-    config = {
-    'd_model': self.d_model,
-    'warmup_steps': self.warmup_steps,
-    'lr_multiplier': self.lr_multiplier
-     }
-    return config
+    @tf.function(experimental_relax_shapes=relax_shapes)
+    def get_config(self):
+        config = {
+        'd_model': self.d_model,
+        'warmup_steps': self.warmup_steps,
+        'lr_multiplier': self.lr_multiplier
+        }
+        return config
 
-  def __call__(self, step):
-    step = tf.cast(step, tf.float32) # needed for serialisation during model saving
-    arg1 = tf.math.rsqrt(step)
-    arg2 = step * (self.warmup_steps ** -1.5)
+    @tf.function(experimental_relax_shapes=relax_shapes)
+    def __call__(self, step):
+        # step = tf.cast(step, tf.float32) # needed for serialisation during model saving
+        arg1 = tf.math.rsqrt(step)
+        arg2 = step * (self.warmup_steps ** -1.5)
 
-    return self.lr_multiplier * tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
+        return self.lr_multiplier * tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)

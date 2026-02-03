@@ -39,7 +39,7 @@ wp_maker:
   verbose: False
   rounding: 6
 
-output_name: working_points_merge.json
+output_name: working_points_RetraceDeepTau
 
 create_df:
   _target_: __main__.create_df
@@ -98,7 +98,23 @@ create_df:
     #   sample_lumi: 59.83
     #   reweight_to_lumi: 137.64
     GluGluHToTauTau_M125:
-      filename_pattern: 'eventTuple_*/predictions.h5'
+      filename_pattern: #'eventTuple_*/predictions.h5'
+        - "eventTuple_1/predictions.h5"
+        - "eventTuple_1-1/predictions.h5"
+        - "eventTuple_1-10/predictions.h5"
+        - "eventTuple_1-11/predictions.h5"
+        - "eventTuple_1-12/predictions.h5"
+        - "eventTuple_1-13/predictions.h5"
+        - "eventTuple_1-2/predictions.h5"
+        - "eventTuple_1-3/predictions.h5"
+        - "eventTuple_1-4/predictions.h5"
+        - "eventTuple_1-5/predictions.h5"
+        - "eventTuple_1-6/predictions.h5"
+        - "eventTuple_1-7/predictions.h5"
+        - "eventTuple_1-8/predictions.h5"
+        - "eventTuple_1-9/predictions.h5"
+        - "eventTuple_10/predictions.h5"
+        - "eventTuple_11/predictions.h5"
       # sample_lumi: 59.83
       # reweight_to_lumi: 137.64
 
