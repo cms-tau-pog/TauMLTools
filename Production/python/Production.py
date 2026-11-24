@@ -49,7 +49,10 @@ options.register('reclusterJets', True, VarParsing.multiplicity.singleton, VarPa
 options.register('rerunTauReco', '', VarParsing.multiplicity.singleton, VarParsing.varType.string,
                 """If not empty, tau reconstruction is re-run on MINIAOD (available modes:
                    1) signalCone - larger signal cone and no DM finding filter,
-                   2) displacedTau - loose max Impact Parameter and signal quality cuts)""")
+                   2) displacedTau - loose max Impact Parameter and signal quality cuts,
+                   3) default - rerun HPS with the CMSSW windows (closure check),
+                   4) noDMF - keep taus failing DM finding,
+                   5) looseDM10 / looseDM11 / looseDM2 / looseAll - loosened HPS DM windows)""")
 options.register('runTauSpinner', False, VarParsing.multiplicity.singleton, VarParsing.varType.bool,
                  "Run TauPOGSpinner to store CP weights")
 
@@ -169,12 +172,19 @@ if options.rerunTauReco:
         runOnData(process, names = ['Taus'], outputModules = [])
 
     import TauMLTools.Production.setupTauReReco as setupTauReReco
-    if options.rerunTauReco == "signalCone":
-        setupTauReReco.reReco_SigCone(process)
-    elif options.rerunTauReco == "displacedTau":
-        setupTauReReco.reReco_DisTau(process)
-    else:
+    _modes = {
+        "signalCone":   setupTauReReco.reReco_SigCone,
+        "displacedTau": setupTauReReco.reReco_DisTau,
+        "default":      setupTauReReco.reReco_Default,
+        "noDMF":        setupTauReReco.reReco_NoDMF,
+        "looseDM10":    setupTauReReco.reReco_LooseDM10,
+        "looseDM11":    setupTauReReco.reReco_LooseDM11,
+        "looseDM2":     setupTauReReco.reReco_LooseDM2,
+        "looseAll":     setupTauReReco.reReco_LooseAll,
+    }
+    if options.rerunTauReco not in _modes:
         raise RuntimeError('rerunTauReco = "{}" mode is not supported.'.format(options.rerunTauReco))
+    _modes[options.rerunTauReco](process)
 
 # include Phase2 specific configuration only after 11_0_X
 if isPhase2:

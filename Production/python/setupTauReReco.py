@@ -26,3 +26,44 @@ def reReco_DisTau(process):
         builder.qualityCuts.signalQualityCuts.maxTransverseImpactParameter = cms.double(100.)
         builder.qualityCuts.vxAssocQualityCuts.maxTransverseImpactParameter = cms.double(100.)
         builder.qualityCuts.pvFindingAlgo = cms.string('highestPtInEvent')
+
+
+_HPS_MODULES = ("hpsSelectionDiscriminator",
+                "hpsPFTauDiscriminationByDecayModeFindingNewDMs")
+
+def _dm_psets(process):
+    """Yield {(nCharged, nPiZeros): PSet} for each module holding the HPS windows."""
+    for name in _HPS_MODULES:
+        mod = getattr(process, name)
+        yield {(p.nCharged.value(), p.nPiZeros.value()): p for p in mod.decayModes}
+
+def _loosen_dm10(dm):   # 3 prongs, 0 strips
+    dm[(3, 0)].minMass = 0.6
+    dm[(3, 0)].maxMass = "max(1.5, min(1.5*sqrt(pt/100.), 4.0))"
+
+def _loosen_dm11(dm):   # 3 prongs, 1 strip; maxMass also bounds the charged-hadron mass
+    dm[(3, 1)].maxMass = "max(1.6, min(1.6*sqrt(pt/100.), 4.0))"
+
+def _loosen_dm2(dm):    # 1 prong, 2 strips: open the strip-pair mass window
+    dm[(1, 2)].minPi0Mass = -1.e3
+    dm[(1, 2)].maxPi0Mass = 1.e9
+
+def reReco_Default(process):
+    pass   # rerun only: closure check and baseline
+
+def reReco_NoDMF(process):
+    # The pt/DM-finding cut lives in selectedPatTausNoNewIDs (PATTauSelector); selectedPatTaus
+    # is the PATTauIDEmbedder that reads from it, so setting .cut there would have no effect.
+    process.selectedPatTausNoNewIDs.cut = cms.string('pt > 18.')   # keep taus failing DM finding
+
+def _make_loose(*loosen):
+    def apply(process):
+        for dm in _dm_psets(process):
+            for f in loosen:
+                f(dm)
+    return apply
+
+reReco_LooseDM10 = _make_loose(_loosen_dm10)
+reReco_LooseDM11 = _make_loose(_loosen_dm11)
+reReco_LooseDM2  = _make_loose(_loosen_dm2)
+reReco_LooseAll  = _make_loose(_loosen_dm10, _loosen_dm11, _loosen_dm2)
