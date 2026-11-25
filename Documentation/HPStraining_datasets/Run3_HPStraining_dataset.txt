@@ -1,0 +1,23 @@
+TauT Run 3 (2024) samples
+=========================
+Location : /eos/cms/store/group/phys_tau/ppalit/Run3_samples/   (readable by any CERN account)
+xrootd   : root://eoscms.cern.ch//eos/cms/store/group/phys_tau/ppalit/Run3_samples/
+MC       : RunIII2024Summer24MiniAODv6, 13.6 TeV, TauTuple format (tree "taus", one entry per tau candidate)
+Split    : by event number: evt % 20 = 0-15 training, 16 validation, 17-19 evaluation (never used in training)
+
+Training     ShuffleMergeSpectral/train/   1600 files   61,018,246 candidates
+Validation   ShuffleMergeSpectral/val/     1600 files    3,813,763 candidates
+  141 samples mixed (ttbar, DY, W+jets, QCD, H->tautau, Z'->ee, W'->taunu).
+  tau : e : mu : jet = 1 : 1 : 1 : 1, flat in pT (20-1000 GeV) and |eta| (< 2.5) for each class.
+
+Evaluation   Evaluation/<sample>/          1321 files   14.2 M candidates
+  Natural spectra, all HPS taus with 20 < pT < 1000 GeV, |eta| < 2.3, decay modes 0, 1, 10, 11.
+    GluGluH-HTo2Tau_M-125       genuine tau_h    1,872,877
+    TTtoLNu2Q                   jets, e, mu     10,147,682
+    DYto2E-2Jets_MLL-50         electrons          828,610
+    DYto2Mu-2Jets_1J_MLL-50     muons            1,374,383
+
+Other
+  ShuffleMergeSpectral/test/      held-out part of the training mix (11,447,536), only for overfitting checks
+  ShuffleMergeSpectral/hashes/    which sample each candidate came from (dataset_id, dataset_group_id)
+  ShuffleMergeSpectral/entries/   number of candidates per file

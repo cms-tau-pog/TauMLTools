@@ -1,0 +1,18 @@
+TauT Run 2 (2018) samples
+=========================
+Same samples as DeepTau v2.5 and Tim's TauT (2018 MC, TauTuple format, tree "taus", one entry per tau candidate).
+
+Training and validation (ROOT):
+  /eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_trainingSamples-2_rerun/
+  Training     ShuffleMergeSpectral_0 ... _450 (no _136)   450 files   86,281,156 candidates
+  Validation   ShuffleMergeSpectral_451 ... _499            49 files    9,855,148 candidates
+  75 samples mixed (ttbar, DY, W+jets, QCD, H->tautau (no ggH), Z'->ee, tau gun).
+  tau : e : mu : jet = 1 : 1 : 1 : 1, flat in pT (20-1000 GeV) and |eta| (< 2.5) for each class.
+  Candidates per file: /eos/cms/store/group/phys_tau/TauML/prod_2018_v2/ShuffleMergeSpectral_TrainingSpectrum/ShuffleMergeSpectral_trainingSamples-2_rerun.txt
+
+Evaluation (Tim's test set, TFRecords at KIT, separate samples not used in training, natural spectra):
+  root://cmsdcache-kit-disk.gridka.de//store/user/tvoigtlaender/TAUML/DeepTau_retrace/RootToTF/<sample>/
+    GluGluHToTauTau_M125                  genuine tau_h
+    TTToSemiLeptonic                      jets, e, mu
+    DYJetsToLL_M-50-amcatnloFXFX_ext2     e, mu
+  ~9.3 M candidates; standard selection 20 < pT < 100 GeV, |eta| < 2.3, decay modes 0, 1, 10, 11.
