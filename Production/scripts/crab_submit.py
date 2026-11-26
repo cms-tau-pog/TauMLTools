@@ -28,6 +28,7 @@ parser.add_argument('--inputDBS', required=False, default="global", help="DBS in
 parser.add_argument('--splitting', required=False, default="Automatic",
 					help="suffix that will be added to each job name")
 parser.add_argument('--unitsPerJob', required=False, type=int, default=1000, help="number of units per job")
+parser.add_argument('--totalUnits', required=False, type=int, default=-1, help="total number of units (files for FileBased splitting); -1 = whole dataset")
 parser.add_argument('--maxMemory', required=False, type=int, default=2000,
 					help="maximum amount of memory (in MB) a job is allowed to use (default: 2000 MB )")
 parser.add_argument('--numCores', required=False, type=int, default=1, help="number of cores per job (default: 1)")

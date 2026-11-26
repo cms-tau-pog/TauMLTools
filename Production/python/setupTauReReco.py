@@ -63,7 +63,17 @@ def _make_loose(*loosen):
                 f(dm)
     return apply
 
+def _loosen_dm10_flat(dm):   # 3 prongs, 0 strips: lower min mass only, keep the upper limit flat (no pT scaling)
+    dm[(3, 0)].minMass = 0.6
+    dm[(3, 0)].maxMass = "1.5"
+
+def _loosen_dm2_full(dm):    # 1 prong, 2 strips: open the full mass window (first guess: 0-4 GeV)
+    dm[(1, 2)].minMass = 0.0
+    dm[(1, 2)].maxMass = "4.0"
+
 reReco_LooseDM10 = _make_loose(_loosen_dm10)
 reReco_LooseDM11 = _make_loose(_loosen_dm11)
 reReco_LooseDM2  = _make_loose(_loosen_dm2)
 reReco_LooseAll  = _make_loose(_loosen_dm10, _loosen_dm11, _loosen_dm2)
+reReco_LooseDM10Flat = _make_loose(_loosen_dm10_flat)
+reReco_LooseDM2Full  = _make_loose(_loosen_dm2, _loosen_dm2_full)

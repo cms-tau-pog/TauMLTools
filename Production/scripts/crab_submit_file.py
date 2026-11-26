@@ -40,7 +40,7 @@ parser.add_argument('--jobFile', required=True, type=str, help="text file with j
 args = parser.parse_args()
 
 from CRABClient.UserUtilities import config, ClientException
-from CRABClient.UserUtilities import getUsernameFromCRIC as getUsername
+from CRABClient.UserUtilities import getUsername  # newer CRABClient: getUsernameFromCRIC was renamed
 from CRABAPI.RawCommand import crabCommand
 httplib=__import__('httplib' if sys.version_info.major<3 else 'http.client')
 HTTPException=httplib.HTTPException if sys.version_info.major<3 else httplib.client.HTTPException

@@ -181,6 +181,8 @@ if options.rerunTauReco:
         "looseDM11":    setupTauReReco.reReco_LooseDM11,
         "looseDM2":     setupTauReReco.reReco_LooseDM2,
         "looseAll":     setupTauReReco.reReco_LooseAll,
+        "looseDM10flat": setupTauReReco.reReco_LooseDM10Flat,
+        "looseDM2full":  setupTauReReco.reReco_LooseDM2Full,
     }
     if options.rerunTauReco not in _modes:
         raise RuntimeError('rerunTauReco = "{}" mode is not supported.'.format(options.rerunTauReco))
